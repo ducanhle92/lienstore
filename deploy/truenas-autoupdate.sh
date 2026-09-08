@@ -29,7 +29,18 @@ fi
 
 digest="$(docker image inspect -f '{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null | sed 's/.*@sha256://' | cut -c1-12)"
 version="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$IMAGE" 2>/dev/null)"
-log "new image for $IMAGE (version=${version:-?} digest=${digest:-?}) → redeploying app"
+log "new image for $IMAGE (version=${version:-?} digest=${digest:-?}) → backing up DB, then redeploying app"
+
+# Consistent SQLite backup (node:sqlite online backup) into the app's data volume before the new version migrates it.
+# Keeps the 10 most recent copies. Container is found through the compose project label TrueNAS sets (ix-<app>).
+cid="$(docker ps -q --filter "label=com.docker.compose.project=ix-$APP" 2>/dev/null | head -1)"
+if [ -n "$cid" ]; then
+  if docker exec "$cid" node -e '""" + BACKUP_NODE + """' >/dev/null 2>&1; then
+    log "db backup written to <data>/backups/ (keeping 10)"
+  else
+    log "WARNING: db backup failed (continuing with redeploy)"
+  fi
+fi
 
 # TrueNAS 25.04+: app.redeploy; 24.10: app.pull_images with redeploy. Try both, keep the error text for the log.
 if out="$(midclt call -j app.redeploy "$APP" 2>&1)"; then
@@ -47,8 +58,9 @@ port="$(midclt call app.config "$APP" 2>/dev/null | sed -n 's/.*"\([0-9]\{4,5\}\
 if [ -n "$port" ]; then
   i=0
   while [ $i -lt 30 ]; do
-    if curl -fsS -m 5 "http://127.0.0.1:${port}/api/health/" >/dev/null 2>&1; then
-      log "healthy on :$port after redeploy (version ${version:-?})"; notify "✅ $APP updated to ${version:-$digest} — https://linconnn.io.vn"; exit 0
+    if h="$(curl -fsS -m 5 "http://127.0.0.1:${port}/api/health/" 2>/dev/null)"; then
+      v="$(printf '%s' "$h" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')"
+      log "healthy on :$port after redeploy (app version ${v:-?}, image ${version:-?})"; notify "✅ $APP updated to ${v:-${version:-$digest}}"; exit 0
     fi
     i=$((i+1)); sleep 5
   done

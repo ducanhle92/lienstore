@@ -122,7 +122,13 @@ Cổng LAN mặc định `30080`, DB nằm ở `/mnt/<pool>/lienstore/data`. Ra 
 
 ## Đánh phiên bản
 
-SemVer, tag `vMAJOR.MINOR.PATCH`. `npm version patch|minor|major` cập nhật `package.json`, tạo commit và tag; `git push --follow-tags` kích hoạt workflow Release. Lịch sử thay đổi trong [CHANGELOG.md](CHANGELOG.md).
+SemVer, tag `vMAJOR.MINOR.PATCH`. Quy trình đưa bản mới lên prod gồm một lệnh:
+
+```bash
+npm run release -- minor      # hoặc patch | major | 1.7.0 ; thêm --dry-run để xem trước
+```
+
+Lệnh kiểm tra cây làm việc sạch và đang ở `main`, tăng version trong `package.json`, chuyển mục *Unreleased* của [CHANGELOG.md](CHANGELOG.md) thành mục phiên bản, commit, tag và push. Workflow **Release** không build lại: nó gắn thêm tag `X.Y.Z` / `latest` cho đúng image CI đã build và đang chạy trên dev (`sha-<commit>`), kiểm tra `/api/health/` báo đúng version, rồi tạo GitHub Release. Cron trên TrueNAS thấy `:latest` đổi → backup DB → redeploy prod. Chi tiết và cách quay lại bản cũ: [docs/DEPLOY.md](docs/DEPLOY.md) §4c.
 
 ## Cấu trúc thư mục
 

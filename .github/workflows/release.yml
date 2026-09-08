@@ -1,14 +1,11 @@
-# Release pipeline: tag → build multi-arch image → push to GHCR → (optional) redeploy on TrueNAS.
+# Release pipeline: tag vX.Y.Z → PROMOTE the image CI already built for that commit (`sha-<sha>`, the one running on
+# dev) to `X.Y.Z`, `X.Y` and `latest` on GHCR → GitHub Release notes. Takes ~30 s; no rebuild, so prod runs exactly
+# the bytes that were tested on dev. Falls back to a fresh linux/amd64 build when the sha image is missing
+# (e.g. the tag points at a commit that never reached `main`).
 #
-# Versioning: git tags vMAJOR.MINOR.PATCH (SemVer). `npm version patch|minor|major` bumps package.json,
-# commits and creates the tag; `git push --follow-tags` triggers this workflow.
-# Image tags produced: 1.2.3, 1.2, latest, sha-<short>.
-#
-# Required repository secrets for the deploy job (skip the job if you deploy manually):
-#   TRUENAS_HOST      e.g. truenas.local or a Tailscale IP
-#   TRUENAS_USER      SSH user with app permissions (e.g. truenas_admin)
-#   TRUENAS_SSH_KEY   private key (ed25519) whose public key is in that user's authorized_keys
-#   TRUENAS_APP_NAME  name of the Custom App (default: lienstore)
+# Create a release with `npm run release -- patch|minor|major|X.Y.Z` (scripts/release.mjs): bumps package.json,
+# moves the CHANGELOG "Unreleased" notes under the new version, commits, tags and pushes.
+# TrueNAS pulls `:latest` from a cron job (deploy/truenas-autoupdate.sh) — nothing here needs to reach the NAS.
 name: Release
 
 on:
@@ -24,14 +21,13 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/lienstore
 
 jobs:
-  build-push:
-    name: Build & push image
+  promote:
+    name: Promote tested image → latest
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.meta.outputs.version }}
+      built: ${{ steps.wait.outputs.found == 'false' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -44,46 +40,53 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=sha,prefix=sha-
-      - uses: docker/build-push-action@v6
+      - name: Wait for the CI image of this commit (up to 12 min)
+        id: wait
+        run: |
+          SRC="$IMAGE:sha-${{ github.sha }}"
+          for i in $(seq 1 24); do
+            if docker manifest inspect "$SRC" >/dev/null 2>&1; then
+              echo "found=true" >> "$GITHUB_OUTPUT"; echo "source=$SRC" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            echo "CI image $SRC not published yet (attempt $i) — waiting 30 s"; sleep 30
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+      - name: Retag CI image (no rebuild)
+        if: steps.wait.outputs.found == 'true'
+        run: |
+          set -e
+          args=""
+          for t in $(printf '%s\n' "${{ steps.meta.outputs.tags }}"); do args="$args -t $t"; done
+          docker buildx imagetools create $args "${{ steps.wait.outputs.source }}"
+          echo "Promoted ${{ steps.wait.outputs.source }} → ${{ steps.meta.outputs.tags }}" | tr '\n' ' '
+      - uses: docker/setup-buildx-action@v3
+        if: steps.wait.outputs.found == 'false'
+      - name: Fallback build (linux/amd64)
+        if: steps.wait.outputs.found == 'false'
+        uses: docker/build-push-action@v6
         with:
           context: .
-          # TrueNAS SCALE is x86-64; the arm64 build ran under QEMU and took 20-30 minutes per release.
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Verify the published image reports the tagged version
+        run: |
+          set -e
+          VER="${{ steps.meta.outputs.version }}"
+          docker run --rm -d --name probe -p 3000:3000 -e ADMIN_SESSION_SECRET=ci-probe "$IMAGE:$VER"
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/health/ >/tmp/h.json 2>/dev/null && break; sleep 2; done
+          cat /tmp/h.json; echo
+          grep -q "\"version\":\"$VER\"" /tmp/h.json || { echo "::error::image $IMAGE:$VER reports a different version (package.json not bumped before tagging?)"; docker rm -f probe; exit 1; }
+          docker rm -f probe
       - name: GitHub Release notes
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-
-  deploy-truenas:
-    name: Redeploy on TrueNAS
-    runs-on: ubuntu-latest
-    needs: build-push
-    # Job-level `if` cannot read secrets, so the check happens inside the step via env.
-    env:
-      TRUENAS_HOST: ${{ secrets.TRUENAS_HOST }}
-    steps:
-      - name: Skip when TrueNAS secrets are not configured
-        if: env.TRUENAS_HOST == ''
-        run: echo "TRUENAS_HOST secret not set - skipping redeploy (image is published on GHCR)."
-      - name: Pull new image and redeploy the app
-        if: env.TRUENAS_HOST != ''
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.TRUENAS_HOST }}
-          username: ${{ secrets.TRUENAS_USER }}
-          key: ${{ secrets.TRUENAS_SSH_KEY }}
-          script: |
-            APP="${{ secrets.TRUENAS_APP_NAME || 'lienstore' }}"
-            # TrueNAS SCALE 24.10+/25.04: pull the images referenced by the app and redeploy it.
-            sudo midclt call -j app.pull_images "$APP" '{"redeploy": true}'
-            sleep 20
-            curl -fsS http://127.0.0.1:30080/api/health/
+          body: |
+            Image: `${{ env.IMAGE }}:${{ steps.meta.outputs.version }}` (also `latest`).
+            Prod (linconnn.io.vn) picks it up from the TrueNAS cron job within a few minutes — check https://linconnn.io.vn/api/health/
