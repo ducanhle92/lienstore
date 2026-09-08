@@ -99,3 +99,13 @@ Prompt đầy đủ ở [`docs/CHATGPT_FANPAGE_PROMPT.txt`](CHATGPT_FANPAGE_PROM
 ## Đưa lên prod
 
 `data/seed.json` sau khi nhập được commit và phát hành bằng tag. Container prod có `LIEN_SEED_SYNC=update` (đã đặt trong `deploy/truenas-app.yaml`) sẽ ghi đè các sản phẩm có trong seed bằng giá trị mới, giữ nguyên đơn hàng, khách hàng và sản phẩm chỉ có trong DB. Nếu bạn muốn sửa sản phẩm trực tiếp trên admin prod và không bị seed ghi đè, đổi thành `LIEN_SEED_SYNC=add`.
+
+## Ảnh đại diện nền trắng (`fetch_packshots.py`)
+
+```bash
+python scripts/xlsx/fetch_packshots.py            # chạy thử: chỉ tải ảnh + tạo trang rà soát docs/reports/packshots-review-<ngày>.html
+python scripts/xlsx/fetch_packshots.py --apply    # ghi vào data/seed.json (đổi meta.seededAt)
+python scripts/xlsx/fetch_packshots.py --only slug-a,slug-b --apply
+```
+
+Thứ tự ưu tiên: ảnh nền trắng sẵn có trong gallery → ảnh chính từ link Amazon JP đã có (`supplierUrl`) → tìm Amazon JP theo tên (chỉ nhận khi tiêu đề chứa tên thương hiệu và cùng quy cách). Mọi ảnh tải về được kiểm tra lại nền trắng trước khi dùng; ảnh cũ vẫn nằm sau ảnh mới trong gallery. Ảnh lưu ở `public/sites/lienstore/shared/products/packshot/<slug>.jpg` (+ `-300x300.jpg`). Các trường hợp "candidate" (khớp thương hiệu nhưng tên không có quy cách) chỉ được lưu ở `packshot/candidates/` để duyệt tay.

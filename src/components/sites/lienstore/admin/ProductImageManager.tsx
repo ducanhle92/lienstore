@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { uploadImage } from "./image-upload";
 import { adminInput, adminLabel, btnSecondary } from "./ui";
 
 interface Props {
@@ -12,39 +13,6 @@ interface Props {
   error?: string;
 }
 
-const MAX_FULL = 1200;
-const THUMB = 300;
-
-/** Draw a File onto a canvas: full size capped at MAX_FULL, and a 300×300 white-padded square thumb. */
-async function resizeImage(file: File): Promise<{ image: Blob; thumb: Blob }> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_FULL / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const toBlob = (canvas: HTMLCanvasElement) =>
-    new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.88));
-
-  const full = document.createElement("canvas");
-  full.width = w;
-  full.height = h;
-  const fctx = full.getContext("2d")!;
-  fctx.fillStyle = "#ffffff";
-  fctx.fillRect(0, 0, w, h);
-  fctx.drawImage(bitmap, 0, 0, w, h);
-
-  const th = document.createElement("canvas");
-  th.width = THUMB;
-  th.height = THUMB;
-  const tctx = th.getContext("2d")!;
-  tctx.fillStyle = "#ffffff";
-  tctx.fillRect(0, 0, THUMB, THUMB);
-  const s = Math.min(THUMB / bitmap.width, THUMB / bitmap.height);
-  const tw = Math.round(bitmap.width * s);
-  const thh = Math.round(bitmap.height * s);
-  tctx.drawImage(bitmap, Math.round((THUMB - tw) / 2), Math.round((THUMB - thh) / 2), tw, thh);
-  bitmap.close();
-  return { image: await toBlob(full), thumb: await toBlob(th) };
-}
 
 /**
  * Image list editor for the product form: upload from disk (resized in the browser), add by URL, reorder, remove.
@@ -86,16 +54,9 @@ export function ProductImageManager({ initial, initialThumbs = {}, error }: Prop
     for (const file of Array.from(files)) {
       setBusy(file.name);
       try {
-        const { image, thumb } = await resizeImage(file);
-        const fd = new FormData();
-        fd.append("image", image, file.name.replace(/\.[^.]+$/, "") + ".jpg");
-        fd.append("thumb", thumb, "thumb.jpg");
-        fd.append("name", file.name);
-        const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-        const json = (await res.json()) as { image?: string; thumb?: string; error?: string };
-        if (!res.ok || !json.image) throw new Error(json.error || `Lỗi tải ảnh (${res.status})`);
+        const json = await uploadImage(file, "products");
         const img = json.image;
-        setThumbs((prev) => ({ ...prev, [img]: json.thumb ?? img }));
+        setThumbs((prev) => ({ ...prev, [img]: json.thumb }));
         setImages((prev) => [...prev, img]);
       } catch (e) {
         setErr(e instanceof Error ? e.message : "Không tải được ảnh");

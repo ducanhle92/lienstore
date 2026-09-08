@@ -3,7 +3,7 @@
  "note": "Seed catalogue imported into SQLite on first start and synced (add-only) on newer versions. Regenerate with `npm run db:export`.",
  "meta": {
   "nextOrderNumber": 1001,
-  "seededAt": "2026-09-08T08:02:36Z",
+  "seededAt": "2026-09-08T12:07:43Z",
   "removedSlugs": [
    "dau-goi-xa-mo-ngua-600ml-chai",
    "ngu-coc-calbee-thich-hop-an-voi-sua-tuoi-sua-chua-hoac-sua-dau-nanh",
@@ -297,15 +297,15 @@
     "thuoc bo cho nguoi gia"
    ],
    "images": [
-    "/sites/lienstore/shared/products/m_t-n_-g_o-1-e5d27d.png",
     "/sites/lienstore/shared/products/tao-nhat-ban-2400-vien-xoan-spirulina-jpg-1561779780-2906201-c1cd09.jpg",
+    "/sites/lienstore/shared/products/m_t-n_-g_o-1-e5d27d.png",
     "/sites/lienstore/shared/products/86fae33759780ea6f6be24aafde6270e-b42cce.jpeg",
     "/sites/lienstore/shared/products/c15c9fc6d86619361100242fea974fe9-8e0d3f.jpg",
     "/sites/lienstore/shared/products/e9d5adf75107e601a38438b2d12d7fc8-bf71fd.jpg",
     "/sites/lienstore/shared/products/t-6ad6b621731d48d6b1ae368493620a86-8a8e32.jpg",
     "/sites/lienstore/shared/products/tao_2400v6_d0320b246a6141d18bd919e59f3f86a0_grande-7cc3ef.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/m_t-n_-g_o-1-300x300-a27b3d.png",
+   "thumb": "/sites/lienstore/shared/products/tao-nhat-ban-2400-vien-xoan-spirulina-jpg-1561779780-2906201-c1cd09.jpg",
    "shortDescription": "",
    "description": "<p><strong>CÔNG DỤNG:</strong></p>\n<p>Hỗ trợ tăng cường sức khỏe và sức đề kháng, đặc biệt ở người lớn tuổi, người phục hồi sau phẫu thuật, trẻ em kén ăn.</p>\n<p>Giảm thiểu nguy cơ mắc các bệnh lý thông thường như tim mạch, ung thư, xương khớp,&#8230;</p>\n<p>Tảo Spirulina giúp điều hòa lượng mỡ trong máu và giảm thiểu nguy cơ mắc các bệnh liên quan đến dạ dày, tim mạch, tiểu đường, béo phì&#8230;</p>\n<p>Trong tảo Spirulina có các chất giúp cơ thể khỏe mạnh, cải thiện chức năng hệ tiêu hóa, đồng thời giúp cơ thể bài tiết tốt hơn, phòng tránh các bệnh lây nhiễm thường gặp.</p>\n<p>Thanh lọc cơ thể, hỗ trợ đào thải các độc tố, giúp ổn định cân nặng và làm đẹp da cho phái nữ.</p>\n<p>Tảo xoắn Spirulina giúp cải thiện tình trạng đau nhức, thoái hóa, viêm khớp, loãng xương,… đồng thời hỗ trợ điều trị các chứng bệnh về mắt, giúp cơ thể luôn khỏe mạnh và tràn đầy sức sống.</p>\n<p>Bổ sung hệ dưỡng chất thiết yếu gồm canxi, DHA, folic acid và sắt cho mẹ bầu cứng cáp, bé phát triển khỏe mạnh hơn.</p>\n<p><strong>HƯỚNG DẪN SỬ DỤNG:</strong></p>\n<p>Đối với người lớn: Ngày uống 20 &#8211; 30 viên trước bữa ăn hoặc sau bữa ăn (có thể chia làm 2 &#8211; 3 lần).</p>\n<p>Đối với trẻ em dưới 5 tuổi: Uống dưới 5 viên/lần, có thể nghiền thành bột chung với thức ăn (nên hỏi ý kiến bác sĩ trước khi sử dụng).</p>\n<p>Đối với trẻ em trên 5 tuổi: Uống 10 &#8211; 20 viên/ngày, mỗi ngày uống 2 &#8211; 3 lần.</p>\n<p>Người đang giảm cân: uống tảo trước bữa ăn 30 phút</p>\n<p>Người muốn tăng cân: uống tảo sau bữa ăn 30 phút.</p>\n<h3><strong>Lưu ý:</strong></h3>\n<p>&#8211; Đậy nắp kín sau khi sử dụng.</p>\n<p>&#8211; Dùng được cho phụ nữ có thai hoặc đang cho con bú.</p>\n<p>&#8211; Kết quả sử dụng sản phẩm tùy thuộc cơ địa của từng người.</p>\n<p>&#8211; Thực phẩm này không phải là thuốc và không có tác dụng thay thế thuốc chữa bệnh.</p>",
    "related": [
@@ -318,7 +318,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-09-06T07:30:43",
-   "updatedAt": "2021-11-04T20:26:25"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 193,
@@ -733,12 +733,12 @@
     "okome no mask"
    ],
    "images": [
-    "/sites/lienstore/shared/products/m_t-n_-g_o-6c9813.png",
     "/sites/lienstore/shared/products/mat-na-gao-keana-nadeshiko-rice-mask3-2ea77f.jpg",
+    "/sites/lienstore/shared/products/m_t-n_-g_o-6c9813.png",
     "/sites/lienstore/shared/products/50754b05000be93d5fc8c815837bc9c4-a0692a.png",
     "/sites/lienstore/shared/products/36780416_670359546643048_1327698112021528576_n-43538f.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/m_t-n_-g_o-300x300-efa4eb.png",
+   "thumb": "/sites/lienstore/shared/products/mat-na-gao-keana-nadeshiko-rice-mask3-2ea77f.jpg",
    "shortDescription": "",
    "description": "<p><strong>CÔNG DỤNG:</strong></p>\n<p>Có khả năng trị mụn đầu đen và làm mờ vết thâm, giúp da mặt căng bóng và mịn màng.</p>\n<p>Các hạt cám gạo mịn giúp tẩy tế bào chết trên da mặt, làm da sạch và căng bóng hơn.</p>\n<p>Thành phần cám gạo 100% nguyên chất giúp sáng da, giữ độ ẩm cho da mà vẫn rất an toàn, lành tính, không gây kích ứng cho da.</p>\n<p>Trị nhờn và thu nhỏ lỗ chân lông.</p>\n<p>Thích hợp cho mọi loại da, đặc trị cho da dầu, da hỗn hợp và nhạy cảm</p>\n<p><strong>HƯỚNG DẪN SỬ DỤNG:</strong></p>\n<p>Rửa sạch da mặt bằng nước hoặc nước ấm và lau khô.</p>\n<p>Lấy mặt nạ ra khỏi túi và đắp lên mặt, lấy tay vuốt nhẹ các mép, đặc biệt là vùng trán, mắt và mũi.</p>\n<p>Đắp mặt nạ trong vòng từ 15 – 20 phút. Sau đó, tháo mặt nạ ra, dùng tay massage nhẹ nhàng khắp da mặt để cho dưỡng chất còn sót lại thấm đều lên các vùng da mặt.</p>\n<p>Rửa mặt lại nếu thấy cần thiết.Dùng đều đặn 1-2 lần/ tuần để nhận được hiệu quả tốt nhất</p>",
    "related": [
@@ -751,7 +751,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-10-28T10:24:46",
-   "updatedAt": "2024-08-01T21:32:06"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 274,
@@ -897,9 +897,10 @@
     "sua tam goi cho be"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/sua-tam-goi-cho-be-arau-baby.jpg",
     "/sites/lienstore/shared/products/araau-470f1e.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/araau-300x300-3cb553.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/sua-tam-goi-cho-be-arau-baby-300x300.jpg",
    "shortDescription": "",
    "description": "<p>\n<p><strong>CÔNG DỤNG:</strong></p>\n<p>_Làm sạch da bé với các thành phần tự nhiên như tinh dầu hoa oải hương, chiết xuất lá tía tô lá hương thảo giúp mẹ chăm sóc và làm làn da bé yêu thư giãn suốt cả ngày sau khi tắm và giữ cho da bé luôn mềm mại và mịn màng.Với các dưỡng chất thiên nhiên được cung cấp, tắm gội Arau Baby sẽ đem đến làn da mịn màng, khỏe mạnh cùng mái tóc suôn mềm, bóng mượt cho bé.</p>\n<p>_Sản phẩm không chứa phụ gia, chất làm sạch tổng hợp, chất tạo hương, chất tạo màu, chất bảo quản, an toàn tuyệt đối cho bé yêu khi tiếp xúc giúp mẹ an tâm khi cho bé sử dụng.</p>\n<p>_Ngoài chức năng làm sạch, sữa tắm Arau Baby còn mang lại làn da mịn màng cùng hương thơm thư giãn, cho bé yêu thoải mái vui đùa khi tắm.</p>\n<p>_Bình được thiết kế với cơ chế tạo bọt, giúp tiết kiệm và thuận tiện cho mẹ khi tắm cho bé.</p>\n<p>_Các bọt xà phòng nhanh chóng bị nước làm sạch, giúp bé không bị lạnh vào mùa đông khi tắm.</p>\n<p><strong>HƯỚNG DẪN SỬ DỤNG</strong><strong>:</strong></p>\n<p>-Làm ướt đầu bé, sau đó cho một lượng vừa đủ, nhẹ nhàng xoa lên đầu, mát xa nhẹ nhàng rồi tráng lại bằng nước sạch, lau khô đầu bé.</p>\n<p>&#8211;Làm ướt cơ thể bé trước khi cho một lượng vừa đủ bọt nước tắm Arau Baby, xoa đều lên da. Tắm kết hợp với mát xa để đạt hiệu quả tối đa cho bé. Sau đó tắm lại với nước sạch.</p>\n<p><strong>Lưu ý về sản phẩm:</strong></p>\n<p>Để xa tầm tay trẻ em.</p>\n<p>Không sử dụng sản phẩm lên vùng da bị thương</p>\n<p>Nếu da của bé bị kích ứng lập tức ngưng sử dụng sản phẩm và gặp nhân viên y tế để chữa trị.</p>\n<p>Không may uống phải sữa tắm, cần uống nhiều nước lọc. Nếu sản phẩm dây vào mắt dùng nước rửa sạch.</p>\n</p>",
    "related": [
@@ -912,7 +913,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-06-03T12:25:49",
-   "updatedAt": "2022-06-27T13:06:04"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "supplierUrl": "https://www.amazon.co.jp/dp/B0B9FR7997"
   },
   {
    "id": 303,
@@ -1024,7 +1026,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-09-02T10:32:15",
-   "updatedAt": "2021-10-11T19:35:09"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 727,
@@ -1066,7 +1069,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-09-29T11:54:03",
-   "updatedAt": "2024-08-01T21:32:24"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 730,
@@ -1133,14 +1137,14 @@
     "son trị tham moi dhc"
    ],
    "images": [
+    "/sites/lienstore/shared/products/son-a611ac.png",
     "/sites/lienstore/shared/products/sondhc-9ad40f.png",
     "/sites/lienstore/shared/products/z2111400657563_afc1f4eaaa59d856b2bfa618b6ad33d3-af8a58.jpg",
     "/sites/lienstore/shared/products/z2111400648723_de48fe4cd0a833663d98a04aae3e2d9e-ecdddb.jpg",
     "/sites/lienstore/shared/products/z2111400643547_ec18d0ded1df65ab94bb13e6fdfc81c0-ce7c72.jpg",
-    "/sites/lienstore/shared/products/z2111400590692_dfc0753548167fad0e9d180b3e890e4f-962c06.jpg",
-    "/sites/lienstore/shared/products/son-a611ac.png"
+    "/sites/lienstore/shared/products/z2111400590692_dfc0753548167fad0e9d180b3e890e4f-962c06.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/sondhc-300x300-a7303a.png",
+   "thumb": "/sites/lienstore/shared/products/son-a611ac.png",
    "shortDescription": "",
    "description": "<p><strong>Son dưỡng trị thâm môi DHC không màu </strong>là dòng son hiếm hoi có thành phần dược tính (medicated), có hiệu quả trong việc trị thâm môi, làm môi hồng hào tự nhiên. Thành phần cấp ẩm cực tốt từ DHC giúp bờ môi mềm mại, căng mịn trong thời gian dài, đặc biệt không gây bóng nhờn.</p>\n<h3><strong>Son dưỡng DHC không màu có gì hay?</strong></h3>\n<p>– Son DHC Là sản phẩm số 1 tạp chí Cosme trong nhiều năm liền. Được người Nhật đánh giá là son dưỡng số 1 Nhật Bản</p>\n<p>– Hoàn toàn không sử dụng hương liệu, không chứa paraben, chất bảo quản hay thành phần dầu khoáng. Vì thế lành cực kỳ. Bà bầu, mẹ đang cho con bú cũng có thể yên tâm dùng</p>\n<p>– Đặc biệt không hề rích hay nhờn môi. Chất son thấm vào môi tốt, cho môi mượt mà dễ chịu</p>\n<p><img decoding=\"async\" src=\"https://healthmart.vn/wp-content/uploads/2015/09/son-duong-moi-dhc-lip-cream-nhat-ban-10g-300x300.jpg\" alt=\"son-duong-moi-dhc-lip-cream-nhat-ban-10g\" width=\"300\" height=\"300\" /></p>\n<ul>\n<li>Xuất xứ: Nhật Bản</li>\n<li>Nhà sản xuất: DHC</li>\n<li>Quy cách đóng gói: Thỏi 1.5g</li>\n<li>Mục đích sử dụng: Trị thâm môi, làm hồng môi tự nhiên. Dưỡng ẩm</li>\n<li>Son không màu</li>\n</ul>",
    "related": [
@@ -1151,7 +1155,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-09-30T11:13:00",
-   "updatedAt": "2024-08-25T15:25:24"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 753,
@@ -1310,14 +1314,14 @@
     "kose hand cream"
    ],
    "images": [
-    "/sites/lienstore/shared/products/hand-c2c089.jpg",
     "/sites/lienstore/shared/products/19-7ebd3b.jpg",
+    "/sites/lienstore/shared/products/hand-c2c089.jpg",
     "/sites/lienstore/shared/products/18-c8e5f2.jpg",
     "/sites/lienstore/shared/products/17-284d3b.jpg",
     "/sites/lienstore/shared/products/16-26f888.jpg",
     "/sites/lienstore/shared/products/15-b4f5ee.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/hand-300x300-2a934f.jpg",
+   "thumb": "/sites/lienstore/shared/products/19-7ebd3b.jpg",
    "shortDescription": "",
    "description": "<p><strong>CÔNG DỤNG :</strong></p>\n<p>-Với hương hoa dịu nhẹ giúp đôi tay thơm mát đồng thời tăng cường dưỡng ẩm cho da mềm mại tức thì. Với thành phần chiết xuất từ thực vật tự nhiên kết hợp cùng bơ hạt mỡ (Shea Butter), mật ong, tinh dầu Jojoba và Glycerin giúp tăng cường làm mềm da hiệu quả.</p>\n<ul>\n<li>Kết hợp sử dụng chiết xuất từ hoa tự nhiên còn giúp lưu lại mùi hương ngọt ngào, dịu nhẹ phảng phất trên tay.</li>\n<li>Chất kem thẩm thấu nhanh vào da, không gây nhờn rít hay tạo cảm giác bết dính khó chịu, cho đôi tay mềm mại, mịn màng tức thì với hiệu quả kéo dài hàng giờ đồng hồ.</li>\n<li>Sản phẩm còn chứa Arginine với đặc tính chống oxy hóa giúp bảo vệ da tay sáng khỏe.</li>\n</ul>\n<p><strong>Kem dưỡng da tay Kose với 5 mùi hương từ quyến rũ đến tinh tế cho bạn tha hồ lựa chọn và thay đổi mới lạ mỗi ngày:</strong></p>\n<ul>\n<li>Romantic Rose – Hương hoa hồng lãng mạn</li>\n<li>Relaxing Flower – Hương hoa oải hương thư giãn</li>\n<li>Fairy Berry – Hương dâu thuần khiết</li>\n<li>Honey Peach – Hương đào mật ong ngọt ngào</li>\n<li>Yuzu Japanese – Hương quýt nhật dịu nhẹ thanh tao</li>\n</ul>\n<p><strong>HƯỚNG DẪN SỬ DỤNG :</strong></p>\n<p>Có thể sử dụng lúc nào bạn thích, cảm thấy da tay bị khô. Đặc biệt sau khi tắm, sau khi làm việc nhà, trong môi trường máy lạnh, thời tiết mùa đông lạnh,…</p>\n<p>Nhất là anh chị em làm trong môi trường máy lạnh, nên sử dụng đều đặn để không bị khô và nứt da .</p>\n<p>Ít nhất thoa 3 lần trong ngày. Sử dụng lượng vừa đủ.</p>",
    "related": [
@@ -1330,7 +1334,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-12-11T14:02:01",
-   "updatedAt": "2024-08-01T21:34:16"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 912,
@@ -1609,7 +1613,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2021-10-12T20:01:15",
-   "updatedAt": "2022-03-07T20:19:23"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 1249,
@@ -3552,7 +3557,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-10-16T13:11:54",
-   "updatedAt": "2022-10-16T13:11:54"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 1599,
@@ -3618,7 +3624,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-10-16T14:00:19",
-   "updatedAt": "2022-10-16T14:00:19"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 1623,
@@ -4362,7 +4369,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2023-07-18T21:57:57",
-   "updatedAt": "2025-12-24T19:28:44"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 1737,
@@ -5067,12 +5075,13 @@
     "beauté"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/bot-uong-dep-da-meiji-the-collagen-beaute.jpg",
     "/sites/lienstore/shared/products/import/bot-uong-dep-da-meiji-the-collagen-beaute.jpg",
     "/sites/lienstore/shared/products/fanpage/bot-uong-dep-da-meiji-the-collagen-beaute.jpg",
     "/sites/lienstore/shared/products/import/collagen-meiji-hong-ket-hop-glucosamin.jpg",
     "/sites/lienstore/shared/products/fanpage/collagen-meiji-hong-ket-hop-glucosamin.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/bot-uong-dep-da-meiji-the-collagen-beaute-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/bot-uong-dep-da-meiji-the-collagen-beaute-300x300.jpg",
    "shortDescription": "<p>Ko phải chỉ làm đẹp, chăm sóc cho làn da bên ngoài đâu ag! C/e cần bổ sung uống Collagen để hoàn thiện vẻ đẹp hơn nhé!</p>",
    "description": "<h3>Bột uống Collagen Meiji Amino kết hợp Glucosamine (hộp hồng)</h3>\n<p>Sản phẩm làm hài lòng chị em chúng mình tới 99% là đây này !!</p>\n<p>Ngoài 20 tuổi các tác nhân sẽ làm da chúng mình kém tươi tắn đi, chính vì vậy bổ sung collagen là điều thiết yếu luôn, giúp chúng mình trẻ mãi hông già đó nhé !</p>\n<p>Collagen Meiji Amino dạng bột của Nhật Bản là sản phẩm chứa Collagen, Hyaluronic Acid và Coenzyme Q10 giúp da mịn màng, săn chắc và đàn hồi !!</p>\n<p>Collagen Meiji Amino chứa phân tử Collagen thẩm thấu vào lớp biểu bì của da. Thúc đẩy quá trình sản sinh Collagen đồng thời cả Hyaluronic acid, cho bạn làn da mềm, mịn màng và tươi trẻ.</p>\n<p>Hyaluronic Acid là hoạt chất dưỡng ẩm đồng thời chống nhăn tốt nhất mà con người được biết đến. Hyaluronic Acid xóa đi các vết nhăn, làm se lỗ chân lông và làm cho da mịn màng duy trì làn da khỏe mạnh.</p>\n<p>Collagen Meiji Amino có hàm lượng Collagen 1000mg cũng khá cao chiết xuất từ cá biển thích hợp cho độ tuổi từ 25-35 khi da bắt đầu lão hóa &amp; thiếu hụt Collagen.</p>\n<p>Meiji có khá nhiều lượng Acid Amino giúp cho hệ tiêu hóa làm việc tốt, đông thời đào thải những chất không có lợi cho cơ thể như là Cholesterol</p>\n<p>Collagen Meiji hồng kết hợp Glucosamin giúp xương khớp dẻo dai &amp; linh hoạt hơn.</p>\n<p>Collagen Meiji kết hợp Ceramide giúp da dẻ mềm mại mịn màng vì được cấp ẩm thường xuyên, giúp da giảm nhiều nếp nhăn, xóa dần vết chân chim.</p>\n<p>Collagen Meiji có thêm Vitamin C giúp da khỏe mạnh, hạn chế được sự hình thành melanin gây sạm nám da, giúp da sáng dần, khỏe mạnh.</p>",
    "related": [],
@@ -5080,7 +5089,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 637000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0070SUSC0"
   },
@@ -5323,10 +5332,11 @@
     "tẩy"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dau-tay-trang-muji.jpg",
     "/sites/lienstore/shared/products/import/dau-tay-trang-muji.jpg",
     "/sites/lienstore/shared/products/fanpage/dau-tay-trang-muji.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dau-tay-trang-muji-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dau-tay-trang-muji-300x300.jpg",
    "shortDescription": "<p>Hãng Muji đi theo tiêu chí chất lượng hơn hình thức. Họ luôn đơn giản hóa khâu bao bì sản phẩm để giảm giá thành và tập trung vào chất lượng, nhìn chai dầu tẩy trang này mọi người cũng biết…</p>",
    "description": "<h3>Dầu tẩy trang Muji Cleansing Oil</h3>\n<p>Dầu tẩy trang Muji</p>\n<p>Hãng Muji đi theo tiêu chí chất lượng hơn hình thức. Họ luôn đơn giản hóa khâu bao bì sản phẩm để giảm giá thành và tập trung vào chất lượng, nhìn chai dầu tẩy trang này mọi người cũng biết nó đơn giản đến nhường nào, nhờ có chữ \"cleasing oil\" trên thân chai mình mới biết nó là dầu tẩy trang ấy chứ.</p>\n<p>Được chị Diệp của loveatfirstsight rất yêu thích, còn ví von như bản dupe của Shu nữa. Chất dầu lỏng, không đặc như các dạng dầu khác, có màu hơi vàng nhẹ. Cũng bởi vì lỏng như vậy sẽ phù hợp cho mấy bạn dễ nỗi mụn hoặc đang bị mụn. Mùi hương dễ chịu, không có mùi dầu ăn, không nồng thích hợp cho mấy bạn bị dị ứng với mùi hương trong mĩ phẩm đấy ạ. 1 pump là đủ để làm sạch bụi bẩn và kem chống nắng rồi, còn những hôm có trang điểm thì 2 pump. Dầu lướt trên da rất dịu nhẹ, đối với vết thương hở hay mụn mới nặn khi tẩy trang sẽ thấy bị xót da đấy.</p>\n<p>Điểm cộng cho em í là có chốt khóa an toàn chỗ pump, không để dầu bị dây ra túi xách khi đi du lịch. Bên thân chai có các mức vạch chia thể tích 50, 100, 150, 200ml giúp dễ dàng kiểm soát lượng sản phẩm.</p>",
    "related": [],
@@ -5334,7 +5344,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 186000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GMPJ2SSM"
   },
@@ -5490,12 +5500,13 @@
     "cân"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/goc-giai-dap-tra-giam-can-night-diet-tea-orihiro.jpg",
     "/sites/lienstore/shared/products/import/goc-giai-dap-tra-giam-can-night-diet-tea-orihiro.jpg",
     "/sites/lienstore/shared/products/fanpage/goc-giai-dap-tra-giam-can-night-diet-tea-orihiro.jpg",
     "/sites/lienstore/shared/products/import/tra-giam-can-night-diet-tea-orihiro-nhat-ban.jpg",
     "/sites/lienstore/shared/products/fanpage/tra-giam-can-night-diet-tea-orihiro-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/goc-giai-dap-tra-giam-can-night-diet-tea-orihiro-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/goc-giai-dap-tra-giam-can-night-diet-tea-orihiro-300x300.jpg",
    "shortDescription": "<p>Thành phần của trà bao gồm : rooibos ( hồng trà ) , candle bush ( muồng trâu) , tencha ( trà ngọt), ginger sauce ( gừng ), chamomile ( cúc la mã ), golden ginger powder ( bột gừng vàng )…</p>",
    "description": "<h3>Trà giảm cân Night Diet Tea Orihiro Nhật Bản</h3>\n<p>Góc giải đáp trà giảm cân Night Diet Tea Orihiro</p>\n<ul>\n<li>Thành phần của trà giảm cân có an toàn không?</li>\n</ul>\n<p>Thành phần của trà bao gồm : rooibos ( hồng trà ) , candle bush ( muồng trâu) , tencha ( trà ngọt), ginger sauce ( gừng ), chamomile ( cúc la mã ), golden ginger powder ( bột gừng vàng ), citrulline, ornithine / glycine, arginine, lysine,</p>\n<p>Là những thành phần tự nhiên, lành tính</p>\n<ul>\n<li>Cơ chế giảm cân của trà như thế nào?</li>\n</ul>\n<p>Sản phẩm sử dụng Rooibos ( hồng trà ) được cho là 1 nguyên liệu làm đẹp vì giàu khoáng chất kết hợp với Candle bush ( muồng trâu ) và Tencha ( trà ngọt ) có tác dụng đốt cháy mỡ thừa, hỗ trợ làm đẹp cơ thể từ bên trong.</p>\n<p>Như vậy, ngay cả khi đi ngủ, cũng giúp đốt cháy lượng mỡ dư thừa</p>\n<ul>\n<li>Người không muốn giảm cân, uống để dễ ngủ được không?</li>\n</ul>\n<p>Trà có chứa thành phần từ cúc la mã và glycine giúp dễ thở và giúp giấc ngủ được ngon giấc hơn.</p>\n<p>Nếu dùng mà dễ ngủ, ăn nhiều để không bị gầy đi thì bạn có thể cân nhắc dùng</p>\n<ul>\n<li>Dùng trà bao lâu thì có tác dụng?</li>\n</ul>\n<p>Còn tùy thể trạng và cơ địa hấp thụ của từng người. Tuy nhiên, khi uống trà, nên kết hợp chế độ ăn uống, nghỉ ngơi hoa học, hợp lý.</p>\n<p>Liều lượng uống 1 ngày là 1-2 gói, không uống quá liều lượng do nhà sản xuất chỉ định.</p>\n<ul>\n<li>Vị trà như thế nào, có thơm, hay khó uống không?</li>\n</ul>\n<p>Trà dễ uống, ngon, thơm mùi gừng (theo cảm nhận của nhiều khách hàng đã sử dụng )</p>\n<p>1 gói pha với 200 250ml nước nóng, chờ khoảng 3 phút rồi thưởng thức.</p>\n<p>Chống chỉ định</p>\n<p>Không dùng cho người đang điều trị bệnh, người đang có thai và đang cho con bú, trẻ em.</p>\n<p>Gói 20+4 túi lọc ( được tặng thêm 4 gói), bùng nổ giá #SALE, nên chị em nào muốn nhanh lấy lại vóc dáng thì đừng chần chừ nữa</p>",
    "related": [],
@@ -5503,7 +5514,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 104000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B00COFFG9E"
   },
@@ -5612,10 +5623,11 @@
     "nắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-chong-nang-biore-watery-gel-90g.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nang-biore-watery-gel-90g.jpg",
     "/sites/lienstore/shared/products/fanpage/kem-chong-nang-biore-watery-gel-90g.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-chong-nang-biore-watery-gel-90g-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-chong-nang-biore-watery-gel-90g-300x300.jpg",
    "shortDescription": "<p>Công dụng của KEM CHỐNG NẮNG BIORE WATERY GEL 90g:</p>",
    "description": "<h3>Kem chống nắng Biore UV Watery Gel 90g</h3>\n<p>KEM CHỐNG NẮNG BIORE WATERY GEL 90g</p>\n<p>Công dụng của KEM CHỐNG NẮNG BIORE WATERY GEL 90g:</p>\n<p>Kem chống nắng Biore UV Aqua Rich Watery Gel 90ml có khả năng chống nắng kép mạnh mẽ và hiệu quả với chỉ số SPF 50+/ PA++++ giúp da chống lại các tia tử ngoại có hại như UVA (tác nhân gây ra nếp nhăn và tàn nhang), UVB (tác nhân gây sạm da và cháy nắng).</p>\n<p>Tinh chất dưỡng ẩm của Kem chống nắng Biore UV Aqua Rich cung cấp các thành phần tinh chất dưỡng như Hyaruloric Axit, tinh chất sữa ong chúa và tinh chất chiết xuất hỗn hợp từ các loại cam giúp dưỡng da và dễ dàng thẩm thấu nhanh vào da sau khi bôi.</p>\n<p>Bảo vệ tối đa cho da ngay khi tiếp xúc với ánh nắng, đồng thời đem lại cảm giác nhẹ nhàng, thoáng mát mà không hề bị nhờn dính.</p>\n<p>Hướng dẫn sử dụng KEM CHỐNG NẮNG BIORE WATERY GEL 90g:</p>\n<p>Sử dụng cho cả mặt và toàn thân.</p>\n<p>Có thể dùng như là kem lót trang điểm.</p>\n<p>Chỉ số chống nắng lên đến SPF 50+ nhưng rất dễ dàng tẩy sạch bằng sữa rửa mặt</p>",
    "related": [],
@@ -5623,7 +5635,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 150000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0BT142P4G"
   },
@@ -5771,10 +5783,11 @@
     "vùng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-chong-nhan-mat-va-khoe-mieng-hadalabo.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nhan-mat-va-khoe-mieng-hadalabo.jpg",
     "/sites/lienstore/shared/products/fanpage/kem-chong-nhan-mat-va-khoe-mieng-hadalabo.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-chong-nhan-mat-va-khoe-mieng-hadalabo-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-chong-nhan-mat-va-khoe-mieng-hadalabo-300x300.jpg",
    "shortDescription": "<p>Kem dưỡng da Hadallabo Gokujyun có hiệu quả đặc biệt cho vùng mắt và khoé miệng, Kem cung cấp cấc dưỡng chất cần thiết cho da, độ dưỡng ẩm sâu, collagen có tác dụng phục hồi cho các vùng da…</p>",
    "description": "<h3>Kem chống nhăn vùng mắt và khoé miệng Hada Labo</h3>\n<p>Kem chống Nhăn mắt và khoé miệng Hadalabo</p>\n<p>Kem dưỡng da Hadallabo Gokujyun có hiệu quả đặc biệt cho vùng mắt và khoé miệng, Kem cung cấp cấc dưỡng chất cần thiết cho da, độ dưỡng ẩm sâu, collagen có tác dụng phục hồi cho các vùng da khô, hay xuất hiện nếp nhăn quanh mắt và miệng, đem lại cho da một cảm giác mượt mà và vẻ ngoài trẻ trung tươi tắn.</p>\n<p>Hadallabo Gokujyun Nhật Bản giúp ngăn chặn sự thô giáp cho da cũng như các tổn hại khác gây ra do các tác nhân xấu từ môi trường bên ngoài. Chất dưỡng ẩm giúp da khoẻ và có độ đàn hồi cao. Các dưỡng chất có tác dụng tái tạo sẽ thấm sâu vào da. Sử dụng Hadallabo Gokujyun vào mỗi tối, bạn sẽ thức dậy vào buổi sáng với cảm giác rất sảng khoái với một làn da mềm mịn và khoẻ khoắn.</p>",
    "related": [],
@@ -5782,7 +5795,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 199000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B09PXPZ73D"
   },
@@ -5941,7 +5954,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T04:42:11Z"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 2034,
@@ -6099,7 +6113,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T04:42:11Z"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 2038,
@@ -6168,10 +6183,11 @@
     "dưỡng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-duong-hadalabo-uv-white-gel-voi-7-cong-dung-trong-1-san-pham.jpg",
     "/sites/lienstore/shared/products/import/kem-duong-hadalabo-uv-white-gel-voi-7-cong-dung-trong-1-san-pham.jpg",
     "/sites/lienstore/shared/products/fanpage/kem-duong-hadalabo-uv-white-gel-voi-7-cong-dung-trong-1-san-pham.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-duong-hadalabo-uv-white-gel-voi-7-cong-dung-trong-1-san-pham-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-duong-hadalabo-uv-white-gel-voi-7-cong-dung-trong-1-san-pham-300x300.jpg",
    "shortDescription": "<p>Kem dưỡng HadaLabo UV White Gel với 7 công dụng trong 1 sản phẩm, giúp thay thế 7 bước:</p>",
    "description": "<h3>Kem dưỡng Hada Labo UV White Gel 7 trong 1</h3>\n<p>Kem dưỡng HadaLabo UV White Gel với 7 công dụng trong 1 sản phẩm, giúp thay thế 7 bước:</p>\n<p>(1) NƯỚC HOA HỒNG + (2) SỮA DƯỠNG + (3) SERUM + (4) KEM DƯỠNG + (5) MẶT NẠ + (6) KEM CHỐNG NẮNG + (7) KEM LÓT.</p>\n<p>Chỉ số chống nắng SPF50+ PA++++ (cao nhất dành cho da mặt) giúp chống nắng hiệu quả, bảo vệ da khỏi tia UV gây hại.</p>\n<p>Kem chứa dẫn xuất vitamin C giúp dưỡng da trắng sáng tự nhiên.</p>\n<p>Dưỡng ẩm hiệu quả với 2 loại hyaluronic acid.</p>\n<p>Kem còn có tác dụng đáng kể trong việc chống lão hóa, ngừa tàn nhang và thu nhỏ lỗ chân lông.</p>\n<ul>\n<li>Cách sử dụng:</li>\n</ul>\n<p>Dùng sau khi làm sạch mặt với sữa rửa mặt, nước</p>\n<p>Thoa kem lớp mỏng và mát xa nhẹ nhàng.</p>",
    "related": [],
@@ -6179,7 +6195,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 304000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0C85KDQ97"
   },
@@ -6208,10 +6224,11 @@
     "dạng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-duong-kanebo-freshel-5-in-1-dang-gel.jpg",
     "/sites/lienstore/shared/products/import/kem-duong-kanebo-freshel-5-in-1-dang-gel.jpg",
     "/sites/lienstore/shared/products/fanpage/kem-duong-kanebo-freshel-5-in-1-dang-gel.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-duong-kanebo-freshel-5-in-1-dang-gel-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-duong-kanebo-freshel-5-in-1-dang-gel-300x300.jpg",
    "shortDescription": "<p>Sale còn #580k/ sét gồm 1 hộp full 80g và 1 lõi thay thế 80g.</p>",
    "description": "<h3>Kem dưỡng Kanebo Freshel 5 in 1 dạng gel</h3>\n<p>Kem dưỡng Kanebo Freshel 5 in 1 dạng gel giúp da thẩm thấu nhanh, thấm sâu vào các tế bào da làm mềm các lớp sừng cứng, giữ ẩm cho da đc mềm mại, mịn màng; đồng thời dưỡng chất #Coenzyme_Q10 kết hợp với #W_collagen giúp phục hồi và tái tạo lại các tế bào da, #chống_lão_hóa da 1 cách hiệu quả.</p>\n<p>Sale còn #580k/ sét gồm 1 hộp full 80g và 1 lõi thay thế 80g.</p>",
    "related": [],
@@ -6219,7 +6236,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 546000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B00TRKYNPM"
   },
@@ -6493,10 +6510,11 @@
     "mắt"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-mat-dang-duoc-cosme-binh-chon-kem-mat-ban-chay-nhat-nam-nay.jpg",
     "/sites/lienstore/shared/products/import/kem-mat-dang-duoc-cosme-binh-chon-kem-mat-ban-chay-nhat-nam-nay.jpg",
     "/sites/lienstore/shared/products/fanpage/kem-mat-dang-duoc-cosme-binh-chon-kem-mat-ban-chay-nhat-nam-nay.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-mat-dang-duoc-cosme-binh-chon-kem-mat-ban-chay-nhat-nam-nay-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-mat-dang-duoc-cosme-binh-chon-kem-mat-ban-chay-nhat-nam-nay-300x300.jpg",
    "shortDescription": "<p>Kem Dưỡng Mắt 3 IN 1 SANA Trị Bọng Mắt - Quầng Thâm - Chống Nhăn.</p>",
    "description": "<h3>Kem dưỡng mắt Nhật Bản được @cosme bình chọn bán chạy</h3>\n<p>KEM MẮT ĐANG ĐƯỢC COSME BÌNH CHỌN KEM MẮT BÁN CHẠY NHẤT NĂM NAY</p>\n<p>Kem Dưỡng Mắt 3 IN 1 SANA Trị Bọng Mắt - Quầng Thâm - Chống Nhăn.</p>\n<p>Kem mắt Sana là dòng mỹ phẩm được sản xuất hoàn toàn từ thiên nhiên, nên dễ dàng thấm sâu vào các tế bào bên trong da, bảo vệ các tế bào da và biểu bì chống lại các yếu tố làm lão hóa vùng mắt. Xóa mờ các vết nhăn, vết chân chim, bọng mắt, sưng húp mí mắt.</p>\n<p>Kem dưỡng mắt đậu nành sana đã được chứng nhận ở Nhật Bản là có hiệu quả trong việc triệt tiêu các vết thâm, quầng mắt, bọng mắt. Là một trợ thủ đắc lực để bạn có một đôi mắt đẹp, chống lại các vết nhăn, thâm quầng mắt và tan bọng mỡ mắt.</p>\n<p>Cung cấp độ ẩm cần thiết , hạn chế vết nhăn</p>\n<p>Vitamin E dưỡng sáng da, loại bỏ dần quầng thâm 1 cách hiệu quả</p>\n<p>Thành phần dịu nhẹ , lành tính , thích hợp với vùng da mắt nhạy cảm</p>\n<p>Được chiết xuất từ tinh chất mầm đậu nành Isoflavone, giúp cung cấp những dưỡng chất cần thiết cho da. Đồng thời làm mờ đi những vết thâm đen quanh mắt nhanh chóng.</p>\n<p>Đặc biệt, kem dưỡng còn chứa thêm collagen giúp tái tạo cấu trúc làn da, không pha màu, mùi hay dầu nên không hề gây tắc nghẽn lỗ chân lông hay các loại dị ứng gây mụn cho da.</p>\n<p>Hướng dẫn sử dụng:</p>\n<p>Sử dụng kem dưỡng mắt Sana vào bước cuối trong quy trình chăm sóc da</p>\n<p>Nếu dùng ban ngày, dùng trước kem chống nắng và trước khi trang điểm</p>\n<p>Lấy một lượng nhỏ bôi đều quanh vùng mắt</p>\n<p>Thoa kem dưỡng 2 lần một ngày vào buổi sáng và tối để mang lại hiệu quả tốt nhất.</p>\n<p>Sử dụng kem dưỡng mắt là biện pháp hiệu quả để giấu đi dấu hiệu của tuổi tác trên gương mặt</p>",
    "related": [],
@@ -6504,7 +6522,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 245000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GTHBHV57"
   },
@@ -6863,7 +6881,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:17:54Z"
+   "updatedAt": "2026-09-08T12:07:00Z",
+   "supplierUrl": null
   },
   {
    "id": 2059,
@@ -7010,10 +7029,11 @@
     "miệng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/nuoc-xuc-mieng-ve-du-mau-moi-chi-em-lem-don.jpg",
     "/sites/lienstore/shared/products/import/nuoc-xuc-mieng-ve-du-mau-moi-chi-em-lem-don.jpg",
     "/sites/lienstore/shared/products/fanpage/nuoc-xuc-mieng-ve-du-mau-moi-chi-em-lem-don.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/nuoc-xuc-mieng-ve-du-mau-moi-chi-em-lem-don-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/nuoc-xuc-mieng-ve-du-mau-moi-chi-em-lem-don-300x300.jpg",
    "shortDescription": "<p>NƯỚC XÚC MIỆNG Propolinse Nhật Bản review ngút ngàn trên internet , HẾT HÔI MIỆNG, LÀM TRẮNG RĂNG, LẤY CAO RĂNG, CHỐNG UNG THƯ VÒM HỌNG</p>",
    "description": "<h3>Nước xúc miệng Nhật Bản</h3>\n<p>NƯỚC XÚC MIỆNG Propolinse Nhật Bản review ngút ngàn trên internet , HẾT HÔI MIỆNG, LÀM TRẮNG RĂNG, LẤY CAO RĂNG, CHỐNG UNG THƯ VÒM HỌNG</p>\n<p>Phản hồi của khách:</p>\n<p>\"Em chưa đi lấy cao răng bao giờ nên nó ra cả đống, cả tảng mảng bám trong răng.\"</p>\n<p>\"Em thấy ai cũng nên dùng, thật sự, thật sự rất cần thiết ý. Đặc biệt là những người hay hút thuốc lá, hay phải đi lấy cao răng,.... Mà VẤN ĐỀ RĂNG MIỆNG THÌ KHÔNG NÊN XEM NHẸ.\"</p>\n<p>\"Ai bị đau răng rồi thì chắc biết. Buốt lên tận óc luôn. Nhổ thì thiếu mà để thì đau. Cảm giác lúc ấy bất lực vô cùng. Chỉ muốn thò tay vào bẻ phát đi cho xong thôi. Dùng loại này thì hiệu quả hẳn không còn đau vì nó mang theo mảng bám và chất bẩn đi. Rất ok nhé!\"</p>\n<p>\"Dùng cái này rồi thì khỏi cần đi lấy cao răng. Quá nhẹ nhàng và êm ái, lại k bị ê buốt răng hay tốn kém nhiều. 1 lọ dùng cả mấy tháng.\"</p>\n<p>HƯỚNG DẪN SỬ DỤNG</p>\n<p>Sử dụng như các loại nước súc miệng thông thường. Mỗi lầm dùng từ 10 đến 15 ml và nên ngâm khoảng 30s để nước súc miệng có thể hòa tan các mảng bám và tiêu diệt các loại vi khuẩn có hại trong khoang miệng.</p>\n<p>CÁCH SỬ DỤNG CÁC MÀU</p>\n<p>Màu xanh, màu hồng : giúp làm sạch các mảng bám trên răng, chống oxy hóa, chống hôi miệng, làm sạch răng miệng</p>\n<p>Màu trắng : với hàm lượng làm trắng răng vượt trội , sạch miệng</p>\n<p>Màu cam : dòng căn bản làm sạch các mảng bám &amp; vết ố vàng và vôi răng li ti</p>",
    "related": [],
@@ -7021,7 +7041,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 256000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B073GXHY1V"
   },
@@ -7103,7 +7123,7 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T04:42:11Z"
+   "updatedAt": "2026-09-08T12:07:43Z"
   },
   {
    "id": 2066,
@@ -7168,10 +7188,11 @@
     "màu"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/son-duong-dhc-co-mau-cua-nhat-mau-moi-nam-2017.jpg",
     "/sites/lienstore/shared/products/import/son-duong-dhc-co-mau-cua-nhat-mau-moi-nam-2017.jpg",
     "/sites/lienstore/shared/products/fanpage/son-duong-dhc-co-mau-cua-nhat-mau-moi-nam-2017.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/son-duong-dhc-co-mau-cua-nhat-mau-moi-nam-2017-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/son-duong-dhc-co-mau-cua-nhat-mau-moi-nam-2017-300x300.jpg",
    "shortDescription": "<p>Dùng son này môi mềm mướt mịn thích lắm, đặc biệt ko hề có cảm giác bóng bóng mỡ mỡ nhé, cảm giác như môi đc khoác lớp áo mới tươi trẻ rạng ngời.</p>",
    "description": "<h3>Son dưỡng có màu DHC (mẫu 2017)</h3>\n<p>Son dưỡng DHC có màu của nhật, mẫu mới năm 2017</p>\n<p>lên màu quá xinh luôn</p>\n<p>E mua đc giá siêu siêu tốt</p>\n<p>Son dưỡng có 3 màu: hồng, đỏ hoa hồng, cam san hô</p>\n<p>Dùng son này môi mềm mướt mịn thích lắm, đặc biệt ko hề có cảm giác bóng bóng mỡ mỡ nhé, cảm giác như môi đc khoác lớp áo mới tươi trẻ rạng ngời.</p>\n<p>Son dưỡng DHC còn có công dụng giảm thâm môi nữa nhé</p>",
    "related": [],
@@ -7179,7 +7200,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 178000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0747T6JQR"
   },
@@ -7636,6 +7657,7 @@
     "hạt"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/sua-tam-hatomugi-chiet-xuat-tu-hat-y-di.jpg",
     "/sites/lienstore/shared/products/import/sua-tam-hatomugi-chiet-xuat-tu-hat-y-di.jpg",
     "/sites/lienstore/shared/products/fanpage/sua-tam-hatomugi-chiet-xuat-tu-hat-y-di.jpg",
     "/sites/lienstore/shared/products/import/sua-tam-h-a-t-o-m-u-g-i-moisturizing-and-conditioning.jpg",
@@ -7643,7 +7665,7 @@
     "/sites/lienstore/shared/products/import/sua-tam-hatomugi.jpg",
     "/sites/lienstore/shared/products/fanpage/sua-tam-hatomugi.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/sua-tam-hatomugi-chiet-xuat-tu-hat-y-di-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/sua-tam-hatomugi-chiet-xuat-tu-hat-y-di-300x300.jpg",
    "shortDescription": "<p>Sữa tắm Hatomugi chiết xuất từ hạt ý dĩ, dòng này cùng bộ với Lotion Hatomugi nổi đình đám đây ạ</p>",
    "description": "<h3>Sữa tắm Hatomugi dưỡng ẩm và làm mềm da</h3>\n<p>Sét 3 vừa ngon bổ rẻ lại đẹp</p>\n<p>Nhắc đến H.A.T.O.M.U.G.I hay nhắc tới thành phần Ý DĨ trong đó, điều đầu tiên các chị em nghĩ ngay đến hẳn là việc làm_trắng_da phi thường mà không_hề_bào_mòn_da của nó, điều khiến cho H.A.T.O.M.U.G.I Nhật Bản được_ưa_chuộng_nhiều_năm đến vậy</p>\n<p>Bộ ba H.A.T.O.M.U.G.I nuôi dưỡng làn da trắng sáng, hồng hào và mềm mịn hơn bao giờ hết</p>\n<p>Sữa rửa mặt H.a.t.o.m.u.g.i cleansing_and_facial_washing giúp chống lại các loại mụn và làm mờ dần các vết thâm sạm tối màu trên da cùng khả năng làm trắng sáng da bật tông hiệu quả</p>\n<p>Ngoài ra sữa rửa mặt hạt ý dĩ cũng chống lão hóa, trẻ hóa làn da, chống chảy xệ và làm săn chắc và đàn hồi da cực tốt.</p>\n<p>Sữa tắm H.A.T.O.M.U.G.I MOISTURIZING_AND_CONDITIONING giúp loại bỏ lớp tế chết trên da mà mắt thường không thể nhìn thấy, cho bạn làn da mịn màng đủ độ ẩm.</p>\n<p>Ngoài tác dụng làm sạch da, sản phẩm còn giúp nuôi dưỡng làn da bạn trắng hồng tự nhiên sau mỗi lần sử dụng</p>\n<p>Sữa dưỡng_thể_trắng_da, chống_nắng H.a.t.o.m.u.g.i SPF31 PA+++ dạng kem nên mềm mượt, mát lạnh, nhanh chóng thẩm thấu ngay vào da khi bôi không gây tình trạng bết dính khó chịu.</p>\n<p>Giúp dưỡng ẩm sâu, làm mềm da. Giúp dưỡng da sáng hơn, trắng hơn, xóa mờ thâm từng ngày.</p>\n<p>Có tác dụng se khít lỗ chân lông. Làm săn chắc da, chống lão hóa, cải thiện dấu hiệu của tuổi tác.</p>\n<p>Được cái cả 3 em nó cứ phải gọi là \" bao lành tính - bao an toàn cho da \" đấy ạ</p>",
    "related": [],
@@ -7651,7 +7673,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 154000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B07G1SZMSP"
   },
@@ -8242,10 +8264,11 @@
     "dày"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/thuoc-dieu-tri-tieu-hoa-da-day-taisho-kampo-hop-48-goi.jpg",
     "/sites/lienstore/shared/products/import/thuoc-dieu-tri-tieu-hoa-da-day-taisho-kampo-hop-48-goi.jpg",
     "/sites/lienstore/shared/products/fanpage/thuoc-dieu-tri-tieu-hoa-da-day-taisho-kampo-hop-48-goi.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/thuoc-dieu-tri-tieu-hoa-da-day-taisho-kampo-hop-48-goi-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/thuoc-dieu-tri-tieu-hoa-da-day-taisho-kampo-hop-48-goi-300x300.jpg",
    "shortDescription": "<p>Điều trị các triệu chứng của dạ dày, khó chịu dạ dày, viêm dạ dày, đau dạ dày, ợ hơi, chán ăn, đầy hơi bụng, ngực nại, ợ nóng, khó tiêu, đau bụng, buồn nôn (khó chịu, buồn nôn.</p>",
    "description": "<h3>Bột hỗ trợ tiêu hoá dạ dày Taisho Kampo 48 gói</h3>\n<p>THUỐC ĐIỀU TRỊ TIÊU HÓA DẠ DÀY TAISHO KAMPO - HỘP 48 GÓI</p>\n<p>Điều trị các triệu chứng của dạ dày, khó chịu dạ dày, viêm dạ dày, đau dạ dày, ợ hơi, chán ăn, đầy hơi bụng, ngực nại, ợ nóng, khó tiêu, đau bụng, buồn nôn (khó chịu, buồn nôn.</p>\n<p>Có tác dụng giảm căng thẳng bất thường của các cơ bắp của đường tiêu hóa, đau dạ dày và đau bụng</p>\n<p>Pha với nước ấm, uống trước hoặc trong bữa ăn.</p>\n<p>Người trên 15 tuổi</p>\n<p>Mỗi lần 1 gói, 3 lần 1 ngày</p>\n<p>Người dưới 15 tuổi</p>\n<p>Mỗi lần 1/2 gói, 3 lần 1 ngày</p>\n<p>Người dưới 5 tuổi: Không được sử dụng.</p>",
    "related": [],
@@ -8253,7 +8276,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 357000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B001KURFQ6"
   },
@@ -8498,10 +8521,11 @@
     "cân"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/thuoc-uong-giam-can.jpg",
     "/sites/lienstore/shared/products/import/thuoc-uong-giam-can.jpg",
     "/sites/lienstore/shared/products/fanpage/thuoc-uong-giam-can.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/thuoc-uong-giam-can-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/thuoc-uong-giam-can-300x300.jpg",
    "shortDescription": "<p>Thuốc uống giảm cân, giảm béo bụng 5000mg đang là sản phẩm có tác dụng giảm mỡ bụng số 01 tại Nhật bản, nhanh chóng đánh tan mỡ bụng. Thuốc giảm mỡ bụng 5000mg Rohto hộp 264 viên của Nhật…</p>",
    "description": "<h3>Viên uống hỗ trợ giảm cân</h3>\n<p>Thuốc uống giảm cân, giảm béo bụng 5000mg đang là sản phẩm có tác dụng giảm mỡ bụng số 01 tại Nhật bản, nhanh chóng đánh tan mỡ bụng. Thuốc giảm mỡ bụng 5000mg Rohto hộp 264 viên của Nhật Bản sẽ là sự lựa chọn hàng đầu cho những người béo phì, thừa cân.</p>\n<ul>\n<li>Cách dùng:Thuốc giảm cân Rohto 5000mg</li>\n</ul>\n<p>Người lớn (trên 15 tuổi): ngày 3 lần, 1 lần 4 viên</p>\n<p>Ít hơn 15 tuổi: Không được uống</p>\n<p>Cơ chế hoạt động:</p>\n<p>Tan mỡ nhanh</p>\n<p>Hạn chế sự thèm ăn</p>\n<p>Tăng cường sự trao đổi chất</p>\n<p>Hạn chế hấp thu chất béo vào cơ thể</p>\n<p>Tăng cường năng lượng</p>\n<p>Đào thải chất độc trong cơ thể</p>\n<p>Điều trị tuyệt đối chứng táo bón, viêm da, mụn trứng cá, mụn mủ.</p>\n<p>Mang đến làn da mịn màng khi bạn uống nhiều nước.</p>\n<p>Không dùng cho phụ nữ có thai hoặc đang cho con bú</p>\n<p>Không dùng cho người mắc các bệnh về tim, cao huyết áp, tiểu đường, gan, thận, thần kinh và rối loạn tuyến giáp</p>\n<p>Người đang dùng thuốc nhuận tràng</p>\n<p>Phù nề, khó khăn khi đi tiểu</p>\n<p>Những người bị viêm dạ dày, viêm ruột, dễ bị tiêu chảy</p>",
    "related": [],
@@ -8509,7 +8533,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 1082000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B0C1QZNKHY"
   },
@@ -8916,10 +8940,11 @@
     "khớp"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-khop-q-p-kowa-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-khop-q-p-kowa-nhat-ban.jpg",
     "/sites/lienstore/shared/products/fanpage/vien-uong-bo-khop-q-p-kowa-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-khop-q-p-kowa-nhat-ban-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-khop-q-p-kowa-nhat-ban-300x300.jpg",
    "shortDescription": "<p>Hỗ trợ điều trị các bệnh thoái hóa xương khớp, thoái khớp nguyên phát và thứ phát như thoái khớp gối, háng, tay, cột sống, vai, viêm quanh khớp, loãng xương, gãy xương, teo khớp, viêm khớp…</p>",
    "description": "<h3>Viên uống bổ khớp Q&amp;P Kowa Nhật Bản</h3>\n<p>Viên uống bổ khớp Q&amp;P Kowa - Nhật Bản</p>\n<p>Hỗ trợ điều trị các bệnh thoái hóa xương khớp, thoái khớp nguyên phát và thứ phát như thoái khớp gối, háng, tay, cột sống, vai, viêm quanh khớp, loãng xương, gãy xương, teo khớp, viêm khớp cấp và mãn tính, cải thiện tối đa hoạt động của khớp xương.</p>\n<p>Phòng ngừa và làm giảm quá trình thoái hoá khớp.</p>\n<p>Hỗ trợ phục hồi và bảo dưỡng chất nhờn bôi trơn khớp và các mô khớp, chống lão hóa xương.</p>\n<p>Hỗ trợ giúp làm lành các khớp bị tổn thương do vận động.</p>\n<p>Chống viêm nhiễm, giúp làm hết các triệu chứng của viêm xương khớp.</p>\n<p>Chữa các bệnh về mắt: Chondroitin tạo độ ẩm thích hợp cho mắt, giúp mắt điều tiết tốt, nó cũng nuôi dưỡng các tế bào giác mạc, tái tạo lớp phim nước mắt trước giác mạc, tăng cường tính đàn hồi của thấu kính thể mi. Chất này còn hạn chế sự khô mắt, mỏi mắt, hoa mắt khi mắt phải làm việc nhiều.</p>\n<p>Bồi bổ cơ thể: Cung cấp các chất: calci, phostpho, kẽm... có công dụng thúc đẩy sự phát triển của xương, răng, các enzym tiêu hóa và hoạt động của thận và tiền liệt tuyến.</p>\n<p>Người lớn trên 15 tuổi: ngày 3 viên x 2 lần sáng và tối sau khi ăn.</p>\n<p>Đối tượng dưới 15 tuổi: không được dùng.</p>",
    "related": [],
@@ -8927,7 +8952,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 568000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B09JYN6T6H"
   },
@@ -9005,10 +9030,11 @@
     "tăng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-sung-canxi-cbp-tang-chieu-cao-dhc-thom-vi-sua.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-sung-canxi-cbp-tang-chieu-cao-dhc-thom-vi-sua.jpg",
     "/sites/lienstore/shared/products/fanpage/vien-uong-bo-sung-canxi-cbp-tang-chieu-cao-dhc-thom-vi-sua.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-sung-canxi-cbp-tang-chieu-cao-dhc-thom-vi-sua-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-sung-canxi-cbp-tang-chieu-cao-dhc-thom-vi-sua-300x300.jpg",
    "shortDescription": "<p>DHC Canxi + CBP Viên uống tăng chiều cao chống loãng xương</p>",
    "description": "<h3>Viên uống bổ sung canxi CBP tăng chiều cao DHC vị sữa</h3>\n<p>DHC Canxi + CBP Viên uống tăng chiều cao chống loãng xương</p>\n<p>Đối tượng sử dụng: Trẻ em luôn cần cơ thể khỏe mạnh và chiều cao lý tưởng, người lớn hay người già cần canxi để chống lại sự loãng xương</p>\n<p>Bổ sung đồng thời 2 dưỡng chất rất cần thiết cho cơ thể. CPB là thành phần protein chính được chiết xuất từ sữa non là nguồn dinh dưỡng tốt cho trẻ, giúp trẻ tăng cường sức đề kháng, hấp thụ chất dinh dưỡng, từ đó tăng trưởng chiều cao tốt hơn.</p>\n<p>Lượng CPB có trong 4 viên bổ sung Canxi + CBP tăng chiều cao DHC bằng lượng CPB có trong 8 lít sữa</p>\n<p>Canxi 1800mg, vitamin D3 0.07μg, CBP 12mg</p>\n<p>Uống 04 viên/ ngày, chia làm 2 lần.</p>\n<p>Uống sau bữa ăn.</p>\n<p>Viên uống bổ sung Canxi – CBP tăng chiều cao DHC thơm vị sữa, có thể nhai hoặc uống đều được</p>",
    "related": [],
@@ -9016,7 +9042,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 262000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B004BRU0JY"
   },
@@ -9174,12 +9200,13 @@
     "tro"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-tien-man-kinh-kobayashi.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-tien-man-kinh-kobayashi.jpg",
     "/sites/lienstore/shared/products/fanpage/vien-uong-tien-man-kinh-kobayashi.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-ho-tro-lam-cham-tien-man-kinh-kobayashi-nhat-ban.jpg",
     "/sites/lienstore/shared/products/fanpage/vien-uong-ho-tro-lam-cham-tien-man-kinh-kobayashi-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-tien-man-kinh-kobayashi-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-tien-man-kinh-kobayashi-300x300.jpg",
    "shortDescription": "<p>Viên uống Kobayashi làm chậm quá trình tiền mãn kinh ở phụ nữ, giúp trì hoãn thời gian tiền mãn kinh giúp bị em giữ mãi tuổi thanh xuân</p>",
    "description": "<h3>Viên uống tiền mãn kinh Kobayashi</h3>\n<p>Giá 520 k hộp 420 viên</p>\n<p>Viên uống tiền mãn kinh Kobayashi</p>\n<p>Viên uống Kobayashi làm chậm quá trình tiền mãn kinh ở phụ nữ, giúp trì hoãn thời gian tiền mãn kinh giúp bị em giữ mãi tuổi thanh xuân</p>\n<p>Mãn kinh là một giai đoạn nói riêng trong cả quá trình suy giảm sinh lý nói chung của phụ nữ. Các nhà sản phụ khoa thống nhất mãn kinh sớm xuất hiện trước tuổi 40</p>\n<p>Mãn kinh là sự suy giảm của buồng trứng, hormone giảm qua các triệu chứng: kinh nguyệt không đều, đau đầu hoa mắt, chóng mặt, ù tai, mất ngủ, tim đập nhanh do hồi hộp, thay đổi tính khí, người mệt mỏi, phụ nhẹ 2 chi dưới, tiêu chảy thất thường,</p>\n<p>Hãng dược phẩm của Nhật Bản đã nghiên cứu thành công thuốc làm chậm quá trình tiền mãn kinh dành cho phụ nữ với 13 loại thảo dược hoàn toàn từ tự nhiên có tác dụng điều trị rối loạn cân bằng hormone, tăng dịch tiết âm đạo, điều hòa kinh nguyệt, chống thoái chức năng buồng trứng, tăng tính đàn hồi âm đạo, làm chậm quá trình lão hóa làm giảm nám, giúp da căng min hồng hào.</p>\n<p>Viên uống Kobayashi giúp cho chị em phụ nữ kéo dài tuổi thanh xuân và hạnh phúc trong cuộc sống gia đình. Chiết xuất từ 13 loại thảo dược quý, sản phẩm Kobayashi rất an toàn cho sức khỏe và không có tác dụng phụ.</p>\n<p>Vitamin B1 5mg</p>\n<p>Vitamin B12 5mg</p>\n<p>Vitamin B2 1mg</p>\n<p>Vitamin B6 0.5mg</p>\n<p>Vitamin B12 1mg</p>\n<p>Canxi axit pantothenic 5mg</p>\n<p>Folic acid 0.5mg</p>\n<p>Taurine 90mg</p>\n<p>Vitamin E (succinic axit dl-a-tocopherol) 5mg</p>\n<p>Trân calc 10mg</p>\n<p>Soy Isofalvone, lyophilised royal, calcium, vitamin D3, protein,</p>\n<p>Công dụng Viên uống tiền mãn kinh Kobayashi</p>\n<p>Cải thiện nhiều triệu chứng của tiền mãn kinh: giảm trí nhớ, mất ngủ, chứng rối loạn thần kinh, mãn kinh, loãng xương, đau vai gáy, người mệt mỏi, ra mồ hôi trộm, đau xương, nhức khớp</p>\n<p>Hoạt huyết, thông mạch, chống xơ vữa động mạch, phòng bệnh tim mạch.</p>\n<p>Soy Isoflavone làm giảm hoạt động của estrogen nội sinh, giảm nguy cơ ung thư tử cung và ung thư vú.</p>",
    "related": [],
@@ -9187,7 +9214,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 346000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B001EURS0U"
   },
@@ -9219,10 +9246,11 @@
     "mãn"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-tien-man-kinh-kobayashi-hop-840-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-tien-man-kinh-kobayashi-hop-840-vien.jpg",
     "/sites/lienstore/shared/products/fanpage/vien-uong-tien-man-kinh-kobayashi-hop-840-vien.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-tien-man-kinh-kobayashi-hop-840-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-tien-man-kinh-kobayashi-hop-840-vien-300x300.jpg",
    "shortDescription": "<p>Mãn kinh càng chậm thì sẽ càng trẻ đẹp, da căng nhé các chị em! Thuốc này giúp làm chậm quá trình mãn kinh, kéo dài tuổi xuân ạ</p>",
    "description": "<h3>Viên uống tiền mãn kinh Kobayashi 840 viên</h3>\n<p>Mãn kinh càng chậm thì sẽ càng trẻ đẹp, da căng nhé các chị em! Thuốc này giúp làm chậm quá trình mãn kinh, kéo dài tuổi xuân ạ</p>\n<p>MÃN KINH SỚM LÀ NỖI LO CỦA CE MÌNH PHẢI KO Ạ !</p>\n<p>1 hộp 840 viên</p>\n<p>Mãn kinh sớm sẽ kéo theo nhiều hệ lụy :</p>\n<p>Tích mỡ , nhanh già , nhiều bệnh tật</p>\n<p>VIÊN UỐNG TIỀN MÃN KINH Kobayashi- hộp 840 viên</p>\n<p>Viên uống làm chậm tiền mãn kinh Kobayashi Nhật Bản giúp trì hoàn thời gian tiền mãn kinh giúp chị em giữ mãi tuổi thanh xuân.</p>\n<p>Viên uống mãn kinh Kobayashi dùng thường xuyên cải thiện nhiều triệu chứng tiền mãn kinh như mất ngủ ,đau đầu ,giảm trí nhớ, chứng rối loạn thần kinh mãn kinh, loãng xương, đau vai gáy,người mệt mỏi ,đau xương khớp,ra mồ hôi trộm .</p>\n<p>Sản phẩm giúp hoạt huyết ,thông mạch ,chống sơ vữa động mạch,phòng bệnh tim mạch , Soy Ioflavone làm giảm hoạt động của estrogen nội sinh ,giảm nguy cơ ung thư tử cung và ung thư vú .</p>\n<p>Cách dùng Viên uống tiền mãn kinh Kobayashi:</p>\n<p>Sử dụng 10-12 viên, chia làm 3 lần, dùng sau bữa ăn</p>\n<p>Thuốc dành cho phụ nữ trên 30 tuổi,không dùng cho trẻ em dưới 15 tuổi.</p>",
    "related": [],
@@ -9230,7 +9258,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "costPrice": 682000,
    "supplierUrl": "https://www.amazon.co.jp/dp/B005SYWKGA"
   },
@@ -9300,10 +9328,10 @@
     "viên uống vita white plus"
    ],
    "images": [
-    "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-c-e-b2-co-3-cong-dung-chinh.jpg",
-    "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-co-3-cong-dung-chinh.jpg"
+    "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-co-3-cong-dung-chinh.jpg",
+    "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-c-e-b2-co-3-cong-dung-chinh.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-c-e-b2-co-3-cong-dung-chinh-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/fanpage/vien-uong-vita-white-plus-co-3-cong-dung-chinh-300x300.jpg",
    "shortDescription": "<p>Viên uống trắng da vita white plus C.E.B2 sản phẩm được sản xuất tại Nhật giúp loại bỏ nám, tàn nhang, đốm nâu một cách nhanh chóng và hiệu quả cho bạn làn da mịn màng, trắng sáng tự nhiên.</p>",
    "description": "<h3>Viên uống Vita White Plus C.E.B2</h3>\n<p>Vita White Plus C.E.B2 - Đánh bay nám từ bên trong</p>\n<p>Viên uống trắng da vita white plus C.E.B2 sản phẩm được sản xuất tại Nhật giúp loại bỏ nám, tàn nhang, đốm nâu một cách nhanh chóng và hiệu quả cho bạn làn da mịn màng, trắng sáng tự nhiên.</p>\n<p>Viên uống VITA White Plus C.E.B2 có 3 công dụng chính:</p>\n<p>Làm trắng da từ sâu bên trong từng tế bào .</p>\n<p>Ngăn ngừa lão hóa, đồng thời tái tạo tế bào tổn thương do sự tàn phá của môi trường, ức chế melamin và chặn những thay đổi về sắc tố;</p>\n<p>Kích hoạt các tế bào liên tục vận động để duy trì sự trẻ trung, khỏe mạnh và bảo vệ độ sáng mịn cho làn da.</p>\n<p>Liều dùng Viên uống VITA White Plus C.E.B2:</p>\n<p>Trong 15 ngày đầu tiên sử dụng ngày 6 viên chia 2 lần, nên dùng trước khi ăn, ngày thứ 16 trở đi ngày dùng 3 viên. Bạn có thể sử dụng với liều đặc trị tấn công ngày dùng 6 viên trong tháng đầu tiên với những người bị nám lâu năm do nội tiết tố.</p>\n<p>Nếu bạn muốn cho trẻ em sử dụng, cần cho trẻ uống dưới sự giám sát của người lớn.</p>",
    "related": [],
@@ -9311,7 +9339,7 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 2134,
@@ -9582,12 +9610,13 @@
     "chống nắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50.jpg",
     "/sites/lienstore/shared/products/import/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50.jpg",
     "/sites/lienstore/shared/products/import/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50-2.jpg",
     "/sites/lienstore/shared/products/import/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50-3.jpg",
     "/sites/lienstore/shared/products/import/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/phan-nen-chong-nang-anessa-all-in-one-beauty-pact-spf50-300x300.jpg",
    "shortDescription": "<p>Vừa đẹp lại chống nắng cho da , dưỡng da, không sợ hư da NÓ LÀ DẠNG PHẤN NỀN FOUDATION CHỐNG NẮNG ANESSA SHISEIDO VỚI CHỨC NĂNG CỦA KEM CHỐNG NẮNG,KEM…</p>",
    "description": "<p>Phấn Nền Chống Nắng Anessa All-In-One Beauty Pact SPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Anessa Shiseido</li></ul><p><strong>Công dụng</strong></p><ul><li>Vừa đẹp lại chống nắng cho da , dưỡng da, không sợ hư da NÓ LÀ DẠNG PHẤN NỀN FOUDATION CHỐNG NẮNG ANESSA SHISEIDO VỚI CHỨC NĂNG CỦA KEM CHỐNG NẮNG,KEM LÓT VÀ PHẤN NỀN ...</li></ul>",
    "related": [],
@@ -9595,7 +9624,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0CC5Y64HB"
   },
   {
@@ -9620,11 +9649,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-3.jpg",
     "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien.jpg",
-    "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-2.jpg",
-    "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-3.jpg"
+    "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/vien-nhai-canxi-takeda-new-calcium-d3-vi-sua-chua-100-vien-3-300x300.jpg",
    "shortDescription": "<p>Dùng đúng loại này cho em, trẻ em cũng dùng đc Đến định kỳ lại cần bổ sung canxi như tuổi con đang phát triển, hay các bác cần bổ sung canxi thì mùa…</p>",
    "description": "<p>Viên Nhai Canxi Takeda New Calcium D3 Vị Sữa Chua 100 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Takeda</li><li>Quy cách: 100 viên</li></ul><p><strong>Công dụng</strong></p><ul><li>Dùng đúng loại này cho em, trẻ em cũng dùng đc Đến định kỳ lại cần bổ sung canxi như tuổi con đang phát triển, hay các bác cần bổ sung canxi thì mùa mát trời này không nên bỏ qua....</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>CANXI D3 MAGIE là chiếc gậy của người già, là đôi giày của người trẻ!</li><li>Dùng đúng loại này cho em, trẻ em cũng dùng đc Đến định kỳ lại cần bổ sung canxi như tuổi con đang phát triển, hay các bác cần bổ sung canxi thì mùa mát trời này không nên bỏ qua....</li></ul>",
    "related": [],
@@ -9632,7 +9661,7 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T11:47:47Z"
   },
   {
    "id": 2142,
@@ -9804,12 +9833,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/nuoc-hoa-hong-aqualabel-shiseido.jpg",
     "/sites/lienstore/shared/products/import/nuoc-hoa-hong-aqualabel-shiseido.jpg",
     "/sites/lienstore/shared/products/import/nuoc-hoa-hong-aqualabel-shiseido-2.jpg",
     "/sites/lienstore/shared/products/import/nuoc-hoa-hong-aqualabel-shiseido-3.jpg",
     "/sites/lienstore/shared/products/import/nuoc-hoa-hong-aqualabel-shiseido-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/nuoc-hoa-hong-aqualabel-shiseido-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/nuoc-hoa-hong-aqualabel-shiseido-300x300.jpg",
    "shortDescription": "<p>395kaka NƯỚC HOA HỒNG AQUALABEL MẪU MỚI ĐỈNH CỦA CHÓP Nước hoa hồng aqualabel Shiseido giúp làm sạch sâu và thu hẹp lỗ chân lông,cải thiện tình trạng…</p>",
    "description": "<p>Nước Hoa Hồng Aqualabel Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Aqualabel Shiseido</li></ul><p><strong>Công dụng</strong></p><ul><li>395kaka NƯỚC HOA HỒNG AQUALABEL MẪU MỚI ĐỈNH CỦA CHÓP Nước hoa hồng aqualabel Shiseido giúp làm sạch sâu và thu hẹp lỗ chân lông,cải thiện tình trạng da bị khô và hư tổn,giúp da luôn căng mướt và mềm mịn,ẩm mượt, với độ PH luôn được cân bằng.</li></ul>",
    "related": [],
@@ -9817,7 +9847,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0CSSWS9TP"
   },
   {
@@ -9842,11 +9872,12 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract-2.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-nao-asahi-schwabe-ginkgo-leaf-extract-300x300.jpg",
    "shortDescription": "<p>Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Asahi</li></ul><p><strong>Công dụng</strong></p><ul><li>Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>Để lấy lại phong độ tư duy sắc bén, hãy để siêu phẩm viên uống bổ não Asahi Schwabe Ginkgo Leaf Extract làm &quot;quản gia&quot; nạp lại ...</li></ul>",
    "related": [],
@@ -9854,7 +9885,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B001E5BWZW"
   },
   {
@@ -9879,10 +9910,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-gan-hepalyse-plus-ii-180-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-plus-ii-180-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-plus-ii-180-vien-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-plus-ii-180-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-gan-hepalyse-plus-ii-180-vien-300x300.jpg",
    "shortDescription": "<p>Viên Uống Bổ Gan Hepalyse Plus II 180 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Viên Uống Bổ Gan Hepalyse Plus II 180 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Zeria</li><li>Quy cách: 180 viên</li></ul><p><strong>Công dụng</strong></p><ul><li>Viên Uống Bổ Gan Hepalyse Plus II 180 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>Các anh uống rượu bia nhớ uống bổ gan nhé ạ.</li></ul>",
    "related": [],
@@ -9890,7 +9922,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B018VO2OSC"
   },
   {
@@ -10096,11 +10128,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
-    "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize.jpg",
     "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize-2.jpg",
+    "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize.jpg",
     "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/son-shu-uemura-mau-580-fullsize-2-300x300.jpg",
    "shortDescription": "<p>Son Shu Uemura Màu 580 Fullsize là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Son Shu Uemura Màu 580 Fullsize là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Shu Uemura</li><li>Quy cách: Fullsize</li></ul><p><strong>Công dụng</strong></p><ul><li>Son Shu Uemura Màu 580 Fullsize là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10108,7 +10140,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0CFKHVB1G"
   },
   {
@@ -10133,10 +10165,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-levante-nmn22050.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-levante-nmn22050.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-levante-nmn22050-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-levante-nmn22050-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-levante-nmn22050-300x300.jpg",
    "shortDescription": "<p>Nhà e luôn pick zá tốt nhất cho mn Levante &quot;NMN22050&quot; là thực phẩm bổ sung NMN (nicotinamide mononucleotide) được sản xuất trong nước.</p>",
    "description": "<p>Viên Uống Levante NMN22050 là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Levante</li></ul><p><strong>Công dụng</strong></p><ul><li>Nhà e luôn pick zá tốt nhất cho mn Levante &quot;NMN22050&quot; là thực phẩm bổ sung NMN (nicotinamide mononucleotide) được sản xuất trong nước.</li></ul><p><strong>Thành phần</strong></p><ul><li>Một lọ cung cấp 22.050 mg NMN, và ba viên nén cung cấp 735 mg.</li><li>Mỗi viên nén cung cấp 258 mg NMN, cho phép bạn điều chỉnh số lượng viên nén phù hợp với sức khỏe tổng thể.</li><li>Hơn nữa, độ tinh khiết của thành phần NMN đạt 100% (đã được kiểm nghiệm xác thực), một trong những mức cao nhất trong ngành.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>Sản phẩm sử dụng beta-NMN được chiết xuất bằng ...</li></ul>",
    "related": [],
@@ -10144,7 +10177,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0CB267J1Z"
   },
   {
@@ -10243,10 +10276,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/set-dao-inox-global-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/set-dao-inox-global-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/set-dao-inox-global-nhat-ban-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/set-dao-inox-global-nhat-ban-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/set-dao-inox-global-nhat-ban-300x300.jpg",
    "shortDescription": "<p>Set Dao Inox Global Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Set Dao Inox Global Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Global</li></ul><p><strong>Công dụng</strong></p><ul><li>Set Dao Inox Global Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10254,7 +10288,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B01EMXNC5U"
   },
   {
@@ -10279,10 +10313,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-collection-ltp-1177a-2ajh-mau-xanh.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-2ajh-mau-xanh.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-2ajh-mau-xanh-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-2ajh-mau-xanh-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-collection-ltp-1177a-2ajh-mau-xanh-300x300.jpg",
    "shortDescription": "<p>Đồng Hồ Nữ Casio Collection LTP-1177A-2AJH Màu Xanh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Đồng Hồ Nữ Casio Collection LTP-1177A-2AJH Màu Xanh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Casio</li></ul><p><strong>Công dụng</strong></p><ul><li>Đồng Hồ Nữ Casio Collection LTP-1177A-2AJH Màu Xanh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>Đồng hồ dây kim loại #Casio Collection dành cho nữ với 2 mã màu LTP-1177A-2AJH (xanh) và LTP-1177A-4A1JH (hồng) E Gom sale về tay: 750xu thui các Bác uiiii Chất liệu dây: Thép không gỉ Mặt đ...</li></ul>",
    "related": [],
@@ -10290,7 +10325,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FJQCTGSL"
   },
   {
@@ -10315,10 +10350,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-collection-ltp-1177a-4a1jh-mau-hong.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-4a1jh-mau-hong.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-4a1jh-mau-hong-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dong-ho-nu-casio-collection-ltp-1177a-4a1jh-mau-hong-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-collection-ltp-1177a-4a1jh-mau-hong-300x300.jpg",
    "shortDescription": "<p>Đồng Hồ Nữ Casio Collection LTP-1177A-4A1JH Màu Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Đồng Hồ Nữ Casio Collection LTP-1177A-4A1JH Màu Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Casio</li></ul><p><strong>Công dụng</strong></p><ul><li>Đồng Hồ Nữ Casio Collection LTP-1177A-4A1JH Màu Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>Đồng hồ dây kim loại #Casio Collection dành cho nữ với 2 mã màu LTP-1177A-2AJH (xanh) và LTP-1177A-4A1JH (hồng) E Gom sale về tay: 750xu thui các Bác uiiii Chất liệu dây: Thép không gỉ Mặt đ...</li></ul>",
    "related": [],
@@ -10326,7 +10362,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FJQDJ6BT"
   },
   {
@@ -10351,9 +10387,10 @@
     "chống nắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-chong-nang-elixir-tone-up.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nang-elixir-tone-up.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-chong-nang-elixir-tone-up-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-chong-nang-elixir-tone-up-300x300.jpg",
    "shortDescription": "<p>KCN-SỮA DƯỠNG-BASE Ngoài khả năng chống nắng tốt, thì sp đã được thêm vào nhiều thành phần dưỡng chăm sóc da ngăn ngừa lão hoá, giữ ẩm giúp cho làn da…</p>",
    "description": "<p>Kem Chống Nắng Elixir Tone Up là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Elixir Shiseido</li></ul><p><strong>Công dụng</strong></p><ul><li>KCN-SỮA DƯỠNG-BASE Ngoài khả năng chống nắng tốt, thì sp đã được thêm vào nhiều thành phần dưỡng chăm sóc da ngăn ngừa lão hoá, giữ ẩm giúp cho làn da căng bóng cả ngày!!!...</li></ul><p><strong>Thành phần</strong></p><ul><li>KCN-SỮA DƯỠNG-BASE Ngoài khả năng chống nắng tốt, thì sp đã được thêm vào nhiều thành phần dưỡng chăm sóc da ngăn ngừa lão hoá, giữ ẩm giúp cho làn da căng bóng cả ngày!!!...</li></ul>",
    "related": [],
@@ -10361,7 +10398,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GW7T814N"
   },
   {
@@ -10425,10 +10462,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/chi-ke-long-may-3-trong-1-picomonte-3-way-eye-brow.jpg",
     "/sites/lienstore/shared/products/import/chi-ke-long-may-3-trong-1-picomonte-3-way-eye-brow.jpg",
     "/sites/lienstore/shared/products/import/chi-ke-long-may-3-trong-1-picomonte-3-way-eye-brow-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/chi-ke-long-may-3-trong-1-picomonte-3-way-eye-brow-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/chi-ke-long-may-3-trong-1-picomonte-3-way-eye-brow-300x300.jpg",
    "shortDescription": "<p>Chì Kẻ Lông Mày 3 Trong 1 Picomonte 3 Way Eye Brow là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Chì Kẻ Lông Mày 3 Trong 1 Picomonte 3 Way Eye Brow là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Picomonte</li><li>Quy cách: 1 cây</li></ul><p><strong>Công dụng</strong></p><ul><li>Chì Kẻ Lông Mày 3 Trong 1 Picomonte 3 Way Eye Brow là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>Cực dễ sử dụng và vô cùng tiện lợi Ưu điểm lớn nhất...</li></ul>",
    "related": [],
@@ -10436,7 +10474,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0C4SV5XWT"
   },
   {
@@ -10461,13 +10499,14 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-gan-hepalyse-gx-360-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien-2.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien-3.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien-4.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien-5.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-gan-hepalyse-gx-360-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-gan-hepalyse-gx-360-vien-300x300.jpg",
    "shortDescription": "<p>Viên Uống Bổ Gan Hepalyse GX 360 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Viên Uống Bổ Gan Hepalyse GX 360 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Zeria</li><li>Quy cách: 360 viên</li></ul><p><strong>Công dụng</strong></p><ul><li>Viên Uống Bổ Gan Hepalyse GX 360 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>HEPALYSE GX 360V VIÊN UỐNG BỔGAN THẢIĐỘCGAN Gan Vàng GX 360v - hàng tốt mà hiếm, không phải lúc nào cũng sẵn Hepalyse GX mang lại sức khỏe toàn diện cho gan, đây là loại th.uốc được in trong sổ tay của các bác sĩ ở Nhật để chỉ định điều trị cho các bệnh nhân b</li></ul>",
    "related": [],
@@ -10475,7 +10514,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0DHKGHS6Y"
   },
   {
@@ -10499,11 +10538,12 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dha-koplina-kids-vi-cam.jpg",
     "/sites/lienstore/shared/products/import/dha-koplina-kids-vi-cam.jpg",
     "/sites/lienstore/shared/products/import/dha-koplina-kids-vi-cam-2.jpg",
     "/sites/lienstore/shared/products/import/dha-koplina-kids-vi-cam-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dha-koplina-kids-vi-cam-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dha-koplina-kids-vi-cam-300x300.jpg",
    "shortDescription": "<p>DHA Koplina Kids Vị Cam là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>DHA Koplina Kids Vị Cam là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Koplina</li></ul><p><strong>Công dụng</strong></p><ul><li>DHA Koplina Kids Vị Cam là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10511,7 +10551,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0DZMHQ8ZL"
   },
   {
@@ -10536,10 +10576,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/bo-3-sua-tam-lux-celestial-escape.jpg",
     "/sites/lienstore/shared/products/import/bo-3-sua-tam-lux-celestial-escape.jpg",
     "/sites/lienstore/shared/products/import/bo-3-sua-tam-lux-celestial-escape-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/bo-3-sua-tam-lux-celestial-escape-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/bo-3-sua-tam-lux-celestial-escape-300x300.jpg",
    "shortDescription": "<p>Bộ 3 Sữa Tắm Lux Celestial Escape là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Bộ 3 Sữa Tắm Lux Celestial Escape là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Lux Unilever</li><li>Quy cách: Bộ 3</li></ul><p><strong>Công dụng</strong></p><ul><li>Bộ 3 Sữa Tắm Lux Celestial Escape là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10547,7 +10588,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0BGWYNLD2"
   },
   {
@@ -10572,11 +10613,12 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien-2.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-vitamin-tong-hop-cho-ba-bau-pigeon-60-vien-300x300.jpg",
    "shortDescription": "<p>VITAMIN TỔNG HỢP DÀNH CHO BÀ BẦU PIGEON DẠNG GÓI (Mẫu mới) Viên Uống Bổ Sung Vitamin Cho Bà Bầu Pigeon 60 viên/ 30 ngày uống Vitamin tổng hợp dành cho…</p>",
    "description": "<p>Viên Uống Vitamin Tổng Hợp Cho Bà Bầu Pigeon 60 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Pigeon</li><li>Quy cách: 60 viên / 30 ngày</li></ul><p><strong>Công dụng</strong></p><ul><li>VITAMIN TỔNG HỢP DÀNH CHO BÀ BẦU PIGEON DẠNG GÓI (Mẫu mới) Viên Uống Bổ Sung Vitamin Cho Bà Bầu Pigeon 60 viên/ 30 ngày uống Vitamin tổng hợp dành cho bà bầu và mẹ sau sinh đây ạ Chỉ cần UỐNG 1 LOẠI ko cần uống nhiều loại mà vẫn đảm bảo cho cả 2 mẹ con đó ạ Xu</li></ul><p><strong>Thành phần</strong></p><ul><li>VITAMIN TỔNG HỢP DÀNH CHO BÀ BẦU PIGEON DẠNG GÓI (Mẫu mới) Viên Uống Bổ Sung Vitamin Cho Bà Bầu Pigeon 60 viên/ 30 ngày uống Vitamin tổng hợp dành cho bà bầu và mẹ sau sinh đây ạ Chỉ cần UỐNG 1 LOẠI ko cần uống nhiều loại mà vẫn đảm bảo cho cả 2 mẹ con đó ạ Xu</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>VITAMIN TỔNG HỢP DÀNH CHO BÀ BẦU PIGEON DẠNG GÓI (Mẫu mới) Viên Uống Bổ Sung Vitamin Cho Bà Bầu Pigeon 60 viên/ 30 ngày uống Vitamin tổng hợp dành cho bà bầu và mẹ sau sinh đây ạ Chỉ cần UỐNG 1 LOẠI ko cần uống nhiều loại mà vẫn đảm bảo cho cả 2 mẹ con đó ạ Xu</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>VITAMIN TỔNG HỢP DÀNH CHO BÀ BẦU PIGEON DẠNG GÓI (Mẫu mới) Viên Uống Bổ Sung Vitamin Cho Bà Bầu Pigeon 60 viên/ 30 ngày uống Vitamin tổng hợp dành cho bà bầu và mẹ sau sinh đây ạ Chỉ cần UỐNG 1 LOẠI ko cần uống nhiều loại mà vẫn đảm bảo cho cả 2 mẹ con đó ạ Xu</li></ul>",
    "related": [],
@@ -10584,7 +10626,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B09R9M6J1V"
   },
   {
@@ -10646,9 +10688,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-danh-rang-lion-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/kem-danh-rang-lion-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-danh-rang-lion-nhat-ban-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-danh-rang-lion-nhat-ban-300x300.jpg",
    "shortDescription": "<p>Kem Đánh Răng Lion Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Kem Đánh Răng Lion Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Lion</li><li>Quy cách: 1 tuýp</li></ul><p><strong>Công dụng</strong></p><ul><li>Kem Đánh Răng Lion Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10656,7 +10699,7 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B09T3B97T1"
   },
   {
@@ -10681,12 +10724,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-nao-maruman-ginkgo-biloba.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-maruman-ginkgo-biloba.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-maruman-ginkgo-biloba-2.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-maruman-ginkgo-biloba-3.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-nao-maruman-ginkgo-biloba-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-nao-maruman-ginkgo-biloba-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-nao-maruman-ginkgo-biloba-300x300.jpg",
    "shortDescription": "<p>Bí quyết làm việc ngày 18 tiếng của người Nhật đó ạ BỔ NÃO MARUMAN Viên bổ não tiền đình lá bạch quả Ginkgo extract Maruman có thành phần chính được…</p>",
    "description": "<p>Viên Uống Bổ Não Maruman Ginkgo Biloba là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Maruman</li></ul><p><strong>Công dụng</strong></p><ul><li>Bí quyết làm việc ngày 18 tiếng của người Nhật đó ạ BỔ NÃO MARUMAN Viên bổ não tiền đình lá bạch quả Ginkgo extract Maruman có thành phần chính được chiết xuất 100% từ lá cây bạch quả (ginkgo biloba) có công dụng chính là giúp não bộ khỏe mạnh, tăng cường trí </li></ul><p><strong>Thành phần</strong></p><ul><li>Bí quyết làm việc ngày 18 tiếng của người Nhật đó ạ BỔ NÃO MARUMAN Viên bổ não tiền đình lá bạch quả Ginkgo extract Maruman có thành phần chính được chiết xuất 100% từ lá cây bạch quả (ginkgo biloba) có công dụng chính là giúp não bộ khỏe mạnh, tăng cường trí </li></ul>",
    "related": [],
@@ -10694,7 +10738,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B07179RNLY"
   },
   {
@@ -10720,9 +10764,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-day-nhua-42-8mm.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-nu-casio-day-nhua-42-8mm.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dong-ho-nu-casio-day-nhua-42-8mm-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dong-ho-nu-casio-day-nhua-42-8mm-300x300.jpg",
    "shortDescription": "<p>Đồng Hồ Nữ Casio Dây Nhựa 42,8mm là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Đồng Hồ Nữ Casio Dây Nhựa 42,8mm là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Casio</li><li>Quy cách: Mặt 42,8mm</li></ul><p><strong>Công dụng</strong></p><ul><li>Đồng Hồ Nữ Casio Dây Nhựa 42,8mm là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10730,7 +10775,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FSKRLL8X"
   },
   {
@@ -10823,9 +10868,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/sua-bot-dinh-duong-nguoi-cao-tuoi-morinaga.jpg",
     "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-cao-tuoi-morinaga.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-cao-tuoi-morinaga-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/sua-bot-dinh-duong-nguoi-cao-tuoi-morinaga-300x300.jpg",
    "shortDescription": "<p>sữa dinh dưỡng người già plus e có giá săn sale chỉ 580l /h mua từ 3h còn 550k/hộp SỮA BỘT DINH DƯỠNG DÀNH CHO NGƯỜI CAO TUỔI MORINAGA Hàng Nội Địa…</p>",
    "description": "<p>Sữa Bột Dinh Dưỡng Người Cao Tuổi Morinaga là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Morinaga</li><li>Quy cách: 1 hộp</li></ul><p><strong>Công dụng</strong></p><ul><li>sữa dinh dưỡng người già plus e có giá săn sale chỉ 580l /h mua từ 3h còn 550k/hộp SỮA BỘT DINH DƯỠNG DÀNH CHO NGƯỜI CAO TUỔI MORINAGA Hàng Nội Địa Nhật 100% Ngoài 50 tuổi các vấn đề sức khoẻ của người cao ...</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>sữa dinh dưỡng người già plus e có giá săn sale chỉ 580l /h mua từ 3h còn 550k/hộp SỮA BỘT DINH DƯỠNG DÀNH CHO NGƯỜI CAO TUỔI MORINAGA Hàng Nội Địa Nhật 100% Ngoài 50 tuổi các vấn đề sức khoẻ của người cao ...</li></ul>",
    "related": [],
@@ -10833,7 +10879,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0F29MF9LC"
   },
   {
@@ -10858,9 +10904,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/bot-matcha-gokugoku-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/bot-matcha-gokugoku-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/bot-matcha-gokugoku-nhat-ban-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/bot-matcha-gokugoku-nhat-ban-300x300.jpg",
    "shortDescription": "<p>Bột Matcha Gokugoku Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Bột Matcha Gokugoku Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Gokugoku</li></ul><p><strong>Công dụng</strong></p><ul><li>Bột Matcha Gokugoku Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10868,7 +10915,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0BT6MZHJ4"
   },
   {
@@ -10893,11 +10940,12 @@
     "chống nắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-chong-nang-anessa-gel-nang-tong-trang-hong.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nang-anessa-gel-nang-tong-trang-hong.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nang-anessa-gel-nang-tong-trang-hong-2.jpg",
     "/sites/lienstore/shared/products/import/kem-chong-nang-anessa-gel-nang-tong-trang-hong-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-chong-nang-anessa-gel-nang-tong-trang-hong-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-chong-nang-anessa-gel-nang-tong-trang-hong-300x300.jpg",
    "shortDescription": "<p>Kem Chống Nắng Anessa Gel Nâng Tông Trắng Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Kem Chống Nắng Anessa Gel Nâng Tông Trắng Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Anessa Shiseido</li></ul><p><strong>Công dụng</strong></p><ul><li>Kem Chống Nắng Anessa Gel Nâng Tông Trắng Hồng là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -10905,7 +10953,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GFKM4LJ9"
   },
   {
@@ -10998,9 +11046,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/bo-3-cham-soc-da-elixir-shiseido.jpg",
     "/sites/lienstore/shared/products/import/bo-3-cham-soc-da-elixir-shiseido.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/bo-3-cham-soc-da-elixir-shiseido-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/bo-3-cham-soc-da-elixir-shiseido-300x300.jpg",
    "shortDescription": "<p>Bộ 3 Chăm Sóc Da Elixir Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Bộ 3 Chăm Sóc Da Elixir Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Elixir Shiseido</li><li>Quy cách: Bộ 3</li></ul><p><strong>Công dụng</strong></p><ul><li>Bộ 3 Chăm Sóc Da Elixir Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11008,7 +11057,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0H7HPW53Q"
   },
   {
@@ -11033,9 +11082,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-bo-mat-noguchi-blueberry-lutein.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-bo-mat-noguchi-blueberry-lutein.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-bo-mat-noguchi-blueberry-lutein-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-bo-mat-noguchi-blueberry-lutein-300x300.jpg",
    "shortDescription": "<p>Viên Uống Bổ Mắt Noguchi Blueberry &amp; Lutein là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Viên Uống Bổ Mắt Noguchi Blueberry &amp; Lutein là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Noguchi</li></ul><p><strong>Công dụng</strong></p><ul><li>Viên Uống Bổ Mắt Noguchi Blueberry &amp; Lutein là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul><p><strong>Thành phần</strong></p><ul><li>Khách dùng oki xong bảo mua tiếp nên em đăng Đây chính là viên bổ mắt tốt nhất của Nhật Khách e khỏi chảy nước mắt, mờ quáng, nhức mỏi đã lâu chỉ sau uống 2h thôi nhé Viên uống Bổ Mắt việt quất BLUEBERRY &amp; LUTEIN của Nhật Mẫu mới nhất cao cấp hơn có thêm thành</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>Khách dùng oki xong bảo mua tiếp nên em đăng Đây chính là viên bổ mắt tốt nhất của Nhật Khách e khỏi chảy nước mắt, mờ quáng, nhức mỏi đã lâu chỉ sau uống 2h thôi nhé Viên uống Bổ Mắt việt quất BLUEBERRY &amp; LUTEIN của Nhật Mẫu mới nhất cao cấp hơn có thêm thành</li></ul>",
    "related": [],
@@ -11043,7 +11093,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0B72T2T4W"
   },
   {
@@ -11104,10 +11154,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/sua-tang-co-meiji-savas-protein-100-vi-cacao.jpg",
     "/sites/lienstore/shared/products/import/sua-tang-co-meiji-savas-protein-100-vi-cacao.jpg",
     "/sites/lienstore/shared/products/import/sua-tang-co-meiji-savas-protein-100-vi-cacao-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/sua-tang-co-meiji-savas-protein-100-vi-cacao-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/sua-tang-co-meiji-savas-protein-100-vi-cacao-300x300.jpg",
    "shortDescription": "<p>Sữa Tăng Cơ Meiji Savas Protein 100 Vị Cacao là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Sữa Tăng Cơ Meiji Savas Protein 100 Vị Cacao là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Meiji Savas</li></ul><p><strong>Công dụng</strong></p><ul><li>Sữa Tăng Cơ Meiji Savas Protein 100 Vị Cacao là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11115,7 +11166,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0DGFTDTJD"
   },
   {
@@ -11174,10 +11225,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/ao-phong-uniqlo-size-m.jpg",
     "/sites/lienstore/shared/products/import/ao-phong-uniqlo-size-m.jpg",
     "/sites/lienstore/shared/products/import/ao-phong-uniqlo-size-m-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/ao-phong-uniqlo-size-m-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/ao-phong-uniqlo-size-m-300x300.jpg",
    "shortDescription": "<p>Áo Phông Uniqlo Size M là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Áo Phông Uniqlo Size M là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Uniqlo</li><li>Quy cách: Size M</li></ul><p><strong>Công dụng</strong></p><ul><li>Áo Phông Uniqlo Size M là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11185,7 +11237,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GFP9N34D"
   },
   {
@@ -11211,10 +11263,11 @@
     "đồng hồ casio standard lrw-200h-7e2jf màu trắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dong-ho-casio-standard-lrw-200h-mau-den.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-casio-standard-lrw-200h-mau-den.jpg",
     "/sites/lienstore/shared/products/import/dong-ho-casio-standard-lrw-200h-7e2jf-mau-trang.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dong-ho-casio-standard-lrw-200h-mau-den-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dong-ho-casio-standard-lrw-200h-mau-den-300x300.jpg",
    "shortDescription": "<p>Đồng Hồ Casio Standard LRW-200H Màu Đen là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Đồng Hồ Casio Standard LRW-200H Màu Đen là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Casio</li></ul><p><strong>Công dụng</strong></p><ul><li>Đồng Hồ Casio Standard LRW-200H Màu Đen là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11222,7 +11275,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B00RBCJ9MK"
   },
   {
@@ -11247,9 +11300,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/nen-thom-jo-malone.jpg",
     "/sites/lienstore/shared/products/import/nen-thom-jo-malone.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/nen-thom-jo-malone-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/nen-thom-jo-malone-300x300.jpg",
    "shortDescription": "<p>Nến Thơm Jo Malone là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Nến Thơm Jo Malone là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Jo Malone</li></ul><p><strong>Công dụng</strong></p><ul><li>Nến Thơm Jo Malone là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11257,7 +11311,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B01778SIZG"
   },
   {
@@ -11282,12 +11336,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/mu-bucket-chong-tham-nuoc-uniqlo.jpg",
     "/sites/lienstore/shared/products/import/mu-bucket-chong-tham-nuoc-uniqlo.jpg",
     "/sites/lienstore/shared/products/import/mu-bucket-chong-tham-nuoc-uniqlo-2.jpg",
     "/sites/lienstore/shared/products/import/mu-bucket-chong-tham-nuoc-uniqlo-3.jpg",
     "/sites/lienstore/shared/products/import/mu-bucket-chong-tham-nuoc-uniqlo-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/mu-bucket-chong-tham-nuoc-uniqlo-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/mu-bucket-chong-tham-nuoc-uniqlo-300x300.jpg",
    "shortDescription": "<p>Phong cách thời thượng Chất liệu: Vải chống nước cao cấp, giúp đẩy lùi nước mưa nhẹ.</p>",
    "description": "<p>Mũ Bucket Chống Thấm Nước Uniqlo là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Uniqlo</li></ul><p><strong>Công dụng</strong></p><ul><li>MŨ BUCKET CHỐNG THẤM NƯỚC - seo sập nấc cuối chỉ 1.9.0ka Đi mưa không lo ướt - Phong cách thời thượng Chất liệu: Vải chống nước cao cấp, giúp đẩy lùi nước mưa nhẹ.</li></ul>",
    "related": [],
@@ -11295,7 +11350,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0F1DD5ZZN"
   },
   {
@@ -11319,9 +11374,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kep-mi-shiseido.jpg",
     "/sites/lienstore/shared/products/import/kep-mi-shiseido.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kep-mi-shiseido-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kep-mi-shiseido-300x300.jpg",
    "shortDescription": "<p>Kẹp Mi Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Kẹp Mi Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Shiseido</li><li>Quy cách: 1 cái</li></ul><p><strong>Công dụng</strong></p><ul><li>Kẹp Mi Shiseido là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11329,7 +11385,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0D9BNRY9G"
   },
   {
@@ -11354,9 +11410,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/socola-ghana-nhat-ban.jpg",
     "/sites/lienstore/shared/products/import/socola-ghana-nhat-ban.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/socola-ghana-nhat-ban-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/socola-ghana-nhat-ban-300x300.jpg",
    "shortDescription": "<p>Socola Ghana Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Socola Ghana Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Ghana</li></ul><p><strong>Công dụng</strong></p><ul><li>Socola Ghana Nhật Bản là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11364,7 +11421,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FMWKDWD3"
   },
   {
@@ -11457,12 +11514,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/ao-long-cuu-uniqlo.jpg",
     "/sites/lienstore/shared/products/import/ao-long-cuu-uniqlo.jpg",
     "/sites/lienstore/shared/products/import/ao-long-cuu-uniqlo-2.jpg",
     "/sites/lienstore/shared/products/import/ao-long-cuu-uniqlo-3.jpg",
     "/sites/lienstore/shared/products/import/ao-long-cuu-uniqlo-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/ao-long-cuu-uniqlo-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/ao-long-cuu-uniqlo-300x300.jpg",
    "shortDescription": "<p>Áo Lông Cừu Uniqlo là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Áo Lông Cừu Uniqlo là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Uniqlo</li></ul><p><strong>Công dụng</strong></p><ul><li>Áo Lông Cừu Uniqlo là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11470,7 +11528,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B07P5PQCJJ"
   },
   {
@@ -11494,10 +11552,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/set-dao-dia-thia-noi-dia-nhat.jpg",
     "/sites/lienstore/shared/products/import/set-dao-dia-thia-noi-dia-nhat.jpg",
     "/sites/lienstore/shared/products/import/set-dao-dia-thia-noi-dia-nhat-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/set-dao-dia-thia-noi-dia-nhat-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/set-dao-dia-thia-noi-dia-nhat-300x300.jpg",
    "shortDescription": "<p>Set Dao Dĩa Thìa Nội Địa Nhật là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Set Dao Dĩa Thìa Nội Địa Nhật là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Quy cách: 1 set</li></ul><p><strong>Công dụng</strong></p><ul><li>Set Dao Dĩa Thìa Nội Địa Nhật là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11505,7 +11564,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0F384PK9B"
   },
   {
@@ -11530,12 +11589,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em.jpg",
     "/sites/lienstore/shared/products/import/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em.jpg",
     "/sites/lienstore/shared/products/import/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em-2.jpg",
     "/sites/lienstore/shared/products/import/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em-3.jpg",
     "/sites/lienstore/shared/products/import/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/ao-parka-long-vu-dang-dai-uniqlo-cho-tre-em-300x300.jpg",
    "shortDescription": "<p>Áo Parka Lông Vũ Dáng Dài Uniqlo Cho Trẻ Em là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Áo Parka Lông Vũ Dáng Dài Uniqlo Cho Trẻ Em là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Uniqlo</li></ul><p><strong>Công dụng</strong></p><ul><li>Áo Parka Lông Vũ Dáng Dài Uniqlo Cho Trẻ Em là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11543,7 +11603,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FN3Q6N3Q"
   },
   {
@@ -11568,11 +11628,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
-    "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose.jpg",
     "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose-2.jpg",
+    "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose.jpg",
     "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/sua-bot-dinh-duong-nguoi-lon-bean-stalk-it-lactose-2-300x300.jpg",
    "shortDescription": "<p>- ￼Sữa Bột Dành Cho Người Lớn Cắt Giảm 90% Lượng Đường Lactose, Giúp Ngủ Ngon, Tăng Cường Đề Kháng Bean Stalk Nhật Bản Chỉ 395ka thui ạ</p>",
    "description": "<p>Sữa Bột Dinh Dưỡng Người Lớn Bean Stalk Ít Lactose là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Bean Stalk</li></ul><p><strong>Công dụng</strong></p><ul><li>- ￼Sữa Bột Dành Cho Người Lớn Cắt Giảm 90% Lượng Đường Lactose, Giúp Ngủ Ngon, Tăng Cường Đề Kháng Bean Stalk Nhật Bản Chỉ 395ka thui ạ</li></ul><p><strong>Đối tượng sử dụng</strong></p><ul><li>- ￼Sữa Bột Dành Cho Người Lớn Cắt Giảm 90% Lượng Đường Lactose, Giúp Ngủ Ngon, Tăng Cường Đề Kháng Bean Stalk Nhật Bản Chỉ 395ka thui ạ</li></ul>",
    "related": [],
@@ -11580,7 +11640,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0BVT7KV32"
   },
   {
@@ -11605,11 +11665,12 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/set-tui-phuc-sk-ii-5-mon.jpg",
     "/sites/lienstore/shared/products/import/set-tui-phuc-sk-ii-5-mon.jpg",
     "/sites/lienstore/shared/products/import/set-tui-phuc-sk-ii-5-mon-2.jpg",
     "/sites/lienstore/shared/products/import/set-tui-phuc-sk-ii-5-mon-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/set-tui-phuc-sk-ii-5-mon-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/set-tui-phuc-sk-ii-5-mon-300x300.jpg",
    "shortDescription": "<p>Set Túi Phúc SK-II 5 Món là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Set Túi Phúc SK-II 5 Món là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: SK-II</li><li>Quy cách: 5 món; Nước thần 75ml</li></ul><p><strong>Công dụng</strong></p><ul><li>Set Túi Phúc SK-II 5 Món là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11617,7 +11678,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GS93GQKB"
   },
   {
@@ -11783,10 +11844,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-ho-tro-tuan-hoan-orihiro-nattokinase-2000fu.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-ho-tro-tuan-hoan-orihiro-nattokinase-2000fu.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-ho-tro-tuan-hoan-orihiro-nattokinase-2000fu-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-ho-tro-tuan-hoan-orihiro-nattokinase-2000fu-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-ho-tro-tuan-hoan-orihiro-nattokinase-2000fu-300x300.jpg",
    "shortDescription": "<p>ORIHIO Viên uống phòng ngừa tai biến của Orihiro chứa hàm lượng 2000FU Nattokinase làm giảm sự kết dính của các tế bào máu, từ đó giảm độ nhày và nồng…</p>",
    "description": "<p>Viên Uống Hỗ Trợ Tuần Hoàn Orihiro Nattokinase 2000FU là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Orihiro</li></ul><p><strong>Công dụng</strong></p><ul><li>sản phẩm CHỐNG ĐỘT QUỴ NATTO KINASE - ORIHIO Viên uống phòng ngừa tai biến của Orihiro chứa hàm lượng 2000FU Nattokinase làm giảm sự kết dính của các tế bào máu, từ đó giảm độ nhày và nồng độ fibrinogen và làm hạ huyết áp, ổn định huyết áp.</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>sản phẩm CHỐNG ĐỘT QUỴ NATTO KINASE - ORIHIO Viên uống phòng ngừa tai biến của Orihiro chứa hàm lượng 2000FU Nattokinase làm giảm sự kết dính của các tế bào máu, từ đó giảm độ nhày và nồng độ fibrinogen và làm hạ huyết áp, ổn định huyết áp.</li></ul>",
    "related": [],
@@ -11794,7 +11856,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B000FXUC78"
   },
   {
@@ -11930,9 +11992,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/dau-tay-trang-fancl.jpg",
     "/sites/lienstore/shared/products/import/dau-tay-trang-fancl.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/dau-tay-trang-fancl-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/dau-tay-trang-fancl-300x300.jpg",
    "shortDescription": "<p>Dầu Tẩy Trang Fancl là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Dầu Tẩy Trang Fancl là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Fancl</li></ul><p><strong>Công dụng</strong></p><ul><li>Dầu Tẩy Trang Fancl là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -11940,7 +12003,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0GK6MJTYJ"
   },
   {
@@ -12001,12 +12064,13 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/nuoc-uong-melsmon-platinum-liquid-placenta.jpg",
     "/sites/lienstore/shared/products/import/nuoc-uong-melsmon-platinum-liquid-placenta.jpg",
     "/sites/lienstore/shared/products/import/nuoc-uong-melsmon-platinum-liquid-placenta-2.jpg",
     "/sites/lienstore/shared/products/import/nuoc-uong-melsmon-platinum-liquid-placenta-3.jpg",
     "/sites/lienstore/shared/products/import/nuoc-uong-melsmon-platinum-liquid-placenta-4.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/nuoc-uong-melsmon-platinum-liquid-placenta-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/nuoc-uong-melsmon-platinum-liquid-placenta-300x300.jpg",
    "shortDescription": "<p>1OO cái #review thì 99 cái khen e nó rồi ạ Zá: 1450k/30 ống (date 7/25) NỮ uống TRẺ HOÁ LÀN DA CĂNG BÓNG NAM uống TĂNG CƯỜNG KHẢ NĂNG SINH LÝ Nước uống…</p>",
    "description": "<p>Nước Uống Melsmon Platinum Liquid Placenta là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Melsmon</li></ul><p><strong>Công dụng</strong></p><ul><li>1OO cái #review thì 99 cái khen e nó rồi ạ Zá: 1450k/30 ống (date 7/25) NỮ uống TRẺ HOÁ LÀN DA CĂNG BÓNG NAM uống TĂNG CƯỜNG KHẢ NĂNG SINH LÝ Nước uống làm đẹp da, ngăn...</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>1OO cái #review thì 99 cái khen e nó rồi ạ Zá: 1450k/30 ống (date 7/25) NỮ uống TRẺ HOÁ LÀN DA CĂNG BÓNG NAM uống TĂNG CƯỜNG KHẢ NĂNG SINH LÝ Nước uống làm đẹp da, ngăn...</li></ul>",
    "related": [],
@@ -12014,7 +12078,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B006UNIOHC"
   },
   {
@@ -12106,10 +12170,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
-    "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment.jpg",
-    "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment-2.jpg"
+    "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment-2.jpg",
+    "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/kem-boi-da-oronine-h-ointment-2-300x300.jpg",
    "shortDescription": "<p>Kem Bôi Da Oronine H Ointment là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Kem Bôi Da Oronine H Ointment là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Otsuka</li></ul><p><strong>Công dụng</strong></p><ul><li>Kem Bôi Da Oronine H Ointment là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -12117,7 +12181,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B00110Q0FW"
   },
   {
@@ -12181,12 +12245,12 @@
     "chống nắng"
    ],
    "images": [
+    "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-4.jpg",
     "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50.jpg",
     "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-2.jpg",
-    "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-3.jpg",
-    "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-4.jpg"
+    "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/khan-che-mat-va-co-chong-nang-delling-upf50-4-300x300.jpg",
    "shortDescription": "<p>Khăn Che Mặt Và Cổ Chống Nắng Delling UPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Khăn Che Mặt Và Cổ Chống Nắng Delling UPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Delling</li></ul><p><strong>Công dụng</strong></p><ul><li>Khăn Che Mặt Và Cổ Chống Nắng Delling UPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -12194,7 +12258,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B08C7VXX5H"
   },
   {
@@ -12218,11 +12282,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
-    "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh.jpg",
     "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh-2.jpg",
+    "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh.jpg",
     "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh-3.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/import/cap-chong-gu-randoseru-nhat-ban-cho-hoc-sinh-2-300x300.jpg",
    "shortDescription": "<p>Cặp Chống Gù Randoseru Nhật Bản Cho Học Sinh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Cặp Chống Gù Randoseru Nhật Bản Cho Học Sinh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li></ul><p><strong>Công dụng</strong></p><ul><li>Cặp Chống Gù Randoseru Nhật Bản Cho Học Sinh là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -12230,7 +12294,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0FY4KJP8H"
   },
   {
@@ -12292,9 +12356,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/nuoc-uong-refa-collagen-enrich.jpg",
     "/sites/lienstore/shared/products/import/nuoc-uong-refa-collagen-enrich.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/nuoc-uong-refa-collagen-enrich-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/nuoc-uong-refa-collagen-enrich-300x300.jpg",
    "shortDescription": "<p>Nước Uống ReFa Collagen Enrich là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Nước Uống ReFa Collagen Enrich là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: ReFa</li></ul><p><strong>Công dụng</strong></p><ul><li>Nước Uống ReFa Collagen Enrich là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -12302,7 +12367,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B01NAG9LPY"
   },
   {
@@ -12327,10 +12392,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-baby-support-for-boy-90-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-boy-90-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-boy-90-vien-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-boy-90-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-baby-support-for-boy-90-vien-300x300.jpg",
    "shortDescription": "<p>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</p>",
    "description": "<p>Viên Uống Baby Support For Boy 90 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Baby Support</li><li>Quy cách: 90 viên</li></ul><p><strong>Công dụng</strong></p><ul><li>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</li></ul>",
    "related": [],
@@ -12338,7 +12404,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B09TSL154P"
   },
   {
@@ -12363,10 +12429,11 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/vien-uong-baby-support-for-girl-90-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-girl-90-vien.jpg",
     "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-girl-90-vien-2.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/vien-uong-baby-support-for-girl-90-vien-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/vien-uong-baby-support-for-girl-90-vien-300x300.jpg",
    "shortDescription": "<p>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</p>",
    "description": "<p>Viên Uống Baby Support For Girl 90 Viên là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Baby Support</li><li>Quy cách: 90 viên</li></ul><p><strong>Công dụng</strong></p><ul><li>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</li></ul><p><strong>Hướng dẫn sử dụng</strong></p><ul><li>VIÊN UỐNG HỖ TRỢ SINH BÉ TRAI, BÉ GÁI NHẬT BẢN BABY SUPPORT MÀU XANH SINH BÉ TRAI MÀU HỒNG SINH BÉ GÁI Sản...</li></ul>",
    "related": [],
@@ -12374,7 +12441,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z",
+   "updatedAt": "2026-09-08T12:07:43Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B09TNBGXSX"
   },
   {
@@ -12399,9 +12466,10 @@
     "hàng Nhật nội địa"
    ],
    "images": [
+    "/sites/lienstore/shared/products/packshot/kem-nen-meishoku-moist-labo-bb-essence-cream-spf50.jpg",
     "/sites/lienstore/shared/products/import/kem-nen-meishoku-moist-labo-bb-essence-cream-spf50.jpg"
    ],
-   "thumb": "/sites/lienstore/shared/products/import/kem-nen-meishoku-moist-labo-bb-essence-cream-spf50-300x300.jpg",
+   "thumb": "/sites/lienstore/shared/products/packshot/kem-nen-meishoku-moist-labo-bb-essence-cream-spf50-300x300.jpg",
    "shortDescription": "<p>Kem Nền Meishoku Moist Labo BB Essence Cream SPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p>",
    "description": "<p>Kem Nền Meishoku Moist Labo BB Essence Cream SPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</p><ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: Meishoku</li></ul><p><strong>Công dụng</strong></p><ul><li>Kem Nền Meishoku Moist Labo BB Essence Cream SPF50+ là sản phẩm nội địa Nhật Bản được giới thiệu trong bài đăng nguồn.</li></ul>",
    "related": [],
@@ -12409,7 +12477,7 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z",
+   "updatedAt": "2026-09-08T11:47:47Z",
    "supplierUrl": "https://www.amazon.co.jp/dp/B0B5WJNVHJ"
   },
   {

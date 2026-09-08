@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { deleteCategoryAction, saveCategoryAction, type CategoryFormState } from "@/app/admin/categories/actions";
 import { cn } from "@/lib/utils";
 import type { ShopCategory } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
+import { uploadImage } from "./image-upload";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash } from "./ui";
 
 interface CategoryFormProps {
@@ -21,7 +22,26 @@ function FieldError({ msg }: { msg?: string }) {
 export function CategoryForm({ category, suggestions = [] }: CategoryFormProps) {
   const [state, action, pending] = useActionState<CategoryFormState, FormData>(saveCategoryAction, null);
   const [image, setImage] = useState(category?.image ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const fields = state?.fields ?? {};
+
+  const onFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const { thumb } = await uploadImage(file, "categories");
+      setImage(thumb); // 300×300 white-padded square — what the home-page tiles show
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Không tải được ảnh");
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  };
 
   return (
     <>
@@ -57,14 +77,28 @@ export function CategoryForm({ category, suggestions = [] }: CategoryFormProps) 
         </div>
         <div className="space-y-6">
           <Card title="Ảnh danh mục (lưới trang chủ)">
+            <label className={adminLabel} htmlFor="image-file">
+              Tải ảnh từ máy (JPG/PNG/WebP, tự cắt vuông 300×300 nền trắng)
+            </label>
+            <input
+              ref={fileInput}
+              id="image-file"
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              onChange={(e) => onFile(e.target.files)}
+              className={cn(adminInput, "mb-3 cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-lien-blue file:px-3 file:py-1 file:text-white")}
+            />
+            {uploading ? <p className="mb-2 text-[12px] text-lien-muted">Đang tải ảnh lên…</p> : null}
+            {uploadError ? <p className="mb-2 text-[12px] text-red-600">{uploadError}</p> : null}
             <label className={adminLabel} htmlFor="image">
-              Đường dẫn ảnh (/sites/… hoặc https://…)
+              Hoặc đường dẫn ảnh (/sites/… hoặc https://…)
             </label>
             <input id="image" name="image" value={image} onChange={(e) => setImage(e.target.value)} className={cn(adminInput, "font-mono text-[13px]", fields.image && "border-red-500")} />
             <FieldError msg={fields.image} />
             {image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={image} alt="" className="mt-3 h-40 w-40 rounded border border-[#e5e7eb] object-cover" />
+              <img src={image} alt="" className="mt-3 h-40 w-40 rounded border border-[#e5e7eb] bg-white object-contain" />
             ) : (
               <p className="mt-3 text-[12px] text-lien-muted">Chưa có ảnh: trang chủ sẽ dùng ảnh sản phẩm đầu tiên trong danh mục.</p>
             )}
