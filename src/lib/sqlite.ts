@@ -310,6 +310,8 @@ function seedVersion(seed: SeedFile): string {
  *                       rows the admin may have edited, and never touches orders/customers.
  *  - LIEN_SEED_SYNC=update:    upsert every row present in the seed (matched by slug) — seed values win over admin edits
  *                              for those rows; rows only in the DB are kept. Use when Excel/seed is the source of truth.
+ *  - LIEN_SEED_SYNC=update: seed rows replace existing ones, EXCEPT products edited on this server after the seed's
+ *    updatedAt (last write wins) — admin edits in prod survive a release; removes meta.removedSlugs.
  *  - LIEN_SEED_SYNC=overwrite: replace the whole catalogue (products, categories, pages, posts) with the seed.
  *  - LIEN_SEED_SYNC=off:       never sync.
  * Runs once per seed version (meta.seededAt), so it costs nothing on normal restarts.
@@ -387,14 +389,21 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
        related, rating, review_count, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
-    const exists = db.prepare("SELECT id FROM products WHERE slug = ?");
+    const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
     const now = new Date().toISOString();
+    let keptNewer = 0;
     for (const p of seed.products ?? []) {
       // In "add" mode skip products already present (by slug) so admin edits and their category links survive.
       if (verb === "INSERT OR IGNORE" && exists.get(p.slug)) continue;
-      // In "update" mode the seed row wins: drop the old row (and its category links) and re-insert under the same id.
+      // In "update" mode: last write wins. A product edited on this server (admin) AFTER the seed row was last
+      // touched (Excel import / admin on the dev machine → db:export) keeps the server version; otherwise the seed
+      // row replaces the old row (and its category links) under the same id.
       if (verb === "INSERT OR REPLACE") {
-        const old = exists.get(p.slug) as { id: number } | undefined;
+        const old = exists.get(p.slug) as { id: number; updated_at: string } | undefined;
+        if (old && typeof p.updatedAt === "string" && old.updated_at > p.updatedAt) {
+          keptNewer++;
+          continue;
+        }
         if (old && old.id !== p.id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);
         db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(p.id);
       }
@@ -425,6 +434,7 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
       );
       (p.categories ?? []).forEach((slug, i) => insPC.run(p.id, slug, i));
     }
+    if (keptNewer) console.info(`[db] seed sync kept ${keptNewer} product(s) edited on this server after the seed was exported`);
 
     const insPage = db.prepare(`${verb} INTO pages (slug, title, content, date) VALUES (?, ?, ?, ?)`);
     for (const p of seed.pages ?? []) insPage.run(p.slug, p.title, p.content, p.date);

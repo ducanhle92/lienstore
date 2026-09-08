@@ -22,7 +22,7 @@ services:
     environment:
       NODE_ENV: production
       LIEN_DB_PATH: /app/data/lienstore.db
-      LIEN_SEED_SYNC: update        # catalogue managed via Excel/seed.json → seed wins; use 'add' if you edit products in admin
+      LIEN_SEED_SYNC: update        # seed updates products, but a product edited in THIS admin after the seed export keeps the server version
       NEXT_PUBLIC_SITE_URL: https://linconnn.io.vn
       ADMIN_USER: admin
       ADMIN_PASSWORD: CHANGE_ME_STRONG_PASSWORD

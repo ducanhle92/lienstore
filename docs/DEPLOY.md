@@ -136,6 +136,8 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 
 **Lưu ý về schema**: migration chỉ chạy tiến. Bản cũ chạy trên DB đã nâng schema vẫn ổn (bỏ qua cột/bảng mới); nếu bắt buộc khôi phục dữ liệu, dừng app rồi copy file trong `<data>/backups/` về `lienstore.db`.
 
+**Sửa sản phẩm trực tiếp trên prod có an toàn không?** Có. `LIEN_SEED_SYNC=update` áp dụng luật *bản nào sửa sau thì thắng* cho từng sản phẩm: khi bản mới mang seed mới, sản phẩm đã được sửa trong admin prod **sau** thời điểm seed được xuất (`npm run db:export` ở máy dev) sẽ giữ nguyên bản prod (ảnh, giá, mô tả…); sản phẩm không sửa trên prod nhận dữ liệu từ seed. Muốn ép seed thắng cho một sản phẩm thì sửa lại sản phẩm đó ở máy dev (Excel/admin) rồi export, vì lúc đó `updatedAt` của seed mới hơn. Danh mục (tên, ảnh) hiện chưa có mốc thời gian nên vẫn theo seed. File ảnh upload nằm trong `<data>/uploads/` và không bị đụng.
+
 ## 5. Checklist trước khi mở công khai
 - [ ] Đổi `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
 - [ ] Snapshot dataset `apps/lienstore` theo lịch.
