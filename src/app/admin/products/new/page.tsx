@@ -6,7 +6,7 @@ import { getCategories } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function NewProduct() {
-  await requireAdmin();
+  await requireAdmin("products");
   const categories = await getCategories();
   return (
     <>

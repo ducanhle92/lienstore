@@ -1,29 +1,40 @@
 import Link from "next/link";
-import { Card, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
+import { ADMIN_MODULES } from "@/lib/permissions";
 import { getOrders, getStats } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
-  await requireAdmin();
+interface DashboardProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AdminDashboard({ searchParams }: DashboardProps) {
+  const session = await requireAdmin();
+  const sp = await searchParams;
+  const deniedKey = Array.isArray(sp.denied) ? sp.denied[0] : sp.denied;
+  const denied = deniedKey ? ADMIN_MODULES.find((m) => m.key === deniedKey)?.label ?? deniedKey : null;
   const [stats, orders] = await Promise.all([getStats(), getOrders()]);
   const recent = orders.slice(0, 8);
 
+  const canP = session.permissions.includes("products");
+  const canO = session.permissions.includes("orders");
   const tiles = [
-    { label: "Sản phẩm", value: stats.products, href: "/admin/products/" },
-    { label: "Đang bán", value: stats.published, href: "/admin/products/?status=publish" },
-    { label: "Hết hàng", value: stats.outOfStock, href: "/admin/products/?stock=out" },
-    { label: "Đơn hàng", value: stats.orders, href: "/admin/orders/" },
-    { label: "Chờ xử lý", value: stats.pending, href: "/admin/orders/?status=pending" },
-    { label: "Doanh thu", value: formatPrice(stats.revenue), href: "/admin/orders/" },
-    { label: "Khách hàng", value: stats.customers, href: "/admin/orders/" },
+    { label: "Sản phẩm", value: stats.products, href: canP ? "/admin/products/" : "/admin/" },
+    { label: "Đang bán", value: stats.published, href: canP ? "/admin/products/?status=publish" : "/admin/" },
+    { label: "Hết hàng", value: stats.outOfStock, href: canP ? "/admin/products/?stock=out" : "/admin/" },
+    { label: "Đơn hàng", value: stats.orders, href: canO ? "/admin/orders/" : "/admin/" },
+    { label: "Chờ xử lý", value: stats.pending, href: canO ? "/admin/orders/?status=pending" : "/admin/" },
+    { label: "Doanh thu", value: formatPrice(stats.revenue), href: canO ? "/admin/orders/" : "/admin/" },
+    { label: "Khách hàng", value: stats.customers, href: session.permissions.includes("users") ? "/admin/users/" : "/admin/" },
   ];
 
   return (
     <>
-      <PageHeader title="Tổng quan" subtitle="Tình hình cửa hàng hôm nay" />
+      <PageHeader title="Tổng quan" subtitle={`Tình hình cửa hàng hôm nay · đăng nhập: ${session.label}`} />
+      {denied ? <Flash kind="error">Tài khoản của bạn không có quyền vào module “{denied}”. Liên hệ quản trị viên để được cấp quyền.</Flash> : null}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
         {tiles.map((t) => (
           <Link key={t.label} href={t.href} className="rounded-lg border border-[#e5e7eb] bg-white p-4 no-underline shadow-sm hover:border-lien-blue">

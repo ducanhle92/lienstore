@@ -22,7 +22,7 @@ const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản ngân hàng", 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [order, files, overview] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview()]);
   if (!order) notFound();

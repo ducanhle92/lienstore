@@ -6,7 +6,7 @@ import { getAllProducts } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export default async function NewCategory() {
-  await requireAdmin();
+  await requireAdmin("categories");
   const products = await getAllProducts(true);
   const suggestions = Array.from(new Set(products.map((p) => p.thumb).filter(Boolean))).slice(0, 24);
   return (

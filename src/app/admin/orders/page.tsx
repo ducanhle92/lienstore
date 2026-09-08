@@ -15,7 +15,7 @@ interface Props {
 const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản", cod: "COD" };
 
 export default async function AdminOrders({ searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const sp = await searchParams;
   const raw = Array.isArray(sp.status) ? sp.status[0] : sp.status;
   const status = ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;

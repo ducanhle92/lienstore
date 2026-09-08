@@ -150,7 +150,7 @@ function MethodCard({ m }: { m: ShippingMethod }) {
 }
 
 export default async function AdminShipping({ searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("shipping");
   const sp = await searchParams;
   const saved = first(sp.saved);
   const error = first(sp.error);

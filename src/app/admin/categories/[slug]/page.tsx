@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default async function EditCategory({ params }: Props) {
-  await requireAdmin();
+  await requireAdmin("categories");
   const { slug } = await params;
   const category = await getCategoryBySlug(decodeURIComponent(slug));
   if (!category) notFound();

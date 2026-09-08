@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { categorySlugExists, deleteCategory, saveCategory } from "@/lib/db";
 import { slugify } from "@/lib/format";
 
 export type CategoryFormState = { error?: string; fields?: Record<string, string> } | null;
 
 export async function saveCategoryAction(_prev: CategoryFormState, formData: FormData): Promise<CategoryFormState> {
-  if (!(await isAdmin())) return { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
+  if (!(await can("categories"))) return { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const originalSlug = get("originalSlug") || undefined;
   const name = get("name");
@@ -32,7 +32,7 @@ export async function saveCategoryAction(_prev: CategoryFormState, formData: For
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("categories"))) redirect("/admin/login/");
   const slug = String(formData.get("slug") ?? "");
   if (slug) {
     await deleteCategory(slug);

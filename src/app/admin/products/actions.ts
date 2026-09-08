@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { deleteProduct, getProductById, saveProduct, slugExists } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
@@ -17,7 +17,7 @@ function parseIntField(raw: string): number | null {
 }
 
 export async function saveProductAction(_prev: ProductFormState, formData: FormData): Promise<ProductFormState> {
-  if (!(await isAdmin())) return { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
+  if (!(await can("products"))) return { error: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." };
 
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const fields: Record<string, string> = {};
@@ -120,7 +120,7 @@ async function cleanupRemovedUploads(before: string[], after: string[], productI
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("products"))) redirect("/admin/login/");
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10);
   if (Number.isInteger(id)) {
     const existing = await getProductById(id);

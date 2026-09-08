@@ -15,7 +15,7 @@ interface Props {
 
 /** One customer (registered or guest): profile, every order with its items, and which orders already have a receipt. */
 export default async function AdminCustomerDetail({ params }: Props) {
-  await requireAdmin();
+  await requireAdmin("customers");
   const { key: raw } = await params;
   const key = decodeURIComponent(raw);
   const [overview, orders, fileCounts] = await Promise.all([getCustomerOverview(), getOrdersForCustomerKey(key), countOrderFiles()]);

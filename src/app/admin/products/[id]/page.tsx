@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default async function EditProduct({ params }: Props) {
-  await requireAdmin();
+  await requireAdmin("products");
   const { id } = await params;
   const numericId = Number.parseInt(id, 10);
   if (!Number.isInteger(numericId)) notFound();

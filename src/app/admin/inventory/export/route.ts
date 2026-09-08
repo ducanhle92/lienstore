@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { getInventory } from "@/lib/inventory";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 /** CSV of everything that needs to be bought (open-order demand + low-stock top-ups), for the buyer in Japan. */
 export async function GET() {
-  if (!(await isAdmin())) return new NextResponse("Unauthorized", { status: 401 });
+  if (!(await can("inventory"))) return new NextResponse("Unauthorized", { status: 401 });
   const { lines } = await getInventory();
   const rows = lines
     .filter((l) => l.toBuy > 0)

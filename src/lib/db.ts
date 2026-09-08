@@ -17,6 +17,7 @@ import type {
   ShippingZone,
   StaticPage,
   BlogPost,
+  UserRole,
 } from "@/types/shop";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -180,6 +181,9 @@ interface CustomerRow {
   last_name: string;
   phone: string;
   address: string;
+  role: string | null;
+  permissions: string | null;
+  active: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -193,6 +197,9 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   lastName: r.last_name,
   phone: r.phone,
   address: r.address,
+  role: r.role === "admin" || r.role === "staff" ? r.role : "customer",
+  permissions: parseArr(r.permissions ?? "[]"),
+  active: (r.active ?? 1) === 1,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -729,6 +736,9 @@ export interface CreateCustomerInput {
   lastName?: string;
   phone?: string;
   address?: string;
+  role?: UserRole;
+  permissions?: string[];
+  active?: boolean;
 }
 
 export async function findCustomerByEmail(email: string): Promise<Customer | null> {
@@ -756,11 +766,14 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     lastName: input.lastName ?? "",
     phone: input.phone ?? "",
     address: input.address ?? "",
+    role: input.role ?? "customer",
+    permissions: input.permissions ?? [],
+    active: input.active ?? true,
     createdAt: now,
     updatedAt: now,
   };
-  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
     customer.id,
     customer.email,
     customer.passwordHash,
@@ -769,15 +782,80 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     customer.lastName,
     customer.phone,
     customer.address,
+    customer.role,
+    JSON.stringify(customer.permissions),
+    customer.active ? 1 : 0,
     now,
     now,
   );
   return customer;
 }
 
+/** Admin: create any account (customer / staff / admin). */
+export async function adminCreateUser(input: CreateCustomerInput & { role: UserRole }): Promise<Customer> {
+  return createCustomer(input);
+}
+
+/** Every account, newest first (admin user list). */
+export async function listCustomers(): Promise<Customer[]> {
+  return (getDb().prepare("SELECT * FROM customers ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'staff' THEN 1 ELSE 2 END, created_at DESC").all() as unknown as CustomerRow[]).map(rowToCustomer);
+}
+
+export async function countActiveAdmins(): Promise<number> {
+  return (getDb().prepare("SELECT COUNT(*) AS n FROM customers WHERE role = 'admin' AND active = 1").get() as { n: number }).n;
+}
+
+export interface AdminUserPatch {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  role?: UserRole;
+  permissions?: string[];
+  active?: boolean;
+  password?: string;
+}
+
+/** Admin: update any field of an account, including email, role, permissions and active flag. */
+export async function adminUpdateUser(id: string, patch: AdminUserPatch): Promise<Customer | null> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const row = db.prepare("SELECT * FROM customers WHERE id = ?").get(id) as CustomerRow | undefined;
+    if (!row) return null;
+    const c = rowToCustomer(row);
+    if (patch.email !== undefined) {
+      const email = patch.email.trim().toLowerCase();
+      if (email !== c.email && db.prepare("SELECT 1 FROM customers WHERE email = ? AND id != ?").get(email, id)) throw new Error("Email này đã được dùng cho tài khoản khác.");
+      c.email = email;
+    }
+    if (patch.firstName !== undefined) c.firstName = patch.firstName;
+    if (patch.lastName !== undefined) c.lastName = patch.lastName;
+    if (patch.phone !== undefined) c.phone = patch.phone;
+    if (patch.address !== undefined) c.address = patch.address;
+    if (patch.role !== undefined) c.role = patch.role;
+    if (patch.permissions !== undefined) c.permissions = patch.permissions;
+    if (patch.active !== undefined) c.active = patch.active;
+    if (patch.password) {
+      c.salt = randomBytes(16).toString("hex");
+      c.passwordHash = hashPassword(patch.password, c.salt);
+    }
+    c.updatedAt = new Date().toISOString();
+    db.prepare(
+      `UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, role = ?, permissions = ?, active = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`,
+    ).run(c.email, c.firstName, c.lastName, c.phone, c.address, c.role, JSON.stringify(c.permissions), c.active ? 1 : 0, c.passwordHash, c.salt, c.updatedAt, id);
+    return c;
+  });
+}
+
+/** Delete an account. Orders keep their snapshot (customer_id becomes NULL via ON DELETE SET NULL). */
+export async function deleteCustomer(id: string): Promise<boolean> {
+  return Number(getDb().prepare("DELETE FROM customers WHERE id = ?").run(id).changes) > 0;
+}
+
 export async function verifyCustomer(email: string, password: string): Promise<Customer | null> {
   const c = await findCustomerByEmail(email);
-  if (!c) return null;
+  if (!c || !c.active) return null;
   const a = Buffer.from(hashPassword(password, c.salt), "hex");
   const b = Buffer.from(c.passwordHash, "hex");
   return a.length === b.length && timingSafeEqual(a, b) ? c : null;

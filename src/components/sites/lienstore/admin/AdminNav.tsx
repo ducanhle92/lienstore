@@ -6,18 +6,27 @@ import { logout } from "@/app/admin/actions";
 import { Fa, type FaName } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
 
-const LINKS: { href: string; label: string; icon: FaName; exact?: boolean }[] = [
+const LINKS: { href: string; label: string; icon: FaName; exact?: boolean; module?: string }[] = [
   { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
-  { href: "/admin/products/", label: "Sản phẩm", icon: "list" },
-  { href: "/admin/categories/", label: "Danh mục", icon: "align-left" },
-  { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart" },
-  { href: "/admin/customers/", label: "Khách hàng", icon: "users" },
-  { href: "/admin/inventory/", label: "Kho hàng", icon: "cubes" },
-  { href: "/admin/shipping/", label: "Vận chuyển", icon: "truck" },
+  { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
+  { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
+  { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
+  { href: "/admin/customers/", label: "Khách hàng", icon: "users", module: "customers" },
+  { href: "/admin/inventory/", label: "Kho hàng", icon: "cubes", module: "inventory" },
+  { href: "/admin/shipping/", label: "Vận chuyển", icon: "truck", module: "shipping" },
+  { href: "/admin/users/", label: "Người dùng", icon: "user-circle", module: "users" },
 ];
 
-export function AdminNav() {
+interface AdminNavProps {
+  /** Module keys the signed-in account may use; links for other modules are hidden. */
+  permissions: string[];
+  userLabel: string;
+  role: "admin" | "staff";
+}
+
+export function AdminNav({ permissions, userLabel, role }: AdminNavProps) {
   const pathname = usePathname();
+  const links = LINKS.filter((l) => !l.module || permissions.includes(l.module));
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href || pathname === href.slice(0, -1) : pathname.startsWith(href.slice(0, -1)));
 
   return (
@@ -28,7 +37,7 @@ export function AdminNav() {
         </Link>
       </div>
       <nav className="flex flex-row gap-1 overflow-x-auto px-2 py-2 md:flex-col md:py-4" aria-label="Quản trị">
-        {LINKS.map((l) => (
+        {links.map((l) => (
           <Link
             key={l.href}
             href={l.href}
@@ -50,7 +59,13 @@ export function AdminNav() {
           <Fa name="eye" className="w-4 text-center text-[14px]" />
           Xem cửa hàng
         </a>
-        <form action={logout} className="md:mt-auto">
+        <div className="mt-2 border-t border-white/10 px-3 pt-3 text-[12px] leading-5 text-white/60 md:mt-auto">
+          <span className="block truncate text-white/90" title={userLabel}>
+            {userLabel}
+          </span>
+          {role === "admin" ? "Quản trị viên" : "Nhân viên"}
+        </div>
+        <form action={logout}>
           <button
             type="submit"
             className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-[14px] leading-5 text-white/80 whitespace-nowrap hover:bg-white/10 hover:text-white"

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdmin } from "@/lib/auth";
+import { canAny } from "@/lib/auth";
 import { extForMime, IMAGE_MIMES, MAX_UPLOAD_BYTES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * Both are stored under uploads/<folder>/<yyyy-mm>/ (folder = products | categories) and the public URLs are returned.
  */
 export async function POST(req: NextRequest) {
-  if (!(await isAdmin())) return NextResponse.json({ error: "Chưa đăng nhập quản trị." }, { status: 401 });
+  if (!(await canAny(["products", "categories"]))) return NextResponse.json({ error: "Chưa đăng nhập quản trị hoặc không có quyền." }, { status: 401 });
   const form = await req.formData();
   const image = form.get("image");
   const thumb = form.get("thumb");

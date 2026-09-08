@@ -26,7 +26,7 @@ const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
 type View = "all" | "tracked" | "low" | "out" | "untracked" | "order";
 
 export default async function AdminInventory({ searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("inventory");
   const sp = await searchParams;
   const view = (first(sp.view) || "all") as View;
   const q = first(sp.q).trim().toLowerCase();

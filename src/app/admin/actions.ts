@@ -8,10 +8,11 @@ export type LoginState = { error: string } | null;
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const user = String(formData.get("user") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!verifyCredentials(user, password)) {
-    return { error: "Sai tên đăng nhập hoặc mật khẩu." };
+  const subject = await verifyCredentials(user, password);
+  if (!subject) {
+    return { error: "Sai tên đăng nhập / email hoặc mật khẩu, hoặc tài khoản không có quyền quản trị." };
   }
-  await startSession();
+  await startSession(subject);
   redirect("/admin/");
 }
 

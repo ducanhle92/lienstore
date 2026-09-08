@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { updateOrderStatus } from "@/lib/db";
 import type { OrderStatus } from "@/types/shop";
 
 const STATUSES: OrderStatus[] = ["pending", "processing", "completed", "cancelled"];
 
 export async function updateOrderStatusAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("orders"))) redirect("/admin/login/");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as OrderStatus;
   if (id && STATUSES.includes(status)) {

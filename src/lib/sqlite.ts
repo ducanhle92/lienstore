@@ -197,6 +197,15 @@ export const MIGRATIONS: Migration[] = [
       `INSERT INTO settings (key, value) VALUES ('shipping_notes', '["Bảng phí mang tính tham khảo; LienStore báo phí chính xác khi xác nhận đơn qua Zalo/điện thoại.","Đơn nội địa đạt mức miễn phí của khu vực sẽ được miễn phí giao hàng.","Hàng lỏng, bình xịt, hàng cồng kềnh khi gửi từ Nhật có phụ phí theo quy định hãng bay.","Thời gian giao tính từ ngày hàng rời kho; ngày lễ, thời tiết xấu có thể chậm hơn.","Kiểm tra hàng khi nhận; hàng lỗi/nhầm được đổi trả theo chính sách của cửa hàng."]')`,
     ],
   },
+  {
+    version: 5,
+    name: "user-roles",
+    up: [
+      `ALTER TABLE customers ADD COLUMN role TEXT NOT NULL DEFAULT 'customer'`,
+      `ALTER TABLE customers ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'`,
+      `ALTER TABLE customers ADD COLUMN active INTEGER NOT NULL DEFAULT 1`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

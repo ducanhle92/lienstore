@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { deleteShippingMethod, deleteShippingZone, saveShippingMethod, saveShippingZone, setShippingNotes } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
 
 const BACK = "/admin/shipping/";
 
 async function guard() {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("shipping"))) redirect("/admin/login/");
 }
 
 const text = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { addOrderFile, deleteOrderFile, getOrderById, updateOrderAdminNote } from "@/lib/db";
 import { deleteUpload, extForMime, MAX_UPLOAD_BYTES, RECEIPT_MIMES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 
@@ -13,7 +13,7 @@ function parseInt0(raw: string): number | null {
 
 /** Attach one or more receipt files (image/PDF) to an order. */
 export async function uploadOrderFilesAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("orders"))) redirect("/admin/login/");
   const orderId = String(formData.get("orderId") ?? "");
   const order = await getOrderById(orderId);
   if (!order) redirect("/admin/orders/");
@@ -45,7 +45,7 @@ export async function uploadOrderFilesAction(formData: FormData): Promise<void> 
 }
 
 export async function deleteOrderFileAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("orders"))) redirect("/admin/login/");
   const id = Number.parseInt(String(formData.get("fileId") ?? ""), 10);
   const orderId = String(formData.get("orderId") ?? "");
   if (Number.isInteger(id)) {
@@ -57,7 +57,7 @@ export async function deleteOrderFileAction(formData: FormData): Promise<void> {
 }
 
 export async function saveAdminNoteAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("orders"))) redirect("/admin/login/");
   const orderId = String(formData.get("orderId") ?? "");
   const note = String(formData.get("adminNote") ?? "").trim().slice(0, 2000);
   await updateOrderAdminNote(orderId, note);

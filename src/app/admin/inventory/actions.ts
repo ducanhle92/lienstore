@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth";
+import { can } from "@/lib/auth";
 import { updateProductStock } from "@/lib/db";
 
 /** Inline stock update from the inventory table. Empty stock = stop tracking. */
 export async function updateStockAction(formData: FormData): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login/");
+  if (!(await can("inventory"))) redirect("/admin/login/");
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10);
   const stockRaw = String(formData.get("stock") ?? "").trim();
   const minRaw = String(formData.get("minStock") ?? "").trim();

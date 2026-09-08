@@ -69,6 +69,8 @@ export interface OrderCustomer {
   note: string;
 }
 
+export type UserRole = "admin" | "staff" | "customer";
+
 export interface Customer {
   id: string;
   email: string;
@@ -78,6 +80,12 @@ export interface Customer {
   lastName: string;
   phone: string;
   address: string;
+  /** Storefront customer by default; admin/staff may sign in to /admin. */
+  role: UserRole;
+  /** Admin module keys granted to a staff account (see lib/permissions.ts). */
+  permissions: string[];
+  /** false = login blocked without deleting the account. */
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 }

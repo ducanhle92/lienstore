@@ -138,6 +138,12 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 
 **Sửa sản phẩm trực tiếp trên prod có an toàn không?** Có. `LIEN_SEED_SYNC=update` áp dụng luật *bản nào sửa sau thì thắng* cho từng sản phẩm: khi bản mới mang seed mới, sản phẩm đã được sửa trong admin prod **sau** thời điểm seed được xuất (`npm run db:export` ở máy dev) sẽ giữ nguyên bản prod (ảnh, giá, mô tả…); sản phẩm không sửa trên prod nhận dữ liệu từ seed. Muốn ép seed thắng cho một sản phẩm thì sửa lại sản phẩm đó ở máy dev (Excel/admin) rồi export, vì lúc đó `updatedAt` của seed mới hơn. Danh mục (tên, ảnh) hiện chưa có mốc thời gian nên vẫn theo seed. File ảnh upload nằm trong `<data>/uploads/` và không bị đụng.
 
+## 4d. Tài khoản quản trị & phân quyền
+
+- Tài khoản trong `ADMIN_USER` / `ADMIN_PASSWORD` (YAML app) là **admin dự phòng**: luôn đăng nhập được, không sửa/xoá trong UI. Đổi mật khẩu của nó bằng cách sửa YAML app rồi Save (app khởi động lại, phiên cũ bị huỷ nếu đổi `ADMIN_SESSION_SECRET`).
+- Tài khoản làm việc hằng ngày tạo trong **Admin → Người dùng**: vai trò *Quản trị viên* (toàn quyền) hoặc *Nhân viên* (tick module được phép). Đăng nhập trang quản trị bằng email + mật khẩu. Khách hàng đăng ký trên web cũng nằm trong danh sách này với vai trò *Khách hàng* và có thể được nâng quyền.
+- Khoá tài khoản (bỏ tick "Đang hoạt động") chặn cả đăng nhập quản trị và đăng nhập mua hàng; xoá tài khoản giữ nguyên đơn hàng cũ.
+
 ## 5. Checklist trước khi mở công khai
 - [ ] Đổi `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
 - [ ] Snapshot dataset `apps/lienstore` theo lịch.

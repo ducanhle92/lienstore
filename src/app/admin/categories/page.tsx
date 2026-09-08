@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default async function AdminCategories({ searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("categories");
   const sp = await searchParams;
   const saved = Array.isArray(sp.saved) ? sp.saved[0] : sp.saved;
   const deleted = Array.isArray(sp.deleted) ? sp.deleted[0] : sp.deleted;

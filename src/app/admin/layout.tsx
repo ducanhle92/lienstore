@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AdminNav } from "@/components/sites/lienstore/admin/AdminNav";
 import { Flash } from "@/components/sites/lienstore/admin/ui";
-import { isAdmin, usingDefaultCredentials } from "@/lib/auth";
+import { getAdminSession, usingDefaultCredentials } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,15 +12,15 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const admin = await isAdmin();
+  const session = await getAdminSession();
 
-  if (!admin) {
+  if (!session) {
     return <div className="flex min-h-screen items-center justify-center bg-lien-page px-4 py-10">{children}</div>;
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-lien-page md:flex-row">
-      <AdminNav />
+      <AdminNav permissions={session.permissions} userLabel={session.label} role={session.role} />
       <main className="flex-1 px-4 py-6 md:px-8">
         <div className="mx-auto max-w-[1200px]">
           {usingDefaultCredentials ? (

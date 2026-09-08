@@ -23,7 +23,7 @@ interface Props {
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function AdminProducts({ searchParams }: Props) {
-  await requireAdmin();
+  await requireAdmin("products");
   const sp = await searchParams;
   const q = first(sp.q).trim().toLowerCase();
   const status = first(sp.status);
