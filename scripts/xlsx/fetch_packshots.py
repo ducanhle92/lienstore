@@ -7,8 +7,11 @@
 How it decides (most to least confident):
   1. reorder   – a white-background image already exists further down the gallery → move it to the front.
   2. supplier  – product has an Amazon.co.jp link (supplierUrl, verified earlier) → take that page's main image.
-  3. search    – Amazon.co.jp search by name; accepted only when a brand token from the name appears in the title
-                 AND the pack size matches (or the name has no size). Otherwise the product is left for manual work.
+  3. search    – Amazon.co.jp search by name (then by brand words + size); accepted only when a brand token from the
+                 name appears in the title AND the pack size matches. Brand-only hits are saved as review candidates.
+  4. rakuten   – same strict matching against Rakuten Ichiba search results (huge JP catalogue, white-bg images).
+  5. cutout    – no trustworthy source: remove the background of the shop's own photo (rembg / U2-Net, offline) and
+                 place the product on a white square. Marked "cutout" so it can be reviewed/replaced later.
 Every candidate is downloaded and re-checked to really be a white-background image before it is used.
 Files go to public/sites/lienstore/shared/products/packshot/<slug>.jpg (+ -300x300.jpg); the review page lists old vs new.
 """
@@ -31,6 +34,11 @@ UNIT_FAMILY = {"ml": "vol", "g": "vol", "gr": "vol", "kg": "vol", "錠": "cnt", 
                "本": "pack", "枚": "pack", "回分": "pack", "日分": "days",
                "viên": "cnt", "vien": "cnt", "miếng": "pack", "mieng": "pack", "gói": "pack", "goi": "pack", "túi": "pack", "tui": "pack",
                "chai": "pack", "lọ": "pack", "lo": "pack", "tuýp": "pack", "tuyp": "pack", "ngày": "days", "ngay": "days"}
+VI_STOP = set("""canxi cao chi thu tri dau day tang ho tro bo gan mat ngay vien uong nuoc sua kem bot tinh chat hop goi chai cho be tre
+em nhat ban hang noi dia chinh loai gia re moi hot sale combo set bo mini nam nu nguoi lon con dung dep tot khoe manh trang den do vang
+xanh hong tim nau bac bich cam mua ban hang tui bich lo tuyp mieng tam goi dau rua toc mun nam tan nhang thai duong xuong khop tim mach
+huyet ap mo mau gout dot quy ngu ngon ngu tien dinh bo nao tri chung va cua tu tren duoi trong ngoai theo voi khong con nen dang
+duoc cac nhung mot hai ba bon nam sau bay tam chin muoi tram nghin trieu""".split())
 GENERIC = set("""vien uong vien uống viên uống nuoc nước kem sua sữa bot bột tinh chat chất serum dau dầu gội xả tắm rửa mặt mat mask nhật bản nhat ban
 japan combo hộp hop gói goi chai lọ tuýp túi bịch cho be bé mẹ trẻ em men women nam nu nữ dưỡng duong trắng trang da hỗ trợ ho tro bổ bo gan
 xương khớp giảm cân giam can làm lam sạch sach chống chong nắng nang mụn mun tóc toc set bộ mini loại loai type new hot sale plus extra premium
@@ -52,8 +60,9 @@ def size_tokens(name):
 def brand_tokens(name):
     """ASCII words (≥4 letters) or Japanese/katakana runs that are not generic shop words."""
     toks = set()
-    for w in re.findall(r"[A-Za-z][A-Za-z0-9\-']{3,}", name or ""):
-        if w.lower() not in GENERIC:
+    for w in re.split(r"[\s,/()\[\]+&·\-–—]+", name or ""):
+        w = w.strip(".'’\"")
+        if len(w) >= 3 and w.isascii() and re.fullmatch(r"[A-Za-z][A-Za-z0-9']+", w) and w.lower() not in GENERIC and w.lower() not in VI_STOP:
             toks.add(w.lower())
     for w in re.findall(r"[゠-ヿ一-鿿]{2,}", name or ""):
         toks.add(w)
@@ -177,7 +186,8 @@ def pick_search(cands, name):
 
 def brand_query(name):
     """Short query for the 2nd pass: ASCII brand words in their original order + the first pack size (JP unit)."""
-    words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9\-']{2,}", name or "") if w.lower() not in GENERIC and len(w) >= 3]
+    words = [w.strip(".'’\"") for w in re.split(r"[\s,/()\[\]+&·\-–—]+", name or "")]
+    words = [w for w in words if len(w) >= 3 and w.isascii() and re.fullmatch(r"[A-Za-z][A-Za-z0-9']+", w) and w.lower() not in GENERIC and w.lower() not in VI_STOP]
     seen = []
     for w in words:
         if w.lower() not in [x.lower() for x in seen]:
@@ -194,6 +204,56 @@ def brand_query(name):
             size = f"{num}{jp_unit.get(fam, '')}"
         break
     return " ".join(seen[:4]) + (f" {size}" if size else "")
+
+
+def search_rakuten(pg, q):
+    """Rakuten Ichiba search results: title + image (thumbnail URL upgraded to 600px)."""
+    pg.goto(f"https://search.rakuten.co.jp/search/mall/{quote(q)}/", wait_until="domcontentloaded", timeout=60000)
+    pg.wait_for_timeout(1800)
+    items = pg.eval_on_selector_all("div.searchresultitem, div[class*='searchresultitem']", """els => els.slice(0, 12).map(e => ({
+        title: ((e.querySelector('a[href*="item.rakuten.co.jp"]')?.getAttribute('title')) || (e.querySelector('[class*="title"]')?.innerText) || (e.innerText.split('\n').find(l => l.trim().length > 12)) || '').trim(),
+        img: e.querySelector('img')?.src || '',
+        href: e.querySelector('a[href*="item.rakuten.co.jp"]')?.href || ''
+    }))""")
+    out = []
+    for it in items:
+        if not it["title"] or not it["img"]:
+            continue
+        img = re.sub(r"\?(_ex=\d+x\d+|fitin=\d+:\d+)", "?fitin=700:700", it["img"])
+        out.append({"asin": it["href"], "title": it["title"], "img": img})
+    return out
+
+
+_REMBG = {}
+
+
+def cutout(path, size=1200, margin=0.07):
+    """Background removal (rembg u2net) → product on a white square. Returns (full_bytes, ok)."""
+    try:
+        from rembg import remove, new_session  # heavy import, only when needed
+    except ImportError:
+        return None
+    if "s" not in _REMBG:
+        _REMBG["s"] = new_session("u2net")
+    im = Image.open(path).convert("RGB")
+    rgba = remove(im, session=_REMBG["s"])
+    alpha = rgba.getchannel("A")
+    covered = sum(1 for v in alpha.getdata() if v > 128) / (alpha.width * alpha.height)
+    if covered < 0.04 or covered > 0.92:
+        return None  # nothing (or everything) was kept — not a usable cutout
+    bbox = alpha.point(lambda v: 255 if v > 24 else 0).getbbox()
+    if not bbox:
+        return None
+    rgba = rgba.crop(bbox)
+    w, h = rgba.size
+    m = int(size * margin)
+    sc = min((size - 2 * m) / w, (size - 2 * m) / h)
+    rgba = rgba.resize((max(1, int(w * sc)), max(1, int(h * sc))), Image.LANCZOS)
+    canvas = Image.new("RGB", (size, size), "white")
+    canvas.paste(rgba, ((size - rgba.width) // 2, (size - rgba.height) // 2), rgba)
+    buf = io.BytesIO()
+    canvas.save(buf, "JPEG", quality=90)
+    return buf.getvalue()
 
 
 # ---------- files ----------
@@ -239,7 +299,7 @@ def write_review(rows, stamp=None):
     """Render docs/reports/packshots-review-<stamp>.html (+ .json) from result rows."""
     os.makedirs(REPORT_DIR, exist_ok=True)
     stamp = stamp or datetime.now().strftime("%Y-%m-%d")
-    changed = sum(1 for r in rows if r["new"] and r["confidence"] in ("high", "medium"))
+    changed = sum(1 for r in rows if r["new"] and r["confidence"] in ("high", "medium", "cutout"))
     rp = os.path.join(REPORT_DIR, f"packshots-review-{stamp}.html")
     base = "http://localhost:3000"
     def cell(u):
@@ -252,12 +312,12 @@ def write_review(rows, stamp=None):
     )
     html = f"""<!doctype html><meta charset="utf-8"><title>Packshot review {stamp}</title>
     <style>body{{font:13px/1.4 system-ui;margin:20px}} table{{border-collapse:collapse;width:100%}} td,th{{border:1px solid #ddd;padding:6px;vertical-align:top}}
-    img{{width:110px;height:110px;object-fit:contain;background:#fff;border:1px solid #eee}} tr.high td{{background:#f3fff3}} tr.medium td{{background:#fffbe6}} tr.candidate td{{background:#eef}} tr.- td{{background:#fff}}
+    img{{width:110px;height:110px;object-fit:contain;background:#fff;border:1px solid #eee}} tr.high td{{background:#f3fff3}} tr.medium td{{background:#fffbe6}} tr.candidate td{{background:#eef}} tr.cutout td{{background:#fdf1f7}} tr.- td{{background:#fff}}
     .legend span{{display:inline-block;padding:2px 8px;margin-right:8px;border:1px solid #ddd}}</style>
     <h1>Ảnh đại diện nền trắng — rà soát {stamp}</h1>
-    <p>{len(rows)} sản phẩm chưa có ảnh nền trắng · <b>{changed}</b> đã đổi ({sum(1 for r in rows if r['confidence']=='high')} high, {sum(1 for r in rows if r['confidence']=='medium')} medium) · {sum(1 for r in rows if r['confidence']=='candidate')} candidate chờ duyệt · {sum(1 for r in rows if not r['new'])} chưa tìm được.
+    <p>{len(rows)} sản phẩm chưa có ảnh nền trắng · <b>{changed}</b> đã đổi ({sum(1 for r in rows if r['confidence']=='high')} high, {sum(1 for r in rows if r['confidence']=='medium')} medium) · {sum(1 for r in rows if r['confidence']=='cutout')} cutout · {sum(1 for r in rows if r['confidence']=='candidate')} candidate chờ duyệt · {sum(1 for r in rows if not r['new'])} chưa tìm được.
     Mở khi dev server đang chạy (ảnh lấy từ {base}). Ảnh cũ vẫn giữ trong gallery, đứng sau ảnh mới.</p>
-    <p class="legend"><span style="background:#f3fff3">high: đảo thứ tự ảnh sẵn có hoặc lấy từ link Amazon đã xác minh</span><span style="background:#fffbe6">medium: tìm trên Amazon theo tên, khớp thương hiệu + quy cách — nên xem lại</span><span style="background:#eef">candidate: tìm được theo thương hiệu nhưng tên không có quy cách để đối chiếu — CHƯA áp dụng, duyệt tay rồi báo để áp dụng</span><span>—: chưa tìm được, cần làm tay</span></p>
+    <p class="legend"><span style="background:#f3fff3">high: đảo thứ tự ảnh sẵn có hoặc lấy từ link Amazon đã xác minh</span><span style="background:#fffbe6">medium: tìm trên Amazon theo tên, khớp thương hiệu + quy cách — nên xem lại</span><span style="background:#eef">candidate: tìm được theo thương hiệu nhưng tên không có quy cách để đối chiếu — CHƯA áp dụng, duyệt tay rồi báo để áp dụng</span><span style="background:#fdf1f7">cutout: không có nguồn tin cậy, tách nền ảnh của cửa hàng bằng rembg — đã áp dụng, kiểm tra lại nếu ảnh có chữ/tay</span><span>—: chưa xử lý được</span></p>
     <table><tr><th>#</th><th>Ảnh cũ</th><th>Ảnh mới</th><th>Sản phẩm</th><th>Nguồn</th><th>Độ tin</th><th>Ghi chú</th></tr>{trs}</table>"""
     open(rp, "w", encoding="utf-8").write(html)
     json.dump(rows, open(os.path.join(REPORT_DIR, f"packshots-review-{stamp}.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -271,6 +331,8 @@ def main():
     ap.add_argument("--only", default="", help="comma-separated slugs")
     ap.add_argument("--skip-search", action="store_true", help="only reorder + supplier pages")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--no-rakuten", action="store_true")
+    ap.add_argument("--no-cutout", action="store_true")
     args = ap.parse_args()
 
     seed = json.load(open(SEED, encoding="utf-8"))
@@ -361,6 +423,41 @@ def main():
                                 row.update(source=src, confidence="-", note=f"ảnh Amazon {asin} không phải nền trắng / tải lỗi")
                         else:
                             row.update(source=src, confidence="-", note=f"không lấy được ảnh từ {asin}")
+                # 4) Rakuten (strict brand + size) when nothing was applied yet
+                if not row["new"] and not args.skip_search and not args.no_rakuten:
+                    q = brand_query(name) or name
+                    try:
+                        it, reason = pick_search(search_rakuten(pg, q), name)
+                    except Exception as e:
+                        it, reason = None, f"rakuten lỗi {str(e)[:40]}"
+                    if it and reason == "brand+size match":
+                        r = sess.get(it["img"], timeout=30)
+                        saved = save_packshot(slug, r.content, lenient=True) if r.ok else None
+                        if saved:
+                            full, th = saved
+                            old_imgs = [g for g in (p.get("images") or []) if g and not g.endswith("-300x300" + os.path.splitext(g)[1])]
+                            p["images"] = [full] + old_imgs
+                            p["thumb"] = th
+                            row.update(new=th, source="rakuten", confidence="medium", note=f"{reason} (query: {q}) · {it['asin'][:80]}", amazon_title=it["title"])
+                            changed += 1
+                    elif not row["note"]:
+                        row["note"] = f"rakuten: {reason}"
+                # 5) cutout of the shop's own photo
+                if (not row["new"] or row["confidence"] == "candidate") and not args.no_cutout and gallery:
+                    src_path = local_abs(gallery[0])
+                    data = cutout(src_path) if src_path else None
+                    if data:
+                        saved = save_packshot(f"cutout/{slug}", data, lenient=True)
+                        if saved:
+                            full, th = saved
+                            old_imgs = [g for g in (p.get("images") or []) if g and not g.endswith("-300x300" + os.path.splitext(g)[1])]
+                            p["images"] = [full] + old_imgs
+                            p["thumb"] = th
+                            extra = f" · ứng viên Amazon chưa áp dụng: {row['new']}" if row["confidence"] == "candidate" and row["new"] else ""
+                            row.update(new=th, source="cutout", confidence="cutout", note=(row["note"] + " · " if row["note"] else "") + "tách nền ảnh cửa hàng (rembg)" + extra)
+                            changed += 1
+                    else:
+                        row["note"] = (row["note"] + " · " if row["note"] else "") + "tách nền không đạt"
                 if row["new"]:
                     p["updatedAt"] = now
             except Exception as e:  # keep going
