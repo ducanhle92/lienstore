@@ -8,7 +8,6 @@ import { ProductMeta } from "@/components/sites/lienstore/shop/product/ProductMe
 import { ProductPageNotice } from "@/components/sites/lienstore/shop/product/ProductPageNotice";
 import { ProductShare } from "@/components/sites/lienstore/shop/product/ProductShare";
 import { ProductTabs } from "@/components/sites/lienstore/shop/product/ProductTabs";
-import { StickyAddToCart } from "@/components/sites/lienstore/shop/product/StickyAddToCart";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
@@ -84,7 +83,6 @@ export default async function ProductPage({ params }: PageProps) {
             <ProductShare name={product.name} slug={product.slug} />
           </ProductInfo2>
         </div>
-        <StickyAddToCart product={product} />
 
         <div className="mt-10">
           <ProductTabs name={product.name} description={product.description} reviewCount={product.reviewCount} shipping={<ShippingTable methods={shipping} notes={shippingNotes} compact />} />
