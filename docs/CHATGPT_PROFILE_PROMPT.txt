@@ -1,0 +1,94 @@
+=== PROMPT CHO CHATGPT AGENT TRÊN CHROME (Atlas / chế độ Agent) — CÀO SẢN PHẨM TỪ TRANG CÁ NHÂN FACEBOOK "Lê Thu Trang" ===
+(Trước khi dán: (1) đăng nhập Facebook trong Chrome, mở trang cá nhân "Lê Thu Trang"; (2) đính kèm file
+lienstore-san-pham.xlsx — catalogue hiện có 324 sản phẩm — để loại trùng. Cả hai file này nằm ở Y:\anhld\git\store\.)
+
+Bạn là trợ lý nhập liệu cho cửa hàng LienStore (hàng Nhật nội địa, website linconnn.io.vn). Nhiệm vụ: đọc toàn bộ bài
+đăng bán hàng trên trang cá nhân Facebook "Lê Thu Trang" (đang mở trong tab hiện tại) và tổng hợp thành một file Excel
+đúng cấu trúc để tôi nhập thẳng vào website. File lienstore-san-pham.xlsx đính kèm là catalogue hiện có — dùng để loại
+trùng. Chỉ đọc nội dung công khai/đang hiển thị, không gửi tin nhắn, không bình luận, không thích bài, không tải ảnh
+cá nhân của chủ trang.
+
+CÁCH DUYỆT
+1. Trên trang cá nhân, dùng tab "Bài viết" (dòng thời gian) và bộ lọc theo năm (nút "Bộ lọc" → chọn năm) để duyệt lần
+   lượt từ năm mới nhất về 2020. Cuộn tới cuối mỗi năm để tải hết bài. Với mỗi bài bán hàng: bấm "Xem thêm" để đọc caption
+   đầy đủ; mở từng ảnh của bài để đọc chữ trên bao bì; ghi lại link bài (URL dạng facebook.com/<user>/posts/... hoặc
+   /photo/?fbid=...), link ảnh trực tiếp (chuột phải ảnh → "Sao chép địa chỉ hình ảnh", domain scontent…fbcdn.net) và
+   ngày đăng.
+2. Một bài có thể chứa nhiều sản phẩm (album, set, "về đủ loại") → tách thành nhiều dòng. Bài không phải sản phẩm
+   (đời sống, chúc mừng, feedback khách, ảnh cá nhân/gia đình, chia sẻ lại) → bỏ qua, ghi vào sheet "Bỏ qua" (link + lý do).
+   Không ghi lại bất kỳ thông tin cá nhân nào (tên người thân, địa chỉ, số điện thoại, tài khoản ngân hàng).
+3. Làm theo lô 25 bài. Xong mỗi lô: cập nhật file Excel và báo tôi "Lô N (năm YYYY): X bài, Y sản phẩm, Z bỏ qua,
+   T nghi trùng". Không dừng để hỏi giữa lô; gặp điều không chắc thì ghi vào cột Ghi chú và đi tiếp.
+4. Nếu Facebook hiện hộp thoại đăng nhập lại, captcha hoặc chặn cuộn: dừng, báo tôi, không thử vượt qua.
+
+CẤU TRÚC FILE EXCEL (tên file: le-thu-trang-facebook.xlsx)
+Sheet "Sản phẩm" — dòng 1 là tiêu đề, GIỮ ĐÚNG TÊN CỘT SAU (script của tôi đọc theo tên cột):
+  ID | Tên sản phẩm * | Đường dẫn (slug) | Danh mục * (tên, cách nhau bằng ;) | Giá bán (VNĐ) * | Giá gốc (VNĐ) |
+  Giá vốn (VNĐ) | Mã SKU | Tồn kho | Hết hàng (x) | Trạng thái | Từ khóa (cách nhau bằng ,) |
+  Ảnh (URL hoặc /sites/..., mỗi ảnh một dòng) | Mô tả ngắn (HTML) | Mô tả chi tiết (HTML) | Ghi chú |
+  Link nhà cung cấp | Tên tiếng Nhật | Nguồn Facebook | Ngày đăng
+
+Quy tắc từng cột:
+- ID: để trống (sản phẩm mới). Nếu sản phẩm đã có trong lienstore-san-pham.xlsx (cùng thương hiệu + cùng dòng + cùng
+  quy cách, hoặc tên giống ≥ 80%) thì KHÔNG tạo dòng mới; ghi vào sheet "Trùng với web" (tên trên Facebook, ID + tên
+  trên web, link bài, và thông tin mới nếu có: giá mới, ảnh rõ hơn, quy cách khác).
+- Tên sản phẩm *: Title Case tiếng Việt, dạng "Loại sản phẩm + Thương hiệu + Tên dòng + Quy cách", ví dụ
+  "Viên uống hỗ trợ tuần hoàn Nattokinase 5000FU Premium 120 viên", "Trà giảm cân Orihiro Genpi Tea 60 gói".
+  Bỏ hashtag, emoji, chữ IN HOA toàn bộ, lời rao ("CỨU TINH", "SỐ 1 NHẬT BẢN", "về đủ loại"). Không dùng từ
+  "thuốc chữa / đặc trị / chống đột quỵ / trị bệnh…" cho thực phẩm chức năng → đổi thành "viên uống hỗ trợ…".
+  Nếu caption không ghi quy cách thì đọc trên bao bì trong ảnh; vẫn không có thì để tên không quy cách và ghi
+  "Thiếu quy cách" ở Ghi chú.
+- Đường dẫn (slug): để trống.
+- Danh mục *: 1–2 tên lấy NGUYÊN VĂN từ danh sách dưới, cách nhau bằng dấu ";" (không dùng dấu phẩy):
+  CHỐNG NẮNG ( UV ); DƯỠNG THỂ ( BODY ); GIẢM CÂN ( DIET ); GỐC CHỊ EM CHÚNG MÌNH ( WOMEN );
+  KEM DƯỠNG DÀNH CHO MẶT ( FACE CREAM ); MẮT ( EYES ); MẶT NẠ ( MASK ); MOM AND BABY; NƯỚC HOA HỒNG ( LOTION );
+  PHỤC HỒI TÓC TẠI NHÀ ( HAIR ); SẢN PHẨM DÀNH CHO NAM ( MEN ); SON MÔI ( LIPSTICK ); SỮA RỬA MẶT;
+  SỮA TẮM ( SHOWER GEL ); TÂY TẾ BÀO CHẾT ( EXFOLIATE DEAD SKIN ); TẨY TRANG ( CLEANSING );
+  THỰC PHẨM CHỨC NĂNG ( FUNCTIONAL FOODS ); TRỊ MỤN ( ACNE TREATRMENT ); TRỊ NÁM - TÀN NHANG ( TREAT MELASMA FRECKLES );
+  TỦ THUỐC GIA ĐÌNH ( FAMILY MEDICINE ); CHĂM SÓC RĂNG MIỆNG ( ORAL CARE ); THỰC PHẨM - ĐỒ UỐNG ( FOOD & DRINK );
+  DỤNG CỤ CHĂM SÓC DA ( SKINCARE TOOLS ); DỤNG CỤ NHÀ BẾP ( KITCHEN TOOLS ); ĐỒNG HỒ ( WATCH );
+  ĐỒ GIA DỤNG ( HOUSEHOLD ); TRANG ĐIỂM ( MAKEUP ); NẾN THƠM ( CANDLE ); THỜI TRANG ( FASHION )
+  Không khớp mục nào → thêm dòng vào sheet "Danh mục" (Tên danh mục * | Slug | Mô tả | Ảnh) theo mẫu
+  "TÊN TIẾNG VIỆT ( ENGLISH )" rồi dùng tên đó.
+- Giá bán (VNĐ) *: chỉ điền khi caption ghi giá; đổi "320k" → 320000, "1.250.000đ" → 1250000. Số nguyên, không ký tự.
+  Không có giá → để trống. Không tự đoán giá. Giá đăng trước 2023 thì vẫn ghi nhưng thêm "Giá cũ năm 20xx" vào Ghi chú.
+- Giá gốc, Giá vốn, Mã SKU, Tồn kho: để trống. Hết hàng (x): đánh "x" nếu bài ghi hết hàng/ngừng bán.
+- Trạng thái: "Bản nháp" cho tất cả (tôi duyệt rồi mới bật bán).
+- Từ khóa: 4–8 từ cách nhau bằng dấu phẩy: thương hiệu, loại, công dụng, tên không dấu (vd "nattokinase, vien uong,
+  tuần hoàn, huyết áp, 5000fu").
+- Ảnh: URL ảnh trực tiếp của Facebook (scontent…fbcdn.net…jpg), mỗi URL một dòng trong ô (Alt+Enter), tối đa 4.
+  THỨ TỰ QUAN TRỌNG: ảnh để ĐẦU phải là ảnh chỉ có sản phẩm, nhìn rõ bao bì, không tay cầm, không chữ chèn, nền càng
+  trơn càng tốt (website dùng ảnh đầu làm ảnh đại diện và tự tách nền). Ảnh có tay cầm, ảnh chèn chữ, ảnh kệ hàng để
+  sau. Không dùng link trang facebook.com/photo ở cột này.
+- Mô tả ngắn (HTML): 1 câu <p>…</p> ≤ 160 ký tự nêu công dụng chính.
+- Mô tả chi tiết (HTML): viết lại caption thành HTML sạch theo ĐÚNG khung sau (website tự tách thành các mục):
+    <p>Giới thiệu 1–2 câu.</p>
+    <ul><li>Xuất xứ: Nhật Bản</li><li>Thương hiệu: …</li><li>Quy cách: …</li></ul>
+    <p><strong>Công dụng</strong></p><ul><li>…</li><li>…</li></ul>
+    <p><strong>Thành phần</strong></p><ul><li>…</li></ul>            (bỏ mục nếu caption không có)
+    <p><strong>Hướng dẫn sử dụng</strong></p><ul><li>…</li></ul>
+    <p><strong>Đối tượng sử dụng</strong></p><ul><li>…</li></ul>     (nếu có)
+    <p><strong>Lưu ý</strong></p><ul><li>…</li></ul>                 (nếu có)
+  Bỏ emoji, lời rao, số điện thoại, lời kêu gọi inbox. Viết lại các câu quảng cáo y tế quá mức ("cứu tinh của bệnh nhân
+  tai biến", "tan cục máu đông") thành mô tả trung tính ("hỗ trợ tuần hoàn máu"). Không thêm thông tin không có trong
+  caption/bao bì; không dùng <script>, <iframe>, style inline.
+- Ghi chú: điều chưa chắc (thiếu quy cách, không rõ hãng, bài gộp nhiều sản phẩm, giá cũ, ảnh không rõ…).
+- Link nhà cung cấp: nếu bạn tra được sản phẩm ĐÚNG quy cách trên amazon.co.jp trong ≤ 1 phút thì dán link dạng
+  https://www.amazon.co.jp/dp/XXXXXXXXXX (chỉ khi thương hiệu + quy cách khớp hoàn toàn). Không chắc → để trống.
+- Tên tiếng Nhật: tên sản phẩm bằng tiếng Nhật như in trên bao bì + quy cách (vd "納豆キナーゼ プレミアム 5000FU 120粒").
+  Đọc trực tiếp từ chữ trên bao bì trong ảnh nếu thấy rõ; không chắc thì để trống. Cột này dùng để tự tra giá vốn và
+  ảnh chính hãng.
+- Nguồn Facebook: link bài đăng. Ngày đăng: yyyy-mm-dd.
+
+SHEET PHỤ
+- "Danh mục": chỉ chứa các danh mục MỚI bạn cần thêm (nếu có).
+- "Trùng với web": sản phẩm đã có trên web, kèm thông tin mới nếu có.
+- "Bỏ qua": bài không phải sản phẩm (chỉ link + lý do, không chép nội dung).
+- "Báo cáo": tổng số bài đã đọc theo năm, số sản phẩm mới, số dòng thiếu giá, thiếu quy cách, thiếu tên tiếng Nhật,
+  số bài trùng, và danh sách các dòng bạn không chắc nhất cần tôi xem tay.
+
+GIAO FILE
+- Sau mỗi lô, cập nhật cùng một file le-thu-trang-facebook.xlsx và đưa link tải. Nếu link tải lỗi, xuất sheet
+  "Sản phẩm" dưới dạng CSV UTF-8 phân tách bằng dấu ";" (ô nhiều dòng bọc trong dấu ngoặc kép) và dán vào khối mã theo
+  từng 20 dòng để tôi copy.
+- Hoàn thành khi đã duyệt hết các năm có bài bán hàng. Kết thúc bằng bản "Báo cáo".
