@@ -84,15 +84,15 @@ GitHub không gọi vào được NAS ở nhà, nên NAS tự kéo image mới:
 
 | Môi trường | App TrueNAS | Image theo dõi | Khi nào có bản mới |
 | --- | --- | --- | --- |
-| dev.linconnn.io.vn | `lienstore` (port 30080) | `ghcr.io/anhld-rikkei/lienstore:dev` | **mỗi commit lên `main`** (job `publish-dev` trong `ci.yml`, sau khi lint/test/smoke pass) |
-| linconnn.io.vn | `lienstore-prod` (port 30081) | `ghcr.io/anhld-rikkei/lienstore:latest` | **mỗi tag `vX.Y.Z`** (`release.yml`) |
+| dev.linconnn.io.vn | `lienstore` (port 30080) | `ghcr.io/ducanhle92/lienstore:dev` | **mỗi commit lên `main`** (job `publish-dev` trong `ci.yml`, sau khi lint/test/smoke pass) |
+| linconnn.io.vn | `lienstore-prod` (port 30081) | `ghcr.io/ducanhle92/lienstore:latest` | **mỗi tag `vX.Y.Z`** (`release.yml`) |
 
 Thiết lập một lần trên TrueNAS:
 
 1. Chép `deploy/truenas-autoupdate.sh` vào dataset, ví dụ `/mnt/apps-pool/lienstore/truenas-autoupdate.sh` (`chmod +x`).
 2. **System → Advanced Settings → Cron Jobs → Add** (2 job, chạy bằng `root`, Schedule `*/5 * * * *`, tắt "Hide Standard Output"):
-   - `sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore-prod ghcr.io/anhld-rikkei/lienstore:latest`
-   - `sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore ghcr.io/anhld-rikkei/lienstore:dev`
+   - `sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore-prod ghcr.io/ducanhle92/lienstore:latest`
+   - `sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore ghcr.io/ducanhle92/lienstore:dev`
 3. Cài app bằng `deploy/truenas-app.yaml` (prod, tag `latest`) và `deploy/truenas-app.dev.yaml` (dev, tag `dev`).
 
 Script chỉ redeploy khi image id thay đổi (không restart vô ích), gọi qua `midclt` để Apps UI của TrueNAS vẫn đúng trạng thái (không dùng Watchtower cạnh ix-apps), chờ `/api/health/` và ghi log ở `/var/log/lienstore-autoupdate.log`. Đặt `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` trong Cron Job để nhận thông báo. Migration schema và seed sync chạy tự động khi container mới khởi động; DB và uploads nằm trong dataset nên không mất. Muốn khoá prod ở một phiên bản cụ thể thì đổi image sang `:1.5.1` và tắt cron job của prod.
@@ -116,7 +116,7 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 | Release build lại image cho amd64 **và arm64 (QEMU)** → 20–30 phút | Chỉ **retag** image CI đã build và đã chạy trên dev → ~30 giây; prod chạy đúng bytes đã kiểm tra |
 | Bump version, sửa CHANGELOG, tag, push làm tay (dễ quên bump → health báo sai version) | `npm run release -- patch|minor|major` làm trọn gói; Release **fail** nếu image không báo đúng version |
 | Redeploy không sao lưu DB | Cron backup SQLite (online backup, giữ 10 bản) vào `<data>/backups/` trước khi bản mới chạy migration |
-| Quay lại bản cũ phải sửa YAML app | `truenas-rollback.sh lienstore-prod ghcr.io/anhld-rikkei/lienstore 1.5.1` rồi tắt cron của prod |
+| Quay lại bản cũ phải sửa YAML app | `truenas-rollback.sh lienstore-prod ghcr.io/ducanhle92/lienstore 1.5.1` rồi tắt cron của prod |
 
 **Các bước cụ thể**
 
@@ -125,7 +125,7 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 3. Ghi thay đổi vào mục `## [Unreleased]` trong `CHANGELOG.md` (trong lúc làm bước 1).
 4. `npm run release -- minor` (hoặc `patch`, `major`, `1.7.0`). Thêm `--dry-run` để xem trước, `--no-push` nếu muốn tự push.
 5. Theo dõi GitHub Actions → Release (≈1 phút). Sau đó ≤ 5 phút: `curl https://linconnn.io.vn/api/health/` → `"version":"X.Y.Z"`. Có Telegram thì cron gửi "✅ lienstore-prod updated to X.Y.Z".
-6. Nếu lỗi: `sudo sh /mnt/apps-pool/lienstore-prod/truenas-rollback.sh lienstore-prod ghcr.io/anhld-rikkei/lienstore <bản-cũ>` rồi **tắt** cron job của prod cho tới khi có bản sửa (bản sửa = lặp lại bước 1–4 với `patch`).
+6. Nếu lỗi: `sudo sh /mnt/apps-pool/lienstore-prod/truenas-rollback.sh lienstore-prod ghcr.io/ducanhle92/lienstore <bản-cũ>` rồi **tắt** cron job của prod cho tới khi có bản sửa (bản sửa = lặp lại bước 1–4 với `patch`).
 
 **Thiết lập một lần (làm thêm so với §4b)**
 

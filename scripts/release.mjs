@@ -78,9 +78,9 @@ if (noPush) {
   run(`git push origin v${next}`);
   console.log(`
 Xong. Theo dõi:
-  • GitHub Actions → Release (promote image, ~1 phút): https://github.com/anhld-rikkei/shop_ban_hang/actions
+  • GitHub Actions → Release (promote image, ~1 phút): https://github.com/ducanhle92/lienstore/actions
   • Prod tự cập nhật qua cron TrueNAS (≤ 5 phút):     curl https://linconnn.io.vn/api/health/   → "version":"${next}"
-  • Nếu cần quay lại bản cũ: sudo sh /mnt/apps-pool/lienstore-prod/truenas-rollback.sh lienstore-prod ghcr.io/anhld-rikkei/lienstore ${pkg.version}
+  • Nếu cần quay lại bản cũ: sudo sh /mnt/apps-pool/lienstore-prod/truenas-rollback.sh lienstore-prod ghcr.io/ducanhle92/lienstore ${pkg.version}
 `);
 }
 

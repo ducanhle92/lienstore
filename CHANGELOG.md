@@ -114,11 +114,11 @@ Bản phát hành đầu tiên.
 - Số hotline VN, link Zalo/Facebook/Messenger còn là placeholder trong `src/components/sites/lienstore/root-8a5edab2/data.ts`.
 - Dự án khởi tạo từ [ai-website-cloner-template](https://github.com/JCodesMore/ai-website-cloner-template) (MIT).
 
-[Unreleased]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.5.1...HEAD
-[1.5.1]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.5.0...v1.5.1
-[1.5.0]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/anhld-rikkei/shop_ban_hang/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/anhld-rikkei/shop_ban_hang/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ducanhle92/lienstore/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/ducanhle92/lienstore/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/ducanhle92/lienstore/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/ducanhle92/lienstore/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/ducanhle92/lienstore/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/ducanhle92/lienstore/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ducanhle92/lienstore/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/ducanhle92/lienstore/releases/tag/v1.0.0

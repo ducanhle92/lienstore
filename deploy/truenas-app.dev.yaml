@@ -1,8 +1,8 @@
 # LienStore DEV (dev.linconnn.io.vn) — follows the `dev` image that CI publishes on every push to main.
-# Pair with a Cron Job:  sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore ghcr.io/anhld-rikkei/lienstore:dev
+# Pair with a Cron Job:  sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore ghcr.io/ducanhle92/lienstore:dev
 services:
   lienstore:
-    image: ghcr.io/anhld-rikkei/lienstore:dev
+    image: ghcr.io/ducanhle92/lienstore:dev
     container_name: lienstore
     restart: unless-stopped
     ports:

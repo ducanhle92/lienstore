@@ -2,7 +2,7 @@
 # Apps → Discover Apps → ⋮ (top right) → "Install via YAML" → paste this file.
 #
 # Variant A — PROD. Follows the `latest` tag that release.yml publishes when you push a version tag (v1.x.y).
-# Auto-update: TrueNAS Cron Job every 5 min →  sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore-prod ghcr.io/anhld-rikkei/lienstore:latest
+# Auto-update: TrueNAS Cron Job every 5 min →  sh /mnt/apps-pool/lienstore/truenas-autoupdate.sh lienstore-prod ghcr.io/ducanhle92/lienstore:latest
 #   If the package is private, add the registry
 #   under Apps → Settings → Manage Container Images / Registries (ghcr.io + a PAT with read:packages).
 #
@@ -14,7 +14,7 @@
 # First start creates /app/data/lienstore.db (SQLite) and imports the seed catalogue automatically.
 services:
   lienstore:
-    image: ghcr.io/anhld-rikkei/lienstore:latest
+    image: ghcr.io/ducanhle92/lienstore:latest
     container_name: lienstore
     restart: unless-stopped
     ports:

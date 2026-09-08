@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anhld-rikkei/shop_ban_hang/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/anhld-rikkei/shop_ban_hang/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/anhld-rikkei/shop_ban_hang/releases"><img alt="Release" src="https://img.shields.io/github/v/tag/anhld-rikkei/shop_ban_hang?label=version&sort=semver"></a>
+  <a href="https://github.com/ducanhle92/lienstore/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ducanhle92/lienstore/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/ducanhle92/lienstore/releases"><img alt="Release" src="https://img.shields.io/github/v/tag/anhld-rikkei/shop_ban_hang?label=version&sort=semver"></a>
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black">
   <img alt="Node 24" src="https://img.shields.io/badge/Node-24-339933">
   <img alt="SQLite" src="https://img.shields.io/badge/DB-SQLite%20(node%3Asqlite)-003B57">
@@ -114,7 +114,7 @@ sh deploy/truenas-build.sh /mnt/<pool>/lienstore/src        # tạo image lienst
 # rồi Apps → Discover Apps → ⋮ → Install via YAML → dán deploy/truenas-app.local.yaml
 
 # Cách B: dùng image từ GHCR do release.yml tạo khi gắn tag
-npm version minor && git push --follow-tags                  # → ghcr.io/anhld-rikkei/lienstore:<ver>
+npm run release -- minor                                     # → ghcr.io/ducanhle92/lienstore:<ver> + :latest
 # rồi Install via YAML → deploy/truenas-app.yaml
 ```
 
