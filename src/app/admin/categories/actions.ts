@@ -23,7 +23,7 @@ export async function saveCategoryAction(_prev: CategoryFormState, formData: For
   if (Object.keys(fields).length) return { error: "Vui lòng kiểm tra lại các trường được đánh dấu.", fields };
 
   try {
-    await saveCategory({ slug, name, description: get("description"), image, originalSlug });
+    await saveCategory({ slug, name, description: get("description"), image, originalSlug, parentSlug: get("parentSlug") || null });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không thể lưu danh mục." };
   }

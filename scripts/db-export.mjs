@@ -19,7 +19,7 @@ const db = new DatabaseSync(dbPath, { readOnly: true });
 const q = (sql, ...p) => db.prepare(sql).all(...p);
 const j = (s) => JSON.parse(s ?? "[]");
 
-const categories = q("SELECT slug, name, description, image FROM categories ORDER BY sort_order, slug");
+const categories = q("SELECT slug, name, description, image, parent_slug AS parent FROM categories ORDER BY sort_order, slug");
 const products = q(
   `SELECT p.*, (SELECT json_group_array(category_slug) FROM (SELECT category_slug FROM product_categories WHERE product_id = p.id ORDER BY position)) AS categories
    FROM products p ORDER BY p.id`,

@@ -44,6 +44,7 @@ export async function getHeaderCategories(): Promise<HeaderCategory[]> {
     slug: c.slug,
     count: c.count,
     image: c.image ?? all.find((p) => p.categories.includes(c.slug))?.thumb ?? null,
+    parentSlug: c.parentSlug,
   }));
 }
 

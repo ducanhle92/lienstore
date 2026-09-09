@@ -5,6 +5,7 @@ import Link from "next/link";
 import { deleteCategoryAction, saveCategoryAction, type CategoryFormState } from "@/app/admin/categories/actions";
 import { cn } from "@/lib/utils";
 import type { ShopCategory } from "@/types/shop";
+import { buildCategoryTree, descendantSlugs, flattenTree } from "@/lib/categories";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { uploadImage } from "./image-upload";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash } from "./ui";
@@ -13,13 +14,17 @@ interface CategoryFormProps {
   category?: ShopCategory;
   /** Existing image paths the admin can pick from (product thumbnails). */
   suggestions?: string[];
+  /** All categories (for the parent select); the category itself and its descendants are excluded. */
+  allCategories?: ShopCategory[];
 }
 
 function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function CategoryForm({ category, suggestions = [] }: CategoryFormProps) {
+export function CategoryForm({ category, suggestions = [], allCategories = [] }: CategoryFormProps) {
+  const excluded = new Set(category ? descendantSlugs(allCategories, category.slug) : []);
+  const parentOptions = flattenTree(buildCategoryTree(allCategories)).filter((n) => !excluded.has(n.category.slug));
   const [state, action, pending] = useActionState<CategoryFormState, FormData>(saveCategoryAction, null);
   const [image, setImage] = useState(category?.image ?? "");
   const [uploading, setUploading] = useState(false);
@@ -65,6 +70,22 @@ export function CategoryForm({ category, suggestions = [] }: CategoryFormProps) 
                 <input id="slug" name="slug" defaultValue={category?.slug} placeholder="Để trống để tạo tự động từ tên" className={cn(adminInput, fields.slug && "border-red-500")} />
                 <FieldError msg={fields.slug} />
                 <p className="mt-1 text-[12px] text-lien-muted">Trang danh mục: /product-category/&lt;slug&gt;/ — đổi slug sẽ tự cập nhật cho mọi sản phẩm thuộc danh mục.</p>
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="parentSlug">
+                  Danh mục cha
+                </label>
+                <select id="parentSlug" name="parentSlug" defaultValue={category?.parentSlug ?? ""} className={adminInput}>
+                  <option value="">— Không (danh mục gốc, hiện trên menu chính) —</option>
+                  {parentOptions.map((n) => (
+                    <option key={n.category.slug} value={n.category.slug}>
+                      {"\u00a0\u00a0".repeat(n.depth)}
+                      {n.depth ? "└ " : ""}
+                      {n.category.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[12px] text-lien-muted">Danh mục con hiện dưới danh mục cha trong menu; trang danh mục cha liệt kê cả sản phẩm của các danh mục con.</p>
               </div>
               <div>
                 <label className={adminLabel} htmlFor="description">

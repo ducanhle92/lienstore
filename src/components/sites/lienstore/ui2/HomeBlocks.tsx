@@ -3,12 +3,16 @@ import Link from "next/link";
 import { Fa, type FaName } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
 import type { BlogPost } from "@/types/shop";
+import { buildCategoryTree, shortName } from "@/lib/categories";
 import type { HeaderCategory } from "./Header2";
 
 /** Row of square category tiles (image, name, item count). Scrolls horizontally on small screens. */
 export function CategoryTiles({ categories, limit = 15 }: { categories: HeaderCategory[]; limit?: number }) {
-  const shown = [...categories].sort((a, b) => b.count - a.count).slice(0, limit);
-  const rest = categories.length - shown.length;
+  // top-level groups first, then their sub-categories, largest first
+  const tree = buildCategoryTree(categories);
+  const ordered = [...tree.map((n) => ({ ...n.category, count: n.total, image: n.image })), ...tree.flatMap((n) => n.children.map((c) => ({ ...c.category, count: c.total, image: c.image })))].filter((c) => c.count > 0);
+  const shown = ordered.slice(0, limit);
+  const rest = ordered.length - shown.length;
   return (
     <section aria-label="Danh mục sản phẩm" className="mt-6">
       <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
@@ -18,7 +22,7 @@ export function CategoryTiles({ categories, limit = 15 }: { categories: HeaderCa
               <span className="mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm">
                 {c.image ? <Image src={c.image} alt="" width={64} height={64} className="h-14 w-14 object-contain transition-transform group-hover:scale-105" /> : <Fa name="tags" className="text-[22px] text-lien-blue" />}
               </span>
-              <span className="line-clamp-2 text-[12px] font-semibold leading-4 text-lien-heading sm:text-[13px]">{c.name.replace(/\s*\(.*?\)\s*/g, " ").trim()}</span>
+              <span className="line-clamp-2 text-[12px] font-semibold leading-4 text-lien-heading sm:text-[13px]">{shortName(c.name)}</span>
               <span className="mt-1 text-[11px] text-lien-muted">{c.count} mặt hàng</span>
             </Link>
           </li>

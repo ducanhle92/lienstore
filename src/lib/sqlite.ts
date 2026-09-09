@@ -214,6 +214,11 @@ export const MIGRATIONS: Migration[] = [
       `CREATE UNIQUE INDEX idx_customers_username ON customers(username) WHERE username IS NOT NULL`,
     ],
   },
+  {
+    version: 7,
+    name: "category-parent",
+    up: [`ALTER TABLE categories ADD COLUMN parent_slug TEXT`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -221,7 +226,7 @@ export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 /** Shape of `data/seed.json` (also what `npm run db:export` writes). */
 export interface SeedFile {
   products?: Array<Record<string, unknown> & { id: number; slug: string; categories?: string[] }>;
-  categories?: Array<{ slug: string; name: string; description?: string; image?: string | null }>;
+  categories?: Array<{ slug: string; name: string; description?: string; image?: string | null; parent?: string | null }>;
   customers?: Array<Record<string, unknown> & { id: string; email: string }>;
   orders?: Array<Record<string, unknown> & { id: string; number: number; items?: Array<Record<string, unknown>> }>;
   pages?: Array<{ slug: string; title: string; content: string; date: string }>;
@@ -398,8 +403,8 @@ type InsertVerb = "INSERT OR REPLACE" | "INSERT OR IGNORE";
 /** Categories, products (+ their category links), pages and posts from a seed file. */
 function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
   {
-    const insCat = db.prepare(`${verb} INTO categories (slug, name, description, image, sort_order) VALUES (?, ?, ?, ?, ?)`);
-    (seed.categories ?? []).forEach((c, i) => insCat.run(c.slug, c.name, c.description ?? "", c.image ?? null, i));
+    const insCat = db.prepare(`${verb} INTO categories (slug, name, description, image, sort_order, parent_slug) VALUES (?, ?, ?, ?, ?, ?)`);
+    (seed.categories ?? []).forEach((c, i) => insCat.run(c.slug, c.name, c.description ?? "", c.image ?? null, i, c.parent ?? null));
 
     const insProd = db.prepare(`${verb} INTO products
       (id, slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb, short_description, description,

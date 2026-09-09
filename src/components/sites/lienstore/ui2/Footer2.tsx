@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { buildCategoryTree } from "@/lib/categories";
 import type { ContactInfo } from "@/types/lienstore";
 import { SOCIAL_COLORS, SocialIcon } from "@/components/sites/lienstore/shared/BrandIcons";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -19,7 +20,7 @@ const colLink = "block py-1 text-[14px] leading-6 text-lien-text no-underline ho
 
 /** Light-grey 5-column footer: store info · account · support · main categories · connect. */
 export function Footer2({ logo, contact, categories, accountLinks, supportLinks, copyright }: Footer2Props) {
-  const topCats = [...categories].sort((a, b) => b.count - a.count).slice(0, 8);
+  const topCats = buildCategoryTree(categories).map((n) => ({ ...n.category, count: n.total })).slice(0, 8);
   return (
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">

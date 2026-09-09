@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CategoryForm } from "@/components/sites/lienstore/admin/CategoryForm";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategoryBySlug } from "@/lib/db";
+import { getAllProducts, getCategories, getCategoryBySlug } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function EditCategory({ params }: Props) {
   const { slug } = await params;
   const category = await getCategoryBySlug(decodeURIComponent(slug));
   if (!category) notFound();
-  const products = await getAllProducts(true);
+  const [products, allCategories] = await Promise.all([getAllProducts(true), getCategories()]);
   const suggestions = Array.from(new Set(products.filter((p) => p.categories.includes(category.slug)).map((p) => p.thumb).filter(Boolean)));
   return (
     <>
@@ -29,7 +29,7 @@ export default async function EditCategory({ params }: Props) {
           </a>
         }
       />
-      <CategoryForm category={category} suggestions={suggestions} />
+      <CategoryForm category={category} suggestions={suggestions} allCategories={allCategories} />
     </>
   );
 }

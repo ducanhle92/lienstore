@@ -19,7 +19,13 @@ import type {
   BlogPost,
   UserRole,
 } from "@/types/shop";
+import { descendantSlugs } from "./categories";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
+
+/** Synchronous category list for use inside transactions. */
+function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
+  return (db.prepare("SELECT slug, name, description, image, parent_slug, 0 AS count FROM categories").all() as unknown as CategoryRow[]).map(rowToCategory);
+}
 
 /**
  * Data-access layer on top of SQLite (see `sqlite.ts` for schema + migrations).
@@ -102,15 +108,16 @@ interface CategoryRow {
   name: string;
   description: string;
   image: string | null;
+  parent_slug: string | null;
   count: number;
 }
 
-const CATEGORY_SELECT = `SELECT c.slug, c.name, c.description, c.image,
+const CATEGORY_SELECT = `SELECT c.slug, c.name, c.description, c.image, c.parent_slug,
   (SELECT COUNT(*) FROM product_categories pc JOIN products p ON p.id = pc.product_id
     WHERE pc.category_slug = c.slug AND p.status = 'publish') AS count
   FROM categories c`;
 
-const rowToCategory = (r: CategoryRow): ShopCategory => ({ slug: r.slug, name: r.name, description: r.description, image: r.image, count: r.count });
+const rowToCategory = (r: CategoryRow): ShopCategory => ({ slug: r.slug, name: r.name, description: r.description, image: r.image, count: r.count, parentSlug: r.parent_slug ?? null });
 
 interface OrderRow {
   id: string;
@@ -248,7 +255,11 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
   const perPage = q.perPage ?? 32;
   const page = Math.max(1, q.page ?? 1);
   let items = await getAllProducts(q.includeDrafts);
-  if (q.category) items = items.filter((p) => p.categories.includes(q.category as string));
+  if (q.category) {
+    // a category page lists its own products plus everything in its sub-categories
+    const slugs = new Set(descendantSlugs(await getCategories(), q.category));
+    items = items.filter((p) => p.categories.some((c) => slugs.has(c)));
+  }
   if (q.tag) {
     const tag = normalise(q.tag).replace(/-/g, " ");
     items = items.filter((p) => p.tags.some((t) => normalise(t) === tag));
@@ -390,6 +401,7 @@ export interface CategoryInput {
   name: string;
   description: string;
   image: string | null;
+  parentSlug?: string | null;
   /** Slug of the category being edited (omit when creating). */
   originalSlug?: string;
 }
@@ -409,22 +421,27 @@ export async function saveCategory(input: CategoryInput): Promise<ShopCategory> 
         if (db.prepare("SELECT 1 FROM categories WHERE slug = ?").get(input.slug)) throw new Error("Đường dẫn đã tồn tại.");
         db.prepare("UPDATE product_categories SET category_slug = ? WHERE category_slug = ?").run(input.slug, cat.slug);
       }
-      db.prepare("UPDATE categories SET slug = ?, name = ?, description = ?, image = ? WHERE slug = ?").run(
+      if (input.slug !== cat.slug) db.prepare("UPDATE categories SET parent_slug = ? WHERE parent_slug = ?").run(input.slug, cat.slug);
+      const parent = input.parentSlug && input.parentSlug !== input.slug ? input.parentSlug : null;
+      if (parent && descendantSlugs(await0(db), input.slug).includes(parent)) throw new Error("Không thể đặt danh mục cha là danh mục con của chính nó.");
+      db.prepare("UPDATE categories SET slug = ?, name = ?, description = ?, image = ?, parent_slug = ? WHERE slug = ?").run(
         input.slug,
         input.name,
         input.description,
         input.image,
+        parent,
         cat.slug,
       );
     } else {
       if (db.prepare("SELECT 1 FROM categories WHERE slug = ?").get(input.slug)) throw new Error("Đường dẫn đã tồn tại.");
       const next = (db.prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM categories").get() as { n: number }).n;
-      db.prepare("INSERT INTO categories (slug, name, description, image, sort_order) VALUES (?, ?, ?, ?, ?)").run(
+      db.prepare("INSERT INTO categories (slug, name, description, image, sort_order, parent_slug) VALUES (?, ?, ?, ?, ?, ?)").run(
         input.slug,
         input.name,
         input.description,
         input.image,
         next,
+        input.parentSlug && input.parentSlug !== input.slug ? input.parentSlug : null,
       );
     }
     const row = db.prepare(`${CATEGORY_SELECT} WHERE c.slug = ?`).get(input.slug) as unknown as CategoryRow;
@@ -436,6 +453,8 @@ export async function saveCategory(input: CategoryInput): Promise<ShopCategory> 
 export async function deleteCategory(slug: string): Promise<boolean> {
   const db = getDb();
   return withTransaction(db, () => {
+    const parent = (db.prepare("SELECT parent_slug FROM categories WHERE slug = ?").get(slug) as { parent_slug: string | null } | undefined)?.parent_slug ?? null;
+    db.prepare("UPDATE categories SET parent_slug = ? WHERE parent_slug = ?").run(parent, slug); // children move up one level
     const res = db.prepare("DELETE FROM categories WHERE slug = ?").run(slug);
     db.prepare("DELETE FROM product_categories WHERE category_slug = ?").run(slug);
     return Number(res.changes) > 0;
@@ -1115,6 +1134,51 @@ export async function getShippingNotes(): Promise<string[]> {
 
 export async function setShippingNotes(notes: string[]): Promise<void> {
   setSetting(getDb(), "shipping_notes", JSON.stringify(notes.map((n) => n.trim()).filter(Boolean)));
+}
+
+// ---------- Export ----------
+
+/** The catalogue in data/seed.json format (products incl. drafts, categories, pages, posts). */
+export async function exportCatalogue() {
+  const db = getDb();
+  const products = (await getAllProducts(true)).map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    regularPrice: p.regularPrice,
+    costPrice: p.costPrice,
+    supplierUrl: p.supplierUrl,
+    minStock: p.minStock,
+    currency: p.currency,
+    sku: p.sku,
+    stock: p.stock,
+    stockStatus: p.stockStatus,
+    categories: p.categories,
+    tags: p.tags,
+    images: p.images,
+    thumb: p.thumb,
+    shortDescription: p.shortDescription,
+    description: p.description,
+    related: p.related,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    status: p.status,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  }));
+  const categories = (db.prepare("SELECT slug, name, description, image, parent_slug AS parent FROM categories ORDER BY sort_order, slug").all() as unknown as Array<{ slug: string; name: string; description: string; image: string | null; parent: string | null }>);
+  const pages = db.prepare("SELECT slug, title, content, date FROM pages ORDER BY date").all();
+  const posts = db.prepare("SELECT slug, title, content, excerpt, date FROM posts ORDER BY date DESC").all();
+  return {
+    version: 1,
+    note: `Exported from the live catalogue (${process.env.NEXT_PUBLIC_SITE_URL ?? "server"}). Catalogue only — no customers/orders.`,
+    meta: { nextOrderNumber: 1001, seededAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") },
+    categories,
+    products,
+    pages,
+    posts,
+  };
 }
 
 // ---------- Stats / health ----------

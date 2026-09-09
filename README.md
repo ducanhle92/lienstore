@@ -45,6 +45,8 @@
 - **Kho hàng**: tồn kho, sắp hết, hết hàng, không theo dõi; cập nhật tồn và mức tối thiểu ngay trên bảng; **danh sách cần đặt hàng** tính từ các đơn đang mở trừ tồn kho, kèm link mua (Amazon JP) và xuất CSV.
 - **Vận chuyển** (`/admin/shipping/`): quản lý các phương thức vận chuyển (Nhật → Việt Nam, nội địa…) và các khu vực/cột của bảng phí (phí thường, đơn vị, miễn phí trên, phụ phí, khu vực, thời gian, ẩn/hiện), lưu ý vận chuyển; xem trước như khách thấy.
 - **Người dùng & phân quyền** (`/admin/users/`): tạo, sửa (email, tên, điện thoại, địa chỉ), đặt lại mật khẩu, khoá, xoá tài khoản; vai trò Quản trị viên / Nhân viên (chọn module được phép) / Khách hàng. Nhân viên và quản trị viên đăng nhập trang quản trị bằng tên đăng nhập (ID) + mật khẩu (email tuỳ chọn); tài khoản trong `ADMIN_USER`/`ADMIN_PASSWORD` là chủ cửa hàng, toàn quyền với mọi tài khoản.
+- **Danh mục phân cấp**: danh mục cha/con nhiều cấp; menu, trang chủ, cột trái, footer hiển thị theo cây; trang danh mục cha gộp sản phẩm của danh mục con.
+- **Đồng bộ dữ liệu prod → dev**: `GET /api/admin/export` xuất catalogue của server; `npm run sync:prod -- https://linconnn.io.vn admin <mật-khẩu>` kéo về `data/seed.json` kèm ảnh upload.
 - **Ảnh sản phẩm**: tải ảnh từ máy ngay trong form (tự thu nhỏ về 1200px + thumbnail 300×300), thêm bằng URL, sắp thứ tự, đặt ảnh đại diện, xoá; file lưu trong thư mục dữ liệu, phục vụ qua `/api/files/…`.
 
 ### Vận hành

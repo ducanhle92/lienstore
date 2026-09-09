@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
+import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
 export interface HeaderCategory {
@@ -12,6 +13,7 @@ export interface HeaderCategory {
   slug: string;
   count: number;
   image: string | null;
+  parentSlug: string | null;
 }
 
 export interface HeaderLink {
@@ -64,7 +66,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const topCats = [...categories].sort((a, b) => b.count - a.count);
+  const tree = buildCategoryTree(categories);
   const navItem = "inline-flex h-[44px] items-center gap-1 px-3 text-[14px] font-semibold uppercase tracking-[0.2px] text-lien-heading no-underline hover:text-lien-blue";
 
   return (
@@ -87,14 +89,37 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
               <span className="ml-1 rounded-full bg-lien-sale px-1.5 py-px text-[9px] font-bold uppercase text-white">Sale</span>
             </button>
             {open === "cat" ? (
-              <div className="absolute top-full left-0 z-50 mt-1 w-[720px] rounded-md border border-lien-line bg-white p-4 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">
-                <div className="grid grid-cols-3 gap-x-6 gap-y-1">
-                  {topCats.map((c) => (
-                    <Link key={c.slug} href={`/product-category/${c.slug}/`} className="flex items-center gap-2 rounded px-2 py-1.5 text-[13px] leading-5 text-lien-text no-underline hover:bg-lien-blue-soft hover:text-lien-blue">
-                      <Fa name="angle-right" className="text-[11px] text-lien-blue" />
-                      <span className="flex-1 truncate">{c.name}</span>
-                      <span className="text-[12px] text-lien-muted">({c.count})</span>
-                    </Link>
+              <div className="absolute top-full left-0 z-50 mt-1 w-[860px] rounded-md border border-lien-line bg-white p-5 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">
+                <div className="grid grid-cols-3 gap-x-8 gap-y-5">
+                  {tree.map((g) => (
+                    <div key={g.category.slug} className="min-w-0">
+                      <Link href={`/product-category/${g.category.slug}/`} onClick={() => setOpen(null)} className="flex items-center justify-between gap-2 border-b border-lien-line pb-1.5 text-[13px] font-bold uppercase tracking-[0.2px] text-lien-heading no-underline hover:text-lien-blue">
+                        <span className="truncate">{shortName(g.category.name)}</span>
+                        <span className="text-[11px] font-normal text-lien-muted">({g.total})</span>
+                      </Link>
+                      {g.children.length ? (
+                        <ul className="m-0 mt-1.5 list-none space-y-0.5 p-0">
+                          {g.children.map((c) => (
+                            <li key={c.category.slug}>
+                              <Link href={`/product-category/${c.category.slug}/`} onClick={() => setOpen(null)} className="flex items-center gap-1.5 rounded px-1 py-1 text-[13px] leading-5 text-lien-text no-underline hover:bg-lien-blue-soft hover:text-lien-blue">
+                                <Fa name="angle-right" className="text-[10px] text-lien-blue" />
+                                <span className="flex-1 truncate">{shortName(c.category.name)}</span>
+                                <span className="text-[11px] text-lien-muted">({c.total})</span>
+                              </Link>
+                              {c.children.length ? (
+                                <div className="ml-5 flex flex-wrap gap-x-2 text-[12px] leading-5 text-lien-muted">
+                                  {c.children.map((gc) => (
+                                    <Link key={gc.category.slug} href={`/product-category/${gc.category.slug}/`} onClick={() => setOpen(null)} className="text-lien-muted no-underline hover:text-lien-blue">
+                                      {shortName(gc.category.name)}
+                                    </Link>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-lien-line pt-3 text-[13px]">
@@ -193,12 +218,18 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
               <div className="border-b border-lien-line px-4 py-3">
                 <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">Danh mục</p>
                 <ul className="m-0 list-none p-0">
-                  {topCats.map((c) => (
-                    <li key={c.slug}>
-                      <Link href={`/product-category/${c.slug}/`} className="flex items-center justify-between py-2 text-[14px] text-lien-text no-underline">
-                        <span>{c.name}</span>
-                        <span className="text-[12px] text-lien-muted">{c.count}</span>
+                  {tree.map((g) => (
+                    <li key={g.category.slug} className="py-1">
+                      <Link href={`/product-category/${g.category.slug}/`} className="flex items-center justify-between py-1.5 text-[14px] font-semibold text-lien-heading no-underline">
+                        <span>{shortName(g.category.name)}</span>
+                        <span className="text-[12px] font-normal text-lien-muted">{g.total}</span>
                       </Link>
+                      {g.children.map((c) => (
+                        <Link key={c.category.slug} href={`/product-category/${c.category.slug}/`} className="flex items-center justify-between py-1 pl-4 text-[13px] text-lien-text no-underline">
+                          <span>{shortName(c.category.name)}</span>
+                          <span className="text-[12px] text-lien-muted">{c.total}</span>
+                        </Link>
+                      ))}
                     </li>
                   ))}
                 </ul>

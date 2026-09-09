@@ -5,6 +5,7 @@ import { ShopProductGrid } from "@/components/sites/lienstore/shop/ShopProductCa
 import { FullWidthShell, getHeaderCategories, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { CategoryTiles, NewsCards, SectionHeader2, UspStrip } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { buildCategoryTree, shortName } from "@/lib/categories";
 import { getPosts, queryProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function Home() {
     getPosts(),
   ]);
   const onSale = sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price).slice(0, 6);
-  const topCategories = [...categories].filter((c) => c.count > 0).sort((a, b) => b.count - a.count).slice(0, CATEGORY_ROWS);
+  const topCategories = buildCategoryTree(categories)
+    .filter((n) => n.total > 0)
+    .slice(0, CATEGORY_ROWS)
+    .map((n) => ({ ...n.category, count: n.total }));
   const rows = await Promise.all(
     topCategories.map(async (c) => ({ cat: c, products: (await queryProducts({ category: c.slug, orderby: "date", perPage: 6 })).items })),
   );
@@ -31,7 +35,7 @@ export default async function Home() {
       <FullWidthShell className="pt-4">
         <HeroSlider slides={slides} arrowSprite={sliderAssets.directionNav} className="overflow-hidden rounded-md" />
 
-        <CategoryTiles categories={categories.filter((c) => c.count > 0)} />
+        <CategoryTiles categories={categories} />
 
         {onSale.length >= 3 ? (
           <section className="mt-10" aria-label="Giảm giá">
@@ -70,7 +74,7 @@ export default async function Home() {
         {rows.map(({ cat, products }) =>
           products.length ? (
             <section key={cat.slug} className="mt-10" aria-label={cat.name}>
-              <SectionHeader2 title={cat.name.replace(/\s*\(.*?\)\s*/g, " ").trim()} href={`/product-category/${cat.slug}/`} />
+              <SectionHeader2 title={shortName(cat.name)} href={`/product-category/${cat.slug}/`} />
               <ShopProductGrid products={products} cols={6} />
               <p className="mt-3 text-center">
                 <Link href={`/product-category/${cat.slug}/`} className="inline-flex items-center gap-1 rounded-full border border-lien-blue px-5 py-2 text-[13px] font-semibold text-lien-blue no-underline hover:bg-lien-blue hover:text-white">

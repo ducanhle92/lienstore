@@ -43,6 +43,15 @@ export default async function AdminDashboard({ searchParams }: DashboardProps) {
           </Link>
         ))}
       </div>
+      {session.permissions.includes("products") ? (
+        <p className="mb-6 text-[13px] text-lien-muted">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API download, not a page */}
+          <a href="/api/admin/export" className="text-lien-blue hover:underline">
+            Tải toàn bộ catalogue (seed.json)
+          </a>{" "}
+          — sản phẩm, danh mục, trang, bài viết; dùng để đồng bộ về máy dev (`npm run sync:prod`).
+        </p>
+      ) : null}
       <Card
         title="Đơn hàng gần đây"
         actions={

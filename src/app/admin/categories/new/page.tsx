@@ -1,6 +1,7 @@
 import { CategoryForm } from "@/components/sites/lienstore/admin/CategoryForm";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
+import { getCategories } from "@/lib/db";
 import { getAllProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";

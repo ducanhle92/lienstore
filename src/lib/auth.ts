@@ -50,6 +50,15 @@ export async function verifyCredentials(user: string, password: string): Promise
   return null;
 }
 
+/** HTTP Basic with the env admin credentials — for scripts such as scripts/sync-from-prod.mjs. */
+export function authorizeBasic(header: string | null): boolean {
+  if (!header || !header.startsWith("Basic ")) return false;
+  const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  const i = decoded.indexOf(":");
+  if (i < 0) return false;
+  return safeEqual(decoded.slice(0, i), ADMIN_USER) && safeEqual(decoded.slice(i + 1), ADMIN_PASSWORD);
+}
+
 function makeToken(subject: string): string {
   const payload = `${subject}.${Date.now() + SESSION_TTL_MS}`;
   return `${payload}.${sign(payload)}`;

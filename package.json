@@ -34,6 +34,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
     "release": "node scripts/release.mjs",
+    "sync:prod": "node scripts/sync-from-prod.mjs",
     "docker:build": "docker build -t lienstore:local .",
     "docker:run": "docker run --rm -p 3000:3000 -v lienstore-data:/app/data --env-file .env.local lienstore:local",
     "db:export": "node scripts/db-export.mjs",

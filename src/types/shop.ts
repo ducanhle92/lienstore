@@ -42,9 +42,12 @@ export interface CatalogProduct {
 export interface ShopCategory {
   slug: string;
   name: string;
+  /** Products directly in this category (not descendants). */
   count: number;
   image: string | null;
   description: string;
+  /** Parent category slug for nested categories; null = top level. */
+  parentSlug: string | null;
 }
 
 export interface CartItem {
