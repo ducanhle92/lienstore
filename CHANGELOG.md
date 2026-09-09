@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-09-09
+
 ### Added
 - **Chuyển ngôn ngữ VI | JP** trên thanh trên cùng (thay cụm icon Facebook/Zalo/Messenger; các icon này vẫn ở dock bên phải và footer). Dịch phần khung: menu, tìm kiếm, ngăn kéo tài khoản, giỏ hàng, nút "Thêm vào giỏ", tiêu đề footer. Tên/mô tả sản phẩm giữ nguyên tiếng Việt. Lưu bằng cookie `lien_lang`, đổi qua `/api/lang/`.
 - **Ngăn kéo tài khoản** bên phải khi bấm icon người ở header: đăng nhập (ID hoặc email), đăng ký (Tên đệm & tên, Họ, **Tên đăng nhập (ID) bắt buộc**, Email không bắt buộc, Mật khẩu), quên mật khẩu; khi đã đăng nhập hiện menu ngắn (Tài khoản, Đơn hàng, Yêu thích, Giỏ hàng, Đăng xuất). Đăng nhập/đăng ký xong ở lại trang đang xem.
