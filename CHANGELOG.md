@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-09-09
+
 ### Changed
 - **Admin › Vận chuyển**: mỗi tab chặng chỉ hiện nội dung của chặng đó (phương thức, nút thêm phương thức, đơn vị vận chuyển của chặng, và riêng chặng nội địa VN có ô địa chỉ nhận tại kho); tab mới **Hiển thị cho khách** gồm lưu ý chung và xem trước đúng như tab "Chi phí vận chuyển" trên trang sản phẩm. **Đơn vị vận chuyển gắn theo chặng** (migration v10): nội địa Nhật có Yamato, Japan Post (郵便), Sagawa, Tự mang tới kho, LienStore gom tại nhà (bán kính 30 km, từ 20 kg); Nhật → Việt có Kiến Express, Japan Post EMS; nội địa Việt Nam có Viettel Post, Bưu điện Việt Nam, GHTK, Khách tự tới kho lấy. Dropdown đơn vị trong từng phương thức chỉ liệt kê đơn vị của chặng đó.
 
