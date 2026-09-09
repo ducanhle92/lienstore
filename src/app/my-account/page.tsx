@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { customerLogout } from "@/app/my-account/actions";
+import { customerLogout, customerSendMessageAction } from "@/app/my-account/actions";
+import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { AccountDetailsForm, LoginRegisterForms } from "@/components/sites/lienstore/shop/cart/AccountForms";
 import { OrderAddress, OrderSummary, STATUS_LABEL } from "@/components/sites/lienstore/shop/cart/OrderDetails";
 import { OrderLookupForm } from "@/components/sites/lienstore/shop/cart/OrderLookupForm";
@@ -8,7 +9,7 @@ import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSideba
 import { Price, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { getOrderById, getOrdersForCustomer } from "@/lib/db";
+import { getOrderById, getOrderMessages, getOrdersForCustomer, markOrderMessagesRead } from "@/lib/db";
 import { receiptLinksFor } from "@/lib/order-files";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -146,6 +147,8 @@ async function OrdersTab({ customerId, email, viewId }: { customerId: string; em
   if (viewId) {
     const order = await getOrderById(viewId);
     if (order && (order.customerId === customerId || order.customer.email.toLowerCase() === email.toLowerCase())) {
+      await markOrderMessagesRead(order.id, "customer");
+      const messages = await getOrderMessages(order.id);
       return (
         <>
           <p className="mb-6 text-[16px] leading-6">
@@ -153,6 +156,10 @@ async function OrdersTab({ customerId, email, viewId }: { customerId: string; em
             <mark className="bg-transparent font-bold">{STATUS_LABEL[order.status]}</mark>.
           </p>
           <OrderSummary order={order} receipts={await receiptLinksFor(order.id)} />
+          <section className="mt-8">
+            <WooHeading as="h3">Trao đổi với LienStore</WooHeading>
+            <OrderChat orderId={order.id} messages={messages} me="customer" action={customerSendMessageAction} />
+          </section>
           <p className="mt-4">
             <Link href="/my-account/?tab=orders" className="text-lien-blue hover:underline">
               ← Tất cả đơn hàng

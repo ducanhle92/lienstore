@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { endCustomerSession, getCurrentCustomer, startCustomerSession } from "@/lib/customer-auth";
-import { createCustomer, findCustomerByEmail, findCustomerByLogin, findOrder, updateCustomer, verifyCustomer } from "@/lib/db";
+import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
+import { addOrderMessage, createCustomer, findCustomerByEmail, findCustomerByLogin, findOrder, getOrderById, updateCustomer, verifyCustomer } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import type { Order } from "@/types/shop";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -94,4 +96,30 @@ export async function updateAccountDetails(_prev: AccountFormState, formData: Fo
   }
   await updateCustomer(me.id, { firstName, lastName, phone, address, password });
   return { message: "Chi tiết tài khoản đã được thay đổi thành công." };
+}
+
+/**
+ * Customer → shop message on an order. Allowed for the signed-in owner of the order, or from the order-received page
+ * (its URL carries the unguessable order id, the same way the receipt links work).
+ */
+export async function customerSendMessageAction(_prev: ChatState, formData: FormData): Promise<ChatState> {
+  const orderId = String(formData.get("orderId") ?? "");
+  const body = String(formData.get("body") ?? "");
+  const source = String(formData.get("source") ?? "");
+  if (!orderId || !body.trim()) return { error: "Nhập nội dung tin nhắn." };
+  const order = await getOrderById(orderId);
+  if (!order) return { error: "Không tìm thấy đơn hàng." };
+  const me = await getCurrentCustomer();
+  const owner = me && (order.customerId === me.id || (me.email && order.customer.email.toLowerCase() === me.email.toLowerCase()));
+  if (!owner && source !== "received") return { error: "Vui lòng đăng nhập để nhắn tin về đơn này." };
+  const name = me ? `${me.lastName} ${me.firstName}`.trim() || me.username || "Khách hàng" : `${order.customer.lastName} ${order.customer.firstName}`.trim() || "Khách hàng";
+  try {
+    await addOrderMessage({ orderId, sender: "customer", senderName: name, body });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Không gửi được." };
+  }
+  revalidatePath("/my-account");
+  revalidatePath(`/checkout/order-received/${orderId}`);
+  revalidatePath(`/admin/orders/${orderId}`);
+  return null;
 }

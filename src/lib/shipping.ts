@@ -64,3 +64,24 @@ export function chargeableWeightG(weightG: number | null, dims: string | null): 
   if (weightG === null && vol === null) return null;
   return Math.max(weightG ?? 0, vol ?? 0);
 }
+
+/** Where an order is on its way (shown to the customer as a progress bar, set by the admin step by step). */
+export type ShipStage = "ordered" | "purchased" | "jp_warehouse" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
+
+export const SHIP_STAGES: Array<{ key: ShipStage; label: string; short: string; hint: string }> = [
+  { key: "ordered", label: "Đã đặt hàng", short: "Đặt hàng", hint: "Đơn đã được ghi nhận, chờ LienStore xác nhận / thanh toán." },
+  { key: "purchased", label: "Đã mua tại Nhật", short: "Đã mua", hint: "Đã đặt mua hàng tại Nhật (xem bill trong đơn)." },
+  { key: "jp_warehouse", label: "Đã tới kho Nhật", short: "Kho Nhật", hint: "Hàng đã về kho gom tại Nhật, chờ đóng kiện." },
+  { key: "in_transit", label: "Đang về Việt Nam", short: "Đang bay/biển", hint: "Kiện hàng đang trên đường Nhật → Việt Nam." },
+  { key: "vn_warehouse", label: "Đã tới kho Việt Nam", short: "Kho VN", hint: "Hàng đã về kho Thanh Hóa, chuẩn bị giao." },
+  { key: "delivering", label: "Đang giao", short: "Đang giao", hint: "Đơn vị vận chuyển nội địa đang giao tới bạn." },
+  { key: "delivered", label: "Đã nhận hàng", short: "Đã nhận", hint: "Khách đã nhận hàng. Cảm ơn bạn!" },
+];
+
+export function isShipStage(v: unknown): v is ShipStage {
+  return typeof v === "string" && SHIP_STAGES.some((s) => s.key === v);
+}
+
+export function stageIndex(stage: ShipStage): number {
+  return Math.max(0, SHIP_STAGES.findIndex((s) => s.key === stage));
+}

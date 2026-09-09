@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
+import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
+import { SHIP_STAGES, stageIndex } from "@/lib/shipping";
 import { deleteOrderFileAction, saveAdminNoteAction, uploadOrderFilesAction } from "@/app/admin/orders/files-actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerOverview, getOrderById, getOrderFiles, getOrderLegs, getShippingMethods } from "@/lib/db";
+import { getCustomerOverview, getOrderById, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, markOrderMessagesRead } from "@/lib/db";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
@@ -25,8 +28,11 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
   await requireAdmin("orders");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [order, files, overview, legMap, shippingMethods] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false)]);
+  const [order, files, overview, legMap, shippingMethods, messages] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id)]);
   if (!order) notFound();
+  await markOrderMessagesRead(order.id, "admin");
+  const curStage = stageIndex(order.shipStage);
+  const nextStage = SHIP_STAGES[curStage + 1];
   const c = order.customer;
   const customerKey =
     overview.find((x) => (order.customerId && x.customerId === order.customerId) || (x.email && x.email.toLowerCase() === c.email.trim().toLowerCase()))?.key ??
@@ -48,6 +54,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
       {sp.files ? <Flash>Đã đính kèm {first(sp.files)} file vào đơn hàng.</Flash> : null}
       {sp.fileDeleted ? <Flash>Đã xoá file.</Flash> : null}
       {sp.noted ? <Flash>Đã lưu ghi chú nội bộ.</Flash> : null}
+      {sp.staged ? <Flash>Đã cập nhật tiến độ vận chuyển; khách thấy ngay trong trang đơn hàng.</Flash> : null}
       {sp.fileError ? <Flash kind="warning">{first(sp.fileError)}</Flash> : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -122,78 +129,20 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           <p className="mt-3 text-[12px] text-lien-muted">Chọn phương thức · cột cho từng chặng; để trống phí thì tự tính theo cột và khối lượng đơn. Chặng nội địa Việt Nam có thể áp lại phí vào tổng tiền khách trả.</p>
         </Card>
 
-          <div id="bill">
-            <Card
-              title="Bill mua hàng tại Nhật"
-              actions={files.length ? <span className="text-[13px] text-lien-muted">{files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
-            >
-              <p className="mb-4 text-[13px] leading-5 text-lien-muted">
-                Đính kèm hoá đơn/ảnh chụp đơn mua bên Nhật. Khách xem được các file này trong trang <em>Đơn hàng đã nhận</em>, mục <em>Đơn hàng</em> của tài khoản và khi tra cứu đơn.
-              </p>
-              {files.length ? (
-                <ul className="mb-5 grid list-none gap-2 p-0">
-                  {files.map((f) => (
-                    <li key={f.id} className="flex flex-wrap items-center gap-3 rounded-md border border-[#e5e7eb] px-3 py-2">
-                      <Fa name={f.mime === "application/pdf" ? "file-pdf-o" : "file-image-o"} className="text-[18px] text-lien-blue" />
-                      <div className="min-w-0 flex-1">
-                        <a href={publicReceiptUrl(f.path)} target="_blank" rel="noreferrer" className="font-semibold text-lien-heading hover:text-lien-blue">
-                          {f.fileName}
-                        </a>
-                        <div className="text-[12px] text-lien-muted">
-                          {formatBytes(f.size)} · {formatDateTime(f.createdAt)}
-                          {f.amountJpy ? ` · ¥${f.amountJpy.toLocaleString("ja-JP")}` : ""}
-                          {f.note ? ` · ${f.note}` : ""}
-                        </div>
-                      </div>
-                      <form action={deleteOrderFileAction}>
-                        <input type="hidden" name="fileId" value={f.id} />
-                        <input type="hidden" name="orderId" value={order.id} />
-                        <ConfirmSubmit message={`Xoá file “${f.fileName}”?`} className="text-[13px] text-lien-heart hover:underline">
-                          Xoá
-                        </ConfirmSubmit>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mb-5 rounded-md border border-dashed border-[#d1d5db] p-3 text-center text-[13px] text-lien-muted">Chưa có bill nào cho đơn này.</p>
-              )}
-              <form action={uploadOrderFilesAction} className="grid gap-3 md:grid-cols-[1fr_160px_1fr_auto]">
-                <input type="hidden" name="orderId" value={order.id} />
-                <div>
-                  <label className={adminLabel} htmlFor="files">
-                    File (ảnh hoặc PDF, nhiều file)
-                  </label>
-                  <input id="files" name="files" type="file" accept="image/*,application/pdf" multiple required className={adminInput} />
-                </div>
-                <div>
-                  <label className={adminLabel} htmlFor="amountJpy">
-                    Số tiền (JPY)
-                  </label>
-                  <input id="amountJpy" name="amountJpy" inputMode="numeric" placeholder="vd 2280" className={adminInput} />
-                </div>
-                <div>
-                  <label className={adminLabel} htmlFor="note">
-                    Ghi chú cho khách
-                  </label>
-                  <input id="note" name="note" placeholder="vd Amazon JP 08/09, 2 món" className={adminInput} />
-                </div>
-                <div className="flex items-end">
-                  <button type="submit" className={btnPrimary}>
-                    <Fa name="upload" /> Đính kèm
-                  </button>
-                </div>
-              </form>
-              {files.length ? (
-                <p className="mt-4 text-[12px] leading-5 text-lien-muted">
-                  Link gửi khách (không cần đăng nhập):{" "}
-                  <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
-                    {siteUrl}/checkout/order-received/{order.id}/
-                  </code>
-                </p>
-              ) : null}
-            </Card>
-          </div>
+          <Card title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}>
+            <OrderChat
+              orderId={order.id}
+              messages={messages}
+              me="admin"
+              action={adminSendMessageAction}
+              quickReplies={[
+                "LienStore đã nhận đơn, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.",
+                "Đã mua hàng tại Nhật, bill đính kèm trong đơn. Hàng về kho Nhật trong 2–4 ngày.",
+                "Kiện hàng đã lên đường về Việt Nam, dự kiến 5–7 ngày nữa tới kho.",
+                "Hàng đã về kho Thanh Hóa, LienStore giao cho đơn vị vận chuyển hôm nay.",
+              ]}
+            />
+          </Card>
 
           <Card title="Ghi chú nội bộ">
             <form action={saveAdminNoteAction} className="grid gap-3">
@@ -209,6 +158,36 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
         </div>
 
         <div className="space-y-6">
+          <Card title="Tiến độ vận chuyển">
+            <div id="tracking" className="mb-4">
+              <OrderTracker order={order} compact />
+            </div>
+            <p className="mb-3 text-[13px] leading-5 text-lien-text">
+              Hiện tại: <strong className="text-lien-heart">{SHIP_STAGES[curStage].label}</strong>
+              <span className="block text-[12px] text-lien-muted">{SHIP_STAGES[curStage].hint}</span>
+            </p>
+            <form action={setStageAction} className="grid gap-2">
+              <input type="hidden" name="id" value={order.id} />
+              <input name="note" placeholder="Ghi chú cho khách (tuỳ chọn), vd: mã vận đơn, ngày dự kiến" className={adminInput} />
+              {nextStage ? (
+                <button type="submit" name="stage" value={nextStage.key} className={btnPrimary}>
+                  <Fa name="check" /> Chuyển sang: {nextStage.label}
+                </button>
+              ) : (
+                <p className="m-0 rounded-md bg-green-50 px-3 py-2 text-[13px] font-semibold text-green-800">Đơn đã hoàn tất giao hàng.</p>
+              )}
+              <details className="text-[12px] text-lien-muted">
+                <summary className="cursor-pointer select-none">Chọn bước khác / quay lại bước trước</summary>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {SHIP_STAGES.map((st, i) => (
+                    <button key={st.key} type="submit" name="stage" value={st.key} className={`${btnSecondary} !px-2 !py-1 !text-[12px] ${i === curStage ? "!bg-lien-blue !text-white" : ""}`}>
+                      {st.short}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </form>
+          </Card>
           <Card title="Trạng thái">
             <form action={updateOrderStatusAction} className="grid gap-3">
               <input type="hidden" name="id" value={order.id} />
@@ -275,6 +254,78 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : null}
             </dl>
           </Card>
+          <div id="bill">
+            <Card
+              title="Bill mua hàng tại Nhật"
+              actions={files.length ? <span className="text-[13px] text-lien-muted">{files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
+            >
+              <p className="mb-4 text-[13px] leading-5 text-lien-muted">
+                Đính kèm hoá đơn/ảnh chụp đơn mua bên Nhật. Khách xem được các file này trong trang <em>Đơn hàng đã nhận</em>, mục <em>Đơn hàng</em> của tài khoản và khi tra cứu đơn.
+              </p>
+              {files.length ? (
+                <ul className="mb-5 grid list-none gap-2 p-0">
+                  {files.map((f) => (
+                    <li key={f.id} className="flex flex-wrap items-center gap-3 rounded-md border border-[#e5e7eb] px-3 py-2">
+                      <Fa name={f.mime === "application/pdf" ? "file-pdf-o" : "file-image-o"} className="text-[18px] text-lien-blue" />
+                      <div className="min-w-0 flex-1">
+                        <a href={publicReceiptUrl(f.path)} target="_blank" rel="noreferrer" className="font-semibold text-lien-heading hover:text-lien-blue">
+                          {f.fileName}
+                        </a>
+                        <div className="text-[12px] text-lien-muted">
+                          {formatBytes(f.size)} · {formatDateTime(f.createdAt)}
+                          {f.amountJpy ? ` · ¥${f.amountJpy.toLocaleString("ja-JP")}` : ""}
+                          {f.note ? ` · ${f.note}` : ""}
+                        </div>
+                      </div>
+                      <form action={deleteOrderFileAction}>
+                        <input type="hidden" name="fileId" value={f.id} />
+                        <input type="hidden" name="orderId" value={order.id} />
+                        <ConfirmSubmit message={`Xoá file “${f.fileName}”?`} className="text-[13px] text-lien-heart hover:underline">
+                          Xoá
+                        </ConfirmSubmit>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mb-5 rounded-md border border-dashed border-[#d1d5db] p-3 text-center text-[13px] text-lien-muted">Chưa có bill nào cho đơn này.</p>
+              )}
+              <form action={uploadOrderFilesAction} className="grid gap-3">
+                <input type="hidden" name="orderId" value={order.id} />
+                <div>
+                  <label className={adminLabel} htmlFor="files">
+                    File (ảnh hoặc PDF, nhiều file)
+                  </label>
+                  <input id="files" name="files" type="file" accept="image/*,application/pdf" multiple required className={adminInput} />
+                </div>
+                <div>
+                  <label className={adminLabel} htmlFor="amountJpy">
+                    Số tiền (JPY)
+                  </label>
+                  <input id="amountJpy" name="amountJpy" inputMode="numeric" placeholder="vd 2280" className={adminInput} />
+                </div>
+                <div>
+                  <label className={adminLabel} htmlFor="note">
+                    Ghi chú cho khách
+                  </label>
+                  <input id="note" name="note" placeholder="vd Amazon JP 08/09, 2 món" className={adminInput} />
+                </div>
+                <div className="flex items-end">
+                  <button type="submit" className={btnPrimary}>
+                    <Fa name="upload" /> Đính kèm
+                  </button>
+                </div>
+              </form>
+              {files.length ? (
+                <p className="mt-4 text-[12px] leading-5 text-lien-muted">
+                  Link gửi khách (không cần đăng nhập):{" "}
+                  <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
+                    {siteUrl}/checkout/order-received/{order.id}/
+                  </code>
+                </p>
+              ) : null}
+            </Card>
+          </div>
         </div>
       </div>
     </>

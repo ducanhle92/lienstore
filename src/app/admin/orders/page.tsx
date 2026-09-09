@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, Card, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getOrders } from "@/lib/db";
+import { getOrders, getUnreadMessageCounts } from "@/lib/db";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { SHIP_STAGES } from "@/lib/shipping";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/shop";
@@ -19,7 +21,8 @@ export default async function AdminOrders({ searchParams }: Props) {
   const sp = await searchParams;
   const raw = Array.isArray(sp.status) ? sp.status[0] : sp.status;
   const status = ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;
-  const all = await getOrders();
+  const [all, unread] = await Promise.all([getOrders(), getUnreadMessageCounts("admin")]);
+  const stageLabel = (k: string) => SHIP_STAGES.find((s) => s.key === k)?.short ?? k;
   const items = status ? all.filter((o) => o.status === status) : all;
   const counts = Object.fromEntries(ADMIN_STATUSES.map((s) => [s, all.filter((o) => o.status === s).length])) as Record<OrderStatus, number>;
 
@@ -64,14 +67,24 @@ export default async function AdminOrders({ searchParams }: Props) {
               <tbody>
                 {items.map((o) => (
                   <tr key={o.id} className="hover:bg-[#fafafa]">
-                    <td className={`${tdClass} font-semibold`}>#{o.number}</td>
+                    <td className={`${tdClass} font-semibold`}>
+                      #{o.number}
+                      {unread.get(o.id) ? (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-lien-heart px-1.5 py-0.5 text-[11px] font-bold text-white" title="Tin nhắn mới từ khách">
+                          <Fa name="comments-o" /> {unread.get(o.id)}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatDateTime(o.createdAt)}</td>
                     <td className={tdClass}>
                       {o.customer.lastName} {o.customer.firstName}
                       <div className="text-[12px] text-lien-muted">{o.customer.phone}</div>
                     </td>
                     <td className={tdClass}>{o.items.reduce((n, it) => n + it.quantity, 0)}</td>
-                    <td className={tdClass}>{PAYMENT[o.paymentMethod]}</td>
+                    <td className={tdClass}>
+                      {PAYMENT[o.paymentMethod]}
+                      <span className="block text-[11px] text-lien-muted">{stageLabel(o.shipStage)}</span>
+                    </td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(o.total, o.currency)}</td>
                     <td className={tdClass}>
                       <StatusBadge status={o.status} />

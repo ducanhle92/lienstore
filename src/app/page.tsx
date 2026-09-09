@@ -3,7 +3,8 @@ import { HeroSlider } from "@/components/sites/lienstore/root-8a5edab2/HeroSlide
 import { sliderAssets, slides } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { ShopProductGrid } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { FullWidthShell, getHeaderCategories, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { CategoryTiles, NewsCards, SectionHeader2, UspStrip } from "@/components/sites/lienstore/ui2/HomeBlocks";
+import { NewsCards, SectionHeader2, UspStrip } from "@/components/sites/lienstore/ui2/HomeBlocks";
+import { CategoryCarousel } from "@/components/sites/lienstore/ui2/CategoryCarousel";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { getPosts, queryProducts } from "@/lib/db";
@@ -35,7 +36,7 @@ export default async function Home() {
       <FullWidthShell className="pt-4">
         <HeroSlider slides={slides} arrowSprite={sliderAssets.directionNav} className="overflow-hidden rounded-md" />
 
-        <CategoryTiles categories={categories} />
+        <CategoryCarousel categories={categories} />
 
         {onSale.length >= 3 ? (
           <section className="mt-10" aria-label="Giảm giá">

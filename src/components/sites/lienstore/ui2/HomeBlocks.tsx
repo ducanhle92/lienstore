@@ -50,8 +50,12 @@ export function SectionHeader2({ title, href, icon, tone = "blue", className }: 
         {title}
       </h2>
       {href ? (
-        <Link href={href} className="shrink-0 text-[13px] font-medium text-lien-blue no-underline hover:underline">
-          Xem thêm <Fa name="angle-right" /> <Fa name="angle-right" className="-ml-1.5" />
+        <Link href={href} className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap border-b border-lien-success pb-px text-[13px] font-semibold text-lien-success no-underline hover:border-lien-blue hover:text-lien-blue">
+          Xem thêm
+          <span className="inline-flex text-[12px] leading-none">
+            <Fa name="angle-right" />
+            <Fa name="angle-right" className="-ml-1" />
+          </span>
         </Link>
       ) : null}
     </div>

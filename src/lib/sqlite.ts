@@ -323,6 +323,100 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE orders ADD COLUMN voucher_code TEXT NOT NULL DEFAULT ''`,
     ],
   },
+  {
+    version: 13,
+    name: "order-tracking-chat-default-methods",
+    up: [
+      `ALTER TABLE orders ADD COLUMN ship_stage TEXT NOT NULL DEFAULT 'ordered'`,
+      `CREATE TABLE order_stage_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id   TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        stage      TEXT NOT NULL,
+        note       TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX idx_stage_log_order ON order_stage_log(order_id)`,
+      `CREATE TABLE order_messages (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id         TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        sender           TEXT NOT NULL CHECK (sender IN ('customer','admin')),
+        sender_name      TEXT NOT NULL DEFAULT '',
+        body             TEXT NOT NULL,
+        read_by_customer INTEGER NOT NULL DEFAULT 0,
+        read_by_admin    INTEGER NOT NULL DEFAULT 0,
+        created_at       TEXT NOT NULL
+      )`,
+      `CREATE INDEX idx_order_messages_order ON order_messages(order_id)`,
+      // Default methods so every leg has something to pick from (skipped where the shop already has one with that name).
+      // Japan domestic (¥, per parcel size)
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Yamato 宅急便', 'Chuyển phát nội địa Nhật theo cỡ kiện (size = dài+rộng+cao, cm).', '', '¥', 10, 'jp_domestic', 3, 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Yamato 宅急便')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
+        JOIN (SELECT 'Size 60 (≤2 kg)' AS name, 940 AS fee, 1 AS pos UNION ALL SELECT 'Size 80 (≤5 kg)', 1230, 2 UNION ALL SELECT 'Size 100 (≤10 kg)', 1530, 3 UNION ALL SELECT 'Size 120 (≤15 kg)', 1850, 4) z
+        WHERE m.leg = 'jp_domestic' AND m.name = 'Yamato 宅急便' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Japan Post ゆうパック', 'Bưu điện Nhật, gửi tại bưu cục hoặc combini.', '', '¥', 11, 'jp_domestic', 2, 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Japan Post ゆうパック')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
+        JOIN (SELECT 'Size 60' AS name, 810 AS fee, 1 AS pos UNION ALL SELECT 'Size 80', 1100, 2 UNION ALL SELECT 'Size 100', 1400, 3 UNION ALL SELECT 'Size 120', 1700, 4) z
+        WHERE m.leg = 'jp_domestic' AND m.name = 'Japan Post ゆうパック' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Sagawa 飛脚宅配便', 'Chuyển phát nội địa Nhật.', '', '¥', 12, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name LIKE 'Sagawa%' LIMIT 1), 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Sagawa 飛脚宅配便')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
+        JOIN (SELECT 'Size 60' AS name, 880 AS fee, 1 AS pos UNION ALL SELECT 'Size 80', 1210, 2 UNION ALL SELECT 'Size 100', 1500, 3) z
+        WHERE m.leg = 'jp_domestic' AND m.name = 'Sagawa 飛脚宅配便' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Tự mang tới kho Nhật', 'Khách / người mua tự mang hàng tới kho gom, không tính phí.', '', '¥', 13, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name = 'Tự mang tới kho Nhật' LIMIT 1), 0, 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 0, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Tự mang tới kho Nhật')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, 'Miễn phí', 0, '', NULL, NULL, NULL, 'Kho Nhật', 'Theo lịch hẹn', 1 FROM shipping_methods m
+        WHERE m.leg = 'jp_domestic' AND m.name = 'Tự mang tới kho Nhật' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'LienStore gom tại nhà', 'LienStore tới tận nhà gom hàng trong bán kính 30 km, từ 20 kg trở lên.', '', '¥', 14, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name = 'LienStore gom tại nhà' LIMIT 1), 0, '', 1, 'Áp dụng trong bán kính 30 km quanh kho Nhật, đơn từ 20 kg'
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'LienStore gom tại nhà')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, 'Từ 20 kg, trong 30 km', 0, '', NULL, NULL, NULL, 'Quanh kho Nhật 30 km', 'Theo lịch hẹn', 1 FROM shipping_methods m
+        WHERE m.leg = 'jp_domestic' AND m.name = 'LienStore gom tại nhà' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      // Japan → Vietnam: make sure the Kiến Express table exists, and add EMS as a second option
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Vận chuyển Nhật Bản → Việt Nam', 'Gom đơn hàng tuần và gửi về Việt Nam. Phí tính theo cân nặng thực tế sau khi đóng gói.', 'Hàng lỏng / bình xịt / cồng kềnh', 'đ', 1, 'jp_vn', 1, 1, 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 · Kho Việt Nam: Hà Nội', 0, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_vn')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '/kg', NULL, z.extra, NULL, 'Toàn quốc', z.eta, z.pos FROM shipping_methods m
+        JOIN (SELECT 'Đường bay' AS name, 280000 AS fee, 50000 AS extra, '5–7 ngày từ khi gom đủ đơn' AS eta, 1 AS pos UNION ALL SELECT 'Đường biển', 120000, 30000, '20–30 ngày', 2) z
+        WHERE m.leg = 'jp_vn' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Japan Post EMS', 'Gửi thẳng từ bưu điện Nhật về địa chỉ Việt Nam, 3–6 ngày, có mã theo dõi.', '', '¥', 3, 'jp_vn', 2, 0, '', 1, 'Giá EMS Japan Post cho Việt Nam (zone 2), chưa gồm thuế nhập khẩu nếu có'
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_vn' AND name = 'Japan Post EMS')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Việt Nam', '3–6 ngày', z.pos FROM shipping_methods m
+        JOIN (SELECT '≤ 1 kg' AS name, 3150 AS fee, 1 AS pos UNION ALL SELECT '≤ 2 kg', 4400, 2 UNION ALL SELECT '≤ 5 kg', 7500, 3 UNION ALL SELECT '≤ 10 kg', 12600, 4 UNION ALL SELECT '≤ 20 kg', 22800, 5) z
+        WHERE m.leg = 'jp_vn' AND m.name = 'Japan Post EMS' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      // Vietnam domestic: VNPost as an alternative carrier; "customer picks up" kept inactive so it does not show as a
+      // delivery zone at checkout (the pickup radio covers that) but the admin can still assign it to an order.
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Bưu điện Việt Nam (VNPost)', 'Từ kho Thanh Hóa gửi qua bưu điện, phù hợp vùng xa.', '', 'đ', 20, 'vn_domestic', (SELECT id FROM shipping_carriers WHERE name LIKE 'Bưu điện Việt Nam%' LIMIT 1), 0, 'Kho Thanh Hóa', 1, ''
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'vn_domestic' AND name = 'Bưu điện Việt Nam (VNPost)')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, z.name, z.fee, '', z.free_over, NULL, NULL, z.areas, z.eta, z.pos FROM shipping_methods m
+        JOIN (SELECT 'Thanh Hóa' AS name, 22000 AS fee, 500000 AS free_over, 'Trong tỉnh Thanh Hóa' AS areas, '1–2 ngày' AS eta, 1 AS pos
+              UNION ALL SELECT 'Miền Bắc', 32000, 1000000, 'Các tỉnh miền Bắc', '2–3 ngày', 2
+              UNION ALL SELECT 'Miền Trung', 38000, 1000000, 'Các tỉnh miền Trung, Tây Nguyên', '3–4 ngày', 3
+              UNION ALL SELECT 'Miền Nam', 45000, 1000000, 'TP HCM và các tỉnh miền Nam', '4–5 ngày', 4) z
+        WHERE m.leg = 'vn_domestic' AND m.name = 'Bưu điện Việt Nam (VNPost)' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, active)
+        SELECT 'Khách tự tới kho lấy', 'Khách tới kho Thanh Hóa nhận hàng, không tính phí (dùng khi khách đổi ý sau khi đặt).', '', 'đ', 21, 'vn_domestic', (SELECT id FROM shipping_carriers WHERE name = 'Khách tự tới kho lấy' LIMIT 1), 0, 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa', 0, 'Tắt hiển thị cho khách: trang thanh toán đã có lựa chọn "Nhận tại kho"', 0
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'vn_domestic' AND name = 'Khách tự tới kho lấy')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
+        SELECT m.id, 'Kho Thanh Hóa', 0, '', NULL, NULL, NULL, 'Xã Hoằng Hóa, Thanh Hóa', 'Hẹn giờ qua Zalo', 1 FROM shipping_methods m
+        WHERE m.leg = 'vn_domestic' AND m.name = 'Khách tự tới kho lấy' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

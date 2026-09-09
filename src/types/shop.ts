@@ -121,6 +121,10 @@ export interface Order {
   /** Voucher discount taken off the subtotal (0 when none). */
   discount: number;
   voucherCode: string;
+  /** Logistics progress shown to the customer (see SHIP_STAGES). */
+  shipStage: "ordered" | "purchased" | "jp_warehouse" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
+  /** When each stage was reached (only filled for single-order loads). */
+  stageLog: Array<{ stage: Order["shipStage"]; note: string; at: string }>;
   total: number;
   currency: string;
   /** Internal note, admin only. */
@@ -209,6 +213,18 @@ export interface ShippingZone {
   eta: string;
   position: number;
   active: boolean;
+}
+
+/** One message in the order conversation between the customer and the shop. */
+export interface OrderMessage {
+  id: number;
+  orderId: string;
+  sender: "customer" | "admin";
+  senderName: string;
+  body: string;
+  readByCustomer: boolean;
+  readByAdmin: boolean;
+  createdAt: string;
 }
 
 /** Discount code redeemable at checkout. */

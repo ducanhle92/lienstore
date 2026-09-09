@@ -14,6 +14,7 @@ import type {
   ProductQueryResult,
   ShopCategory,
   OrderLeg,
+  OrderMessage,
   Voucher,
   ShippingCarrier,
   ShippingMethod,
@@ -24,7 +25,7 @@ import type {
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN } from "./customer-email";
-import { billableKg, chargeableWeightG } from "./shipping";
+import { billableKg, chargeableWeightG, isShipStage, type ShipStage } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -151,6 +152,7 @@ interface OrderRow {
   prepaid_required: number | null;
   discount: number | null;
   voucher_code: string | null;
+  ship_stage: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -195,6 +197,8 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     prepaidRequired: (r.prepaid_required ?? 0) === 1,
     discount: r.discount ?? 0,
     voucherCode: r.voucher_code ?? "",
+    shipStage: isShipStage(r.ship_stage) ? r.ship_stage : "ordered",
+    stageLog: [],
     total: r.total,
     currency: r.currency,
     adminNote: r.admin_note ?? "",
@@ -593,6 +597,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       discount,
       voucherCode,
     );
+    db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
     const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?),
       stock_status = CASE WHEN MAX(0, stock - ?) = 0 THEN 'outofstock' ELSE 'instock' END, updated_at = ?
@@ -618,6 +623,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       prepaidRequired,
       discount,
       voucherCode,
+      shipStage: "ordered",
+      stageLog: [{ stage: "ordered", note: "", at: now }],
       total,
       currency: "VNĐ",
       adminNote: "",
@@ -645,8 +652,81 @@ export async function getOrders(status?: OrderStatus): Promise<Order[]> {
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {
-  const row = getDb().prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow | undefined;
-  return row ? hydrateOrders([row])[0] : null;
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow | undefined;
+  if (!row) return null;
+  const order = hydrateOrders([row])[0];
+  const log = db.prepare("SELECT stage, note, created_at FROM order_stage_log WHERE order_id = ? ORDER BY id").all(id) as unknown as Array<{ stage: string; note: string; created_at: string }>;
+  order.stageLog = log.filter((l) => isShipStage(l.stage)).map((l) => ({ stage: l.stage as ShipStage, note: l.note, at: l.created_at }));
+  if (order.stageLog.length === 0) order.stageLog = [{ stage: "ordered", note: "", at: order.createdAt }];
+  return order;
+}
+
+/** Move an order to a logistics stage (recorded in the log so the customer sees dates). */
+export async function setOrderStage(id: string, stage: ShipStage, note = ""): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
+  if (r.changes === 0) return false;
+  db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
+  // arriving at the end also completes the order; anything before keeps it "processing"
+  if (stage === "delivered") db.prepare("UPDATE orders SET status = 'completed' WHERE id = ? AND status <> 'cancelled'").run(id);
+  else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(id);
+  return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Order conversation (customer ↔ shop)
+
+interface OrderMessageRow {
+  id: number;
+  order_id: string;
+  sender: string;
+  sender_name: string;
+  body: string;
+  read_by_customer: number;
+  read_by_admin: number;
+  created_at: string;
+}
+const rowToMessage = (r: OrderMessageRow): OrderMessage => ({
+  id: r.id,
+  orderId: r.order_id,
+  sender: r.sender === "admin" ? "admin" : "customer",
+  senderName: r.sender_name,
+  body: r.body,
+  readByCustomer: r.read_by_customer === 1,
+  readByAdmin: r.read_by_admin === 1,
+  createdAt: r.created_at,
+});
+
+export async function getOrderMessages(orderId: string): Promise<OrderMessage[]> {
+  return (getDb().prepare("SELECT * FROM order_messages WHERE order_id = ? ORDER BY id").all(orderId) as unknown as OrderMessageRow[]).map(rowToMessage);
+}
+
+export async function addOrderMessage(input: { orderId: string; sender: "customer" | "admin"; senderName: string; body: string }): Promise<OrderMessage> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const body = input.body.trim().slice(0, 2000);
+  if (!body) throw new Error("Tin nhắn trống.");
+  const r = db
+    .prepare("INSERT INTO order_messages (order_id, sender, sender_name, body, read_by_customer, read_by_admin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(input.orderId, input.sender, input.senderName.slice(0, 80), body, input.sender === "customer" ? 1 : 0, input.sender === "admin" ? 1 : 0, now);
+  db.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(now, input.orderId);
+  return { id: Number(r.lastInsertRowid), orderId: input.orderId, sender: input.sender, senderName: input.senderName, body, readByCustomer: input.sender === "customer", readByAdmin: input.sender === "admin", createdAt: now };
+}
+
+/** Mark the other side's messages as read by whoever is looking at the order now. */
+export async function markOrderMessagesRead(orderId: string, reader: "customer" | "admin"): Promise<void> {
+  const col = reader === "admin" ? "read_by_admin" : "read_by_customer";
+  getDb().prepare(`UPDATE order_messages SET ${col} = 1 WHERE order_id = ? AND ${col} = 0`).run(orderId);
+}
+
+/** Unread customer messages per order (admin list badge). */
+export async function getUnreadMessageCounts(reader: "customer" | "admin"): Promise<Map<string, number>> {
+  const col = reader === "admin" ? "read_by_admin" : "read_by_customer";
+  const other = reader === "admin" ? "customer" : "admin";
+  const rows = getDb().prepare(`SELECT order_id, COUNT(*) AS n FROM order_messages WHERE ${col} = 0 AND sender = ? GROUP BY order_id`).all(other) as unknown as Array<{ order_id: string; n: number }>;
+  return new Map(rows.map((r) => [r.order_id, r.n]));
 }
 
 export async function findOrder(number: number, phone: string): Promise<Order | null> {

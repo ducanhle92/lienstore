@@ -5,7 +5,9 @@ import { OrderSummary, PAYMENT_LABEL } from "@/components/sites/lienstore/shop/c
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { Price, WooHeading } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getOrderById } from "@/lib/db";
+import { customerSendMessageAction } from "@/app/my-account/actions";
+import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
+import { getOrderById, getOrderMessages, markOrderMessagesRead } from "@/lib/db";
 import { BANK, transferContent, vietQrUrl } from "@/lib/payment";
 import { receiptLinksFor } from "@/lib/order-files";
 import { formatAmount, formatDate } from "@/lib/format";
@@ -22,7 +24,8 @@ export default async function OrderReceived({ params }: Props) {
   const { id } = await params;
   const order = await getOrderById(id);
   if (!order) notFound();
-  const receipts = await receiptLinksFor(order.id);
+  await markOrderMessagesRead(order.id, "customer");
+  const [receipts, messages] = await Promise.all([receiptLinksFor(order.id), getOrderMessages(order.id)]);
 
   const detail = "flex-1 basis-auto border-r border-dashed border-[#d3ced2] pr-6 mr-6 mb-4 text-[11.7px] uppercase leading-5 text-[#767676] last:mr-0 last:border-0";
   const value = "block text-[16px] normal-case leading-6 text-lien-text";
@@ -95,6 +98,10 @@ export default async function OrderReceived({ params }: Props) {
               </section>
             ) : null}
             <OrderSummary order={order} receipts={receipts} />
+            <section className="mt-8">
+              <WooHeading as="h2">Trao đổi với LienStore</WooHeading>
+              <OrderChat orderId={order.id} messages={messages} me="customer" action={customerSendMessageAction} hidden={{ source: "received" }} />
+            </section>
           </div>
         </article>
       </TwoColumnShell>

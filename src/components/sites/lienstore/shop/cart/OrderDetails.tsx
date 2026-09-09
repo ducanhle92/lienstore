@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Order, OrderCustomer, OrderStatus, PaymentMethod } from "@/types/shop";
 import { cn } from "@/lib/utils";
+import { OrderTracker } from "./OrderTracker";
 import { Price, shopTableClass, shopTdClass, shopThClass, WooHeading } from "./WooUi";
 
 export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
@@ -152,6 +153,10 @@ export function OrderReceipts({ files }: { files: OrderReceiptLink[] }) {
 export function OrderSummary({ order, receipts = [] }: { order: Order; receipts?: OrderReceiptLink[] }) {
   return (
     <>
+      <section className="mb-8 rounded-md border border-lien-line bg-white p-4 sm:p-5">
+        <h2 className="m-0 mb-4 text-[16px] font-bold text-lien-heading">Trạng thái vận chuyển</h2>
+        <OrderTracker order={order} />
+      </section>
       <OrderReceipts files={receipts} />
       <section className="woocommerce-order-details">
         <WooHeading as="h2" className="woocommerce-order-details__title">
