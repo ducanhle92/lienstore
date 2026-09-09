@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-09-09
+
 ### Added
 - **Nội dung tiếng Nhật cho sản phẩm và danh mục**: cột `name_ja`, `short_description_ja`, `description_ja` (products) và `name_ja` (categories) — migration v15; form sản phẩm/danh mục trong admin có ô tiếng Nhật; Excel có 3 cột tiếng Nhật. Khi khách chọn 日本語, tên/mô tả tiếng Nhật được hiển thị (thiếu thì về tiếng Việt).
 - Cào nội dung gốc tiếng Nhật từ Amazon.co.jp cho 178 sản phẩm có link hoặc khớp tên Nhật (`scripts/xlsx/fetch_ja_content.py` → `data/ja-source.json`), dịch sang tiếng Việt theo bố cục Thông tin sản phẩm / Công dụng / Thành phần / Hướng dẫn sử dụng / Lưu ý; thay mô tả tiếng Việt cho sản phẩm có mô tả cũ dưới 300 ký tự và sản phẩm mới nhập, giữ mô tả dài đã có. Báo cáo `docs/reports/ja-translation-2026-09-09.html`. 11 sản phẩm mới thiếu ảnh lấy ảnh chính từ Amazon.
