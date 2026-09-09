@@ -51,6 +51,12 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const minStock = minRaw === "" ? null : parseIntField(minRaw);
   if (minRaw !== "" && (minStock === null || minStock < 0)) fields.minStock = "Mức tồn tối thiểu phải là số nguyên ≥ 0.";
 
+  const weightRaw = get("weightG");
+  const weightG = weightRaw === "" ? null : parseIntField(weightRaw);
+  if (weightRaw !== "" && (weightG === null || weightG <= 0)) fields.weightG = "Khối lượng tính bằng gram, số nguyên > 0.";
+  const dimsCm = get("dimsCm").replace(/\s+/g, "").replace(/[×*]/g, "x") || null;
+  if (dimsCm && !/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/.test(dimsCm)) fields.dimsCm = "Kích thước ghi dạng Dài x Rộng x Cao (cm), ví dụ 12x8x5.";
+
   const stockRaw = get("stock");
   const stock = stockRaw === "" ? null : parseIntField(stockRaw);
   if (stockRaw !== "" && (stock === null || stock < 0)) fields.stock = "Tồn kho phải là số nguyên ≥ 0 hoặc để trống.";
@@ -84,6 +90,8 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     costPrice,
     supplierUrl: supplierUrl || null,
     minStock,
+    weightG,
+    dimsCm,
     currency: existing?.currency ?? "VNĐ",
     sku: get("sku") || null,
     stock,

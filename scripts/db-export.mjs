@@ -32,6 +32,8 @@ const products = q(
   costPrice: r.cost_price ?? null,
   supplierUrl: r.supplier_url ?? null,
   minStock: r.min_stock ?? null,
+  weightG: r.weight_g ?? null,
+  dimsCm: r.dims_cm ?? null,
   currency: r.currency,
   sku: r.sku,
   stock: r.stock,

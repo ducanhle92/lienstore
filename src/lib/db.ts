@@ -13,6 +13,7 @@ import type {
   ProductQuery,
   ProductQueryResult,
   ShopCategory,
+  ShippingCarrier,
   ShippingMethod,
   ShippingZone,
   StaticPage,
@@ -43,6 +44,8 @@ interface ProductRow {
   cost_price: number | null;
   supplier_url: string | null;
   min_stock: number | null;
+  weight_g: number | null;
+  dims_cm: string | null;
   currency: string;
   sku: string | null;
   stock: number | null;
@@ -84,6 +87,8 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     costPrice: r.cost_price ?? null,
     supplierUrl: r.supplier_url ?? null,
     minStock: r.min_stock ?? null,
+    weightG: r.weight_g ?? null,
+    dimsCm: r.dims_cm ?? null,
     currency: r.currency,
     sku: r.sku,
     stock: r.stock,
@@ -315,7 +320,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?,
-        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?
+        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?
         WHERE id = ?`).run(
         input.slug,
         input.name,
@@ -338,13 +343,15 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.reviewCount,
         input.status,
         now,
+        input.weightG,
+        input.dimsCm,
         id,
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
       const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb,
-        short_description, description, related, rating, review_count, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
@@ -367,6 +374,8 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.status,
         now,
         now,
+        input.weightG,
+        input.dimsCm,
       );
       id = Number(res.lastInsertRowid);
     }
@@ -1014,6 +1023,22 @@ interface ShippingMethodRow {
   currency: string;
   position: number;
   active: number;
+  leg: string | null;
+  carrier_id: number | null;
+  carrier_name: string | null;
+  includes_both_ends: number | null;
+  warehouse: string | null;
+  home_delivery: number | null;
+  notes: string | null;
+}
+
+interface ShippingCarrierRow {
+  id: number;
+  name: string;
+  phone: string;
+  website: string;
+  note: string;
+  position: number;
 }
 interface ShippingZoneRow {
   id: number;
@@ -1049,7 +1074,9 @@ const rowToZone = (r: ShippingZoneRow): ShippingZone => ({
 export async function getShippingMethods(activeOnly = true): Promise<ShippingMethod[]> {
   const db = getDb();
   const where = activeOnly ? "WHERE active = 1" : "";
-  const methods = db.prepare(`SELECT * FROM shipping_methods ${where} ORDER BY position, id`).all() as unknown as ShippingMethodRow[];
+  const methods = db
+    .prepare(`SELECT m.*, c.name AS carrier_name FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)
+    .all() as unknown as ShippingMethodRow[];
   const zones = db.prepare(`SELECT * FROM shipping_zones ${where} ORDER BY position, id`).all() as unknown as ShippingZoneRow[];
   return methods.map((m) => ({
     id: m.id,
@@ -1059,8 +1086,43 @@ export async function getShippingMethods(activeOnly = true): Promise<ShippingMet
     currency: m.currency,
     position: m.position,
     active: m.active === 1,
+    leg: m.leg === "jp_domestic" || m.leg === "vn_domestic" ? m.leg : "jp_vn",
+    carrierId: m.carrier_id ?? null,
+    carrierName: m.carrier_name ?? null,
+    includesBothEnds: (m.includes_both_ends ?? 0) === 1,
+    warehouse: m.warehouse ?? "",
+    homeDelivery: (m.home_delivery ?? 1) === 1,
+    notes: m.notes ?? "",
     zones: zones.filter((z) => z.method_id === m.id).map(rowToZone),
   }));
+}
+
+export async function getShippingCarriers(): Promise<ShippingCarrier[]> {
+  return (getDb().prepare("SELECT * FROM shipping_carriers ORDER BY position, id").all() as unknown as ShippingCarrierRow[]).map((r) => ({
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    website: r.website,
+    note: r.note,
+    position: r.position,
+  }));
+}
+
+export async function saveShippingCarrier(input: { id?: number; name: string; phone?: string; website?: string; note?: string }): Promise<number> {
+  const db = getDb();
+  if (input.id) {
+    db.prepare("UPDATE shipping_carriers SET name = ?, phone = ?, website = ?, note = ? WHERE id = ?").run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", input.id);
+    return input.id;
+  }
+  const pos = (db.prepare("SELECT COALESCE(MAX(position), 0) + 1 AS n FROM shipping_carriers").get() as { n: number }).n;
+  const r = db.prepare("INSERT INTO shipping_carriers (name, phone, website, note, position) VALUES (?, ?, ?, ?, ?)").run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", pos);
+  return Number(r.lastInsertRowid);
+}
+
+export async function deleteShippingCarrier(id: number): Promise<boolean> {
+  const db = getDb();
+  db.prepare("UPDATE shipping_methods SET carrier_id = NULL WHERE carrier_id = ?").run(id);
+  return Number(db.prepare("DELETE FROM shipping_carriers WHERE id = ?").run(id).changes) > 0;
 }
 
 export interface ShippingMethodInput {
@@ -1071,25 +1133,27 @@ export interface ShippingMethodInput {
   currency: string;
   position: number;
   active: boolean;
+  leg: ShippingMethod["leg"];
+  carrierId: number | null;
+  includesBothEnds: boolean;
+  warehouse: string;
+  homeDelivery: boolean;
+  notes: string;
 }
 
 export async function saveShippingMethod(input: ShippingMethodInput): Promise<number> {
   const db = getDb();
   if (input.id) {
-    db.prepare("UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ? WHERE id = ?").run(
-      input.name,
-      input.description,
-      input.extraLabel,
-      input.currency,
-      input.position,
-      input.active ? 1 : 0,
-      input.id,
-    );
+    db.prepare(
+      "UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ?, leg = ?, carrier_id = ?, includes_both_ends = ?, warehouse = ?, home_delivery = ?, notes = ? WHERE id = ?",
+    ).run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, input.id);
     return input.id;
   }
   const r = db
-    .prepare("INSERT INTO shipping_methods (name, description, extra_label, currency, position, active) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0);
+    .prepare(
+      "INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes);
   return Number(r.lastInsertRowid);
 }
 
@@ -1150,6 +1214,8 @@ export async function exportCatalogue() {
     costPrice: p.costPrice,
     supplierUrl: p.supplierUrl,
     minStock: p.minStock,
+    weightG: p.weightG,
+    dimsCm: p.dimsCm,
     currency: p.currency,
     sku: p.sku,
     stock: p.stock,

@@ -85,7 +85,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
 
         <div className="mt-10">
-          <ProductTabs name={product.name} description={product.description} reviewCount={product.reviewCount} shipping={<ShippingTable methods={shipping} notes={shippingNotes} compact />} />
+          <ProductTabs name={product.name} description={product.description} reviewCount={product.reviewCount} shipping={<ShippingTable methods={shipping} notes={shippingNotes} compact weightG={product.weightG} dimsCm={product.dimsCm} />} />
         </div>
 
         {related.length > 0 ? (

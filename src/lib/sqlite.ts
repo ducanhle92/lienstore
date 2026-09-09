@@ -219,6 +219,39 @@ export const MIGRATIONS: Migration[] = [
     name: "category-parent",
     up: [`ALTER TABLE categories ADD COLUMN parent_slug TEXT`],
   },
+  {
+    version: 8,
+    name: "product-weight-shipping-legs",
+    up: [
+      `ALTER TABLE products ADD COLUMN weight_g INTEGER`,
+      `ALTER TABLE products ADD COLUMN dims_cm TEXT`,
+      `CREATE TABLE shipping_carriers (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        name     TEXT NOT NULL,
+        phone    TEXT NOT NULL DEFAULT '',
+        website  TEXT NOT NULL DEFAULT '',
+        note     TEXT NOT NULL DEFAULT '',
+        position INTEGER NOT NULL DEFAULT 0
+      )`,
+      `ALTER TABLE shipping_methods ADD COLUMN leg TEXT NOT NULL DEFAULT 'jp_vn'`,
+      `ALTER TABLE shipping_methods ADD COLUMN carrier_id INTEGER`,
+      `ALTER TABLE shipping_methods ADD COLUMN includes_both_ends INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE shipping_methods ADD COLUMN warehouse TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipping_methods ADD COLUMN home_delivery INTEGER NOT NULL DEFAULT 1`,
+      `ALTER TABLE shipping_methods ADD COLUMN notes TEXT NOT NULL DEFAULT ''`,
+      `INSERT INTO shipping_carriers (id, name, phone, website, note, position) VALUES
+        (1, 'Kiến Express', '', '', 'Gom hàng Nhật → Hà Nội: đường bay, EMS, xách tay', 1),
+        (2, 'Japan Post / EMS', '', 'https://www.post.japanpost.jp', 'Bưu điện Nhật', 2),
+        (3, 'Yamato (Kuroneko)', '', 'https://www.kuronekoyamato.co.jp', 'Chuyển phát nội địa Nhật', 3),
+        (4, 'Viettel Post', '1900 8095', 'https://viettelpost.com.vn', 'Giao nội địa Việt Nam', 4),
+        (5, 'Giao Hàng Tiết Kiệm', '1900 6092', 'https://giaohangtietkiem.vn', 'Giao nội địa Việt Nam', 5)`,
+      `UPDATE shipping_methods SET leg = 'jp_vn', carrier_id = 1, includes_both_ends = 1, home_delivery = 0,
+        warehouse = 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Việt Nam: Hà Nội (giao tiếp bằng ship nội địa)',
+        notes = 'Kiện dưới 5 kg phụ thu 40.000đ/kiện\nGiá trọn gói từ kho Nhật đến kho Việt Nam, chưa gồm ship nội địa hai đầu\nHàng điện tử, rượu, trang sức, vòng huyết áp có bảng phụ thu riêng'
+        WHERE id = 1`,
+      `UPDATE shipping_methods SET leg = 'vn_domestic', carrier_id = 4, includes_both_ends = 1, home_delivery = 1 WHERE id = 2`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -408,8 +441,8 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
 
     const insProd = db.prepare(`${verb} INTO products
       (id, slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb, short_description, description,
-       related, rating, review_count, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+       related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
     const byId = db.prepare("SELECT slug FROM products WHERE id = ?");
@@ -465,6 +498,8 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
         p.status === "draft" ? "draft" : "publish",
         str(p.createdAt, now),
         str(p.updatedAt, now),
+        num(p.weightG),
+        typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null,
       );
       (p.categories ?? []).forEach((slug, i) => insPC.run(id, slug, i));
     }

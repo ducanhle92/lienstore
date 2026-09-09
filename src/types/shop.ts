@@ -15,6 +15,10 @@ export interface CatalogProduct {
   supplierUrl: string | null;
   /** Reorder threshold for tracked stock; null = store default. */
   minStock: number | null;
+  /** Packed weight in grams (for shipping estimates); null = unknown. */
+  weightG: number | null;
+  /** Packed size "DxRxC" in cm, e.g. "12x8x5"; null = unknown. */
+  dimsCm: string | null;
   currency: string;
   sku: string | null;
   /** Units in stock; null = not tracked. */
@@ -197,7 +201,16 @@ export interface ShippingZone {
   active: boolean;
 }
 
-/** A shipping method (e.g. Japan → Vietnam, domestic Vietnam) rendered as its own fee table. */
+export interface ShippingCarrier {
+  id: number;
+  name: string;
+  phone: string;
+  website: string;
+  note: string;
+  position: number;
+}
+
+/** A shipping method (one fee table) within a leg: JP domestic, JP→VN or VN domestic. */
 export interface ShippingMethod {
   id: number;
   name: string;
@@ -207,5 +220,17 @@ export interface ShippingMethod {
   currency: string;
   position: number;
   active: boolean;
+  /** "jp_domestic" | "jp_vn" | "vn_domestic" */
+  leg: "jp_domestic" | "jp_vn" | "vn_domestic";
+  carrierId: number | null;
+  carrierName: string | null;
+  /** Price already covers domestic legs on both ends. */
+  includesBothEnds: boolean;
+  /** Warehouse / pick-up and drop-off locations, free text shown to customers. */
+  warehouse: string;
+  /** Delivered to the customer's door (else pick-up at warehouse/point). */
+  homeDelivery: boolean;
+  /** Method-specific notes, one per line. */
+  notes: string;
   zones: ShippingZone[];
 }

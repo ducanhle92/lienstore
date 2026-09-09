@@ -125,6 +125,23 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                 <input id="minStock" name="minStock" inputMode="numeric" defaultValue={product?.minStock ?? ""} placeholder="Mặc định 2" className={cn(adminInput, fields.minStock && "border-red-500")} />
                 <FieldError msg={fields.minStock} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={adminLabel} htmlFor="weightG">
+                    Khối lượng (gram)
+                  </label>
+                  <input id="weightG" name="weightG" inputMode="numeric" defaultValue={product?.weightG ?? ""} placeholder="VD: 350" className={cn(adminInput, fields.weightG && "border-red-500")} />
+                  <FieldError msg={fields.weightG} />
+                </div>
+                <div>
+                  <label className={adminLabel} htmlFor="dimsCm">
+                    Kích thước (cm, D x R x C)
+                  </label>
+                  <input id="dimsCm" name="dimsCm" defaultValue={product?.dimsCm ?? ""} placeholder="VD: 12x8x5" className={cn(adminInput, fields.dimsCm && "border-red-500")} />
+                  <FieldError msg={fields.dimsCm} />
+                </div>
+                <p className="col-span-2 -mt-1 text-[12px] text-lien-muted">Dùng để ước tính phí gửi về Việt Nam trên trang sản phẩm (theo bảng vận chuyển, làm tròn lên từng kg; lấy số lớn hơn giữa cân thật và cân quy đổi thể tích D×R×C/6000).</p>
+              </div>
               <div>
                 <label className={adminLabel} htmlFor="sku">
                   Mã SKU

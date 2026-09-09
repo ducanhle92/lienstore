@@ -69,6 +69,8 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
           <span className="font-semibold text-lien-success">Đặt hàng theo yêu cầu, 7–14 ngày</span>
         )}
         {product.sku ? <span className="ml-3 text-lien-muted">SKU: {product.sku}</span> : null}
+        {product.weightG ? <span className="ml-3 text-lien-muted">Khối lượng: {formatAmount(product.weightG)} g</span> : null}
+        {product.dimsCm ? <span className="ml-3 text-lien-muted">Kích thước: {product.dimsCm.replace(/x/g, "×")} cm</span> : null}
       </p>
 
       {short ? (
