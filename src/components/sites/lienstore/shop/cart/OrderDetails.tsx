@@ -55,6 +55,14 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
         </tr>
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
+            Giao hàng{order.shippingFee > 0 && order.shippingLabel ? ` (${order.shippingLabel})` : ""}:
+          </th>
+          <td className={shopTdClass}>
+            {order.shippingFee > 0 ? <Price value={order.shippingFee} currency={order.currency} /> : <span>{order.shippingLabel || "Nhận tại kho"} · miễn phí</span>}
+          </td>
+        </tr>
+        <tr>
+          <th className={cn(shopTdClass, "font-bold")} scope="row">
             Phương thức thanh toán:
           </th>
           <td className={shopTdClass}>{PAYMENT_LABEL[order.paymentMethod]}</td>

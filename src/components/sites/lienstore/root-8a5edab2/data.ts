@@ -21,9 +21,9 @@ export const contact: ContactInfo = {
   address: "Xã Hoằng Hóa, Tỉnh Thanh Hóa",
   hours: "8:00 - 22:00",
   socials: [
-    { kind: "facebook", label: "Facebook", href: "https://www.facebook.com/dien.luc.809784" },
+    { kind: "facebook", label: "Facebook", href: "https://www.facebook.com/lienanh.taphoa/" },
     { kind: "zalo", label: "Zalo", href: "https://zalo.me/0964839769" },
-    { kind: "messenger", label: "Messenger", href: "https://m.me/dien.luc.809784" },
+    { kind: "messenger", label: "Messenger", href: "https://m.me/lienanh.taphoa" },
   ],
 };
 

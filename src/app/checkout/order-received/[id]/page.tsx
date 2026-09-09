@@ -6,8 +6,9 @@ import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSideba
 import { Price, WooHeading } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getOrderById } from "@/lib/db";
+import { BANK, transferContent, vietQrUrl } from "@/lib/payment";
 import { receiptLinksFor } from "@/lib/order-files";
-import { formatDate } from "@/lib/format";
+import { formatAmount, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +57,33 @@ export default async function OrderReceived({ params }: Props) {
               </li>
             </ul>
             {order.paymentMethod === "bacs" ? (
-              <section className="woocommerce-bacs-bank-details mb-8">
-                <WooHeading as="h2">Chi tiết tài khoản ngân hàng của chúng tôi</WooHeading>
-                <p className="text-lien-text">
-                  Thông tin tài khoản ngân hàng sẽ được gửi tới email <strong>{order.customer.email}</strong>. Vui lòng ghi mã đơn hàng{" "}
-                  <strong>#{order.number}</strong> trong nội dung chuyển khoản.
+              <section className="woocommerce-bacs-bank-details mb-8 rounded-md border border-lien-line bg-white p-5">
+                <WooHeading as="h2" className="!mt-0">
+                  Chuyển khoản {order.prepaidRequired ? "toàn bộ giá trị đơn hàng" : "để hoàn tất đơn hàng"}
+                </WooHeading>
+                <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- external VietQR image generated per order */}
+                  <img src={vietQrUrl(order.total, transferContent(order.number))} alt={`Mã QR chuyển khoản ${formatAmount(order.total)}đ`} width={220} height={220} className="h-auto w-[220px] rounded border border-lien-line" />
+                  <dl className="m-0 grid grid-cols-[130px_1fr] gap-y-2 text-[14px] leading-6 text-lien-text">
+                    <dt className="text-lien-muted">Ngân hàng</dt>
+                    <dd className="m-0 font-semibold">
+                      {BANK.bank} <span className="font-normal text-lien-muted">({BANK.branch})</span>
+                    </dd>
+                    <dt className="text-lien-muted">Số tài khoản</dt>
+                    <dd className="m-0 text-[18px] font-bold tracking-wide text-lien-heading">{BANK.accountNumber}</dd>
+                    <dt className="text-lien-muted">Chủ tài khoản</dt>
+                    <dd className="m-0 font-semibold">{BANK.accountName}</dd>
+                    <dt className="text-lien-muted">Số tiền</dt>
+                    <dd className="m-0 text-[18px] font-bold text-lien-sale-text">{formatAmount(order.total)}đ</dd>
+                    <dt className="text-lien-muted">Nội dung CK</dt>
+                    <dd className="m-0">
+                      <code className="rounded bg-lien-cream px-2 py-1 text-[15px] font-bold text-lien-heading">{transferContent(order.number)}</code>
+                    </dd>
+                  </dl>
+                </div>
+                <p className="mt-4 mb-0 text-[13px] leading-5 text-lien-muted">
+                  Quét mã bằng ứng dụng ngân hàng: số tiền và nội dung đã được điền sẵn. {order.prepaidRequired ? "Đơn có hàng order nên cần thanh toán đủ trước khi LienStore đặt mua tại Nhật." : "Đơn được xử lý ngay khi nhận được tiền."} Chuyển xong có thể gửi ảnh
+                  biên lai qua Zalo 0964 839 769 để được xác nhận nhanh.
                 </p>
               </section>
             ) : null}

@@ -94,6 +94,12 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 </tr>
                 <tr>
                   <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                    Giao hàng {order.shippingLabel ? <span className="font-normal text-lien-muted">({order.shippingLabel})</span> : null}
+                  </td>
+                  <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? formatPrice(order.shippingFee, order.currency) : "Miễn phí"}</td>
+                </tr>
+                <tr>
+                  <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
                     Tổng
                   </td>
                   <td className={`${tdClass} text-right text-[16px] font-bold`}>{formatPrice(order.total, order.currency)}</td>
@@ -241,7 +247,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </div>
               <div>
                 <dt className="text-[12px] font-semibold uppercase text-[#6b7280]">Thanh toán</dt>
-                <dd>{PAYMENT[order.paymentMethod]}</dd>
+                <dd>
+                  {PAYMENT[order.paymentMethod]}
+                  {order.prepaidRequired ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Hàng order · cần thanh toán trước 100%</span> : null}
+                  <span className="block text-[12px] text-lien-muted">Nội dung CK: LIENSTORE {order.number}</span>
+                </dd>
               </div>
               {c.note ? (
                 <div>

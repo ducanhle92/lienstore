@@ -1,82 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { SocialIcon } from "@/components/sites/lienstore/shared/BrandIcons";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
-import { CartBadge } from "@/components/sites/lienstore/shop/CartBadge";
+import type { ContactInfo } from "@/types/lienstore";
 
 interface FloatingWidgetsProps {
-  cartHref: string;
-  wishlistHref: string;
-  accountHref: string;
-  /** Scroll offset (px) after which both widgets appear. */
+  contact: ContactInfo;
+  /** Scroll offset (px) after which the back-to-top button appears. */
   threshold?: number;
   className?: string;
 }
 
 /**
- * The two fixed elements the original theme shows once the page is scrolled:
- * `#scroll-cart.topcorner` (cart / wishlist / account tiles at the right edge)
- * and `#scroll-btn.scroll-top` (blue 40×40 back-to-top button).
+ * Right-edge contact dock: round Facebook / Zalo / Messenger / phone buttons (always visible), plus a back-to-top
+ * button once the page is scrolled.
  */
-export function FloatingWidgets({
-  cartHref,
-  wishlistHref,
-  accountHref,
-  threshold = 100,
-  className,
-}: FloatingWidgetsProps) {
-  const [visible, setVisible] = useState(false);
+export function FloatingWidgets({ contact, threshold = 300, className }: FloatingWidgetsProps) {
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > threshold);
+    const onScroll = () => setScrolled(window.scrollY > threshold);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [threshold]);
 
-  const tile =
-    "mt-[5px] block rounded-[3px] bg-white px-[5px] py-3 text-center shadow-[-1px_3px_5px_0_#d4d4d4]";
+  const phone = contact.phones[0];
+  const btn = "flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.45)] transition-transform hover:scale-110 no-underline";
+  const colour: Record<string, string> = { facebook: "bg-[#1877f2]", zalo: "bg-[#0068ff]", messenger: "bg-gradient-to-br from-[#00b2ff] to-[#a033ff]" };
 
   return (
-    <div className={cn(visible ? "block" : "hidden", className)}>
-      <div
-        id="scroll-cart"
-        className="fixed top-[60%] -right-0.5 z-[99999] w-[36.25px] text-center text-[16px] leading-[18.4px] sm:leading-6"
-      >
-        <ul className="m-0 list-none p-0">
-          <li className={cn(tile, "text-[15px] leading-[17.25px] text-black sm:leading-6")}>
-            <Link href={cartHref} title="Cart View" className="relative inline-block text-black">
-              <Fa name="shopping-bag" className="text-[16px] leading-4 text-lien-input-text" />
-              <CartBadge className="absolute -top-[7px] right-px block min-w-[14.5px] rounded-[24px] bg-lien-blue-ring px-1 py-0.5 text-center font-sans text-[13px] leading-[13px] text-white" />
-            </Link>
-          </li>
-          <li className={cn(tile, "text-[15px] leading-[17.25px] text-black sm:leading-6")}>
-            <Link href={wishlistHref} title="View your whishlist" className="inline-block text-black">
-              <Fa name="heart" className="text-[16px] leading-4 text-lien-heart" />
-            </Link>
-          </li>
-          <li className={cn(tile, "text-[16px] leading-[18.4px] text-lien-text sm:leading-6")}>
-            <Link href={accountHref} aria-label="My account" className="inline-block text-[21px] leading-[24.15px] text-black">
-              <Fa name="user-circle" className="text-[21px] leading-[21px]" />
-            </Link>
-          </li>
-        </ul>
-      </div>
-
-      <a
-        id="scroll-btn"
-        href="#page"
+    <div className={cn("fixed right-3 bottom-24 z-[9000] flex flex-col items-center gap-2.5 sm:right-4", className)} aria-label="Liên hệ nhanh">
+      {contact.socials.map((s) => (
+        <a key={s.kind} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label} title={s.label} className={cn(btn, colour[s.kind] ?? "bg-lien-blue")}>
+          {s.kind === "zalo" ? <span className="text-[13px] font-extrabold tracking-tight">Zalo</span> : <SocialIcon kind={s.kind} className="text-[20px]" />}
+        </a>
+      ))}
+      {phone ? (
+        <a href={phone.href} aria-label={`Gọi ${phone.number}`} title={`Gọi ${phone.number}`} className={cn(btn, "bg-lien-success")}>
+          <Fa name="phone" className="text-[18px]" />
+        </a>
+      ) : null}
+      <button
+        type="button"
         aria-label="Lên đầu trang"
-        onClick={(e) => {
-          e.preventDefault();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        className="fixed right-2.5 bottom-2.5 z-[9999] block h-10 w-10 rounded-[4px] bg-lien-blue text-center text-white"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className={cn(btn, "bg-lien-heading transition-opacity", scrolled ? "opacity-100" : "pointer-events-none opacity-0")}
       >
-        <Fa name="arrow-up" className="inline-block text-[22px] leading-10" />
-      </a>
+        <Fa name="arrow-up" className="text-[18px]" />
+      </button>
     </div>
   );
 }

@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { placeOrder } from "@/app/checkout/actions";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { formatAmount } from "@/lib/format";
+import { BANK } from "@/lib/payment";
 import { cn } from "@/lib/utils";
 import type { CheckoutState } from "./checkout-types";
 import { Price, Required, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass, wooInputClass } from "./WooUi";
@@ -16,6 +19,17 @@ export interface CheckoutDefaults {
   email?: string;
 }
 
+/** A domestic delivery option (one zone of a VN-domestic shipping method). */
+export interface CheckoutZone {
+  id: number;
+  label: string;
+  fee: number;
+  unit: string;
+  freeOver: number | null;
+  eta: string;
+  areas: string;
+}
+
 interface FieldProps {
   name: string;
   label: string;
@@ -25,20 +39,21 @@ interface FieldProps {
   error?: string;
   half?: boolean;
   defaultValue?: string;
+  required?: boolean;
 }
 
-function Field({ name, label, type = "text", placeholder, autoComplete, error, half, defaultValue }: FieldProps) {
+function Field({ name, label, type = "text", placeholder, autoComplete, error, half, defaultValue, required = true }: FieldProps) {
   const id = `billing_${name}`;
   return (
     <p className={cn("form-row mb-1.5 p-[3px]", half ? "w-full sm:w-[47%]" : "w-full")}>
       <label htmlFor={id} className="mb-2 block text-[16px] font-semibold leading-8 text-lien-input-text">
-        {label} <Required />
+        {label} {required ? <Required /> : <span className="optional font-normal text-lien-muted">(tuỳ chọn)</span>}
       </label>
       <input
         id={id}
         name={name}
         type={type}
-        required
+        required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
         defaultValue={defaultValue}
@@ -50,14 +65,31 @@ function Field({ name, label, type = "text", placeholder, autoComplete, error, h
   );
 }
 
-/** WooCommerce checkout (`/checkout/`): billing fields, order review, payment methods, place order. */
-export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: CheckoutDefaults; loggedIn?: boolean }) {
+interface Props {
+  defaults?: CheckoutDefaults;
+  loggedIn?: boolean;
+  zones: CheckoutZone[];
+  pickupAddress: string;
+  /** Product ids that are bought to order (must be prepaid). */
+  preorderIds: number[];
+}
+
+/** Checkout: billing fields, delivery choice (pickup / home delivery with zone fee), order review, payment, place order. */
+export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAddress, preorderIds }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
-  const [payment, setPayment] = useState<"bacs" | "cod">("bacs");
+  const [delivery, setDelivery] = useState<"ship" | "pickup">(zones.length ? "ship" : "pickup");
+  const [zoneId, setZoneId] = useState<number | "">(zones[0]?.id ?? "");
   const [createAccount, setCreateAccount] = useState(false);
-  const [showCoupon, setShowCoupon] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const preorder = useMemo(() => items.filter((it) => preorderIds.includes(it.productId)), [items, preorderIds]);
+  const mustPrepay = preorder.length > 0;
+  const [paymentChoice, setPaymentChoice] = useState<"bacs" | "cod">("bacs");
+  const payment: "bacs" | "cod" = mustPrepay ? "bacs" : paymentChoice;
+
+  const zone = zones.find((z) => z.id === zoneId) ?? null;
+  const shippingFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zone.fee;
+  const total = subtotal + shippingFee;
 
   if (!hydrated) return <div className="min-h-[240px]" aria-busy="true" />;
 
@@ -75,6 +107,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
   }
 
   const fields = state?.fields ?? {};
+  const optionCls = (active: boolean) => cn("flex cursor-pointer items-start gap-3 rounded-md border p-3 text-[14px] leading-5", active ? "border-lien-blue bg-lien-blue-soft/60" : "border-lien-line bg-white hover:border-lien-blue/60");
 
   return (
     <div className="woocommerce">
@@ -85,31 +118,6 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
             Ấn vào đây để đăng nhập
           </Link>
         </WooNotice>
-      ) : null}
-      <WooNotice kind="info">
-        Bạn có mã ưu đãi?{" "}
-        <button type="button" onClick={() => setShowCoupon((v) => !v)} className="text-lien-muted underline hover:text-lien-blue">
-          Ấn vào đây để nhập mã
-        </button>
-      </WooNotice>
-      {showCoupon ? (
-        <form
-          className="checkout_coupon mb-8 rounded-[5px] border border-[#d3ced2] p-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const code = String(new FormData(e.currentTarget).get("coupon_code") ?? "").trim();
-            setCouponError(code ? `Mã ưu đãi “${code}” không tồn tại!` : "Vui lòng nhập mã ưu đãi.");
-          }}
-        >
-          <p className="mb-3 text-lien-muted">Nếu bạn có mã ưu đãi, vui lòng nhập vào bên dưới.</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <input name="coupon_code" placeholder="Mã ưu đãi" className={cn(wooInputClass, "w-[200px]")} />
-            <button type="submit" className={cn(wooButtonClass, "font-arial")}>
-              Áp dụng
-            </button>
-          </div>
-          {couponError ? <p className="mt-3 text-[#b81c23]">{couponError}</p> : null}
-        </form>
       ) : null}
 
       {state?.error ? (
@@ -127,17 +135,19 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
 
       <form action={action} className="checkout woocommerce-checkout" noValidate>
         <input type="hidden" name="items" value={JSON.stringify(items)} readOnly />
+        <input type="hidden" name="delivery" value={delivery} readOnly />
+        <input type="hidden" name="payment_method" value={payment} readOnly />
 
         <div id="customer_details" className="col2-set sm:flex sm:justify-between">
           <div className="col-1 w-full sm:w-[48%]">
             <div className="woocommerce-billing-fields">
-              <WooHeading as="h3">Thông tin thanh toán</WooHeading>
+              <WooHeading as="h3">Thông tin người nhận</WooHeading>
               <div className="flex flex-wrap justify-between">
                 <Field name="first_name" label="Tên" autoComplete="given-name" error={fields.first_name} half defaultValue={defaults.firstName} />
                 <Field name="last_name" label="Họ" autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
-                <Field name="address" label="Địa chỉ" placeholder="Địa chỉ" autoComplete="street-address" error={fields.address} defaultValue={defaults.address} />
                 <Field name="phone" label="Số điện thoại" type="tel" autoComplete="tel" error={fields.phone} defaultValue={defaults.phone} />
                 <Field name="email" label="Địa chỉ email" type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} />
+                <Field name="address" label="Địa chỉ nhận hàng" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" autoComplete="street-address" error={fields.address} defaultValue={defaults.address} required={delivery === "ship"} />
               </div>
             </div>
             {!loggedIn ? (
@@ -153,34 +163,58 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
                     <label htmlFor="account_password" className="mb-2 block text-[16px] font-semibold leading-8 text-lien-input-text">
                       Tạo mật khẩu <Required />
                     </label>
-                    <input
-                      id="account_password"
-                      name="account_password"
-                      type="password"
-                      autoComplete="new-password"
-                      minLength={6}
-                      className={cn(wooInputClass, fields.account_password && "border-[#b81c23]")}
-                    />
+                    <input id="account_password" name="account_password" type="password" autoComplete="new-password" minLength={6} className={cn(wooInputClass, fields.account_password && "border-[#b81c23]")} />
                     {fields.account_password ? <span className="mt-1 block text-[14px] leading-5 text-[#b81c23]">{fields.account_password}</span> : null}
                   </p>
                 ) : null}
               </div>
             ) : null}
           </div>
+
           <div className="col-2 w-full sm:w-[48%]">
-            <div className="woocommerce-additional-fields">
-              <WooHeading as="h3">Thông tin bổ sung</WooHeading>
+            <WooHeading as="h3">Hình thức nhận hàng</WooHeading>
+            <div className="space-y-2">
+              <label className={optionCls(delivery === "pickup")}>
+                <input type="radio" name="delivery_choice" checked={delivery === "pickup"} onChange={() => setDelivery("pickup")} className="mt-1 h-4 w-4" />
+                <span>
+                  <span className="block font-semibold text-lien-heading">
+                    Nhận tại kho <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">Miễn phí</span>
+                  </span>
+                  <span className="block text-[13px] text-lien-muted">{pickupAddress || "Địa chỉ kho sẽ được gửi sau khi xác nhận đơn."}</span>
+                </span>
+              </label>
+              <label className={optionCls(delivery === "ship")}>
+                <input type="radio" name="delivery_choice" checked={delivery === "ship"} onChange={() => setDelivery("ship")} disabled={zones.length === 0} className="mt-1 h-4 w-4" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-lien-heading">Giao tận nhà</span>
+                  {zones.length === 0 ? (
+                    <span className="block text-[13px] text-lien-muted">Chưa cấu hình khu vực giao hàng.</span>
+                  ) : (
+                    <>
+                      <select name="shipping_zone" value={zoneId} onChange={(e) => setZoneId(Number(e.target.value))} disabled={delivery !== "ship"} className={cn(wooInputClass, "mt-2 !h-auto !py-2 text-[14px]", fields.shipping_zone && "border-[#b81c23]")}>
+                        {zones.map((z) => (
+                          <option key={z.id} value={z.id}>
+                            {z.label} — {formatAmount(z.fee)}đ{z.unit}
+                            {z.freeOver ? ` (miễn phí từ ${formatAmount(z.freeOver)}đ)` : ""}
+                            {z.eta ? ` · ${z.eta}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {zone?.areas ? <span className="mt-1 block text-[12px] text-lien-muted">{zone.areas}</span> : null}
+                      {fields.shipping_zone ? <span className="mt-1 block text-[14px] leading-5 text-[#b81c23]">{fields.shipping_zone}</span> : null}
+                    </>
+                  )}
+                </span>
+              </label>
+            </div>
+            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn.</p>
+
+            <div className="woocommerce-additional-fields mt-4">
               <p className="form-row notes mb-1.5 p-[3px]">
                 <label htmlFor="order_comments" className="mb-2 block text-[16px] font-semibold leading-8 text-lien-input-text">
                   Ghi chú đơn hàng <span className="optional font-semibold">(tuỳ chọn)</span>
                 </label>
-                <textarea
-                  id="order_comments"
-                  name="note"
-                  rows={2}
-                  placeholder="Ghi chú về đơn hàng, ví dụ: thời gian hay chỉ dẫn địa điểm giao hàng chi tiết hơn."
-                  className={cn(wooInputClass, "h-16 resize-y font-mono leading-6")}
-                />
+                <textarea id="order_comments" name="note" rows={2} placeholder="Ví dụ: giờ nhận hàng, chỉ dẫn địa điểm…" className={cn(wooInputClass, "h-16 resize-y font-mono leading-6")} />
               </p>
             </div>
           </div>
@@ -206,6 +240,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
                 <tr key={it.productId} className="cart_item">
                   <td className={shopTdClass}>
                     {it.name} <strong className="product-quantity whitespace-nowrap">× {it.quantity}</strong>
+                    {preorderIds.includes(it.productId) ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Hàng order</span> : null}
                   </td>
                   <td className={shopTdClass}>
                     <Price value={it.price * it.quantity} />
@@ -222,65 +257,65 @@ export function CheckoutForm({ defaults = {}, loggedIn = false }: { defaults?: C
                   <Price value={subtotal} />
                 </td>
               </tr>
+              <tr className="shipping">
+                <th className={cn(shopTdClass, "font-bold")} scope="row">
+                  Giao hàng
+                </th>
+                <td className={shopTdClass}>
+                  {delivery === "pickup" ? "Nhận tại kho · miễn phí" : zone ? (shippingFee === 0 ? `${zone.label} · miễn phí` : <Price value={shippingFee} />) : "—"}
+                </td>
+              </tr>
               <tr className="order-total">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   Tổng
                 </th>
                 <td className={cn(shopTdClass, "font-bold")}>
-                  <Price value={subtotal} />
+                  <Price value={total} />
                 </td>
               </tr>
             </tfoot>
           </table>
 
+          {mustPrepay ? (
+            <WooNotice kind="info">
+              Đơn có <strong>{preorder.length} sản phẩm hàng order</strong> (đặt mua từ Nhật theo yêu cầu) nên cần <strong>thanh toán trước 100%</strong> bằng chuyển khoản. Không áp dụng thanh toán khi nhận hàng.
+            </WooNotice>
+          ) : null}
+
           <div id="payment" className="woocommerce-checkout-payment rounded-[5px] bg-lien-blue-soft">
             <ul className="wc_payment_methods payment_methods methods m-0 list-none border-b border-[#d3ced2] p-4 text-left">
               <li className="wc_payment_method leading-8">
-                <input
-                  id="payment_method_bacs"
-                  type="radio"
-                  name="payment_method"
-                  value="bacs"
-                  checked={payment === "bacs"}
-                  onChange={() => setPayment("bacs")}
-                  className="mr-4 inline-block h-[13px] w-[13px] align-middle"
-                />
+                <input id="payment_method_bacs" type="radio" checked={payment === "bacs"} onChange={() => setPaymentChoice("bacs")} className="mr-4 inline-block h-[13px] w-[13px] align-middle" />
                 <label htmlFor="payment_method_bacs" className="mb-2 inline text-[16px] leading-8 text-lien-input-text">
-                  Chuyển khoản ngân hàng
+                  Chuyển khoản ngân hàng {mustPrepay ? <span className="text-[13px] text-lien-muted">(thanh toán trước 100%)</span> : null}
                 </label>
                 {payment === "bacs" ? (
-                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14.72px] leading-[22.08px] text-[#515151]">
-                    <p className="m-0">
-                      Thực hiện thanh toán vào ngay tài khoản ngân hàng của chúng tôi. Vui lòng sử dụng Mã đơn hàng của bạn trong phần Nội dung thanh toán. Đơn
-                      hàng sẽ được giao sau khi tiền đã chuyển.
-                    </p>
+                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14px] leading-[22px] text-[#515151]">
+                    <p className="m-0 mb-2">Sau khi đặt hàng, bạn sẽ thấy mã QR và số tài khoản để chuyển khoản. Nội dung chuyển khoản được tạo tự động theo mã đơn.</p>
+                    <ul className="m-0 list-none space-y-0.5 p-0 text-[13px]">
+                      <li>
+                        <Fa name="credit-card" className="mr-1 text-lien-blue" /> {BANK.bank} · <strong>{BANK.accountNumber}</strong> · {BANK.accountName}
+                      </li>
+                      <li className="text-lien-muted">{BANK.branch}</li>
+                    </ul>
                   </div>
                 ) : null}
               </li>
-              <li className="wc_payment_method leading-8">
-                <input
-                  id="payment_method_cod"
-                  type="radio"
-                  name="payment_method"
-                  value="cod"
-                  checked={payment === "cod"}
-                  onChange={() => setPayment("cod")}
-                  className="mr-4 inline-block h-[13px] w-[13px] align-middle"
-                />
+              <li className={cn("wc_payment_method leading-8", mustPrepay && "opacity-50")}>
+                <input id="payment_method_cod" type="radio" checked={payment === "cod"} disabled={mustPrepay} onChange={() => setPaymentChoice("cod")} className="mr-4 inline-block h-[13px] w-[13px] align-middle" />
                 <label htmlFor="payment_method_cod" className="mb-2 inline text-[16px] leading-8 text-lien-input-text">
-                  Thanh toán khi nhận hàng
+                  Thanh toán khi nhận hàng {mustPrepay ? <span className="text-[13px] text-lien-muted">(không áp dụng cho hàng order)</span> : null}
                 </label>
                 {payment === "cod" ? (
-                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14.72px] leading-[22.08px] text-[#515151]">
-                    <p className="m-0">Trả tiền mặt khi giao hàng.</p>
+                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14px] leading-[22px] text-[#515151]">
+                    <p className="m-0">Trả tiền mặt khi nhận hàng{delivery === "pickup" ? " tại kho" : ""}.</p>
                   </div>
                 ) : null}
               </li>
             </ul>
             <div className="form-row place-order mb-1.5 flow-root p-4">
-              <p className="mb-4 text-[16px] leading-6">
-                Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described
-                in our{" "}
+              <p className="mb-4 text-[14px] leading-6">
+                Thông tin của bạn chỉ dùng để xử lý đơn hàng và hỗ trợ mua hàng, theo{" "}
                 <Link href="/privacy-policy/" className="text-lien-muted hover:text-lien-blue">
                   chính sách riêng tư
                 </Link>

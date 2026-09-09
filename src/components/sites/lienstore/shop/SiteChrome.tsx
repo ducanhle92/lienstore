@@ -60,7 +60,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <Footer2 logo={logo} contact={contact} categories={categories} accountLinks={ACCOUNT_LINKS} supportLinks={SUPPORT_LINKS} copyright={footerCopyright} />
       <CartDrawer />
       <SalesPopup />
-      <FloatingWidgets cartHref="/cart/" wishlistHref="/wishlist/" accountHref="/my-account/" />
+      <FloatingWidgets contact={contact} />
       {process.env.NEXT_PUBLIC_FB_PAGE_ID ? <FacebookChat pageId={process.env.NEXT_PUBLIC_FB_PAGE_ID} /> : null}
     </div>
   );

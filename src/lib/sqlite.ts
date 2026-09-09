@@ -252,6 +252,17 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE shipping_methods SET leg = 'vn_domestic', carrier_id = 4, includes_both_ends = 1, home_delivery = 1 WHERE id = 2`,
     ],
   },
+  {
+    version: 9,
+    name: "order-delivery-shipping-fee",
+    up: [
+      `ALTER TABLE orders ADD COLUMN shipping_fee INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN shipping_label TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE orders ADD COLUMN delivery TEXT NOT NULL DEFAULT 'ship'`,
+      `ALTER TABLE orders ADD COLUMN prepaid_required INTEGER NOT NULL DEFAULT 0`,
+      `INSERT OR IGNORE INTO settings (key, value) VALUES ('pickup_address', 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa (hẹn giờ trước qua Zalo 0964 839 769)')`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

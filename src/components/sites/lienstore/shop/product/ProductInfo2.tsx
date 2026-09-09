@@ -57,7 +57,7 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
           <span className="text-[26px] font-bold leading-8 text-lien-price">{formatAmount(product.price)}đ</span>
         )}
       </div>
-      <p className="m-0 mt-1 text-[12px] text-lien-muted">Đã bao gồm phí mua hộ · chưa gồm phí vận chuyển</p>
+      <p className="m-0 mt-1 text-[12px] text-lien-muted">Giá đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam · phí giao nội địa tính khi thanh toán (hoặc nhận tại kho miễn phí)</p>
 
       <p className="m-0 mt-3 text-[14px]">
         Tình trạng:{" "}

@@ -40,15 +40,19 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const phone = get("phone");
   const email = get("email");
   const note = get("note").slice(0, 1000);
+  const delivery = get("delivery") === "pickup" ? "pickup" : "ship";
+  const zoneRaw = get("shipping_zone");
+  const shippingZoneId = zoneRaw ? Number.parseInt(zoneRaw, 10) : null;
 
   if (!firstName) fields.first_name = "Tên là trường bắt buộc.";
   if (!lastName) fields.last_name = "Họ là trường bắt buộc.";
-  if (!address) fields.address = "Địa chỉ là trường bắt buộc.";
+  if (delivery === "ship" && !address) fields.address = "Địa chỉ là trường bắt buộc khi giao tận nhà.";
   const digits = phone.replace(/\D/g, "");
   if (!phone) fields.phone = "Số điện thoại là trường bắt buộc.";
   else if (digits.length < 9 || digits.length > 11) fields.phone = "Số điện thoại không hợp lệ.";
   if (!email) fields.email = "Địa chỉ email là trường bắt buộc.";
   else if (!EMAIL_RE.test(email)) fields.email = "Địa chỉ email không hợp lệ.";
+  if (delivery === "ship" && (!shippingZoneId || !Number.isInteger(shippingZoneId))) fields.shipping_zone = "Vui lòng chọn khu vực giao hàng.";
 
   let items: CartItem[];
   try {
@@ -78,7 +82,14 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
 
   let order: Order;
   try {
-    order = await createOrder({ customer: { firstName, lastName, address, phone, email, note }, items, paymentMethod, customerId });
+    order = await createOrder({
+      customer: { firstName, lastName, address: delivery === "pickup" && !address ? "Nhận tại kho" : address, phone, email, note },
+      items,
+      paymentMethod,
+      customerId,
+      delivery,
+      shippingZoneId: delivery === "ship" ? shippingZoneId : null,
+    });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không thể tạo đơn hàng. Vui lòng thử lại." };
   }

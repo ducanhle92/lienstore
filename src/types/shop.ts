@@ -111,6 +111,13 @@ export interface Order {
   customer: OrderCustomer;
   items: CartItem[];
   subtotal: number;
+  /** Domestic delivery fee added on top of the subtotal (0 for pickup / free shipping). */
+  shippingFee: number;
+  /** Chosen delivery option, e.g. "Miền Bắc · Viettel Post" or "Nhận tại kho". */
+  shippingLabel: string;
+  delivery: "ship" | "pickup";
+  /** True when the order contains made-to-order items (must be paid in full up front). */
+  prepaidRequired: boolean;
   total: number;
   currency: string;
   /** Internal note, admin only. */

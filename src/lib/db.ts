@@ -140,6 +140,10 @@ interface OrderRow {
   total: number;
   currency: string;
   admin_note: string | null;
+  shipping_fee: number | null;
+  shipping_label: string | null;
+  delivery: string | null;
+  prepaid_required: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -178,6 +182,10 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     customer: { firstName: r.first_name, lastName: r.last_name, address: r.address, phone: r.phone, email: r.email, note: r.note },
     items: byOrder.get(r.id) ?? [],
     subtotal: r.subtotal,
+    shippingFee: r.shipping_fee ?? 0,
+    shippingLabel: r.shipping_label ?? "",
+    delivery: r.delivery === "pickup" ? "pickup" : "ship",
+    prepaidRequired: (r.prepaid_required ?? 0) === 1,
     total: r.total,
     currency: r.currency,
     adminNote: r.admin_note ?? "",
@@ -482,6 +490,10 @@ export interface CreateOrderInput {
   items: CartItem[];
   paymentMethod: PaymentMethod;
   customerId?: string;
+  /** "pickup" = collect at the warehouse (free); "ship" = domestic delivery priced by the chosen zone. */
+  delivery?: "ship" | "pickup";
+  /** shipping_zones.id of a VN-domestic method (required for "ship" when zones exist). */
+  shippingZoneId?: number | null;
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
@@ -490,21 +502,55 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const now = new Date().toISOString();
     // Re-price items from the catalogue so the client cannot tamper with prices.
     const items: CartItem[] = [];
+    let prepaidRequired = false;
+    let weightG = 0;
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, thumb FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; thumb: string }
+      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null }
         | undefined;
       if (!row) continue;
-      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: Math.max(1, Math.floor(it.quantity)) });
+      const qty = Math.max(1, Math.floor(it.quantity));
+      // made-to-order: no tracked stock, or not enough on hand
+      if (row.stock === null || row.stock < qty) prepaidRequired = true;
+      weightG += (row.weight_g ?? 0) * qty;
+      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
+    if (prepaidRequired && input.paymentMethod === "cod") throw new Error("Đơn có hàng order (đặt mua theo yêu cầu) cần thanh toán trước 100% bằng chuyển khoản.");
     const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+
+    // Delivery: pickup is free; home delivery uses the chosen VN-domestic zone (per-order or per-kg fee, free above a threshold).
+    const delivery: "ship" | "pickup" = input.delivery === "pickup" ? "pickup" : "ship";
+    let shippingFee = 0;
+    let shippingLabel = "Nhận tại kho";
+    if (delivery === "ship") {
+      const zone = input.shippingZoneId
+        ? (db
+            .prepare(
+              `SELECT z.name, z.fee, z.unit, z.free_over, m.name AS method, c.name AS carrier FROM shipping_zones z
+               JOIN shipping_methods m ON m.id = z.method_id LEFT JOIN shipping_carriers c ON c.id = m.carrier_id
+               WHERE z.id = ? AND z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'`,
+            )
+            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; method: string; carrier: string | null } | undefined)
+        : undefined;
+      const anyZone = db.prepare("SELECT 1 FROM shipping_zones z JOIN shipping_methods m ON m.id = z.method_id WHERE z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'").get();
+      if (!zone && anyZone) throw new Error("Vui lòng chọn khu vực giao hàng.");
+      if (zone) {
+        const perKg = /kg/i.test(zone.unit);
+        const kg = Math.max(1, Math.ceil((weightG || 1000) / 1000));
+        shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : zone.fee * (perKg ? kg : 1);
+        shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
+      } else {
+        shippingLabel = "Giao tận nhà (phí báo sau)";
+      }
+    }
+    const total = subtotal + shippingFee;
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
     const id = randomUUID();
     const c = input.customer;
     db.prepare(`INSERT INTO orders (id, number, customer_id, status, payment_method, first_name, last_name, address, phone, email, note,
-      subtotal, total, currency, created_at, updated_at) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?)`).run(
+      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?)`).run(
       id,
       number,
       input.customerId ?? null,
@@ -516,9 +562,13 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       c.email,
       c.note,
       subtotal,
-      subtotal,
+      total,
       now,
       now,
+      shippingFee,
+      shippingLabel,
+      delivery,
+      prepaidRequired ? 1 : 0,
     );
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
     const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?),
@@ -539,11 +589,24 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       customer: c,
       items,
       subtotal,
-      total: subtotal,
+      shippingFee,
+      shippingLabel,
+      delivery,
+      prepaidRequired,
+      total,
       currency: "VNĐ",
       adminNote: "",
     };
   });
+}
+
+/** Warehouse address shown for the "Nhận tại kho" delivery option (settings.pickup_address). */
+export async function getPickupAddress(): Promise<string> {
+  return getSetting(getDb(), "pickup_address") ?? "";
+}
+
+export async function setPickupAddress(value: string): Promise<void> {
+  setSetting(getDb(), "pickup_address", value.trim());
 }
 
 const ORDER_ORDER = "ORDER BY created_at DESC, number DESC";

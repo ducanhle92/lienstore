@@ -1,11 +1,12 @@
-import { deleteCarrierAction, deleteMethodAction, deleteZoneAction, saveCarrierAction, saveMethodAction, saveNotesAction, saveZoneAction } from "@/app/admin/shipping/actions";
+import { deleteCarrierAction, deleteMethodAction, deleteZoneAction, saveCarrierAction, saveMethodAction, saveNotesAction, savePickupAction, saveZoneAction } from "@/app/admin/shipping/actions";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getShippingCarriers, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
-import { SHIPPING_LEGS } from "@/lib/shipping";
+import { isShippingLeg, SHIPPING_LEGS } from "@/lib/shipping";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ShippingCarrier, ShippingMethod, ShippingZone } from "@/types/shop";
 
@@ -200,8 +201,11 @@ export default async function AdminShipping({ searchParams }: Props) {
   const sp = await searchParams;
   const saved = first(sp.saved);
   const error = first(sp.error);
-  const [methods, notes, carriers] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers()]);
+  const [methods, notes, carriers, pickupAddress] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress()]);
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
+  const legParam = first(sp.leg);
+  const onlyLeg = isShippingLeg(legParam) ? legParam : null;
+  const legsShown = SHIPPING_LEGS.filter((l) => !onlyLeg || l.key === onlyLeg);
 
   return (
     <>
@@ -217,8 +221,19 @@ export default async function AdminShipping({ searchParams }: Props) {
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
 
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Link href="/admin/shipping/" className={cn("rounded-md border px-3 py-1.5 text-[13px] no-underline", !onlyLeg ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+          Tất cả
+        </Link>
+        {SHIPPING_LEGS.map((l) => (
+          <Link key={l.key} href={`/admin/shipping/?leg=${l.key}`} className={cn("rounded-md border px-3 py-1.5 text-[13px] no-underline", onlyLeg === l.key ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+            {l.label} <span className={onlyLeg === l.key ? "text-white/80" : "text-lien-muted"}>({methods.filter((m) => m.leg === l.key).length})</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="space-y-10">
-        {SHIPPING_LEGS.map((leg) => {
+        {legsShown.map((leg) => {
           const list = methods.filter((m) => m.leg === leg.key);
           return (
             <section key={leg.key} id={`leg-${leg.key}`}>
@@ -237,6 +252,23 @@ export default async function AdminShipping({ searchParams }: Props) {
           );
         })}
 
+        {!onlyLeg || onlyLeg === "vn_domestic" ? (
+          <div id="pickup">
+            <Card title="Nhận tại kho (tuỳ chọn miễn phí ở trang thanh toán)">
+              <form action={savePickupAction} className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                <div>
+                  <label className={adminLabel}>Địa chỉ kho / điểm nhận hàng hiện cho khách</label>
+                  <textarea name="pickupAddress" rows={2} defaultValue={pickupAddress} className={adminInput} />
+                </div>
+                <button type="submit" className={btnPrimary}>
+                  <Fa name="check" /> Lưu
+                </button>
+              </form>
+              <p className="mt-2 text-[12px] text-lien-muted">Khách chọn &quot;Nhận tại kho&quot; thì không tính phí giao; chọn &quot;Giao tận nhà&quot; thì phí lấy theo cột của các phương thức chặng Nội địa Việt Nam đang hiển thị (miễn phí khi đạt mức &quot;Miễn phí trên&quot;).</p>
+            </Card>
+          </div>
+        ) : null}
+
         <Card title="Thêm phương thức vận chuyển">
           <form action={saveMethodAction} className="grid gap-3 md:grid-cols-3">
             <div>
@@ -245,7 +277,7 @@ export default async function AdminShipping({ searchParams }: Props) {
             </div>
             <div>
               <label className={adminLabel}>Chặng *</label>
-              <select name="leg" defaultValue="jp_vn" className={adminInput}>
+              <select name="leg" defaultValue={onlyLeg ?? "jp_vn"} className={adminInput}>
                 {SHIPPING_LEGS.map((l) => (
                   <option key={l.key} value={l.key}>
                     {l.label}

@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Trang thanh toán**: chọn **Nhận tại kho** (miễn phí, hiện địa chỉ kho do admin đặt ở Vận chuyển → Nhận tại kho) hoặc **Giao tận nhà** với dropdown khu vực lấy từ các phương thức chặng Nội địa Việt Nam (phí theo cột, miễn phí khi đạt mức; cột "/kg" nhân theo khối lượng đơn). Phí giao hiện thành dòng riêng và cộng vào Tổng; server tính lại, lưu vào đơn (`shipping_fee`, `shipping_label`, `delivery`). Migration v9.
+- **Chuyển khoản**: sau khi đặt hàng, trang "Đơn hàng đã nhận" hiện tài khoản BIDV (LE THI LIEN · 26010000748323 · CN Mỹ Đình), **mã VietQR** đã điền sẵn số tiền và **nội dung chuyển khoản tự sinh** `LIENSTORE <mã đơn>`; admin thấy nội dung CK ở chi tiết đơn.
+- **Hàng order phải thanh toán trước 100%**: đơn có sản phẩm không theo dõi tồn hoặc không đủ tồn được đánh dấu "Hàng order", ẩn/khoá thanh toán khi nhận hàng, server từ chối COD; đơn lưu cờ `prepaid_required`.
+- Menu admin có 3 mục con dưới Vận chuyển (Nội địa Nhật · Nhật → Việt Nam · Nội địa Việt Nam) lọc theo chặng; trang Vận chuyển có thanh tab tương ứng.
+- **Nút liên hệ nhanh** bo tròn cố định bên phải màn hình: Facebook, Zalo, Messenger, gọi điện, lên đầu trang (thay các ô giỏ/yêu thích/tài khoản cũ).
+
+### Changed
+- Fanpage đổi sang facebook.com/lienanh.taphoa (Messenger m.me/lienanh.taphoa) ở thanh trên, footer, trang Về chúng tôi, nút liên hệ nhanh.
+- Ghi chú giá trên trang sản phẩm: "Giá đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam · phí giao nội địa tính khi thanh toán".
+
 ## [1.10.0] - 2026-09-09
 
 ### Added
@@ -96,7 +107,7 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 ## [1.5.1] - 2026-09-08
 
 ### Changed
-- Thông tin liên hệ thật: hotline VN 0964 839 769, Facebook facebook.com/dien.luc.809784, Zalo zalo.me/0964839769, Messenger m.me/dien.luc.809784 (thanh liên hệ, footer, trang Liên hệ).
+- Thông tin liên hệ thật: hotline VN 0964 839 769, Facebook facebook.com/lienanh.taphoa, Zalo zalo.me/0964839769, Messenger m.me/lienanh.taphoa (thanh liên hệ, footer, trang Liên hệ).
 
 ## [1.5.0] - 2026-09-08
 
