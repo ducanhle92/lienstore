@@ -103,6 +103,8 @@ const RATING_LABELS = ["Rất tệ", "Tệ", "Bình thường", "Tốt", "Rất 
 /** WooCommerce review form; purely client-side (no backend) — submitting shows a "pending moderation" notice. */
 function ReviewForm({ name }: { name: string }) {
   const id = useId();
+  const { t, lang } = useLang();
+  const ratingLabels = lang === "ja" ? ["とても悪い", "悪い", "普通", "良い", "とても良い"] : RATING_LABELS;
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [sent, setSent] = useState(false);
@@ -111,7 +113,7 @@ function ReviewForm({ name }: { name: string }) {
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (rating === 0) {
-      setError("Vui lòng chọn số sao đánh giá.");
+      setError(t("pickStars"));
       return;
     }
     setError(null);
@@ -124,7 +126,7 @@ function ReviewForm({ name }: { name: string }) {
         role="status"
         className="woocommerce-message relative mb-8 border-t-[3px] border-[#8fae1b] bg-[#f7f6f7] px-8 py-4 text-[16px] leading-6 text-[#515151]"
       >
-        Cảm ơn bạn! Đánh giá đang chờ duyệt.
+        {t("reviewThanks")}
       </p>
     );
   }
@@ -134,17 +136,17 @@ function ReviewForm({ name }: { name: string }) {
   return (
     <div id="review_form_wrapper" className="max-w-[760px]">
       <h3 className="comment-reply-title mb-4 text-[16px] leading-6 font-bold text-lien-text">
-        Hãy là người đầu tiên nhận xét &ldquo;{name}&rdquo;
+        {t("reviewFirst")} &ldquo;{name}&rdquo;
       </h3>
       <form id="commentform" className="comment-form" onSubmit={onSubmit}>
         <p className="comment-notes mb-4 text-[14px] leading-5 text-lien-muted">
-          Email của bạn sẽ không được hiển thị công khai. Các trường bắt buộc được đánh dấu {REQUIRED}
+          {t("reviewNotes")} {REQUIRED}
         </p>
 
         <fieldset className="comment-form-rating mb-4 border-0 p-0">
-          <legend className="mb-1 text-[16px] leading-6 text-lien-text">Đánh giá của bạn {REQUIRED}</legend>
+          <legend className="mb-1 text-[16px] leading-6 text-lien-text">{t("yourRating")} {REQUIRED}</legend>
           <div className="stars flex gap-0.5" onMouseLeave={() => setHover(0)}>
-            {RATING_LABELS.map((label, i) => {
+            {ratingLabels.map((label, i) => {
               const value = i + 1;
               return (
                 <label key={value} className="cursor-pointer" onMouseEnter={() => setHover(value)}>
@@ -158,7 +160,7 @@ function ReviewForm({ name }: { name: string }) {
                   />
                   <Fa
                     name={value <= shown ? "star" : "star-o"}
-                    label={`${value} sao – ${label}`}
+                    label={`${value} ${t("star")} – ${label}`}
                     className="text-[18px] leading-[18px] text-lien-blue"
                   />
                 </label>
@@ -170,7 +172,7 @@ function ReviewForm({ name }: { name: string }) {
 
         <p className="comment-form-comment mb-4">
           <label htmlFor={`${id}-comment`} className="mb-1 block text-[16px] leading-6 text-lien-text">
-            Nhận xét của bạn {REQUIRED}
+            {t("yourReview")} {REQUIRED}
           </label>
           <textarea id={`${id}-comment`} name="comment" rows={6} required className={FIELD} />
         </p>
@@ -178,7 +180,7 @@ function ReviewForm({ name }: { name: string }) {
         <div className="sm:flex sm:gap-4">
           <p className="comment-form-author mb-4 sm:flex-1">
             <label htmlFor={`${id}-author`} className="mb-1 block text-[16px] leading-6 text-lien-text">
-              Tên {REQUIRED}
+              {t("name")} {REQUIRED}
             </label>
             <input id={`${id}-author`} name="author" type="text" required autoComplete="name" className={FIELD} />
           </p>
@@ -195,7 +197,7 @@ function ReviewForm({ name }: { name: string }) {
             type="submit"
             className="submit inline-block cursor-pointer rounded-[3px] border-0 bg-lien-blue px-4 py-[9.888px] font-arial text-[16px] leading-4 font-bold text-white transition-[background] duration-200 hover:bg-lien-blue-hover"
           >
-            Gửi đi
+            {t("submit")}
           </button>
         </p>
       </form>

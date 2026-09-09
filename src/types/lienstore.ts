@@ -63,6 +63,8 @@ export interface ContactInfo {
   email: string;
   address: string;
   hours: string;
+  /** Japanese rendering of the address (shown when the site is in 日本語). */
+  addressJa?: string;
   socials: SocialLink[];
 }
 

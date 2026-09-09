@@ -136,7 +136,7 @@ export default async function AboutPage() {
                 <p className="m-0 flex items-start gap-2 text-[14px] leading-6 text-lien-text">
                   <Fa name="map-marker" className="mt-1 text-lien-blue" />
                   <span>
-                    {ja ? JA.vnWarehouse : "Kho hàng Việt Nam: "}{contact.address}
+                    {ja ? JA.vnWarehouse : "Kho hàng Việt Nam: "}{ja && contact.addressJa ? contact.addressJa : contact.address}
                     <br />
                     {ja ? JA.jpBuying : "Điểm mua hàng: Nhật Bản"}
                   </span>

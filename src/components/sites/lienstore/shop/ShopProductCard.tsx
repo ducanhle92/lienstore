@@ -96,7 +96,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[14px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white" />
-          <QuickViewButton product={toQuickView(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white" iconOnly />
+          <QuickViewButton product={toQuickView(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white [@media(hover:none)]:hidden" iconOnly />
         </div>
         <CardCartButton product={toCartProduct(product)} disabled={out} />
       </div>

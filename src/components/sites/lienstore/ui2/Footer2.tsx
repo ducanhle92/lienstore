@@ -34,7 +34,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
               <span>
                 <strong>LienStore</strong> · {t(lang, "fTagline")}
                 <br />
-                {contact.address}
+                {lang === "ja" && contact.addressJa ? contact.addressJa : contact.address}
               </span>
             </li>
             {contact.phones.map((p) => (

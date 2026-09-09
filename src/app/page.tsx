@@ -26,7 +26,9 @@ export default async function Home() {
     queryProducts({ orderby: "popularity", perPage: 60 }),
     getPosts(),
   ]);
-  const onSale = sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price).slice(0, 6);
+  const onSale = localizeProducts(sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price).slice(0, 6), lang);
+  const freshItems = localizeProducts(fresh.items, lang);
+  const popularItems = localizeProducts(popular.items, lang);
   const topCategories = buildCategoryTree(categories)
     .filter((n) => n.total > 0)
     .slice(0, CATEGORY_ROWS)
@@ -51,12 +53,12 @@ export default async function Home() {
 
         <section className="mt-10" aria-label="Sản phẩm mới">
           <SectionHeader2 title={t(lang, "newTitle")} icon="bolt" href="/shop/?orderby=date" />
-          <ShopProductGrid products={fresh.items} cols={6} />
+          <ShopProductGrid products={freshItems} cols={6} />
         </section>
 
         <section className="mt-10" aria-label="Bán chạy">
           <SectionHeader2 title={t(lang, "bestTitle")} icon="star" href="/shop/?orderby=rating" />
-          <ShopProductGrid products={popular.items.slice(0, 6)} cols={6} />
+          <ShopProductGrid products={popularItems.slice(0, 6)} cols={6} />
         </section>
 
         <div className="my-10 grid gap-4 md:grid-cols-2">

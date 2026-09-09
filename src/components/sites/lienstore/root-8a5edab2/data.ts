@@ -19,6 +19,7 @@ export const contact: ContactInfo = {
   ],
   email: "contact@linconnn.io.vn",
   address: "Xã Hoằng Hóa, Tỉnh Thanh Hóa",
+  addressJa: "ベトナム・タインホア省ホアンホア",
   hours: "8:00 - 22:00",
   socials: [
     { kind: "facebook", label: "Facebook", href: "https://www.facebook.com/lienanh.taphoa/" },

@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Ảnh danh mục: gán **bộ A · Fluent Emoji 3D** cho toàn bộ 42 danh mục (PNG 300×300 nền trắng).
+- Nội dung tiếng Nhật cho **toàn bộ sản phẩm**: 204 sản phẩm chưa có nguồn Amazon được dịch từ tiếng Việt sang tiếng Nhật (tên, mô tả ngắn, mô tả chi tiết theo bố cục 商品情報 / 特徴 / 成分 / 使用方法 / ご注意); cùng 157 sản phẩm lấy từ Amazon trước đó → 100% catalogue có bản tiếng Nhật.
+
+### Changed
+- 日本語: các khối trang chủ (Hàng mới về, Bán chạy, Giảm giá) hiện tên tiếng Nhật; tab 配送料 dịch tiêu đề chặng, câu ước tính, nhãn "Kho", và các cụm dữ liệu quen (Toàn Nhật Bản, Miền Bắc, 1–2 ngày…); tab レビュー dịch toàn bộ form; footer/giới thiệu hiện địa chỉ tiếng Nhật; "Hotline" thành 電話.
+- Mobile (màn cảm ứng): nút thêm vào giỏ trên thẻ sản phẩm thu nhỏ về góc phải dưới, bỏ nhãn "Thêm vào giỏ" và nút xem nhanh để không che ảnh; trên máy tính vẫn hiện khi rê chuột.
+
 ## [1.16.0] - 2026-09-09
 
 ### Added
