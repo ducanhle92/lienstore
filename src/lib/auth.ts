@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCustomerById, verifyCustomer } from "@/lib/db";
+import { getCustomerById, verifyCustomerLogin } from "@/lib/db";
 import { effectivePermissions, type UserRole } from "@/lib/permissions";
 
 /**
@@ -45,10 +45,8 @@ function safeEqual(a: string, b: string): boolean {
 export async function verifyCredentials(user: string, password: string): Promise<string | null> {
   const u = user.trim();
   if (safeEqual(u, ADMIN_USER) && safeEqual(password, ADMIN_PASSWORD)) return ENV_SUBJECT;
-  if (u.includes("@")) {
-    const c = await verifyCustomer(u, password);
-    if (c && c.active && (c.role === "admin" || c.role === "staff")) return c.id;
-  }
+  const c = await verifyCustomerLogin(u, password);
+  if (c && c.active && (c.role === "admin" || c.role === "staff")) return c.id;
   return null;
 }
 
@@ -73,12 +71,12 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const subject = parseToken(jar.get(COOKIE)?.value);
   if (!subject) return null;
   if (subject === ENV_SUBJECT || subject === ADMIN_USER) {
-    return { id: ENV_SUBJECT, label: ADMIN_USER, email: "", role: "admin", permissions: effectivePermissions("admin", []), isEnv: true };
+    return { id: ENV_SUBJECT, label: `${ADMIN_USER} (chủ cửa hàng)`, email: "", role: "admin", permissions: effectivePermissions("admin", []), isEnv: true };
   }
   const c = await getCustomerById(subject);
   if (!c || !c.active || (c.role !== "admin" && c.role !== "staff")) return null;
   const name = `${c.firstName} ${c.lastName}`.trim();
-  return { id: c.id, label: name || c.email, email: c.email, role: c.role, permissions: effectivePermissions(c.role, c.permissions), isEnv: false };
+  return { id: c.id, label: name || c.username || c.email, email: c.email, role: c.role, permissions: effectivePermissions(c.role, c.permissions), isEnv: false };
 }
 
 export async function isAdmin(): Promise<boolean> {

@@ -23,23 +23,26 @@ function readRole(fd: FormData): UserRole {
   return isUserRole(r) ? r : "customer";
 }
 
-function validate(email: string, password: string | null, role: UserRole): string | null {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Email không hợp lệ.";
+function validate(email: string, username: string, password: string | null, role: UserRole): string | null {
+  if (username && !/^[A-Za-z0-9._-]{3,32}$/.test(username)) return "Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm, gạch ngang, gạch dưới (3–32 ký tự).";
+  if (!email && !username) return role === "customer" ? "Khách hàng cần có email." : "Nhập tên đăng nhập (ID) hoặc email.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Email không hợp lệ.";
   if (password !== null && password.length > 0 && password.length < 8) return "Mật khẩu phải có ít nhất 8 ký tự.";
-  if (role === "staff" && password === "") return null;
   return null;
 }
 
 export async function createUserAction(formData: FormData): Promise<void> {
   await guard();
   const email = text(formData, "email").toLowerCase();
+  const username = text(formData, "username");
   const password = text(formData, "password");
   const role = readRole(formData);
-  const err = validate(email, password, role) ?? (password.length < 8 ? "Mật khẩu phải có ít nhất 8 ký tự." : null);
+  const err = validate(email, username, password, role) ?? (password.length < 8 ? "Mật khẩu phải có ít nhất 8 ký tự." : null);
   if (err) back(LIST, "error", err);
   try {
     const u = await adminCreateUser({
       email,
+      username,
       password,
       firstName: text(formData, "firstName"),
       lastName: text(formData, "lastName"),
@@ -50,7 +53,7 @@ export async function createUserAction(formData: FormData): Promise<void> {
       active: formData.get("active") !== "off",
     });
     revalidatePath("/admin", "layout");
-    redirect(`${LIST}${u.id}/?saved=${encodeURIComponent("Đã tạo tài khoản " + u.email)}`);
+    redirect(`${LIST}${u.id}/?saved=${encodeURIComponent("Đã tạo tài khoản " + (u.username || u.email))}`);
   } catch (e) {
     if (e instanceof Error && e.message.includes("NEXT_REDIRECT")) throw e;
     back(LIST, "error", e instanceof Error ? e.message : "Không tạo được tài khoản.");
@@ -64,10 +67,11 @@ export async function updateUserAction(formData: FormData): Promise<void> {
   const current = await getCustomerById(id);
   if (!current) back(LIST, "error", "Không tìm thấy tài khoản.");
   const email = text(formData, "email").toLowerCase();
+  const username = text(formData, "username");
   const password = text(formData, "password");
   let role = readRole(formData);
   let active = formData.get("active") === "on";
-  const err = validate(email, password || null, role);
+  const err = validate(email, username, password || null, role);
   if (err) back(url, "error", err);
   // A signed-in admin cannot lock themselves out.
   if (me.id === id && (role !== "admin" || !active)) {
@@ -81,6 +85,7 @@ export async function updateUserAction(formData: FormData): Promise<void> {
   try {
     await adminUpdateUser(id, {
       email,
+      username,
       firstName: text(formData, "firstName"),
       lastName: text(formData, "lastName"),
       phone: text(formData, "phone"),

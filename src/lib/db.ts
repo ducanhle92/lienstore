@@ -184,6 +184,7 @@ interface CustomerRow {
   role: string | null;
   permissions: string | null;
   active: number | null;
+  username: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -197,6 +198,7 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   lastName: r.last_name,
   phone: r.phone,
   address: r.address,
+  username: r.username ?? "",
   role: r.role === "admin" || r.role === "staff" ? r.role : "customer",
   permissions: parseArr(r.permissions ?? "[]"),
   active: (r.active ?? 1) === 1,
@@ -739,6 +741,27 @@ export interface CreateCustomerInput {
   role?: UserRole;
   permissions?: string[];
   active?: boolean;
+  username?: string;
+}
+
+/** Placeholder domain for staff accounts created without an email (they sign in with their login ID). */
+export const NO_EMAIL_DOMAIN = "no-email.lienstore.local";
+
+export async function findCustomerByLogin(login: string): Promise<Customer | null> {
+  const v = login.trim();
+  if (!v) return null;
+  if (v.includes("@")) return findCustomerByEmail(v);
+  const row = getDb().prepare("SELECT * FROM customers WHERE username = ? COLLATE NOCASE").get(v) as CustomerRow | undefined;
+  return row ? rowToCustomer(row) : null;
+}
+
+/** Verify a login ID or email + password (admin sign-in). */
+export async function verifyCustomerLogin(login: string, password: string): Promise<Customer | null> {
+  const c = await findCustomerByLogin(login);
+  if (!c || !c.active) return null;
+  const a = Buffer.from(hashPassword(password, c.salt), "hex");
+  const b = Buffer.from(c.passwordHash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b) ? c : null;
 }
 
 export async function findCustomerByEmail(email: string): Promise<Customer | null> {
@@ -753,8 +776,11 @@ export async function getCustomerById(id: string): Promise<Customer | null> {
 
 export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
   const db = getDb();
-  const email = input.email.trim().toLowerCase();
+  const username = (input.username ?? "").trim();
+  const email = (input.email.trim() || (username ? `${username.toLowerCase()}@${NO_EMAIL_DOMAIN}` : "")).toLowerCase();
+  if (!email) throw new Error("Cần email hoặc tên đăng nhập.");
   if (db.prepare("SELECT 1 FROM customers WHERE email = ?").get(email)) throw new Error("Email này đã được đăng ký. Vui lòng đăng nhập.");
+  if (username && db.prepare("SELECT 1 FROM customers WHERE username = ? COLLATE NOCASE").get(username)) throw new Error("Tên đăng nhập này đã được dùng.");
   const salt = randomBytes(16).toString("hex");
   const now = new Date().toISOString();
   const customer: Customer = {
@@ -766,14 +792,15 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     lastName: input.lastName ?? "",
     phone: input.phone ?? "",
     address: input.address ?? "",
+    username,
     role: input.role ?? "customer",
     permissions: input.permissions ?? [],
     active: input.active ?? true,
     createdAt: now,
     updatedAt: now,
   };
-  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, username, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
     customer.id,
     customer.email,
     customer.passwordHash,
@@ -785,6 +812,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     customer.role,
     JSON.stringify(customer.permissions),
     customer.active ? 1 : 0,
+    customer.username || null,
     now,
     now,
   );
@@ -815,6 +843,7 @@ export interface AdminUserPatch {
   permissions?: string[];
   active?: boolean;
   password?: string;
+  username?: string;
 }
 
 /** Admin: update any field of an account, including email, role, permissions and active flag. */
@@ -824,8 +853,15 @@ export async function adminUpdateUser(id: string, patch: AdminUserPatch): Promis
     const row = db.prepare("SELECT * FROM customers WHERE id = ?").get(id) as CustomerRow | undefined;
     if (!row) return null;
     const c = rowToCustomer(row);
+    if (patch.username !== undefined) {
+      const username = patch.username.trim();
+      if (username && username.toLowerCase() !== c.username.toLowerCase() && db.prepare("SELECT 1 FROM customers WHERE username = ? COLLATE NOCASE AND id != ?").get(username, id))
+        throw new Error("Tên đăng nhập này đã được dùng cho tài khoản khác.");
+      c.username = username;
+    }
     if (patch.email !== undefined) {
-      const email = patch.email.trim().toLowerCase();
+      const email = (patch.email.trim() || (c.username ? `${c.username.toLowerCase()}@${NO_EMAIL_DOMAIN}` : "")).toLowerCase();
+      if (!email) throw new Error("Cần email hoặc tên đăng nhập.");
       if (email !== c.email && db.prepare("SELECT 1 FROM customers WHERE email = ? AND id != ?").get(email, id)) throw new Error("Email này đã được dùng cho tài khoản khác.");
       c.email = email;
     }
@@ -842,8 +878,8 @@ export async function adminUpdateUser(id: string, patch: AdminUserPatch): Promis
     }
     c.updatedAt = new Date().toISOString();
     db.prepare(
-      `UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, role = ?, permissions = ?, active = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`,
-    ).run(c.email, c.firstName, c.lastName, c.phone, c.address, c.role, JSON.stringify(c.permissions), c.active ? 1 : 0, c.passwordHash, c.salt, c.updatedAt, id);
+      `UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, role = ?, permissions = ?, active = ?, username = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`,
+    ).run(c.email, c.firstName, c.lastName, c.phone, c.address, c.role, JSON.stringify(c.permissions), c.active ? 1 : 0, c.username || null, c.passwordHash, c.salt, c.updatedAt, id);
     return c;
   });
 }

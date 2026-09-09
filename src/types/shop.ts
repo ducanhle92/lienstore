@@ -80,6 +80,8 @@ export interface Customer {
   lastName: string;
   phone: string;
   address: string;
+  /** Login ID for the admin area (staff/admin); empty for plain customers. Email works too. */
+  username: string;
   /** Storefront customer by default; admin/staff may sign in to /admin. */
   role: UserRole;
   /** Admin module keys granted to a staff account (see lib/permissions.ts). */

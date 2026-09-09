@@ -31,8 +31,8 @@ export default async function EditUser({ params, searchParams }: Props) {
   return (
     <>
       <PageHeader
-        title={name || user.email}
-        subtitle={`${ROLE_LABELS[user.role]} · ${user.email} · tạo ${formatDateTime(user.createdAt)}`}
+        title={name || user.username || user.email}
+        subtitle={`${ROLE_LABELS[user.role]}${user.username ? ` · ID ${user.username}` : ""}${user.email.endsWith("@no-email.lienstore.local") ? "" : ` · ${user.email}`} · tạo ${formatDateTime(user.createdAt)}`}
         back={{ href: "/admin/users/", label: "Người dùng" }}
         actions={
           orders.length ? (
@@ -48,7 +48,7 @@ export default async function EditUser({ params, searchParams }: Props) {
       <Card title="Thông tin tài khoản">
         <form action={updateUserAction} className="space-y-5">
           <input type="hidden" name="id" value={user.id} />
-          <UserFields user={{ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, role: user.role, permissions: user.permissions, active: user.active }} isSelf={isSelf} />
+          <UserFields user={{ id: user.id, email: user.email, username: user.username, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, role: user.role, permissions: user.permissions, active: user.active }} isSelf={isSelf} />
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" className={btnPrimary}>
               <Fa name="check" /> Lưu thay đổi
@@ -63,7 +63,7 @@ export default async function EditUser({ params, searchParams }: Props) {
       {!isSelf ? (
         <form action={deleteUserAction} className="mt-8 border-t border-[#e5e7eb] pt-6">
           <input type="hidden" name="id" value={user.id} />
-          <ConfirmSubmit message={`Xoá tài khoản ${user.email}? Đơn hàng đã đặt vẫn được giữ (không còn gắn với tài khoản). Không thể hoàn tác.`} className={btnDanger}>
+          <ConfirmSubmit message={`Xoá tài khoản ${user.username || user.email}? Đơn hàng đã đặt vẫn được giữ (không còn gắn với tài khoản). Không thể hoàn tác.`} className={btnDanger}>
             <Fa name="trash" /> Xoá tài khoản
           </ConfirmSubmit>
           <p className="mt-2 text-[12px] text-lien-muted">Muốn chặn đăng nhập tạm thời thì bỏ tick &quot;Đang hoạt động&quot; và lưu, thay vì xoá.</p>

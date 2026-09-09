@@ -141,7 +141,7 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 ## 4d. Tài khoản quản trị & phân quyền
 
 - Tài khoản trong `ADMIN_USER` / `ADMIN_PASSWORD` (YAML app) là **admin dự phòng**: luôn đăng nhập được, không sửa/xoá trong UI. Đổi mật khẩu của nó bằng cách sửa YAML app rồi Save (app khởi động lại, phiên cũ bị huỷ nếu đổi `ADMIN_SESSION_SECRET`).
-- Tài khoản làm việc hằng ngày tạo trong **Admin → Người dùng**: vai trò *Quản trị viên* (toàn quyền) hoặc *Nhân viên* (tick module được phép). Đăng nhập trang quản trị bằng email + mật khẩu. Khách hàng đăng ký trên web cũng nằm trong danh sách này với vai trò *Khách hàng* và có thể được nâng quyền.
+- Tài khoản làm việc hằng ngày tạo trong **Admin → Người dùng**: vai trò *Quản trị viên* (toàn quyền) hoặc *Nhân viên* (tick module được phép). Đăng nhập trang quản trị bằng tên đăng nhập (ID) + mật khẩu; email tuỳ chọn. Khách hàng đăng ký trên web cũng nằm trong danh sách này với vai trò *Khách hàng* và có thể được nâng quyền.
 - Khoá tài khoản (bỏ tick "Đang hoạt động") chặn cả đăng nhập quản trị và đăng nhập mua hàng; xoá tài khoản giữ nguyên đơn hàng cũ.
 
 ## 5. Checklist trước khi mở công khai

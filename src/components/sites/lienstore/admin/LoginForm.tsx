@@ -17,7 +17,7 @@ export function LoginForm({ showDefaultHint }: { showDefaultHint: boolean }) {
         </Flash>
       ) : null}
       <label className={adminLabel} htmlFor="user">
-        Tên đăng nhập hoặc email
+        Tên đăng nhập (ID) hoặc email
       </label>
       <input id="user" name="user" autoComplete="username" required className={`${adminInput} mb-4`} />
       <label className={adminLabel} htmlFor="password">

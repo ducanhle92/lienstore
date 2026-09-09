@@ -27,7 +27,8 @@ export default async function AdminUsers({ searchParams }: Props) {
   const sp = await searchParams;
   const q = first(sp.q).trim().toLowerCase();
   const role = first(sp.role) as UserRole | "";
-  const users = (await listCustomers()).filter((u) => (!role || u.role === role) && (!q || `${u.email} ${u.firstName} ${u.lastName} ${u.phone} ${u.address}`.toLowerCase().includes(q)));
+  const users = (await listCustomers()).filter((u) => (!role || u.role === role) && (!q || `${u.username} ${u.email} ${u.firstName} ${u.lastName} ${u.phone} ${u.address}`.toLowerCase().includes(q)));
+  const showEmail = (e: string) => (e.endsWith("@no-email.lienstore.local") ? "" : e);
   const counts = { admin: 0, staff: 0, customer: 0 } as Record<UserRole, number>;
   for (const u of await listCustomers()) counts[u.role]++;
   const moduleLabel = Object.fromEntries(ADMIN_MODULES.map((m) => [m.key, m.label]));
@@ -41,8 +42,8 @@ export default async function AdminUsers({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       <Flash kind="warning">
-        Tài khoản hệ thống <strong>{me.isEnv ? me.label : process.env.ADMIN_USER || "admin"}</strong> (đặt trong biến môi trường ADMIN_USER / ADMIN_PASSWORD của app) luôn là quản trị viên và không hiện trong bảng
-        này. {usingDefaultCredentials ? "Nó đang dùng mật khẩu mặc định — hãy đổi trong YAML app trên TrueNAS." : "Đổi mật khẩu của nó trong YAML app trên TrueNAS."}
+        Tài khoản chủ cửa hàng <strong>{process.env.ADMIN_USER || "admin"}</strong> (đặt trong biến môi trường ADMIN_USER / ADMIN_PASSWORD của app) có toàn quyền thêm, sửa, xoá mọi tài khoản và không hiện trong bảng
+        này. Nhân viên / quản trị viên khác đăng nhập bằng <strong>tên đăng nhập (ID) + mật khẩu</strong>, hoặc email nếu có. {usingDefaultCredentials ? "Nó đang dùng mật khẩu mặc định — hãy đổi trong YAML app trên TrueNAS." : "Đổi mật khẩu của nó trong YAML app trên TrueNAS."}
       </Flash>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -77,9 +78,9 @@ export default async function AdminUsers({ searchParams }: Props) {
                     <tr key={u.id} className={cn(!u.active && "opacity-60")}>
                       <td className={tdClass}>
                         <Link href={`/admin/users/${u.id}/`} className="font-semibold text-lien-blue hover:underline">
-                          {u.email}
+                          {u.username || showEmail(u.email) || "(không có ID)"}
                         </Link>
-                        <div className="text-[12px] text-lien-muted">{name || "—"}</div>
+                        <div className="text-[12px] text-lien-muted">{name || "—"}{showEmail(u.email) && u.username ? ` · ${showEmail(u.email)}` : ""}</div>
                         <div className="font-mono text-[11px] text-[#9ca3af]">{u.id}</div>
                         {!u.active ? <span className="mt-1 inline-block rounded-full bg-gray-200 px-2 text-[11px] text-gray-700">Đã khoá</span> : null}
                       </td>

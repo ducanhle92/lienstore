@@ -63,7 +63,7 @@ export function AdminNav({ permissions, userLabel, role }: AdminNavProps) {
           <span className="block truncate text-white/90" title={userLabel}>
             {userLabel}
           </span>
-          {role === "admin" ? "Quản trị viên" : "Nhân viên"}
+          {userLabel.includes("(chủ cửa hàng)") ? "Toàn quyền" : role === "admin" ? "Quản trị viên" : "Nhân viên"}
         </div>
         <form action={logout}>
           <button

@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   /** Existing user (edit) or undefined (create). */
-  user?: { id: string; email: string; firstName: string; lastName: string; phone: string; address: string; role: UserRole; permissions: string[]; active: boolean };
+  user?: { id: string; email: string; username: string; firstName: string; lastName: string; phone: string; address: string; role: UserRole; permissions: string[]; active: boolean };
   /** The signed-in admin edits themselves → role/active locked. */
   isSelf?: boolean;
 }
 
 /** Shared fields of the create / edit user forms (no <form> element; the page supplies the action and buttons). */
 export function UserFields({ user, isSelf = false }: Props) {
-  const [role, setRole] = useState<UserRole>(user?.role ?? "customer");
+  const [role, setRole] = useState<UserRole>(user?.role ?? "staff");
   const isEdit = !!user;
   return (
     <div className="grid gap-4">
@@ -26,10 +26,17 @@ export function UserFields({ user, isSelf = false }: Props) {
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={adminLabel} htmlFor="email">
-            Email (dùng để đăng nhập) *
+          <label className={adminLabel} htmlFor="username">
+            Tên đăng nhập (ID) {role === "customer" ? "" : "*"}
           </label>
-          <input id="email" name="email" type="email" required defaultValue={user?.email} autoComplete="off" className={adminInput} />
+          <input id="username" name="username" defaultValue={user?.username} placeholder="vd: lan.nv" pattern="[A-Za-z0-9._-]{3,32}" required={role !== "customer"} autoComplete="off" className={adminInput} />
+          <p className="mt-1 text-[12px] text-lien-muted">Nhân viên / quản trị viên đăng nhập bằng ID này + mật khẩu.</p>
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="email">
+            Email {role === "customer" ? "*" : "(tuỳ chọn)"}
+          </label>
+          <input id="email" name="email" type="email" required={role === "customer"} defaultValue={user && !user.email.endsWith("@no-email.lienstore.local") ? user.email : ""} autoComplete="off" className={adminInput} />
         </div>
         <div>
           <label className={adminLabel} htmlFor="password">

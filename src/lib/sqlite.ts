@@ -206,6 +206,14 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE customers ADD COLUMN active INTEGER NOT NULL DEFAULT 1`,
     ],
   },
+  {
+    version: 6,
+    name: "user-login-id",
+    up: [
+      `ALTER TABLE customers ADD COLUMN username TEXT`,
+      `CREATE UNIQUE INDEX idx_customers_username ON customers(username) WHERE username IS NOT NULL`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
