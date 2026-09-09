@@ -427,6 +427,16 @@ export const MIGRATIONS: Migration[] = [
       `INSERT OR IGNORE INTO settings (key, value) VALUES ('jpy_vnd_rate', '175')`,
     ],
   },
+  {
+    version: 15,
+    name: "japanese-content",
+    up: [
+      `ALTER TABLE products ADD COLUMN name_ja TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN short_description_ja TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN description_ja TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE categories ADD COLUMN name_ja TEXT NOT NULL DEFAULT ''`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -434,7 +444,7 @@ export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 /** Shape of `data/seed.json` (also what `npm run db:export` writes). */
 export interface SeedFile {
   products?: Array<Record<string, unknown> & { id: number; slug: string; categories?: string[] }>;
-  categories?: Array<{ slug: string; name: string; description?: string; image?: string | null; parent?: string | null }>;
+  categories?: Array<{ slug: string; name: string; description?: string; image?: string | null; parent?: string | null; nameJa?: string }>;
   customers?: Array<Record<string, unknown> & { id: string; email: string }>;
   orders?: Array<Record<string, unknown> & { id: string; number: number; items?: Array<Record<string, unknown>> }>;
   pages?: Array<{ slug: string; title: string; content: string; date: string }>;
@@ -611,16 +621,17 @@ type InsertVerb = "INSERT OR REPLACE" | "INSERT OR IGNORE";
 /** Categories, products (+ their category links), pages and posts from a seed file. */
 function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
   {
-    const insCat = db.prepare(`${verb} INTO categories (slug, name, description, image, sort_order, parent_slug) VALUES (?, ?, ?, ?, ?, ?)`);
-    (seed.categories ?? []).forEach((c, i) => insCat.run(c.slug, c.name, c.description ?? "", c.image ?? null, i, c.parent ?? null));
+    const insCat = db.prepare(`${verb} INTO categories (slug, name, description, image, sort_order, parent_slug, name_ja) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    (seed.categories ?? []).forEach((c, i) => insCat.run(c.slug, c.name, c.description ?? "", c.image ?? null, i, c.parent ?? null, c.nameJa ?? ""));
 
     const insProd = db.prepare(`${verb} INTO products
       (id, slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb, short_description, description,
-       related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+       related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
     const byId = db.prepare("SELECT slug FROM products WHERE id = ?");
+    const backfillJa = db.prepare("UPDATE products SET name_ja = CASE WHEN name_ja = '' THEN ? ELSE name_ja END, short_description_ja = CASE WHEN short_description_ja = '' THEN ? ELSE short_description_ja END, description_ja = CASE WHEN description_ja = '' THEN ? ELSE description_ja END WHERE id = ?");
     const backfillDims = db.prepare("UPDATE products SET weight_g = COALESCE(weight_g, ?), dims_cm = COALESCE(dims_cm, ?), dims_confidence = COALESCE(dims_confidence, ?), dims_source = CASE WHEN dims_source = '' THEN ? ELSE dims_source END WHERE id = ?");
     let nextId = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM products").get() as { m: number }).m;
     for (const p of seed.products ?? []) if (typeof p.id === "number" && p.id > nextId) nextId = p.id;
@@ -651,6 +662,7 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
           const d = typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null;
           const conf = p.dimsConfidence === "high" || p.dimsConfidence === "medium" || p.dimsConfidence === "low" ? p.dimsConfidence : null;
           if (w !== null || d !== null) backfillDims.run(w, d, conf, str(p.dimsSource), old.id);
+          backfillJa.run(str(p.nameJa), str(p.shortDescriptionJa), str(p.descriptionJa), old.id);
           continue;
         }
         if (old && old.id !== id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);
@@ -684,6 +696,9 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
         typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null,
         p.dimsConfidence === "high" || p.dimsConfidence === "medium" || p.dimsConfidence === "low" ? p.dimsConfidence : null,
         str(p.dimsSource),
+        str(p.nameJa),
+        str(p.shortDescriptionJa),
+        str(p.descriptionJa),
       );
       (p.categories ?? []).forEach((slug, i) => insPC.run(id, slug, i));
     }

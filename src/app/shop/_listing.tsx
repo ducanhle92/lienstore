@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { ProductListing } from "@/components/sites/lienstore/shop/ProductListing";
 import { queryProducts } from "@/lib/db";
 import type { ProductOrderBy } from "@/types/shop";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -32,6 +34,7 @@ interface ShopListingProps {
 
 /** Shared body of /shop/ and /shop/page/[n]/ (search results included). */
 export async function ShopListing({ page, searchParams }: ShopListingProps) {
+  const lang = await getLang();
   const orderby = parseOrderBy(searchParams.orderby);
   const s = first(searchParams.s)?.trim() || undefined;
   const productCat = first(searchParams.product_cat) || undefined;
@@ -49,13 +52,13 @@ export async function ShopListing({ page, searchParams }: ShopListingProps) {
   if (page > 1 && result.total > 0 && page > result.totalPages) notFound();
 
   const crumbs = s
-    ? [{ label: "Shop", href: "/shop/" }, { label: `Kết quả tìm kiếm cho “${s}”` }]
+    ? [{ label: "Shop", href: "/shop/" }, { label: `${t(lang, "searchResultsFor")} “${s}”` }]
     : [{ label: "Shop" }];
 
   return (
     <ProductListing
       crumbs={crumbs}
-      title={s ? `Kết quả tìm kiếm cho: “${s}”` : undefined}
+      title={s ? `${t(lang, "searchResultsFor")}: “${s}”` : undefined}
       result={result}
       orderby={orderby}
       basePath="/shop/"

@@ -121,6 +121,7 @@ C = {
     "images": col(H, "Danh sách ảnh", "Ảnh (URL", "Ảnh"), "short": col(H, "Mô tả ngắn"), "desc": col(H, "Mô tả chi tiết"),
     "jpy": col(H, "Giá Nhật"), "supplier": col(H, "Link tham khảo", "Link nhà cung cấp", "Link mua"),
     "weight": col(H, "Khối lượng"), "dims": col(H, "Kích thước"), "conf": col(H, "Độ tin cậy", "Tin cậy"), "dsrc": col(H, "Nguồn KT", "Cơ sở", "Nguồn/Cơ sở"),
+    "nameJa": col(H, "Tên tiếng Nhật"), "shortJa": col(H, "Mô tả ngắn tiếng Nhật"), "descJa": col(H, "Mô tả tiếng Nhật"),
 }
 missing = [k for k in ("name",) if C[k] is None]
 if missing: sys.exit(f"missing required columns: {missing}; headers seen: {H}")
@@ -206,6 +207,9 @@ for r in rows[hdr_idx + 1:]:
         p["dimsConfidence"] = "high" if cf.startswith("cao") or cf == "high" else "medium" if cf.startswith("trung") or cf == "medium" else "low" if cf.startswith("thap") or cf == "low" else p.get("dimsConfidence")
     ds = get(r, "dsrc")
     if ds not in (None, ""): p["dimsSource"] = str(ds).strip()[:300]
+    for key, field in (("nameJa", "nameJa"), ("shortJa", "shortDescriptionJa"), ("descJa", "descriptionJa")):
+        v = get(r, key)
+        if v is not None and str(v).strip(): p[field] = str(v).strip()
     if p.get("regularPrice") is not None and p["regularPrice"] <= p["price"]: p["regularPrice"] = None
     sku = get(r, "sku")
     if sku is not None and str(sku).strip(): p["sku"] = str(sku).strip()

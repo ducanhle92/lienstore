@@ -12,6 +12,9 @@ import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCategories, getProductBySlug, getRelatedProducts, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
+import { localizeCategories, localizeProduct, localizeProducts } from "@/lib/localize";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +35,9 @@ function metaDescription(shortDescription: string, description: string): string 
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-  if (!product) return { title: "Không tìm thấy sản phẩm – LienStore" };
+  const found = await getProductBySlug(slug);
+  if (!found) return { title: "Không tìm thấy sản phẩm – LienStore" };
+  const product = localizeProduct(found, await getLang());
   return {
     title: `${product.name} – LienStore`,
     description: metaDescription(product.shortDescription, product.description),
@@ -47,10 +51,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  const raw = await getProductBySlug(slug);
+  if (!raw) notFound();
+  const lang = await getLang();
+  const product = localizeProduct(raw, lang);
 
-  const [categories, related, shipping, shippingNotes] = await Promise.all([getCategories(), getRelatedProducts(product, 6), getShippingMethods(), getShippingNotes()]);
+  const [cats, relatedRaw, shipping, shippingNotes] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getShippingMethods(), getShippingNotes()]);
+  const categories = localizeCategories(cats, lang);
+  const related = localizeProducts(relatedRaw, lang);
   const categoryNames = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const firstCategory = product.categories[0];
 
@@ -59,7 +67,7 @@ export default async function ProductPage({ params }: PageProps) {
       <div className="border-b border-lien-line bg-lien-footer2">
         <nav aria-label="Breadcrumb" className="mx-auto max-w-[1300px] px-4 py-2.5 text-[12px] leading-5 text-lien-muted">
           <Link href="/" className="text-lien-muted no-underline hover:text-lien-blue">
-            Trang chủ
+            {t(lang, "home")}
           </Link>
           {firstCategory ? (
             <>
@@ -91,7 +99,7 @@ export default async function ProductPage({ params }: PageProps) {
         {related.length > 0 ? (
           <section className="related products mt-12" aria-labelledby="related-heading">
             <h2 id="related-heading" className="mb-6 text-center text-[22px] font-bold uppercase leading-8 text-lien-blue">
-              <span className="border-b-[3px] border-lien-blue pb-1">Có thể bạn quan tâm</span>
+              <span className="border-b-[3px] border-lien-blue pb-1">{t(lang, "related")}</span>
             </h2>
             <ShopProductGrid products={related} cols={6} />
           </section>

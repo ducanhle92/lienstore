@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import { slugify } from "@/lib/format";
 import type { CatalogProduct } from "@/types/shop";
 
@@ -16,12 +17,12 @@ export function ProductMeta({ product, categoryNames }: ProductMetaProps) {
     <div className="product_meta pt-[15px] text-[16px] leading-6 text-lien-text">
       {product.sku ? (
         <span className="sku_wrapper mr-1">
-          Mã: <span className="sku">{product.sku}</span>
+          <T k="sku" /> <span className="sku">{product.sku}</span>
         </span>
       ) : null}
       {product.categories.length > 0 ? (
         <span className="posted_in mr-1">
-          {"Danh mục: "}
+          <T k="categoryLabel" />{" "}
           {product.categories.map((slug, i) => (
             <span key={slug}>
               {i > 0 ? ", " : null}
@@ -34,7 +35,7 @@ export function ProductMeta({ product, categoryNames }: ProductMetaProps) {
       ) : null}
       {product.tags.length > 0 ? (
         <span className="tagged_as">
-          {"Từ khóa: "}
+          <T k="tagsLabel" />{" "}
           {product.tags.map((tag, i) => (
             <span key={tag}>
               {i > 0 ? ", " : null}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+
 import Image from "next/image";
 import Link from "next/link";
 import { formatAmount } from "@/lib/format";
@@ -8,12 +10,13 @@ import { useCart } from "./CartProvider";
 /** WooCommerce "Sản phẩm vừa được xem" sidebar widget (shown on cart / checkout / account pages). */
 export function RecentlyViewedWidget({ className }: { className?: string } = {}) {
   const { recentlyViewed, hydrated } = useCart();
+  const { t } = useLang();
   if (!hydrated || recentlyViewed.length === 0) return null;
 
   return (
     <section className={"widget woocommerce widget_recently_viewed_products " + (className ?? "")}>
       <h2 className="m-0 mb-3 border-b-2 border-lien-blue pb-2 text-[14px] font-bold uppercase tracking-[0.3px] text-lien-heading">
-        Sản phẩm vừa được xem
+        {t("recentlyViewed")}
       </h2>
       <ul className="product_list_widget m-0 list-none p-0">
         {recentlyViewed.slice(0, 5).map((p) => (

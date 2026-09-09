@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { ProductDescription } from "./ProductDescription";
 import { cn } from "@/lib/utils";
 
@@ -25,11 +26,12 @@ const REQUIRED = <span className="required text-[#e2401c]">*</span>;
 export function ProductTabs({ name, description, reviewCount, shipping }: ProductTabsProps) {
   const [tab, setTab] = useState<TabKey>("description");
   const base = useId();
+  const { t } = useLang();
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "description", label: "Thông tin sản phẩm" },
-    ...(shipping ? [{ key: "shipping" as TabKey, label: "Chi phí vận chuyển" }] : []),
-    { key: "reviews", label: `Đánh giá (${reviewCount})` },
+    { key: "description", label: t("tabInfo") },
+    ...(shipping ? [{ key: "shipping" as TabKey, label: t("tabShipping") }] : []),
+    { key: "reviews", label: `${t("tabReviews")} (${reviewCount})` },
   ];
 
   return (
@@ -88,7 +90,7 @@ export function ProductTabs({ name, description, reviewCount, shipping }: Produc
           className="woocommerce-Tabs-panel woocommerce-Tabs-panel--reviews panel entry-content mb-8"
         >
           <h2 className={H2}>Đánh giá</h2>
-          <p className="woocommerce-noreviews mb-4 text-[16px] leading-6 text-lien-text">Chưa có đánh giá nào.</p>
+          <p className="woocommerce-noreviews mb-4 text-[16px] leading-6 text-lien-text">{t("noReviews")}</p>
           <ReviewForm name={name} />
         </div>
       )}

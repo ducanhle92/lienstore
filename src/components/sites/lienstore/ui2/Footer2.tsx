@@ -32,7 +32,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
             <li className="flex gap-2">
               <Fa name="map-marker" className="mt-1.5 w-4 text-center text-lien-muted" />
               <span>
-                <strong>LienStore</strong> · chuyên hàng Nhật nội địa
+                <strong>LienStore</strong> · {t(lang, "fTagline")}
                 <br />
                 {contact.address}
               </span>
@@ -41,7 +41,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
               <li key={p.label} className="flex gap-2">
                 <Fa name="phone" className="mt-1.5 w-4 text-center text-lien-muted" />
                 <span>
-                  Hotline {p.label}: {p.href ? <a href={p.href} className="text-lien-text no-underline hover:text-lien-blue">{p.number}</a> : p.number}
+                  {t(lang, "hotline")} {p.label}: {p.href ? <a href={p.href} className="text-lien-text no-underline hover:text-lien-blue">{p.number}</a> : p.number}
                 </span>
               </li>
             ))}
@@ -89,7 +89,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
         </div>
         <div>
           <h3 className={colTitle}>{t(lang, "fConnect")}</h3>
-          <p className="mb-3 text-[14px] leading-6 text-lien-muted">Nhắn Zalo hoặc Messenger để được tư vấn và báo giá mua hộ hàng Nhật.</p>
+          <p className="mb-3 text-[14px] leading-6 text-lien-muted">{t(lang, "fConnectText")}</p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {contact.socials.map((s) => (
               <li key={s.kind}>
@@ -109,7 +109,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           </ul>
           <div className="mt-5 rounded-md border border-lien-line bg-white p-3 text-[13px] leading-5 text-lien-muted">
             <Fa name="shield" className="mr-1 text-lien-blue" />
-            Mỗi đơn đều có <strong className="text-lien-text">bill mua hàng tại Nhật</strong> đính kèm để bạn đối chiếu.
+            {t(lang, "fBillNote1")} <strong className="text-lien-text">{t(lang, "fBillNote2")}</strong> {t(lang, "fBillNote3")}
           </div>
         </div>
       </div>
@@ -118,13 +118,13 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           <span>{copyright}</span>
           <span className="flex gap-4">
             <Link href="/ve-chung-toi/" className="text-lien-muted no-underline hover:text-lien-blue">
-              Về chúng tôi
+              {t(lang, "about")}
             </Link>
             <Link href="/chinh-sach-doi-tra/" className="text-lien-muted no-underline hover:text-lien-blue">
-              Chính sách đổi trả
+              {t(lang, "fReturns")}
             </Link>
             <Link href="/privacy-policy/" className="text-lien-muted no-underline hover:text-lien-blue">
-              Chính sách bảo mật
+              {t(lang, "privacyPolicy")}
             </Link>
           </span>
         </div>

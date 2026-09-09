@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import type { ProductOrderBy } from "@/types/shop";
 
-export const ORDER_OPTIONS: { value: ProductOrderBy; label: string }[] = [
-  { value: "popularity", label: "Thứ tự theo mức độ phổ biến" },
-  { value: "rating", label: "Thứ tự theo điểm đánh giá" },
-  { value: "date", label: "Mới nhất" },
-  { value: "price", label: "Thứ tự theo giá: thấp đến cao" },
-  { value: "price-desc", label: "Thứ tự theo giá: cao xuống thấp" },
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+import type { I18nKey } from "@/lib/i18n";
+
+export const ORDER_OPTIONS: { value: ProductOrderBy; label: string; key: I18nKey }[] = [
+  { value: "popularity", label: "Thứ tự theo mức độ phổ biến", key: "sortPopularity" },
+  { value: "rating", label: "Thứ tự theo điểm đánh giá", key: "sortRating" },
+  { value: "date", label: "Mới nhất", key: "sortDate" },
+  { value: "price", label: "Thứ tự theo giá: thấp đến cao", key: "sortPriceAsc" },
+  { value: "price-desc", label: "Thứ tự theo giá: cao xuống thấp", key: "sortPriceDesc" },
 ];
 
 interface OrderBySelectProps {
@@ -22,10 +25,11 @@ interface OrderBySelectProps {
 /** `form.woocommerce-ordering` — changing the select navigates to page 1 with `?orderby=`. */
 export function OrderBySelect({ value, basePath, params = {} }: OrderBySelectProps) {
   const router = useRouter();
+  const { t } = useLang();
   return (
     <form className="m-0" onSubmit={(e) => e.preventDefault()}>
       <label htmlFor="orderby" className="sr-only">
-        Đơn hàng của cửa hàng
+        {t("shopOrder")}
       </label>
       <select
         id="orderby"
@@ -42,7 +46,7 @@ export function OrderBySelect({ value, basePath, params = {} }: OrderBySelectPro
       >
         {ORDER_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {t(o.key)}
           </option>
         ))}
       </select>

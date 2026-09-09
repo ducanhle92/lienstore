@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +11,7 @@ import { Price, shopTableClass, shopTdClass, shopTdResponsiveClass, shopThClass,
 
 /** WooCommerce cart page (`/cart/`): cart table + coupon row + totals + checkout button. */
 export function CartPage() {
+  const { t } = useLang();
   const { items, hydrated, subtotal, update, remove } = useCart();
   const [coupon, setCoupon] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -19,11 +22,11 @@ export function CartPage() {
     return (
       <div className="woocommerce">
         <WooNotice kind="info" role="status">
-          Chưa có sản phẩm nào trong giỏ hàng.
+          {t("cartEmptyLong")}
         </WooNotice>
         <p className="return-to-shop">
           <Link href="/shop/" className={wooButtonClass}>
-            Quay trở lại cửa hàng
+            {t("backToShop")}
           </Link>
         </p>
       </div>
@@ -45,22 +48,22 @@ export function CartPage() {
           <thead className="hidden sm:table-header-group">
             <tr>
               <th className={cn(shopThClass, "w-12")} scope="col">
-                <span className="sr-only">Xoá</span>
+                <span className="sr-only">{t("remove")}</span>
               </th>
               <th className={cn(shopThClass, "w-12")} scope="col">
-                <span className="sr-only">Ảnh</span>
+                <span className="sr-only">{t("image")}</span>
               </th>
               <th className={shopThClass} scope="col">
-                Sản phẩm
+                {t("product")}
               </th>
               <th className={shopThClass} scope="col">
-                Giá
+                {t("price")}
               </th>
               <th className={shopThClass} scope="col">
-                Số lượng
+                {t("quantity")}
               </th>
               <th className={shopThClass} scope="col">
-                Tạm tính
+                {t("subtotal")}
               </th>
             </tr>
           </thead>
@@ -119,22 +122,22 @@ export function CartPage() {
               <td colSpan={6} className={cn(shopTdClass, "actions block text-right sm:table-cell")}>
                 <div className="coupon mb-3 flex items-center gap-1 sm:float-left sm:mb-0">
                   <label htmlFor="coupon_code" className="sr-only">
-                    Mã ưu đãi:
+                    {t("coupon")}:
                   </label>
                   <input
                     id="coupon_code"
                     type="text"
                     value={coupon}
                     onChange={(e) => setCoupon(e.target.value)}
-                    placeholder="Mã ưu đãi"
+                    placeholder={t("coupon")}
                     className={cn(wooInputClass, "h-[37px] w-[80px] px-1.5 py-[5px] border-[#d3ced2] sm:w-[110px]")}
                   />
                   <button type="submit" className={cn(wooButtonClass, "font-arial")}>
-                    Áp dụng
+                    {t("apply")}
                   </button>
                 </div>
                 <button type="button" disabled className={cn(wooButtonClass, "font-arial")} title="Giỏ hàng được cập nhật tự động">
-                  Cập nhật giỏ hàng
+                  {t("updateCart")}
                 </button>
               </td>
             </tr>
@@ -144,12 +147,12 @@ export function CartPage() {
 
       <div className="cart-collaterals flow-root">
         <div className="cart_totals sm:float-right sm:w-[360px]">
-          <WooHeading as="h2">Cộng giỏ hàng</WooHeading>
+          <WooHeading as="h2">{t("cartTotals")}</WooHeading>
           <table className={cn(shopTableClass, "mb-1.5")}>
             <tbody>
               <tr className="cart-subtotal">
                 <th className={cn(shopTdClass, "w-[125px] border-t-0 font-bold align-top")} scope="row">
-                  Tạm tính
+                  {t("subtotal")}
                 </th>
                 <td className={cn(shopTdClass, "border-t-0 align-top")}>
                   <Price value={subtotal} />
@@ -157,7 +160,7 @@ export function CartPage() {
               </tr>
               <tr className="order-total">
                 <th className={cn(shopTdClass, "border-t border-lien-widget-border font-bold align-top")} scope="row">
-                  Tổng
+                  {t("total")}
                 </th>
                 <td className={cn(shopTdClass, "border-t border-lien-widget-border align-top")}>
                   <strong>
@@ -172,7 +175,7 @@ export function CartPage() {
               href="/checkout/"
               className="checkout-button mb-5 block w-full rounded-[3px] bg-lien-blue p-5 text-center font-sans text-[20px] font-bold leading-5 text-white no-underline hover:bg-lien-blue-hover"
             >
-              Tiến hành thanh toán
+              {t("proceedCheckout")}
             </Link>
           </div>
         </div>

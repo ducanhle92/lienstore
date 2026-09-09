@@ -21,6 +21,10 @@ export interface CatalogProduct {
   dimsConfidence: "high" | "medium" | "low" | null;
   /** Where the numbers came from (Amazon page, inferred from the pack size…). */
   dimsSource: string;
+  /** Japanese product name / copy (shown when the visitor switches the site to 日本語); empty = fall back to Vietnamese. */
+  nameJa: string;
+  shortDescriptionJa: string;
+  descriptionJa: string;
   /** Packed size "DxRxC" in cm, e.g. "12x8x5"; null = unknown. */
   dimsCm: string | null;
   currency: string;
@@ -56,6 +60,8 @@ export interface ShopCategory {
   description: string;
   /** Parent category slug for nested categories; null = top level. */
   parentSlug: string | null;
+  /** Japanese category name (empty = fall back to Vietnamese). */
+  nameJa: string;
 }
 
 export interface CartItem {

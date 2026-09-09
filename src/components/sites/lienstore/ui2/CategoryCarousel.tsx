@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 import type { HeaderCategory } from "./Header2";
@@ -13,6 +14,7 @@ import type { HeaderCategory } from "./Header2";
  * bold name, item count, dots underneath — like the reference grocery site.
  */
 export function CategoryCarousel({ categories }: { categories: HeaderCategory[] }) {
+  const { t } = useLang();
   const tree = buildCategoryTree(categories);
   const tiles = [
     ...tree.map((n) => ({ ...n.category, count: n.total, image: n.image })),
@@ -64,7 +66,7 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
                 )}
               </span>
               <span className="line-clamp-2 text-[14px] font-bold leading-5 text-lien-heading sm:text-[15px]">{shortName(c.name)}</span>
-              <span className="mt-1 text-[12px] text-lien-muted">{c.count} mặt hàng</span>
+              <span className="mt-1 text-[12px] text-lien-muted">{c.count} {t("itemsUnit")}</span>
             </Link>
           </li>
         ))}
@@ -73,8 +75,8 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
             <span className="mb-3 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-lien-blue-soft text-[28px] text-lien-blue">
               <Fa name="th-large" />
             </span>
-            <span className="text-[14px] font-bold leading-5 text-lien-blue sm:text-[15px]">Tất cả danh mục</span>
-            <span className="mt-1 text-[12px] text-lien-muted">{tiles.length} danh mục</span>
+            <span className="text-[14px] font-bold leading-5 text-lien-blue sm:text-[15px]">{t("allCategories")}</span>
+            <span className="mt-1 text-[12px] text-lien-muted">{tiles.length} {t("categoriesUnit")}</span>
           </Link>
         </li>
       </ul>

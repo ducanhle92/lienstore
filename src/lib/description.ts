@@ -76,6 +76,14 @@ function stripTags(s: string): string {
 }
 
 function classify(headingText: string): SectionKey {
+  const raw = headingText.trim();
+  // Japanese headings (content generated from Amazon.co.jp copy)
+  if (/^(ご注意|注意|使用上の注意|保存方法|保管|お願い)/.test(raw)) return "notes";
+  if (/^(使い方|使用方法|ご使用方法|お召し上がり方|召し上がり方|用法|用量|飲み方|使用量)/.test(raw)) return "usage";
+  if (/^(成分|全成分|原材料|配合成分)/.test(raw)) return "ingredients";
+  if (/^(対象|こんな方に|おすすめの方)/.test(raw)) return "audience";
+  if (/^(特徴|効果|効能|商品の特徴|ポイント|こだわり)/.test(raw)) return "benefits";
+  if (/^(商品説明|商品情報|商品について|製品情報|概要)/.test(raw)) return "info";
   const t = fold(headingText);
   if (/^(mot so )?(luu y|bao quan|chong chi dinh|canh bao|khuyen cao|than trong)/.test(t)) return "notes";
   if (/^(huong dan|cach (su )?dung|cach dung|lieu dung|lieu luong|su dung)/.test(t)) return "usage";

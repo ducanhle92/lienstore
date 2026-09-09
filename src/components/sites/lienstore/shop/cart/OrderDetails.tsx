@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Order, OrderCustomer, OrderStatus, PaymentMethod } from "@/types/shop";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import { OrderTracker } from "./OrderTracker";
 import { Price, shopTableClass, shopTdClass, shopThClass, WooHeading } from "./WooUi";
 
@@ -48,7 +49,7 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
       <tfoot>
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
-            Tạm tính:
+            <T k="subtotal" />:
           </th>
           <td className={shopTdClass}>
             <Price value={order.subtotal} currency={order.currency} />
@@ -74,13 +75,13 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
         </tr>
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
-            Phương thức thanh toán:
+            <T k="paymentMethod" />:
           </th>
           <td className={shopTdClass}>{PAYMENT_LABEL[order.paymentMethod]}</td>
         </tr>
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
-            Tổng:
+            <T k="total" />:
           </th>
           <td className={cn(shopTdClass, "font-bold")}>
             <Price value={order.total} currency={order.currency} />
@@ -154,19 +155,19 @@ export function OrderSummary({ order, receipts = [] }: { order: Order; receipts?
   return (
     <>
       <section className="mb-8 rounded-md border border-lien-line bg-white p-4 sm:p-5">
-        <h2 className="m-0 mb-4 text-[16px] font-bold text-lien-heading">Trạng thái vận chuyển</h2>
+        <h2 className="m-0 mb-4 text-[16px] font-bold text-lien-heading"><T k="shippingStatus" /></h2>
         <OrderTracker order={order} />
       </section>
       <OrderReceipts files={receipts} />
       <section className="woocommerce-order-details">
         <WooHeading as="h2" className="woocommerce-order-details__title">
-          Chi tiết đơn hàng
+          <T k="orderDetails" />
         </WooHeading>
         <OrderDetailsTable order={order} />
       </section>
       <section className="woocommerce-customer-details">
         <WooHeading as="h2" className="woocommerce-column__title">
-          Địa chỉ thanh toán
+          <T k="billingAddress" />
         </WooHeading>
         <OrderAddress customer={order.customer} />
       </section>

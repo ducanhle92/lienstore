@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
@@ -23,6 +24,7 @@ function stripHtml(s: string): string {
 
 /** Product summary column (sesofoods style): title, price + saving badge, stock, short description, qty stepper, CTA, info boxes. */
 export function ProductInfo2({ product, categoryNames, children }: Props) {
+  const { t } = useLang();
   const out = product.stockStatus === "outofstock";
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
@@ -51,26 +53,26 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
           <>
             <del className="text-[16px] text-lien-muted">{formatAmount(regular)}đ</del>
             <span className="text-[26px] font-bold leading-8 text-lien-sale-text">{formatAmount(product.price)}đ</span>
-            <span className="rounded bg-lien-sale px-2 py-0.5 text-[12px] font-semibold text-white">Tiết kiệm {formatAmount(regular - product.price)}đ{pct ? ` (${pct}%)` : ""}</span>
+            <span className="rounded bg-lien-sale px-2 py-0.5 text-[12px] font-semibold text-white">{t("save")} {formatAmount(regular - product.price)}đ{pct ? ` (${pct}%)` : ""}</span>
           </>
         ) : (
           <span className="text-[26px] font-bold leading-8 text-lien-price">{formatAmount(product.price)}đ</span>
         )}
       </div>
-      <p className="m-0 mt-1 text-[12px] text-lien-muted">Giá đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam · phí giao nội địa tính khi thanh toán (hoặc nhận tại kho miễn phí)</p>
+      <p className="m-0 mt-1 text-[12px] text-lien-muted">{t("priceNote")}</p>
 
       <p className="m-0 mt-3 text-[14px]">
-        Tình trạng:{" "}
+        {t("status")}:{" "}
         {out ? (
-          <span className="font-semibold text-lien-sale-text">Hết hàng</span>
+          <span className="font-semibold text-lien-sale-text">{t("outOfStock")}</span>
         ) : product.stock !== null && product.stock > 0 ? (
-          <span className="font-semibold text-lien-success">Còn hàng ({product.stock})</span>
+          <span className="font-semibold text-lien-success">{t("inStock")} ({product.stock})</span>
         ) : (
-          <span className="font-semibold text-lien-success">Đặt hàng theo yêu cầu, 7–14 ngày</span>
+          <span className="font-semibold text-lien-success">{t("madeToOrder")}</span>
         )}
         {product.sku ? <span className="ml-3 text-lien-muted">SKU: {product.sku}</span> : null}
-        {product.weightG ? <span className="ml-3 text-lien-muted">Khối lượng: {formatAmount(product.weightG)} g</span> : null}
-        {product.dimsCm ? <span className="ml-3 text-lien-muted">Kích thước: {product.dimsCm.replace(/x/g, "×")} cm</span> : null}
+        {product.weightG && product.dimsConfidence === "high" ? <span className="ml-3 text-lien-muted">{t("weight")}: {formatAmount(product.weightG)} g</span> : null}
+        {product.dimsCm && product.dimsConfidence === "high" ? <span className="ml-3 text-lien-muted">{t("dims")}: {product.dimsCm.replace(/x/g, "×")} cm</span> : null}
       </p>
 
       {short ? (
@@ -78,7 +80,7 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
           <p className={cn("m-0", !more && "line-clamp-3")}>{short}</p>
           {short.length > 180 ? (
             <button type="button" onClick={() => setMore(!more)} className="mt-1 text-[13px] font-medium text-lien-blue hover:underline">
-              {more ? "Thu gọn" : "【Xem thêm】"}
+              {more ? t("collapse") : t("readMoreBtn")}
             </button>
           ) : null}
         </div>
@@ -86,7 +88,7 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
 
       <form className="cart mt-5 flex flex-wrap items-center gap-3" onSubmit={(e) => e.preventDefault()}>
         <div className="inline-flex h-11 items-center overflow-hidden rounded-full border border-lien-line">
-          <button type="button" aria-label="Giảm" disabled={out || qty <= 1} onClick={() => setQty(clamp(qty - 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
+          <button type="button" aria-label={t("decrease")} disabled={out || qty <= 1} onClick={() => setQty(clamp(qty - 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
             <Fa name="minus" className="text-[12px]" />
           </button>
           <input
@@ -101,26 +103,26 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
             aria-label={`Số lượng ${product.name}`}
             className="h-full w-12 border-x border-lien-line bg-white text-center text-[15px] font-semibold text-lien-heading outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
-          <button type="button" aria-label="Tăng" disabled={out || qty >= max} onClick={() => setQty(clamp(qty + 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
+          <button type="button" aria-label={t("increase")} disabled={out || qty >= max} onClick={() => setQty(clamp(qty + 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
             <Fa name="plus" className="text-[12px]" />
           </button>
         </div>
-        <AddToCartButton product={toCartProduct(product)} quantity={qty} variant="primary" label={out ? "Hết hàng" : "Thêm vào giỏ"} disabled={out} showViewCart linkClassName="w-full basis-full" />
+        <AddToCartButton product={toCartProduct(product)} quantity={qty} variant="primary" label={out ? t("outOfStock") : t("addToCart")} disabled={out} showViewCart linkClassName="w-full basis-full" />
         <WishlistButton product={toCartProduct(product)} className="flex h-11 w-11 items-center justify-center rounded-full border border-lien-line text-[16px] text-lien-heading hover:border-lien-blue hover:text-lien-blue" />
       </form>
 
       <div className="mt-5 grid gap-2 rounded-md border border-lien-line bg-lien-footer2 p-3 text-[13px] leading-5 text-lien-text sm:grid-cols-2">
         <p className="m-0 flex items-start gap-2">
-          <Fa name="credit-card" className="mt-1 text-lien-blue" /> Thanh toán COD hoặc chuyển khoản ngân hàng
+          <Fa name="credit-card" className="mt-1 text-lien-blue" /> {t("info1")}
         </p>
         <p className="m-0 flex items-start gap-2">
-          <Fa name="plane" className="mt-1 text-lien-blue" /> Hàng mua tại Nhật, gom đơn hàng tuần, giao toàn quốc
+          <Fa name="plane" className="mt-1 text-lien-blue" /> {t("info2")}
         </p>
         <p className="m-0 flex items-start gap-2">
-          <Fa name="shield" className="mt-1 text-lien-blue" /> Có bill mua hàng tại Nhật đính kèm đơn
+          <Fa name="shield" className="mt-1 text-lien-blue" /> {t("info3")}
         </p>
         <p className="m-0 flex items-start gap-2">
-          <Fa name="comments-o" className="mt-1 text-lien-blue" /> Tư vấn Zalo: <a href="https://zalo.me/0964839769" className="font-medium text-lien-blue no-underline hover:underline">0964 839 769</a>
+          <Fa name="comments-o" className="mt-1 text-lien-blue" /> {t("info4")} <a href="https://zalo.me/0964839769" className="font-medium text-lien-blue no-underline hover:underline">0964 839 769</a>
         </p>
       </div>
 

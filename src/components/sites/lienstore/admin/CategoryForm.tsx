@@ -61,6 +61,12 @@ export function CategoryForm({ category, suggestions = [], allCategories = [] }:
                   Tên danh mục *
                 </label>
                 <input id="name" name="name" defaultValue={category?.name} required className={cn(adminInput, fields.name && "border-red-500")} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="nameJa">
+                  Tên tiếng Nhật <span className="font-normal text-lien-muted">(hiện khi khách chọn 日本語)</span>
+                </label>
+                <input id="nameJa" name="nameJa" defaultValue={category?.nameJa} placeholder="VD: スキンケア" className={adminInput} />
                 <FieldError msg={fields.name} />
               </div>
               <div>

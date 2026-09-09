@@ -1,5 +1,12 @@
+"use client";
+
 import { Fa, type FaName } from "@/components/sites/lienstore/shared/icons";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { structureDescription, type SectionKey } from "@/lib/description";
+import type { I18nKey } from "@/lib/i18n";
+
+const SECTION_KEY: Record<SectionKey, I18nKey> = { info: "secInfo", benefits: "secBenefits", ingredients: "secIngredients", usage: "secUsage", audience: "secAudience", notes: "secNotes", other: "secOther" };
+const FACT_KEY: Record<string, I18nKey> = { "Xuất xứ": "factOrigin", "Thương hiệu": "factBrand", "Nhà sản xuất": "factMaker", "Quy cách": "factSpec", "Hạn sử dụng": "factExpiry", "Đối tượng": "factAudience" };
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<SectionKey, FaName> = {
@@ -33,7 +40,10 @@ interface Props {
  * recognisable sections.
  */
 export function ProductDescription({ name, description, className }: Props) {
+  const { t } = useLang();
   const d = structureDescription(description, name);
+  const secTitle = (s: { key: SectionKey; title: string }) => (s.key === "other" ? s.title : t(SECTION_KEY[s.key]));
+  const factLabel = (label: string) => (FACT_KEY[label] ? t(FACT_KEY[label]) : label);
   if (!d.structured) {
     return <div className={cn("lien-prose", className)} dangerouslySetInnerHTML={{ __html: description }} />;
   }
@@ -46,7 +56,7 @@ export function ProductDescription({ name, description, className }: Props) {
             <div key={f.label} className="rounded-md border border-lien-widget-border bg-lien-blue-soft/60 px-3 py-2">
               <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">
                 <Fa name={FACT_ICONS[f.label] ?? "info-circle"} className="text-lien-blue" />
-                {f.label}
+                {factLabel(f.label)}
               </dt>
               <dd className="mt-0.5 text-[15px] leading-6 text-lien-heading">{f.value}</dd>
             </div>
@@ -55,7 +65,7 @@ export function ProductDescription({ name, description, className }: Props) {
       ) : null}
 
       {d.sections.length > 1 ? (
-        <nav aria-label="Mục lục mô tả" className="mb-5 flex flex-wrap gap-2">
+        <nav aria-label={t("descToc")} className="mb-5 flex flex-wrap gap-2">
           {d.sections.map((s, i) => (
             <a
               key={`${s.key}-${i}`}
@@ -63,7 +73,7 @@ export function ProductDescription({ name, description, className }: Props) {
               className="inline-flex items-center gap-1.5 rounded-full border border-lien-blue/30 px-3 py-1 text-[13px] leading-5 text-lien-blue no-underline hover:bg-lien-blue hover:text-white"
             >
               <Fa name={ICONS[s.key]} />
-              {s.title}
+              {secTitle(s)}
             </a>
           ))}
         </nav>
@@ -78,7 +88,7 @@ export function ProductDescription({ name, description, className }: Props) {
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-lien-blue text-[13px] text-white">
                 <Fa name={ICONS[s.key]} />
               </span>
-              {s.title}
+              {secTitle(s)}
             </h3>
             <div className="lien-prose product-description__body px-4 py-3" dangerouslySetInnerHTML={{ __html: s.html }} />
           </section>

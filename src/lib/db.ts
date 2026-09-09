@@ -31,7 +31,7 @@ import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from ".
 
 /** Synchronous category list for use inside transactions. */
 function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
-  return (db.prepare("SELECT slug, name, description, image, parent_slug, 0 AS count FROM categories").all() as unknown as CategoryRow[]).map(rowToCategory);
+  return (db.prepare("SELECT slug, name, description, image, parent_slug, name_ja, 0 AS count FROM categories").all() as unknown as CategoryRow[]).map(rowToCategory);
 }
 
 /**
@@ -54,6 +54,9 @@ interface ProductRow {
   dims_cm: string | null;
   dims_confidence: string | null;
   dims_source: string | null;
+  name_ja: string | null;
+  short_description_ja: string | null;
+  description_ja: string | null;
   currency: string;
   sku: string | null;
   stock: number | null;
@@ -99,6 +102,9 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     dimsCm: r.dims_cm ?? null,
     dimsConfidence: isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null,
     dimsSource: r.dims_source ?? "",
+    nameJa: r.name_ja ?? "",
+    shortDescriptionJa: r.short_description_ja ?? "",
+    descriptionJa: r.description_ja ?? "",
     currency: r.currency,
     sku: r.sku,
     stock: r.stock,
@@ -125,14 +131,15 @@ interface CategoryRow {
   image: string | null;
   parent_slug: string | null;
   count: number;
+  name_ja?: string | null;
 }
 
-const CATEGORY_SELECT = `SELECT c.slug, c.name, c.description, c.image, c.parent_slug,
+const CATEGORY_SELECT = `SELECT c.slug, c.name, c.description, c.image, c.parent_slug, c.name_ja,
   (SELECT COUNT(*) FROM product_categories pc JOIN products p ON p.id = pc.product_id
     WHERE pc.category_slug = c.slug AND p.status = 'publish') AS count
   FROM categories c`;
 
-const rowToCategory = (r: CategoryRow): ShopCategory => ({ slug: r.slug, name: r.name, description: r.description, image: r.image, count: r.count, parentSlug: r.parent_slug ?? null });
+const rowToCategory = (r: CategoryRow): ShopCategory => ({ slug: r.slug, name: r.name, description: r.description, image: r.image, count: r.count, parentSlug: r.parent_slug ?? null, nameJa: r.name_ja ?? "" });
 
 interface OrderRow {
   id: string;
@@ -345,7 +352,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?,
-        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?
+        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?, name_ja = ?, short_description_ja = ?, description_ja = ?
         WHERE id = ?`).run(
         input.slug,
         input.name,
@@ -372,13 +379,16 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.dimsCm,
         input.dimsConfidence,
         input.dimsSource,
+        input.nameJa,
+        input.shortDescriptionJa,
+        input.descriptionJa,
         id,
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
       const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb,
-        short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
@@ -438,6 +448,7 @@ export interface CategoryInput {
   description: string;
   image: string | null;
   parentSlug?: string | null;
+  nameJa?: string;
   /** Slug of the category being edited (omit when creating). */
   originalSlug?: string;
 }
@@ -460,24 +471,26 @@ export async function saveCategory(input: CategoryInput): Promise<ShopCategory> 
       if (input.slug !== cat.slug) db.prepare("UPDATE categories SET parent_slug = ? WHERE parent_slug = ?").run(input.slug, cat.slug);
       const parent = input.parentSlug && input.parentSlug !== input.slug ? input.parentSlug : null;
       if (parent && descendantSlugs(await0(db), input.slug).includes(parent)) throw new Error("Không thể đặt danh mục cha là danh mục con của chính nó.");
-      db.prepare("UPDATE categories SET slug = ?, name = ?, description = ?, image = ?, parent_slug = ? WHERE slug = ?").run(
+      db.prepare("UPDATE categories SET slug = ?, name = ?, description = ?, image = ?, parent_slug = ?, name_ja = COALESCE(?, name_ja) WHERE slug = ?").run(
         input.slug,
         input.name,
         input.description,
         input.image,
         parent,
+        input.nameJa ?? null,
         cat.slug,
       );
     } else {
       if (db.prepare("SELECT 1 FROM categories WHERE slug = ?").get(input.slug)) throw new Error("Đường dẫn đã tồn tại.");
       const next = (db.prepare("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM categories").get() as { n: number }).n;
-      db.prepare("INSERT INTO categories (slug, name, description, image, sort_order, parent_slug) VALUES (?, ?, ?, ?, ?, ?)").run(
+      db.prepare("INSERT INTO categories (slug, name, description, image, sort_order, parent_slug, name_ja) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
         input.slug,
         input.name,
         input.description,
         input.image,
         next,
         input.parentSlug && input.parentSlug !== input.slug ? input.parentSlug : null,
+        input.nameJa ?? "",
       );
     }
     const row = db.prepare(`${CATEGORY_SELECT} WHERE c.slug = ?`).get(input.slug) as unknown as CategoryRow;
@@ -1590,6 +1603,9 @@ export async function exportCatalogue() {
     dimsCm: p.dimsCm,
     dimsConfidence: p.dimsConfidence,
     dimsSource: p.dimsSource,
+    nameJa: p.nameJa,
+    shortDescriptionJa: p.shortDescriptionJa,
+    descriptionJa: p.descriptionJa,
     currency: p.currency,
     sku: p.sku,
     stock: p.stock,
@@ -1607,7 +1623,7 @@ export async function exportCatalogue() {
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   }));
-  const categories = (db.prepare("SELECT slug, name, description, image, parent_slug AS parent FROM categories ORDER BY sort_order, slug").all() as unknown as Array<{ slug: string; name: string; description: string; image: string | null; parent: string | null }>);
+  const categories = (db.prepare("SELECT slug, name, description, image, parent_slug AS parent, name_ja AS nameJa FROM categories ORDER BY sort_order, slug").all() as unknown as Array<{ slug: string; name: string; description: string; image: string | null; parent: string | null; nameJa: string }>);
   const pages = db.prepare("SELECT slug, title, content, date FROM pages ORDER BY date").all();
   const posts = db.prepare("SELECT slug, title, content, excerpt, date FROM posts ORDER BY date DESC").all();
   return {

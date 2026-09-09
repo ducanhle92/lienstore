@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+
 import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/sites/lienstore/shop/AddToCartButton";
@@ -9,6 +11,7 @@ import { Price, shopTableClass, shopTdClass, shopTdResponsiveClass, shopThClass,
 
 /** YITH-style wishlist table (`/wishlist/`). */
 export function WishlistPage() {
+  const { t } = useLang();
   const { wishlist, hydrated, removeFromWishlist } = useCart();
 
   if (!hydrated) return <div className="min-h-[200px]" aria-busy="true" />;
@@ -16,10 +19,10 @@ export function WishlistPage() {
   if (wishlist.length === 0) {
     return (
       <div className="woocommerce">
-        <WooNotice kind="info">Chưa có sản phẩm nào trong danh sách yêu thích.</WooNotice>
+        <WooNotice kind="info">{t("wishlistEmpty")}</WooNotice>
         <p>
           <Link href="/shop/" className={wooButtonClass}>
-            Quay trở lại cửa hàng
+            {t("backToShop")}
           </Link>
         </p>
       </div>
@@ -31,22 +34,22 @@ export function WishlistPage() {
       <thead className="hidden sm:table-header-group">
         <tr>
           <th className={cn(shopThClass, "w-12")} scope="col">
-            <span className="sr-only">Xoá</span>
+            <span className="sr-only">{t("remove")}</span>
           </th>
           <th className={cn(shopThClass, "w-[104px]")} scope="col">
-            <span className="sr-only">Ảnh</span>
+            <span className="sr-only">{t("image")}</span>
           </th>
           <th className={shopThClass} scope="col">
-            Tên sản phẩm
+            {t("productName")}
           </th>
           <th className={shopThClass} scope="col">
-            Đơn giá
+            {t("unitPrice")}
           </th>
           <th className={shopThClass} scope="col">
-            Tình trạng
+            {t("stockStatus")}
           </th>
           <th className={shopThClass} scope="col">
-            <span className="sr-only">Thêm vào giỏ</span>
+            <span className="sr-only">{t("addToCart")}</span>
           </th>
         </tr>
       </thead>
@@ -77,7 +80,7 @@ export function WishlistPage() {
               <Price value={p.price} />
             </td>
             <td className={cn(shopTdClass, shopTdResponsiveClass, "text-[#77a464]")} data-title="Tình trạng">
-              Còn hàng
+              {t("inStock")}
             </td>
             <td className={cn(shopTdClass, "block text-right sm:table-cell")}>
               <AddToCartButton product={p} variant="square" showViewCart={false} />

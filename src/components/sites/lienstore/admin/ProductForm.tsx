@@ -52,6 +52,12 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                 <FieldError msg={fields.name} />
               </div>
               <div>
+                <label className={adminLabel} htmlFor="nameJa">
+                  Tên tiếng Nhật <span className="font-normal text-lien-muted">(hiện khi khách chọn 日本語)</span>
+                </label>
+                <input id="nameJa" name="nameJa" defaultValue={product?.nameJa} placeholder="VD: 雪肌精 クリアウェルネス 140g" className={adminInput} />
+              </div>
+              <div>
                 <label className={adminLabel} htmlFor="slug">
                   Đường dẫn (slug)
                 </label>
@@ -69,6 +75,18 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                   Mô tả chi tiết (HTML)
                 </label>
                 <textarea id="description" name="description" rows={14} defaultValue={product?.description} className={cn(adminInput, "font-mono text-[13px]")} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="shortDescriptionJa">
+                  Mô tả ngắn tiếng Nhật
+                </label>
+                <textarea id="shortDescriptionJa" name="shortDescriptionJa" rows={2} defaultValue={product?.shortDescriptionJa} className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="descriptionJa">
+                  Mô tả chi tiết tiếng Nhật (HTML) <span className="font-normal text-lien-muted">— lấy từ trang bán hàng Nhật; để trống thì hiện bản tiếng Việt</span>
+                </label>
+                <textarea id="descriptionJa" name="descriptionJa" rows={8} defaultValue={product?.descriptionJa} className={cn(adminInput, "font-mono text-[13px]")} />
               </div>
             </div>
           </Card>

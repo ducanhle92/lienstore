@@ -7,6 +7,9 @@ import { NewsCards, SectionHeader2, UspStrip } from "@/components/sites/lienstor
 import { CategoryCarousel } from "@/components/sites/lienstore/ui2/CategoryCarousel";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { buildCategoryTree, shortName } from "@/lib/categories";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
+import { localizeProducts } from "@/lib/localize";
 import { getPosts, queryProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +18,8 @@ export const dynamic = "force-dynamic";
 const CATEGORY_ROWS = 6;
 
 export default async function Home() {
-  const categories = await getHeaderCategories();
+  const lang = await getLang();
+  const categories = await getHeaderCategories(lang);
   const [fresh, popular, sale, posts] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),
     queryProducts({ orderby: "rating", perPage: 12 }),
@@ -28,7 +32,7 @@ export default async function Home() {
     .slice(0, CATEGORY_ROWS)
     .map((n) => ({ ...n.category, count: n.total }));
   const rows = await Promise.all(
-    topCategories.map(async (c) => ({ cat: c, products: (await queryProducts({ category: c.slug, orderby: "date", perPage: 6 })).items })),
+    topCategories.map(async (c) => ({ cat: c, products: localizeProducts((await queryProducts({ category: c.slug, orderby: "date", perPage: 6 })).items, lang) })),
   );
 
   return (
@@ -40,18 +44,18 @@ export default async function Home() {
 
         {onSale.length >= 3 ? (
           <section className="mt-10" aria-label="Giảm giá">
-            <SectionHeader2 title="Giảm giá đặc biệt" icon="fire" tone="sale" href="/shop/?orderby=popularity" />
+            <SectionHeader2 title={t(lang, "saleTitle")} icon="fire" tone="sale" href="/shop/?orderby=popularity" />
             <ShopProductGrid products={onSale} cols={6} />
           </section>
         ) : null}
 
         <section className="mt-10" aria-label="Sản phẩm mới">
-          <SectionHeader2 title="Hàng mới về" icon="bolt" href="/shop/?orderby=date" />
+          <SectionHeader2 title={t(lang, "newTitle")} icon="bolt" href="/shop/?orderby=date" />
           <ShopProductGrid products={fresh.items} cols={6} />
         </section>
 
         <section className="mt-10" aria-label="Bán chạy">
-          <SectionHeader2 title="Bán chạy nhất" icon="star" href="/shop/?orderby=rating" />
+          <SectionHeader2 title={t(lang, "bestTitle")} icon="star" href="/shop/?orderby=rating" />
           <ShopProductGrid products={popular.items.slice(0, 6)} cols={6} />
         </section>
 
@@ -59,15 +63,15 @@ export default async function Home() {
           <Link href="/my-account/" className="flex items-center gap-4 rounded-md bg-lien-blue p-5 text-white no-underline hover:bg-lien-blue-hover">
             <Fa name="gift" className="text-[34px]" />
             <span>
-              <span className="block text-[16px] font-bold uppercase">Đăng kí tài khoản</span>
-              <span className="block text-[13px] opacity-90">Lưu địa chỉ, theo dõi đơn và nhận bill mua hàng tại Nhật ngay trong tài khoản.</span>
+              <span className="block text-[16px] font-bold uppercase">{t(lang, "regTileTitle")}</span>
+              <span className="block text-[13px] opacity-90">{t(lang, "regTileText")}</span>
             </span>
           </Link>
           <a href="https://zalo.me/0964839769" target="_blank" rel="noreferrer" className="flex items-center gap-4 rounded-md bg-lien-heading p-5 text-white no-underline hover:opacity-90">
             <Fa name="comments-o" className="text-[34px]" />
             <span>
-              <span className="block text-[16px] font-bold uppercase">Cần mua hộ hàng Nhật?</span>
-              <span className="block text-[13px] opacity-90">Gửi link sản phẩm qua Zalo 0964 839 769, LienStore báo giá trong ngày.</span>
+              <span className="block text-[16px] font-bold uppercase">{t(lang, "zaloTileTitle")}</span>
+              <span className="block text-[13px] opacity-90">{t(lang, "zaloTileText")}</span>
             </span>
           </a>
         </div>
@@ -79,7 +83,7 @@ export default async function Home() {
               <ShopProductGrid products={products} cols={6} />
               <p className="mt-3 text-center">
                 <Link href={`/product-category/${cat.slug}/`} className="inline-flex items-center gap-1 rounded-full border border-lien-blue px-5 py-2 text-[13px] font-semibold text-lien-blue no-underline hover:bg-lien-blue hover:text-white">
-                  Xem tất cả {cat.count} sản phẩm <Fa name="angle-right" />
+                  {t(lang, "viewAllPrefix")} {cat.count} {t(lang, "productsUnit")} <Fa name="angle-right" />
                 </Link>
               </p>
             </section>

@@ -24,6 +24,7 @@ HEADERS = [
     ("Hết hàng (x)", 10), ("Trạng thái", 12), ("Từ khóa (cách nhau bằng ,)", 32),
     ("Ảnh (URL hoặc /sites/..., mỗi ảnh một dòng)", 60), ("Mô tả ngắn (HTML)", 60), ("Mô tả chi tiết (HTML)", 80), ("Ghi chú", 30), ("Link nhà cung cấp", 50),
     ("Khối lượng (g)", 12), ("Kích thước (cm, DxRxC)", 16), ("Độ tin cậy KT (Cao/Trung bình/Thấp)", 14), ("Nguồn KT", 30),
+    ("Tên tiếng Nhật", 36), ("Mô tả ngắn tiếng Nhật", 40), ("Mô tả tiếng Nhật (HTML)", 60),
 ]
 CONF = {"high": "Cao", "medium": "Trung bình", "low": "Thấp"}
 STATUS = {"publish": "Đang bán", "draft": "Bản nháp"}
@@ -49,6 +50,7 @@ for r, p in enumerate(sorted(seed["products"], key=lambda x: x["id"]), 2):
         "x" if p.get("stockStatus") == "outofstock" else None, STATUS.get(p.get("status"), "Bản nháp"),
         ", ".join(p.get("tags", [])), "\n".join(p.get("images", [])), p.get("shortDescription", ""), p.get("description", ""), None, p.get("supplierUrl"),
         p.get("weightG"), p.get("dimsCm"), CONF.get(p.get("dimsConfidence") or "", None), p.get("dimsSource") or None,
+        p.get("nameJa") or None, p.get("shortDescriptionJa") or None, p.get("descriptionJa") or None,
     ]
     for cidx, v in enumerate(row, 1):
         cell = ws.cell(row=r, column=cidx, value=v)

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
@@ -90,8 +91,8 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
         </Link>
         <div className="pointer-events-none absolute top-2 right-2 flex flex-col items-end gap-1">
           {pct ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white">-{pct}%</span> : null}
-          {fresh && !out ? <span className="rounded bg-lien-info px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white">Mới</span> : null}
-          {out ? <span className="rounded bg-lien-muted px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white">Hết hàng</span> : null}
+          {fresh && !out ? <span className="rounded bg-lien-info px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="isNew" /></span> : null}
+          {out ? <span className="rounded bg-lien-muted px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="outOfStock" /></span> : null}
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[14px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white" />

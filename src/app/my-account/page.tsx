@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { customerLogout, customerSendMessageAction } from "@/app/my-account/actions";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tài khoản – LienStore" };
 
 type Tab = "dashboard" | "orders" | "address" | "details";
+const TAB_JA: Record<Tab, "dashboard" | "orders" | "addressTab" | "accountDetails"> = { dashboard: "dashboard", orders: "orders", address: "addressTab", details: "accountDetails" };
 const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Bảng điều khiển" },
   { key: "orders", label: "Đơn hàng" },
@@ -30,27 +33,28 @@ interface Props {
 }
 
 export default async function MyAccount({ searchParams }: Props) {
+  const lang = await getLang();
   const customer = await getCurrentCustomer();
   const sp = await searchParams;
   const tabRaw = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
-  const tab: Tab = TABS.some((t) => t.key === tabRaw) ? (tabRaw as Tab) : "dashboard";
+  const tab: Tab = TABS.some((x) => x.key === tabRaw) ? (tabRaw as Tab) : "dashboard";
   const viewId = Array.isArray(sp.view) ? sp.view[0] : sp.view;
 
   return (
     <SiteChrome>
-      <TwoColumnShell sidebar={<StoreSidebar />} title="Tài khoản">
+      <TwoColumnShell sidebar={<StoreSidebar />} title={t(lang, "accountTitle")}>
         <article className="entry-content">
           {customer ? (
             <div className="woocommerce sm:flex sm:gap-8">
               <nav className="woocommerce-MyAccount-navigation mb-6 sm:w-[30%]" aria-label="Tài khoản">
                 <ul className="m-0 list-none border-t border-lien-line p-0">
-                  {TABS.map((t) => (
-                    <li key={t.key} className="border-b border-lien-line">
+                  {TABS.map((tab0) => (
+                    <li key={tab0.key} className="border-b border-lien-line">
                       <Link
-                        href={t.key === "dashboard" ? "/my-account/" : `/my-account/?tab=${t.key}`}
-                        className={cn("block px-1 py-2.5 text-[16px] no-underline", tab === t.key ? "font-bold text-lien-blue" : "text-lien-muted hover:text-lien-blue")}
+                        href={tab0.key === "dashboard" ? "/my-account/" : `/my-account/?tab=${tab0.key}`}
+                        className={cn("block px-1 py-2.5 text-[16px] no-underline", tab === tab0.key ? "font-bold text-lien-blue" : "text-lien-muted hover:text-lien-blue")}
                       >
-                        {t.label}
+                        {lang === "ja" ? t(lang, TAB_JA[tab0.key]) : tab0.label}
                       </Link>
                     </li>
                   ))}

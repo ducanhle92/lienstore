@@ -1,4 +1,8 @@
+"use client";
+
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { formatDateTime } from "@/lib/format";
+import type { I18nKey } from "@/lib/i18n";
 import { SHIP_STAGES, stageIndex } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/types/shop";
@@ -8,6 +12,8 @@ import type { Order } from "@/types/shop";
  * dates from the stage log underneath. Server-renderable (no state).
  */
 export function OrderTracker({ order, className, compact = false }: { order: Pick<Order, "shipStage" | "stageLog" | "status">; className?: string; compact?: boolean }) {
+  const { lang, t } = useLang();
+  const label = (key: string, fallback: string) => (lang === "ja" ? t(`stage_${key}` as I18nKey) : fallback);
   const cur = stageIndex(order.shipStage);
   const cancelled = order.status === "cancelled";
   const reachedAt = (key: string) => order.stageLog.filter((l) => l.stage === key).at(-1)?.at;
@@ -37,7 +43,7 @@ export function OrderTracker({ order, className, compact = false }: { order: Pic
               </span>
               <span className={cn("mt-2 text-[11px] leading-4 sm:text-[12px]", current ? "font-bold text-lien-heart" : done ? "font-semibold text-lien-heading" : "text-lien-muted", compact && "hidden sm:block")}>
                 <span className="sm:hidden">{s.short}</span>
-                <span className="hidden sm:inline">{s.label}</span>
+                <span className="hidden sm:inline">{label(s.key, s.label)}</span>
               </span>
               {at && done && !compact ? <span className="mt-0.5 hidden text-[10px] leading-4 text-lien-muted md:block">{formatDateTime(at)}</span> : null}
             </li>
@@ -46,7 +52,7 @@ export function OrderTracker({ order, className, compact = false }: { order: Pic
       </ol>
       {!compact ? (
         <p className="m-0 mt-3 text-center text-[13px] leading-5 text-lien-text">
-          <strong className={cancelled ? "text-[#842029]" : "text-lien-heart"}>{cancelled ? "Đã huỷ" : SHIP_STAGES[cur].label}</strong>
+          <strong className={cancelled ? "text-[#842029]" : "text-lien-heart"}>{cancelled ? (lang === "ja" ? "キャンセル済み" : "Đã huỷ") : label(SHIP_STAGES[cur].key, SHIP_STAGES[cur].label)}</strong>
           {!cancelled ? <span className="text-lien-muted"> · {SHIP_STAGES[cur].hint}</span> : null}
           {note ? <span className="block text-lien-muted">Ghi chú: {note}</span> : null}
         </p>

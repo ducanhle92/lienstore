@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang-server";
 import { CheckoutForm, type CheckoutZone } from "@/components/sites/lienstore/shop/cart/CheckoutForm";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
@@ -10,6 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Thanh toán – LienStore" };
 
 export default async function Checkout() {
+  const lang = await getLang();
   const [customer, methods, pickupAddress, products, mode, jpyRate] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts(), getShippingPricingMode(), getJpyRate()]);
   const quote = buildQuoteConfig(methods, mode, jpyRate);
   // Domestic delivery options = zones of the active "VN domestic" methods.
@@ -27,7 +30,7 @@ export default async function Checkout() {
   for (const p of products) weights[p.id] = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);
   return (
     <SiteChrome>
-      <TwoColumnShell sidebar={<StoreSidebar />} title="Thanh toán">
+      <TwoColumnShell sidebar={<StoreSidebar />} title={t(lang, "checkoutTitle")}>
         <article className="entry-content">
           <CheckoutForm
             loggedIn={!!customer}
