@@ -36,7 +36,7 @@ export function UserFields({ user, isSelf = false }: Props) {
           <label className={adminLabel} htmlFor="email">
             Email {role === "customer" ? "*" : "(tuỳ chọn)"}
           </label>
-          <input id="email" name="email" type="email" required={role === "customer"} defaultValue={user && !user.email.endsWith("@no-email.lienstore.local") ? user.email : ""} autoComplete="off" className={adminInput} />
+          <input id="email" name="email" type="email" defaultValue={user && !user.email.endsWith("@no-email.lienstore.local") ? user.email : ""} autoComplete="off" className={adminInput} />
         </div>
         <div>
           <label className={adminLabel} htmlFor="password">

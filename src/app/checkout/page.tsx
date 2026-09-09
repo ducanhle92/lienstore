@@ -3,7 +3,7 @@ import { CheckoutForm, type CheckoutZone } from "@/components/sites/lienstore/sh
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { getAllProducts, getPickupAddress, getShippingMethods } from "@/lib/db";
+import { displayEmail, getAllProducts, getPickupAddress, getShippingMethods } from "@/lib/db";
 import { chargeableWeightG } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ export default async function Checkout() {
             weights={weights}
             defaults={
               customer
-                ? { firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: customer.email }
+                ? { firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: displayEmail(customer.email) }
                 : undefined
             }
           />

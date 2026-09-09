@@ -84,6 +84,10 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
   const [delivery, setDelivery] = useState<"ship" | "pickup">(zones.length ? "ship" : "pickup");
   const [zoneId, setZoneId] = useState<number | "">(zones[0]?.id ?? "");
   const [createAccount, setCreateAccount] = useState(false);
+  const [voucherInput, setVoucherInput] = useState("");
+  const [voucher, setVoucher] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [voucherMsg, setVoucherMsg] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const preorder = useMemo(() => items.filter((it) => preorderIds.includes(it.productId)), [items, preorderIds]);
   const mustPrepay = preorder.length > 0;
@@ -95,7 +99,29 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
   const kg = billableKg(totalWeightG || 1000);
   const zoneBase = (z: CheckoutZone) => z.fee * (/kg/i.test(z.unit) ? kg : 1);
   const shippingFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
-  const total = subtotal + shippingFee;
+  const discount = voucher ? Math.min(voucher.discount, subtotal) : 0;
+  const total = Math.max(0, subtotal - discount) + shippingFee;
+
+  const applyVoucher = async () => {
+    const code = voucherInput.trim();
+    if (!code) return;
+    setChecking(true);
+    setVoucherMsg(null);
+    try {
+      const r = (await fetch(`/api/voucher/?code=${encodeURIComponent(code)}&subtotal=${subtotal}`).then((x) => x.json())) as { ok: boolean; code?: string; discount?: number; label?: string; message?: string };
+      if (r.ok && r.code) {
+        setVoucher({ code: r.code, discount: r.discount ?? 0, label: r.label ?? "" });
+        setVoucherMsg(`Đã áp dụng mã ${r.code} (${r.label}).`);
+      } else {
+        setVoucher(null);
+        setVoucherMsg(r.message ?? "Mã không hợp lệ.");
+      }
+    } catch {
+      setVoucherMsg("Không kiểm tra được mã, thử lại.");
+    } finally {
+      setChecking(false);
+    }
+  };
 
   if (!hydrated) return <div className="min-h-[240px]" aria-busy="true" />;
 
@@ -143,6 +169,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
         <input type="hidden" name="items" value={JSON.stringify(items)} readOnly />
         <input type="hidden" name="delivery" value={delivery} readOnly />
         <input type="hidden" name="payment_method" value={payment} readOnly />
+        <input type="hidden" name="voucher_code" value={voucher?.code ?? ""} readOnly />
 
         <div id="customer_details" className="col2-set sm:flex sm:justify-between">
           <div className="col-1 w-full sm:w-[48%]">
@@ -152,7 +179,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                 <Field name="first_name" label="Tên" autoComplete="given-name" error={fields.first_name} half defaultValue={defaults.firstName} />
                 <Field name="last_name" label="Họ" autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
                 <Field name="phone" label="Số điện thoại" type="tel" autoComplete="tel" error={fields.phone} defaultValue={defaults.phone} />
-                <Field name="email" label="Địa chỉ email" type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} />
+                <Field name="email" label="Địa chỉ email (không bắt buộc)" type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
                 <Field name="address" label="Địa chỉ nhận hàng" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" autoComplete="street-address" error={fields.address} defaultValue={defaults.address} required={delivery === "ship"} />
               </div>
             </div>
@@ -266,6 +293,19 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                   <Price value={subtotal} />
                 </td>
               </tr>
+              {voucher ? (
+                <tr className="discount">
+                  <th className={cn(shopTdClass, "font-bold")} scope="row">
+                    Giảm giá <span className="font-normal text-lien-muted">({voucher.code})</span>
+                  </th>
+                  <td className={cn(shopTdClass, "text-lien-success")}>
+                    −<Price value={discount} />{" "}
+                    <button type="button" onClick={() => { setVoucher(null); setVoucherMsg(null); }} className="ml-2 text-[12px] text-lien-muted underline hover:text-lien-heart">
+                      bỏ mã
+                    </button>
+                  </td>
+                </tr>
+              ) : null}
               <tr className="shipping">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   Giao hàng
@@ -284,6 +324,31 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
               </tr>
             </tfoot>
           </table>
+
+          <div className="mb-6 rounded-md border border-dashed border-lien-line bg-white p-4">
+            <label htmlFor="voucher_input" className="mb-2 block text-[14px] font-semibold text-lien-heading">
+              <Fa name="gift" className="mr-1 text-lien-blue" /> Mã giảm giá / voucher
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="voucher_input"
+                value={voucherInput}
+                onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void applyVoucher();
+                  }
+                }}
+                placeholder="Nhập mã…"
+                className={cn(wooInputClass, "!mb-0 flex-1 uppercase")}
+              />
+              <button type="button" onClick={() => void applyVoucher()} disabled={checking || !voucherInput.trim()} className={cn(wooButtonClass, "whitespace-nowrap disabled:opacity-60")}>
+                {checking ? "Đang kiểm tra…" : "Áp dụng"}
+              </button>
+            </div>
+            {voucherMsg ? <p className={cn("m-0 mt-2 text-[13px]", voucher ? "text-lien-success" : "text-[#b81c23]")}>{voucherMsg}</p> : null}
+          </div>
 
           {mustPrepay ? (
             <WooNotice kind="info">

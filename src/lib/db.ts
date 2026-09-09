@@ -14,6 +14,7 @@ import type {
   ProductQueryResult,
   ShopCategory,
   OrderLeg,
+  Voucher,
   ShippingCarrier,
   ShippingMethod,
   ShippingZone,
@@ -22,7 +23,9 @@ import type {
   UserRole,
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
+import { NO_EMAIL_DOMAIN } from "./customer-email";
 import { billableKg, chargeableWeightG } from "./shipping";
+import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
 /** Synchronous category list for use inside transactions. */
@@ -146,6 +149,8 @@ interface OrderRow {
   shipping_label: string | null;
   delivery: string | null;
   prepaid_required: number | null;
+  discount: number | null;
+  voucher_code: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -188,6 +193,8 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     shippingLabel: r.shipping_label ?? "",
     delivery: r.delivery === "pickup" ? "pickup" : "ship",
     prepaidRequired: (r.prepaid_required ?? 0) === 1,
+    discount: r.discount ?? 0,
+    voucherCode: r.voucher_code ?? "",
     total: r.total,
     currency: r.currency,
     adminNote: r.admin_note ?? "",
@@ -496,6 +503,8 @@ export interface CreateOrderInput {
   delivery?: "ship" | "pickup";
   /** shipping_zones.id of a VN-domestic method (required for "ship" when zones exist). */
   shippingZoneId?: number | null;
+  /** Discount code typed at checkout; validated again here. */
+  voucherCode?: string;
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
@@ -546,13 +555,23 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
         shippingLabel = "Giao tận nhà (phí báo sau)";
       }
     }
-    const total = subtotal + shippingFee;
+    // Voucher (validated against the live table inside the same transaction; usage counted here).
+    let discount = 0;
+    let voucherCode = "";
+    if (input.voucherCode?.trim()) {
+      const check = checkVoucher(db, input.voucherCode, subtotal);
+      if (!check.ok) throw new Error(check.message);
+      discount = check.discount;
+      voucherCode = check.voucher.code;
+      db.prepare("UPDATE vouchers SET used_count = used_count + 1, updated_at = ? WHERE id = ?").run(now, check.voucher.id);
+    }
+    const total = Math.max(0, subtotal - discount) + shippingFee;
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
     const id = randomUUID();
     const c = input.customer;
     db.prepare(`INSERT INTO orders (id, number, customer_id, status, payment_method, first_name, last_name, address, phone, email, note,
-      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?)`).run(
+      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
       number,
       input.customerId ?? null,
@@ -571,6 +590,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       shippingLabel,
       delivery,
       prepaidRequired ? 1 : 0,
+      discount,
+      voucherCode,
     );
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
     const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?),
@@ -595,6 +616,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       shippingLabel,
       delivery,
       prepaidRequired,
+      discount,
+      voucherCode,
       total,
       currency: "VNĐ",
       adminNote: "",
@@ -641,10 +664,11 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
 /** Admin override of what the customer pays for delivery; total is recomputed. */
 export async function updateOrderShipping(id: string, patch: { fee: number; label: string; delivery: "ship" | "pickup" }): Promise<boolean> {
   const db = getDb();
-  const row = db.prepare("SELECT subtotal FROM orders WHERE id = ?").get(id) as { subtotal: number } | undefined;
+  const row = db.prepare("SELECT subtotal, discount FROM orders WHERE id = ?").get(id) as { subtotal: number; discount: number | null } | undefined;
   if (!row) return false;
   const fee = Math.max(0, Math.round(patch.fee));
-  db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, updated_at = ? WHERE id = ?").run(fee, patch.label, patch.delivery, row.subtotal + fee, new Date().toISOString(), id);
+  const total = Math.max(0, row.subtotal - (row.discount ?? 0)) + fee;
+  db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, updated_at = ? WHERE id = ?").run(fee, patch.label, patch.delivery, total, new Date().toISOString(), id);
   return true;
 }
 
@@ -698,6 +722,97 @@ export async function saveOrderLeg(input: Omit<OrderLeg, "updatedAt">): Promise<
        ON CONFLICT(order_id, leg) DO UPDATE SET method_id = excluded.method_id, zone_id = excluded.zone_id, label = excluded.label, fee = excluded.fee, tracking = excluded.tracking, note = excluded.note, updated_at = excluded.updated_at`,
     )
     .run(input.orderId, input.leg, input.methodId, input.zoneId, input.label, Math.max(0, Math.round(input.fee)), input.tracking, input.note, new Date().toISOString());
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Vouchers & product sale prices (Admin › Sales)
+
+interface VoucherRow {
+  id: number;
+  code: string;
+  kind: string;
+  value: number;
+  min_subtotal: number;
+  max_discount: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  usage_limit: number | null;
+  used_count: number;
+  active: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+const rowToVoucher = (r: VoucherRow): Voucher => ({
+  id: r.id,
+  code: r.code,
+  kind: r.kind === "fixed" ? "fixed" : "percent",
+  value: r.value,
+  minSubtotal: r.min_subtotal,
+  maxDiscount: r.max_discount,
+  startsAt: r.starts_at,
+  endsAt: r.ends_at,
+  usageLimit: r.usage_limit,
+  usedCount: r.used_count,
+  active: r.active === 1,
+  note: r.note,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export async function getVouchers(): Promise<Voucher[]> {
+  return (getDb().prepare("SELECT * FROM vouchers ORDER BY active DESC, created_at DESC").all() as unknown as VoucherRow[]).map(rowToVoucher);
+}
+
+export async function saveVoucher(input: Omit<Voucher, "id" | "usedCount" | "createdAt" | "updatedAt"> & { id?: number }): Promise<number> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const code = input.code.trim().toUpperCase();
+  if (!code) throw new Error("Cần mã voucher.");
+  const dup = db.prepare("SELECT id FROM vouchers WHERE code = ? COLLATE NOCASE").get(code) as { id: number } | undefined;
+  if (dup && dup.id !== input.id) throw new Error(`Mã "${code}" đã tồn tại.`);
+  const params = [code, input.kind, Math.max(0, Math.round(input.value)), Math.max(0, Math.round(input.minSubtotal)), input.maxDiscount, input.startsAt, input.endsAt, input.usageLimit, input.active ? 1 : 0, input.note, now];
+  if (input.id) {
+    db.prepare("UPDATE vouchers SET code = ?, kind = ?, value = ?, min_subtotal = ?, max_discount = ?, starts_at = ?, ends_at = ?, usage_limit = ?, active = ?, note = ?, updated_at = ? WHERE id = ?").run(...params, input.id);
+    return input.id;
+  }
+  const r = db.prepare("INSERT INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(...params, now);
+  return Number(r.lastInsertRowid);
+}
+
+export async function deleteVoucher(id: number): Promise<void> {
+  getDb().prepare("DELETE FROM vouchers WHERE id = ?").run(id);
+}
+
+export type VoucherCheck = { ok: true; voucher: Voucher; discount: number } | { ok: false; message: string };
+
+/** Validate a code against a subtotal (active, window, usage limit, minimum) and compute the discount. */
+function checkVoucher(db: DatabaseSync, codeRaw: string, subtotal: number): VoucherCheck {
+  const code = codeRaw.trim();
+  const row = db.prepare("SELECT * FROM vouchers WHERE code = ? COLLATE NOCASE").get(code) as VoucherRow | undefined;
+  if (!row) return { ok: false, message: "Mã giảm giá không tồn tại." };
+  const v = rowToVoucher(row);
+  const now = new Date().toISOString();
+  if (!v.active) return { ok: false, message: "Mã giảm giá đã tắt." };
+  if (v.startsAt && now < v.startsAt) return { ok: false, message: "Mã giảm giá chưa tới ngày áp dụng." };
+  if (v.endsAt && now > v.endsAt) return { ok: false, message: "Mã giảm giá đã hết hạn." };
+  if (v.usageLimit !== null && v.usedCount >= v.usageLimit) return { ok: false, message: "Mã giảm giá đã hết lượt dùng." };
+  if (subtotal < v.minSubtotal) return { ok: false, message: `Đơn tối thiểu ${v.minSubtotal.toLocaleString("vi-VN")}đ để dùng mã này.` };
+  let discount = v.kind === "percent" ? Math.round((subtotal * v.value) / 100) : v.value;
+  if (v.maxDiscount !== null) discount = Math.min(discount, v.maxDiscount);
+  discount = Math.min(discount, subtotal);
+  if (discount <= 0) return { ok: false, message: "Mã giảm giá không áp dụng cho đơn này." };
+  return { ok: true, voucher: v, discount };
+}
+
+export async function validateVoucher(code: string, subtotal: number): Promise<VoucherCheck> {
+  return checkVoucher(getDb(), code, subtotal);
+}
+
+/** Set / clear a sale price. `regularPrice` null = no sale (price is the only price). */
+export async function updateProductPricing(id: number, price: number, regularPrice: number | null): Promise<boolean> {
+  const r = getDb().prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(Math.max(0, Math.round(price)), regularPrice === null ? null : Math.max(0, Math.round(regularPrice)), new Date().toISOString(), id);
+  return r.changes > 0;
 }
 
 export async function updateOrderAdminNote(id: string, note: string): Promise<boolean> {
@@ -899,8 +1014,7 @@ export interface CreateCustomerInput {
   username?: string;
 }
 
-/** Placeholder domain for staff accounts created without an email (they sign in with their login ID). */
-export const NO_EMAIL_DOMAIN = "no-email.lienstore.local";
+export { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 
 export async function findCustomerByLogin(login: string): Promise<Customer | null> {
   const v = login.trim();
@@ -1044,8 +1158,8 @@ export async function deleteCustomer(id: string): Promise<boolean> {
   return Number(getDb().prepare("DELETE FROM customers WHERE id = ?").run(id).changes) > 0;
 }
 
-export async function verifyCustomer(email: string, password: string): Promise<Customer | null> {
-  const c = await findCustomerByEmail(email);
+export async function verifyCustomer(login: string, password: string): Promise<Customer | null> {
+  const c = await findCustomerByLogin(login);
   if (!c || !c.active) return null;
   const a = Buffer.from(hashPassword(password, c.salt), "hex");
   const b = Buffer.from(c.passwordHash, "hex");

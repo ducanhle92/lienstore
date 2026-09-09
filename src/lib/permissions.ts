@@ -20,6 +20,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   { key: "categories", label: "Danh mục", href: "/admin/categories/", description: "Danh mục và ảnh danh mục" },
   { key: "orders", label: "Đơn hàng", href: "/admin/orders/", description: "Xem đơn, đổi trạng thái, đính kèm bill" },
   { key: "customers", label: "Khách hàng", href: "/admin/customers/", description: "Lịch sử mua của từng khách" },
+  { key: "promotions", label: "Khuyến mãi", href: "/admin/promotions/discounts/", description: "Giảm giá sản phẩm, voucher" },
   { key: "inventory", label: "Kho hàng", href: "/admin/inventory/", description: "Tồn kho, danh sách cần đặt" },
   { key: "shipping", label: "Vận chuyển", href: "/admin/shipping/", description: "Bảng phí vận chuyển" },
   { key: "users", label: "Người dùng", href: "/admin/users/", description: "Tài khoản, vai trò, quyền (chỉ admin)" },

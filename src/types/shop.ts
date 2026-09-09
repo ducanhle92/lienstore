@@ -118,6 +118,9 @@ export interface Order {
   delivery: "ship" | "pickup";
   /** True when the order contains made-to-order items (must be paid in full up front). */
   prepaidRequired: boolean;
+  /** Voucher discount taken off the subtotal (0 when none). */
+  discount: number;
+  voucherCode: string;
   total: number;
   currency: string;
   /** Internal note, admin only. */
@@ -206,6 +209,25 @@ export interface ShippingZone {
   eta: string;
   position: number;
   active: boolean;
+}
+
+/** Discount code redeemable at checkout. */
+export interface Voucher {
+  id: number;
+  code: string;
+  kind: "percent" | "fixed";
+  /** Percent (1–100) or fixed amount in VNĐ. */
+  value: number;
+  minSubtotal: number;
+  maxDiscount: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  usageLimit: number | null;
+  usedCount: number;
+  active: boolean;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Shipping arrangement of one order for one leg (internal logistics + cost tracking). */

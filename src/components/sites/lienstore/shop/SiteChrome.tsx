@@ -8,7 +8,10 @@ import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { Footer2 } from "@/components/sites/lienstore/ui2/Footer2";
 import { Header2, type HeaderCategory, type HeaderLink } from "@/components/sites/lienstore/ui2/Header2";
 import { TopBar2 } from "@/components/sites/lienstore/ui2/TopBar2";
-import { getAllProducts, getCategories } from "@/lib/db";
+import { displayEmail, getAllProducts, getCategories } from "@/lib/db";
+import { getCurrentCustomer } from "@/lib/customer-auth";
+import { getLang } from "@/lib/lang-server";
+import { LangProvider } from "@/components/sites/lienstore/shared/LangProvider";
 
 export const SUPPORT_LINKS: HeaderLink[] = [
   { label: "Hướng dẫn đặt hàng", href: "/huong-dan-dat-hang/" },
@@ -50,19 +53,22 @@ export async function getHeaderCategories(): Promise<HeaderCategory[]> {
 
 /** Header + footer + floating widgets shared by every storefront page (sesofoods-style UI v2). */
 export async function SiteChrome({ children }: { children: ReactNode }) {
-  const categories = await getHeaderCategories();
+  const [categories, me, lang] = await Promise.all([getHeaderCategories(), getCurrentCustomer(), getLang()]);
   const logo = { src: branding.logo, width: branding.logoWidth, height: branding.logoHeight, alt: branding.siteTitle };
+  const customer = me ? { firstName: me.firstName, lastName: me.lastName, username: me.username, email: displayEmail(me.email) } : null;
   return (
+    <LangProvider lang={lang}>
     <div id="page" className="relative flex min-h-screen flex-col">
-      <TopBar2 contact={contact} />
-      <Header2 logo={logo} categories={categories} supportLinks={SUPPORT_LINKS} newsLinks={NEWS_LINKS} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" />
+      <TopBar2 contact={contact} lang={lang} loggedIn={!!customer} />
+      <Header2 logo={logo} categories={categories} supportLinks={SUPPORT_LINKS} newsLinks={NEWS_LINKS} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" customer={customer} />
       <div className="flex-1">{children}</div>
-      <Footer2 logo={logo} contact={contact} categories={categories} accountLinks={ACCOUNT_LINKS} supportLinks={SUPPORT_LINKS} copyright={footerCopyright} />
+      <Footer2 logo={logo} contact={contact} categories={categories} accountLinks={ACCOUNT_LINKS} supportLinks={SUPPORT_LINKS} copyright={footerCopyright} lang={lang} />
       <CartDrawer />
       <SalesPopup />
       <FloatingWidgets contact={contact} />
       {process.env.NEXT_PUBLIC_FB_PAGE_ID ? <FacebookChat pageId={process.env.NEXT_PUBLIC_FB_PAGE_ID} /> : null}
     </div>
+    </LangProvider>
   );
 }
 

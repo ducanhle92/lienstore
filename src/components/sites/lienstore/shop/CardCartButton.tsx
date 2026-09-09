@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart, type CartProduct } from "./CartProvider";
 
@@ -10,6 +11,7 @@ import { useCart, type CartProduct } from "./CartProvider";
  * (sesofoods style). Appears on hover on pointer devices, always on touch screens. Opens the cart drawer.
  */
 export function CardCartButton({ product, disabled = false, className }: { product: CartProduct; disabled?: boolean; className?: string }) {
+  const { t } = useLang();
   const { add, openDrawer } = useCart();
   const [done, setDone] = useState(false);
 
@@ -36,13 +38,13 @@ export function CardCartButton({ product, disabled = false, className }: { produ
           disabled ? "bg-lien-muted after:border-t-lien-muted" : done ? "bg-lien-success after:border-t-lien-success" : "bg-lien-sale after:border-t-lien-sale",
         )}
       >
-        {disabled ? "Hết hàng" : done ? "Đã thêm vào giỏ" : "Thêm Vào Giỏ"}
+        {disabled ? t("outOfStock") : done ? t("added") : t("addToCart")}
       </span>
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        aria-label={disabled ? "Hết hàng" : `Thêm ${product.name} vào giỏ`}
+        aria-label={disabled ? t("outOfStock") : `${t("addToCart")}: ${product.name}`}
         className={cn(
           "flex h-12 w-12 items-center justify-center rounded-full text-[19px] text-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)] transition-transform hover:scale-105 disabled:cursor-not-allowed",
           disabled ? "bg-lien-muted" : done ? "bg-lien-success" : "bg-lien-sale",

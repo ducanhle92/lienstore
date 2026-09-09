@@ -43,9 +43,16 @@ export default async function OrderReceived({ params }: Props) {
               <li className={detail}>
                 Ngày: <strong className={value}>{formatDate(order.createdAt)}</strong>
               </li>
-              <li className={detail}>
-                Email: <strong className={value}>{order.customer.email}</strong>
-              </li>
+              {order.customer.email ? (
+                <li className={detail}>
+                  Email: <strong className={value}>{order.customer.email}</strong>
+                </li>
+              ) : null}
+              {order.discount > 0 ? (
+                <li className={detail}>
+                  Giảm giá{order.voucherCode ? ` (${order.voucherCode})` : ""}: <strong className={value}>−{formatAmount(order.discount)}đ</strong>
+                </li>
+              ) : null}
               <li className={detail}>
                 Tổng cộng:{" "}
                 <strong className={value}>

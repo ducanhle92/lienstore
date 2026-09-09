@@ -53,6 +53,16 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
             <Price value={order.subtotal} currency={order.currency} />
           </td>
         </tr>
+        {order.discount > 0 ? (
+          <tr>
+            <th className={cn(shopTdClass, "font-bold")} scope="row">
+              Giảm giá{order.voucherCode ? ` (${order.voucherCode})` : ""}:
+            </th>
+            <td className={cn(shopTdClass, "text-lien-success")}>
+              −<Price value={order.discount} currency={order.currency} />
+            </td>
+          </tr>
+        ) : null}
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
             Giao hàng{order.shippingFee > 0 && order.shippingLabel ? ` (${order.shippingLabel})` : ""}:

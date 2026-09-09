@@ -93,6 +93,14 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   </td>
                   <td className={`${tdClass} text-right`}>{formatPrice(order.subtotal, order.currency)}</td>
                 </tr>
+                {order.discount > 0 ? (
+                  <tr>
+                    <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                      Giảm giá {order.voucherCode ? <span className="font-normal text-lien-muted">({order.voucherCode})</span> : null}
+                    </td>
+                    <td className={`${tdClass} text-right text-lien-success`}>−{formatPrice(order.discount, order.currency)}</td>
+                  </tr>
+                ) : null}
                 <tr>
                   <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
                     Giao hàng {order.shippingLabel ? <span className="font-normal text-lien-muted">({order.shippingLabel})</span> : null}

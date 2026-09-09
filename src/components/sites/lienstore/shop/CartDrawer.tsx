@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart } from "./CartProvider";
 import { QuickViewButton, type QuickViewProduct } from "./QuickView";
@@ -14,6 +15,7 @@ import { QuickViewButton, type QuickViewProduct } from "./QuickView";
  * Lists items with a quantity stepper, a "Thường được mua cùng với" carousel and the subtotal + checkout CTAs.
  */
 export function CartDrawer() {
+  const { t } = useLang();
   const { drawerOpen, closeDrawer, items, update, remove, subtotal, hydrated } = useCart();
   const panel = useRef<HTMLDivElement>(null);
 
@@ -69,7 +71,7 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="px-5 py-10 text-center">
               <Fa name="shopping-basket" className="text-[42px] text-lien-line" />
-              <p className="mt-3 mb-4 text-[14px] text-lien-muted">Giỏ hàng của bạn đang trống.</p>
+              <p className="mt-3 mb-4 text-[14px] text-lien-muted">{t("cartEmpty")}</p>
               <button type="button" onClick={closeDrawer} className="inline-flex items-center justify-center rounded-full bg-lien-blue px-6 py-2.5 text-[13px] font-bold uppercase tracking-[0.5px] text-white hover:bg-lien-blue-hover">
                 Tiếp tục mua sắm
               </button>
@@ -119,17 +121,17 @@ export function CartDrawer() {
 
         <footer className="border-t border-lien-line px-5 py-4">
           <div className="flex items-baseline justify-between">
-            <span className="text-[16px] font-bold text-lien-heading">Tạm tính :</span>
+            <span className="text-[16px] font-bold text-lien-heading">{t("subtotal")} :</span>
             <span className="text-[18px] font-bold text-lien-heading">{formatAmount(subtotal)}đ</span>
           </div>
           <p className="m-0 mt-1 mb-3 text-[12px] leading-5 text-lien-muted">
-            <strong className="text-lien-heading">Phí ship và mã giảm giá</strong> sẽ được tính ở trang thanh toán.
+            <strong className="text-lien-heading">{t("feesNote")}</strong> {t("feesNoteTail")}
           </p>
           <Link href="/cart/" onClick={closeDrawer} className="flex h-11 w-full items-center justify-center rounded-full bg-lien-blue text-[13px] font-bold uppercase tracking-[2px] text-white no-underline hover:bg-lien-blue-hover">
-            Xem giỏ hàng
+            {t("viewCart")}
           </Link>
           <Link href="/checkout/" onClick={closeDrawer} className={cn("mt-2 flex h-11 w-full items-center justify-center rounded-full bg-lien-heading text-[13px] font-bold uppercase tracking-[2px] text-white no-underline hover:opacity-90", items.length === 0 && "pointer-events-none opacity-40")}>
-            Thanh toán
+            {t("checkout")}
           </Link>
         </footer>
       </div>

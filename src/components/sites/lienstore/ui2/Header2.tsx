@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
+import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
+import { AccountDrawer, type HeaderCustomer } from "./AccountDrawer";
 
 export interface HeaderCategory {
   name: string;
@@ -28,6 +30,7 @@ interface Header2Props {
   newsLinks: HeaderLink[];
   aboutHref: string;
   newsHref: string;
+  customer?: HeaderCustomer | null;
 }
 
 function Badge({ n }: { n: number }) {
@@ -42,8 +45,14 @@ function Badge({ n }: { n: number }) {
  * Main header (sesofoods-style): logo · inline menu with "Danh mục" mega dropdown · pill search · account/wishlist/cart.
  * Collapses to a hamburger + drawer below 992px. Becomes compact and sticky after scrolling.
  */
-export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, newsHref }: Header2Props) {
+export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, newsHref, customer = null }: Header2Props) {
+  const { t } = useLang();
   const { items, wishlist, hydrated, openDrawer } = useCart();
+  // The drawer remembers who it was opened for, so it closes by itself once login/register/logout changes the customer.
+  const customerKey = customer ? `c:${customer.username || customer.email}` : "guest";
+  const [accountFor, setAccountFor] = useState<string | null>(null);
+  const account = accountFor === customerKey;
+  const setAccount = (v: boolean) => setAccountFor(v ? customerKey : null);
   const cartCount = hydrated ? items.reduce((s, i) => s + i.quantity, 0) : 0;
   const wishCount = hydrated ? wishlist.length : 0;
   const [open, setOpen] = useState<null | "cat" | "support" | "news">(null);
@@ -72,7 +81,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
   return (
     <header className={cn("sticky top-0 z-[9000] border-b border-lien-line bg-white shadow-[0_1px_0_0_#eee] transition-shadow", stuck && "shadow-[0_4px_16px_-8px_rgba(0,0,0,0.25)]")}>
       <div className="mx-auto flex max-w-[1300px] items-center gap-4 px-4 py-2 lg:gap-6" ref={navRef}>
-        <button type="button" onClick={() => setDrawer(true)} aria-label="Mở menu" className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream lg:hidden">
+        <button type="button" onClick={() => setDrawer(true)} aria-label={t("openMenu")} className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream lg:hidden">
           <Fa name="bars" />
         </button>
 
@@ -84,7 +93,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "cat" ? null : "cat")} className={cn(navItem, open === "cat" && "text-lien-blue")} aria-expanded={open === "cat"}>
               <Fa name="th-large" className="mr-1 text-[13px]" />
-              Danh mục
+              {t("categories")}
               <Fa name="angle-down" className="text-[12px]" />
               <span className="ml-1 rounded-full bg-lien-sale px-1.5 py-px text-[9px] font-bold uppercase text-white">Sale</span>
             </button>
@@ -124,10 +133,10 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-lien-line pt-3 text-[13px]">
                   <Link href="/shop/" className="font-semibold text-lien-blue no-underline hover:underline">
-                    Xem tất cả sản phẩm →
+                    {t("viewAll")}
                   </Link>
                   <Link href="/shop/?orderby=date" className="text-lien-muted no-underline hover:text-lien-blue">
-                    Hàng mới về
+                    {t("newArrivals")}
                   </Link>
                 </div>
               </div>
@@ -135,7 +144,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           </div>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "text-lien-blue")} aria-expanded={open === "support"}>
-              Hỗ trợ
+              {t("support")}
               <Fa name="angle-down" className="text-[12px]" />
             </button>
             {open === "support" ? (
@@ -150,7 +159,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           </div>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "news" ? null : "news")} className={cn(navItem, open === "news" && "text-lien-blue")} aria-expanded={open === "news"}>
-              Tin tức
+              {t("news")}
               <Fa name="angle-down" className="text-[12px]" />
               <span className="ml-1 rounded-full bg-lien-info px-1.5 py-px text-[9px] font-bold uppercase text-white">New</span>
             </button>
@@ -162,33 +171,40 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                   </Link>
                 ))}
                 <Link href={newsHref} onClick={() => setOpen(null)} className="block border-t border-lien-line px-4 py-2.5 text-[13px] leading-5 text-lien-muted no-underline hover:bg-lien-blue-soft hover:text-lien-blue">
-                  Các tin tức khác
+                  {t("otherNews")}
                 </Link>
               </div>
             ) : null}
           </div>
           <Link href={aboutHref} className={navItem}>
             <Fa name="user-circle" className="mr-1 text-[13px]" />
-            Về chúng tôi
+            {t("about")}
           </Link>
         </nav>
 
         <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] w-[280px] items-center overflow-hidden rounded-full border border-lien-line bg-lien-cream/60 focus-within:border-lien-blue focus-within:bg-white md:flex xl:w-[320px]">
-          <input name="s" placeholder="Tìm kiếm sản phẩm" aria-label="Tìm kiếm sản phẩm" className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
-          <button type="submit" aria-label="Tìm" className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading hover:text-lien-blue">
+          <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
+          <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading hover:text-lien-blue">
             <Fa name="search" />
           </button>
         </form>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/my-account/" aria-label="Tài khoản" className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading no-underline hover:bg-lien-cream hover:text-lien-blue">
-            <Fa name="user" />
-          </Link>
-          <Link href="/wishlist/" aria-label="Yêu thích" className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading no-underline hover:bg-lien-cream hover:text-lien-blue">
+          <button
+            type="button"
+            onClick={() => setAccount(true)}
+            aria-label={customer ? `${t("account")} · ${customer.username || customer.firstName}` : t("login")}
+            title={customer ? `${customer.lastName} ${customer.firstName}`.trim() || customer.username : t("login")}
+            className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream hover:text-lien-blue", customer && "text-lien-blue")}
+          >
+            <Fa name={customer ? "user-circle" : "user"} />
+            {customer ? <span className="absolute right-1 bottom-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-lien-success" aria-hidden="true" /> : null}
+          </button>
+          <Link href="/wishlist/" aria-label={t("wishlist")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading no-underline hover:bg-lien-cream hover:text-lien-blue">
             <Fa name="heart-o" />
             {wishCount ? <Badge n={wishCount} /> : null}
           </Link>
-          <button type="button" onClick={openDrawer} aria-label="Giỏ hàng" className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream hover:text-lien-blue" data-cart-count={cartCount}>
+          <button type="button" onClick={openDrawer} aria-label={t("cart")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream hover:text-lien-blue" data-cart-count={cartCount}>
             <Fa name="shopping-cart" />
             <Badge n={cartCount} />
           </button>
@@ -197,8 +213,8 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
 
       {/* mobile search row */}
       <form action="/shop/" method="get" role="search" className="mx-4 mb-2 flex h-[40px] items-center overflow-hidden rounded-full border border-lien-line bg-lien-cream/60 md:hidden">
-        <input name="s" placeholder="Tìm kiếm sản phẩm" aria-label="Tìm kiếm sản phẩm" className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
-        <button type="submit" aria-label="Tìm" className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading">
+        <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
+        <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading">
           <Fa name="search" />
         </button>
       </form>
@@ -209,14 +225,14 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           <button type="button" aria-label="Đóng menu" onClick={() => setDrawer(false)} className="absolute inset-0 bg-black/40" />
           <div className="absolute top-0 left-0 flex h-full w-[86%] max-w-[360px] flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-lien-line px-4 py-3">
-              <span className="text-[15px] font-semibold uppercase text-lien-heading">Menu</span>
-              <button type="button" onClick={() => setDrawer(false)} aria-label="Đóng" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-lien-cream">
+              <span className="text-[15px] font-semibold uppercase text-lien-heading">{t("menu")}</span>
+              <button type="button" onClick={() => setDrawer(false)} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-lien-cream">
                 <Fa name="times" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               <div className="border-b border-lien-line px-4 py-3">
-                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">Danh mục</p>
+                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">{t("categories")}</p>
                 <ul className="m-0 list-none p-0">
                   {tree.map((g) => (
                     <li key={g.category.slug} className="py-1">
@@ -235,7 +251,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                 </ul>
               </div>
               <div className="px-4 py-3">
-                {[{ label: "Tất cả sản phẩm", href: "/shop/" }, ...supportLinks, ...newsLinks, { label: "Tin tức", href: newsHref }, { label: "Về chúng tôi & liên hệ", href: aboutHref }, { label: "Tài khoản", href: "/my-account/" }].map((l) => (
+                {[{ label: t("allProducts"), href: "/shop/" }, ...supportLinks, ...newsLinks, { label: t("news"), href: newsHref }, { label: t("aboutContact"), href: aboutHref }, { label: t("account"), href: "/my-account/" }].map((l) => (
                   <Link key={l.href + l.label} href={l.href} className="block py-2 text-[14px] font-medium text-lien-heading no-underline">
                     {l.label}
                   </Link>
@@ -245,6 +261,8 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           </div>
         </div>
       ) : null}
+
+      <AccountDrawer open={account} onClose={() => setAccount(false)} customer={customer} />
     </header>
   );
 }

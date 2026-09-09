@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Chuyển ngôn ngữ VI | JP** trên thanh trên cùng (thay cụm icon Facebook/Zalo/Messenger; các icon này vẫn ở dock bên phải và footer). Dịch phần khung: menu, tìm kiếm, ngăn kéo tài khoản, giỏ hàng, nút "Thêm vào giỏ", tiêu đề footer. Tên/mô tả sản phẩm giữ nguyên tiếng Việt. Lưu bằng cookie `lien_lang`, đổi qua `/api/lang/`.
+- **Ngăn kéo tài khoản** bên phải khi bấm icon người ở header: đăng nhập (ID hoặc email), đăng ký (Tên đệm & tên, Họ, **Tên đăng nhập (ID) bắt buộc**, Email không bắt buộc, Mật khẩu), quên mật khẩu; khi đã đăng nhập hiện menu ngắn (Tài khoản, Đơn hàng, Yêu thích, Giỏ hàng, Đăng xuất). Đăng nhập/đăng ký xong ở lại trang đang xem.
+- **Sales › Giảm giá sản phẩm** (`/admin/promotions/discounts/`): danh sách đang giảm, đặt giảm theo giá hoặc %, bỏ giảm.
+- **Sales › Voucher** (`/admin/promotions/vouchers/`): mã giảm % hoặc số tiền, đơn tối thiểu, giảm tối đa, thời hạn, số lượt, tắt/mở. Khách nhập mã ở trang thanh toán (kiểm tra qua `/api/voucher/`), server kiểm tra lại khi tạo đơn; đơn hàng lưu `discount` + `voucher_code`, hiển thị dòng Giảm giá ở trang cảm ơn, tài khoản và admin. Quyền mới **promotions** (Khuyến mãi). Migration v12.
+
+### Changed
+- **Menu admin** gom nhóm: **Kho hàng** (Danh mục, Sản phẩm, Tồn kho), **Đơn hàng**, **Sales** (Khách hàng, Giảm giá sản phẩm, Voucher), **Vận chuyển** (Đơn hàng · 3 chặng, 3 chặng, Hiển thị cho khách), **Người dùng**. Bấm vào tab cha mới hiện tab con; nhóm chứa trang đang mở tự mở.
+- Đăng nhập khách hàng chấp nhận **ID hoặc email**; đăng ký ở `/my-account/` cũng dùng bộ trường mới (email không bắt buộc). Email ở trang thanh toán không bắt buộc (chỉ cần khi tick "Tạo tài khoản").
+- **Nền giao diện** đổi sang xám trắng trung tính kiểu iHerb (thanh trên, ô tìm kiếm, viền, footer); màu chủ đạo xanh biển giữ nguyên.
+
 ## [1.12.0] - 2026-09-09
 
 ### Added

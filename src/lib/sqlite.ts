@@ -299,6 +299,30 @@ export const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 12,
+    name: "vouchers-and-order-discount",
+    up: [
+      `CREATE TABLE vouchers (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        code         TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        kind         TEXT NOT NULL DEFAULT 'percent' CHECK (kind IN ('percent','fixed')),
+        value        INTEGER NOT NULL DEFAULT 0,
+        min_subtotal INTEGER NOT NULL DEFAULT 0,
+        max_discount INTEGER,
+        starts_at    TEXT,
+        ends_at      TEXT,
+        usage_limit  INTEGER,
+        used_count   INTEGER NOT NULL DEFAULT 0,
+        active       INTEGER NOT NULL DEFAULT 1,
+        note         TEXT NOT NULL DEFAULT '',
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL
+      )`,
+      `ALTER TABLE orders ADD COLUMN discount INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN voucher_code TEXT NOT NULL DEFAULT ''`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

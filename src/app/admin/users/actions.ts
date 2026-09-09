@@ -23,9 +23,9 @@ function readRole(fd: FormData): UserRole {
   return isUserRole(r) ? r : "customer";
 }
 
-function validate(email: string, username: string, password: string | null, role: UserRole): string | null {
+function validate(email: string, username: string, password: string | null, _role: UserRole): string | null {
   if (username && !/^[A-Za-z0-9._-]{3,32}$/.test(username)) return "Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm, gạch ngang, gạch dưới (3–32 ký tự).";
-  if (!email && !username) return role === "customer" ? "Khách hàng cần có email." : "Nhập tên đăng nhập (ID) hoặc email.";
+  if (!email && !username) return "Nhập tên đăng nhập (ID) hoặc email.";
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Email không hợp lệ.";
   if (password !== null && password.length > 0 && password.length < 8) return "Mật khẩu phải có ít nhất 8 ký tự.";
   return null;

@@ -4,6 +4,7 @@ import { buildCategoryTree } from "@/lib/categories";
 import type { ContactInfo } from "@/types/lienstore";
 import { SOCIAL_COLORS, SocialIcon } from "@/components/sites/lienstore/shared/BrandIcons";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { t, type Lang } from "@/lib/i18n";
 import type { HeaderCategory, HeaderLink } from "./Header2";
 
 interface Footer2Props {
@@ -13,13 +14,14 @@ interface Footer2Props {
   accountLinks: HeaderLink[];
   supportLinks: HeaderLink[];
   copyright: string;
+  lang?: Lang;
 }
 
 const colTitle = "mb-4 text-[14px] font-bold uppercase tracking-[0.5px] text-lien-heading";
 const colLink = "block py-1 text-[14px] leading-6 text-lien-text no-underline hover:text-lien-blue";
 
 /** Light-grey 5-column footer: store info · account · support · main categories · connect. */
-export function Footer2({ logo, contact, categories, accountLinks, supportLinks, copyright }: Footer2Props) {
+export function Footer2({ logo, contact, categories, accountLinks, supportLinks, copyright, lang = "vi" }: Footer2Props) {
   const topCats = buildCategoryTree(categories).map((n) => ({ ...n.category, count: n.total })).slice(0, 8);
   return (
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
@@ -56,7 +58,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           </ul>
         </div>
         <div>
-          <h3 className={colTitle}>Tài khoản</h3>
+          <h3 className={colTitle}>{t(lang, "fAccount")}</h3>
           {accountLinks.map((l) => (
             <Link key={l.href + l.label} href={l.href} className={colLink}>
               {l.label}
@@ -64,7 +66,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           ))}
         </div>
         <div>
-          <h3 className={colTitle}>Hỗ trợ khách hàng</h3>
+          <h3 className={colTitle}>{t(lang, "fSupport")}</h3>
           {supportLinks.map((l) => (
             <Link key={l.href + l.label} href={l.href} className={colLink}>
               {l.label}
@@ -72,12 +74,12 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           ))}
         </div>
         <div>
-          <h3 className={colTitle}>Danh mục chính</h3>
+          <h3 className={colTitle}>{t(lang, "fCategories")}</h3>
           <Link href="/shop/" className={colLink}>
-            Tất cả sản phẩm
+            {t(lang, "allProducts")}
           </Link>
           <Link href="/shop/?orderby=date" className={colLink}>
-            Hàng mới về
+            {t(lang, "newArrivals")}
           </Link>
           {topCats.map((c) => (
             <Link key={c.slug} href={`/product-category/${c.slug}/`} className={colLink}>
@@ -86,7 +88,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           ))}
         </div>
         <div>
-          <h3 className={colTitle}>Kết nối với LienStore</h3>
+          <h3 className={colTitle}>{t(lang, "fConnect")}</h3>
           <p className="mb-3 text-[14px] leading-6 text-lien-muted">Nhắn Zalo hoặc Messenger để được tư vấn và báo giá mua hộ hàng Nhật.</p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {contact.socials.map((s) => (

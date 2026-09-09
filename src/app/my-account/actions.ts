@@ -2,10 +2,18 @@
 
 import { redirect } from "next/navigation";
 import { endCustomerSession, getCurrentCustomer, startCustomerSession } from "@/lib/customer-auth";
-import { createCustomer, findCustomerByEmail, findOrder, updateCustomer, verifyCustomer } from "@/lib/db";
+import { createCustomer, findCustomerByEmail, findCustomerByLogin, findOrder, updateCustomer, verifyCustomer } from "@/lib/db";
 import type { Order } from "@/types/shop";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[A-Za-z0-9._-]{3,30}$/;
+
+/** Same-origin path to return to after login/register (the account drawer stays on the current page). */
+function safeBack(formData: FormData, fallback = "/my-account/"): string {
+  const v = String(formData.get("redirect_to") ?? "").trim();
+  if (!v.startsWith("/") || v.startsWith("//") || v.startsWith("/admin")) return fallback;
+  return v;
+}
 
 export type LookupState = { order?: Order; error?: string } | null;
 
@@ -25,27 +33,36 @@ export async function customerLogin(_prev: AccountFormState, formData: FormData)
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const remember = formData.get("rememberme") === "on";
-  if (!username || !password) return { error: "Lỗi: Tên tài khoản và mật khẩu là bắt buộc." };
+  if (!username || !password) return { error: "Lỗi: Tên đăng nhập và mật khẩu là bắt buộc." };
   const customer = await verifyCustomer(username, password);
-  if (!customer) return { error: "Lỗi: Tên tài khoản hoặc mật khẩu không đúng. Quên mật khẩu?" };
+  if (!customer) return { error: "Lỗi: Tên đăng nhập / email hoặc mật khẩu không đúng." };
   await startCustomerSession(customer.id, remember);
-  redirect("/my-account/");
+  redirect(safeBack(formData));
 }
 
 export async function customerRegister(_prev: AccountFormState, formData: FormData): Promise<AccountFormState> {
-  const email = String(formData.get("email") ?? "").trim();
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const username = get("username");
+  const email = get("email").toLowerCase();
   const password = String(formData.get("password") ?? "");
-  if (!EMAIL_RE.test(email)) return { error: "Lỗi: Vui lòng cung cấp một địa chỉ email hợp lệ." };
+  if (!USERNAME_RE.test(username)) return { error: "Lỗi: Tên đăng nhập gồm 3–30 ký tự chữ không dấu, số, dấu chấm, gạch ngang hoặc gạch dưới." };
+  if (email && !EMAIL_RE.test(email)) return { error: "Lỗi: Địa chỉ email không hợp lệ (có thể bỏ trống)." };
   if (password.length < 6) return { error: "Lỗi: Mật khẩu phải có ít nhất 6 ký tự." };
-  if (await findCustomerByEmail(email)) return { error: "Lỗi: Một tài khoản đã được đăng ký với địa chỉ email của bạn. Vui lòng đăng nhập." };
-  const customer = await createCustomer({ email, password });
+  if (await findCustomerByLogin(username)) return { error: "Lỗi: Tên đăng nhập này đã được dùng. Chọn tên khác hoặc đăng nhập." };
+  if (email && (await findCustomerByEmail(email))) return { error: "Lỗi: Một tài khoản đã được đăng ký với địa chỉ email này. Vui lòng đăng nhập." };
+  let customer;
+  try {
+    customer = await createCustomer({ username, email, password, firstName: get("first_name"), lastName: get("last_name") });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Không tạo được tài khoản." };
+  }
   await startCustomerSession(customer.id, true);
-  redirect("/my-account/");
+  redirect(safeBack(formData));
 }
 
-export async function customerLogout(): Promise<void> {
+export async function customerLogout(formData?: FormData): Promise<void> {
   await endCustomerSession();
-  redirect("/my-account/");
+  redirect(formData ? safeBack(formData, "/") : "/my-account/");
 }
 
 export async function lostPassword(_prev: AccountFormState, formData: FormData): Promise<AccountFormState> {

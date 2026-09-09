@@ -50,8 +50,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const digits = phone.replace(/\D/g, "");
   if (!phone) fields.phone = "Số điện thoại là trường bắt buộc.";
   else if (digits.length < 9 || digits.length > 11) fields.phone = "Số điện thoại không hợp lệ.";
-  if (!email) fields.email = "Địa chỉ email là trường bắt buộc.";
-  else if (!EMAIL_RE.test(email)) fields.email = "Địa chỉ email không hợp lệ.";
+  if (email && !EMAIL_RE.test(email)) fields.email = "Địa chỉ email không hợp lệ.";
   if (delivery === "ship" && (!shippingZoneId || !Number.isInteger(shippingZoneId))) fields.shipping_zone = "Vui lòng chọn khu vực giao hàng.";
 
   let items: CartItem[];
@@ -72,6 +71,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     if (password.length < 6) {
       return { error: "Mật khẩu tài khoản phải có ít nhất 6 ký tự.", fields: { account_password: "Mật khẩu phải có ít nhất 6 ký tự." } };
     }
+    if (!email) return { error: "Nhập email để tạo tài khoản kèm đơn hàng (hoặc bỏ tick \"Tạo tài khoản\").", fields: { email: "Cần email khi tạo tài khoản." } };
     if (await findCustomerByEmail(email)) {
       return { error: "Một tài khoản đã được đăng ký với địa chỉ email của bạn. Vui lòng đăng nhập trước khi đặt hàng." };
     }
@@ -89,6 +89,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
       customerId,
       delivery,
       shippingZoneId: delivery === "ship" ? shippingZoneId : null,
+      voucherCode: get("voucher_code"),
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không thể tạo đơn hàng. Vui lòng thử lại." };

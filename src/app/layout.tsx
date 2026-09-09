@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CartProvider } from "@/components/sites/lienstore/shop/CartProvider";
 import "./globals.css";
+import { getLang } from "@/lib/lang-server";
 
 export const metadata: Metadata = {
   title: "ĐẸP MỖI GIÂY – KHỎE MỖI NGÀY",
@@ -15,13 +16,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const lang = await getLang();
   return (
-    <html lang="vi" className="h-full antialiased">
+    <html lang={lang} className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <CartProvider>{children}</CartProvider>
       </body>
