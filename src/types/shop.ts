@@ -215,6 +215,8 @@ export interface ShippingCarrier {
   website: string;
   note: string;
   position: number;
+  /** Legs this carrier serves (jp_domestic / jp_vn / vn_domestic). */
+  legs: Array<"jp_domestic" | "jp_vn" | "vn_domestic">;
 }
 
 /** A shipping method (one fee table) within a leg: JP domestic, JP→VN or VN domestic. */

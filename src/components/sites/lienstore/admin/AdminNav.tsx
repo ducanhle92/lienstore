@@ -17,6 +17,7 @@ const LINKS: { href: string; label: string; icon: FaName; exact?: boolean; modul
   { href: "/admin/shipping/?leg=jp_domestic", label: "Nội địa Nhật", icon: "cube", module: "shipping", child: true },
   { href: "/admin/shipping/?leg=jp_vn", label: "Nhật → Việt Nam", icon: "plane", module: "shipping", child: true },
   { href: "/admin/shipping/?leg=vn_domestic", label: "Nội địa Việt Nam", icon: "truck", module: "shipping", child: true },
+  { href: "/admin/shipping/?leg=display", label: "Hiển thị cho khách", icon: "eye", module: "shipping", child: true },
   { href: "/admin/users/", label: "Người dùng", icon: "user-circle", module: "users" },
 ];
 

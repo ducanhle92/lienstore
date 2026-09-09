@@ -27,9 +27,9 @@ const amountOrNull = (fd: FormData, key: string): number | null => {
   return Math.max(0, parseAmount(raw));
 };
 
-function done(msg: string, anchor = ""): never {
+function done(msg: string, anchor = "", tab = ""): never {
   revalidatePath("/", "layout");
-  redirect(`${BACK}?saved=${encodeURIComponent(msg)}${anchor}`);
+  redirect(`${BACK}?${tab ? `leg=${encodeURIComponent(tab)}&` : ""}saved=${encodeURIComponent(msg)}${anchor}`);
 }
 function fail(msg: string): never {
   redirect(`${BACK}?error=${encodeURIComponent(msg)}`);
@@ -45,7 +45,7 @@ export async function saveMethodAction(formData: FormData): Promise<void> {
   // carrier: existing id, or a new one typed inline
   let carrierId: number | null = int(formData, "carrierId", 0) || null;
   const newCarrier = text(formData, "newCarrier");
-  if (newCarrier) carrierId = await saveShippingCarrier({ name: newCarrier });
+  if (newCarrier) carrierId = await saveShippingCarrier({ name: newCarrier, legs: [leg] });
   const id = await saveShippingMethod({
     id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
     name,
@@ -61,14 +61,14 @@ export async function saveMethodAction(formData: FormData): Promise<void> {
     homeDelivery: formData.get("homeDelivery") === "on",
     notes: text(formData, "notes"),
   });
-  done(idRaw ? `Đã lưu phương thức "${name}".` : `Đã thêm phương thức "${name}".`, `#method-${id}`);
+  done(idRaw ? `Đã lưu phương thức "${name}".` : `Đã thêm phương thức "${name}".`, `#method-${id}`, text(formData, "backTab") || leg);
 }
 
 export async function deleteMethodAction(formData: FormData): Promise<void> {
   await guard();
   const id = int(formData, "id", 0);
   if (id) await deleteShippingMethod(id);
-  done("Đã xoá phương thức vận chuyển.");
+  done("Đã xoá phương thức vận chuyển.", "", text(formData, "backTab"));
 }
 
 export async function saveZoneAction(formData: FormData): Promise<void> {
@@ -91,14 +91,14 @@ export async function saveZoneAction(formData: FormData): Promise<void> {
     position: int(formData, "position", 0),
     active: formData.get("active") === "on",
   });
-  done(idRaw ? `Đã lưu cột "${name}".` : `Đã thêm cột "${name}".`, `#method-${methodId}`);
+  done(idRaw ? `Đã lưu cột "${name}".` : `Đã thêm cột "${name}".`, `#method-${methodId}`, text(formData, "backTab"));
 }
 
 export async function deleteZoneAction(formData: FormData): Promise<void> {
   await guard();
   const id = int(formData, "id", 0);
   if (id) await deleteShippingZone(id);
-  done("Đã xoá cột.");
+  done("Đã xoá cột.", "", text(formData, "backTab"));
 }
 
 export async function saveCarrierAction(formData: FormData): Promise<void> {
@@ -106,27 +106,33 @@ export async function saveCarrierAction(formData: FormData): Promise<void> {
   const idRaw = text(formData, "id");
   const name = text(formData, "name");
   if (!name) fail("Tên đơn vị vận chuyển không được để trống.");
+  const legs = formData.getAll("legs").map(String).filter(isShippingLeg);
+  const backTab = text(formData, "backTab");
   await saveShippingCarrier({
     id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
     name,
     phone: text(formData, "phone"),
     website: text(formData, "website"),
     note: text(formData, "note"),
+    ...(legs.length ? { legs } : {}),
   });
-  done(idRaw ? `Đã lưu đơn vị "${name}".` : `Đã thêm đơn vị vận chuyển "${name}".`, "#carriers");
+  revalidatePath("/", "layout");
+  redirect(`${BACK}?${backTab ? `leg=${encodeURIComponent(backTab)}&` : ""}saved=${encodeURIComponent(idRaw ? `Đã lưu đơn vị "${name}".` : `Đã thêm đơn vị vận chuyển "${name}".`)}#carriers`);
 }
 
 export async function deleteCarrierAction(formData: FormData): Promise<void> {
   await guard();
   const id = int(formData, "id", 0);
   if (id) await deleteShippingCarrier(id);
-  done("Đã xoá đơn vị vận chuyển (các phương thức đang dùng chuyển về “chưa chọn”).", "#carriers");
+  const backTab = text(formData, "backTab");
+  revalidatePath("/", "layout");
+  redirect(`${BACK}?${backTab ? `leg=${encodeURIComponent(backTab)}&` : ""}saved=${encodeURIComponent("Đã xoá đơn vị vận chuyển (các phương thức đang dùng chuyển về “chưa chọn”).")}#carriers`);
 }
 
 export async function savePickupAction(formData: FormData): Promise<void> {
   await guard();
   await setPickupAddress(text(formData, "pickupAddress"));
-  done("Đã lưu địa chỉ nhận tại kho.", "#pickup");
+  done("Đã lưu địa chỉ nhận tại kho.", "#pickup", "vn_domestic");
 }
 
 export async function saveNotesAction(formData: FormData): Promise<void> {
@@ -136,5 +142,5 @@ export async function saveNotesAction(formData: FormData): Promise<void> {
     .map((l) => l.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean);
   await setShippingNotes(lines);
-  done("Đã lưu lưu ý vận chuyển.", "#notes");
+  done("Đã lưu lưu ý vận chuyển.", "#notes", "display");
 }

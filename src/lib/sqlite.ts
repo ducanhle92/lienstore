@@ -263,6 +263,24 @@ export const MIGRATIONS: Migration[] = [
       `INSERT OR IGNORE INTO settings (key, value) VALUES ('pickup_address', 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa (hẹn giờ trước qua Zalo 0964 839 769)')`,
     ],
   },
+  {
+    version: 10,
+    name: "carrier-legs",
+    up: [
+      `ALTER TABLE shipping_carriers ADD COLUMN legs TEXT NOT NULL DEFAULT 'jp_vn'`,
+      `UPDATE shipping_carriers SET legs = 'jp_vn' WHERE id = 1`,
+      `UPDATE shipping_carriers SET name = 'Japan Post (郵便 / EMS)', legs = 'jp_domestic,jp_vn', note = 'Bưu điện Nhật: gửi nội địa Nhật hoặc EMS quốc tế' WHERE id = 2`,
+      `UPDATE shipping_carriers SET legs = 'jp_domestic' WHERE id = 3`,
+      `UPDATE shipping_carriers SET legs = 'vn_domestic' WHERE id = 4`,
+      `UPDATE shipping_carriers SET legs = 'vn_domestic' WHERE id = 5`,
+      `INSERT INTO shipping_carriers (name, phone, website, note, position, legs) VALUES
+        ('Sagawa (佐川急便)', '', 'https://www.sagawa-exp.co.jp', 'Chuyển phát nội địa Nhật', 6, 'jp_domestic'),
+        ('Tự mang tới kho Nhật', '', '', 'Khách / người mua tự mang hàng tới kho gom', 7, 'jp_domestic'),
+        ('LienStore gom tại nhà', '', '', 'Gom hàng tại nhà trong bán kính 30 km, từ 20 kg trở lên', 8, 'jp_domestic'),
+        ('Bưu điện Việt Nam (VNPost)', '1900 54 54 81', 'https://www.vnpost.vn', 'Giao nội địa Việt Nam', 9, 'vn_domestic'),
+        ('Khách tự tới kho lấy', '', '', 'Nhận tại kho Việt Nam, không tính phí', 10, 'vn_domestic')`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

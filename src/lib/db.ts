@@ -1102,7 +1102,12 @@ interface ShippingCarrierRow {
   website: string;
   note: string;
   position: number;
+  legs: string | null;
 }
+
+const LEG_KEYS = ["jp_domestic", "jp_vn", "vn_domestic"] as const;
+type LegKey = (typeof LEG_KEYS)[number];
+const parseLegs = (v: string | null): LegKey[] => (v ?? "").split(",").map((x) => x.trim()).filter((x): x is LegKey => (LEG_KEYS as readonly string[]).includes(x));
 interface ShippingZoneRow {
   id: number;
   method_id: number;
@@ -1168,17 +1173,23 @@ export async function getShippingCarriers(): Promise<ShippingCarrier[]> {
     website: r.website,
     note: r.note,
     position: r.position,
+    legs: parseLegs(r.legs),
   }));
 }
 
-export async function saveShippingCarrier(input: { id?: number; name: string; phone?: string; website?: string; note?: string }): Promise<number> {
+export async function saveShippingCarrier(input: { id?: number; name: string; phone?: string; website?: string; note?: string; legs?: string[] }): Promise<number> {
   const db = getDb();
+  const legs = (input.legs ?? []).filter((l): l is LegKey => (LEG_KEYS as readonly string[]).includes(l));
   if (input.id) {
-    db.prepare("UPDATE shipping_carriers SET name = ?, phone = ?, website = ?, note = ? WHERE id = ?").run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", input.id);
+    const current = db.prepare("SELECT legs FROM shipping_carriers WHERE id = ?").get(input.id) as { legs: string | null } | undefined;
+    const legsValue = input.legs === undefined ? (current?.legs ?? "jp_vn") : legs.join(",") || "jp_vn";
+    db.prepare("UPDATE shipping_carriers SET name = ?, phone = ?, website = ?, note = ?, legs = ? WHERE id = ?").run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", legsValue, input.id);
     return input.id;
   }
   const pos = (db.prepare("SELECT COALESCE(MAX(position), 0) + 1 AS n FROM shipping_carriers").get() as { n: number }).n;
-  const r = db.prepare("INSERT INTO shipping_carriers (name, phone, website, note, position) VALUES (?, ?, ?, ?, ?)").run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", pos);
+  const r = db
+    .prepare("INSERT INTO shipping_carriers (name, phone, website, note, position, legs) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(input.name, input.phone ?? "", input.website ?? "", input.note ?? "", pos, legs.join(",") || "jp_vn");
   return Number(r.lastInsertRowid);
 }
 
