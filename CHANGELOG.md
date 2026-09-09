@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-09
+
 ### Added
 - **Khối lượng & kích thước sản phẩm**: hai trường mới trong form sản phẩm (gram; D x R x C cm), cột Excel "Khối lượng (g)" / "Kích thước (cm, DxRxC)". Trang sản phẩm hiện khối lượng/kích thước và tab "Chi phí vận chuyển" **ước tính phí gửi cho sản phẩm đó** trên các cột tính theo kg (làm tròn lên từng kg, lấy số lớn hơn giữa cân thật và cân quy đổi thể tích D×R×C/6000). Migration v8: `products.weight_g`, `products.dims_cm`.
 - **Vận chuyển tổ chức theo 3 chặng**: Ship nội địa Nhật · Ship Nhật → Việt Nam · Ship nội địa Việt Nam. Mỗi phương thức có **đơn vị vận chuyển** (dropdown, thêm đơn vị mới ngay tại chỗ hoặc trong khung "Đơn vị vận chuyển" với điện thoại/website/ghi chú), **giá đã gồm 2 đầu hay chưa**, **kho / địa điểm nhận & giao**, **giao tận nhà hay nhận tại kho**, lưu ý riêng theo dòng. Cột của bảng dùng được cho khu vực hoặc bậc cân nặng (VD "4–5 kg", "6–10 kg"). Trang khách hiển thị theo chặng với nhãn đơn vị và các chip trạng thái. Bảng `shipping_carriers` + 5 đơn vị mặc định (Kiến Express, Japan Post/EMS, Yamato, Viettel Post, GHTK).
