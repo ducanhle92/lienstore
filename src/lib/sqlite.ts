@@ -407,9 +407,21 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
+    const byId = db.prepare("SELECT slug FROM products WHERE id = ?");
+    let nextId = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM products").get() as { m: number }).m;
+    for (const p of seed.products ?? []) if (typeof p.id === "number" && p.id > nextId) nextId = p.id;
     const now = new Date().toISOString();
     let keptNewer = 0;
+    let reassigned = 0;
     for (const p of seed.products ?? []) {
+      // Products created directly on this server (admin) take the next free id — the same number the dev machine may
+      // have given a different new product. Never let the seed row overwrite them: give the seed row a fresh id.
+      let id = p.id;
+      const clash = byId.get(p.id) as { slug: string } | undefined;
+      if (clash && clash.slug !== p.slug) {
+        id = ++nextId;
+        reassigned++;
+      }
       // In "add" mode skip products already present (by slug) so admin edits and their category links survive.
       if (verb === "INSERT OR IGNORE" && exists.get(p.slug)) continue;
       // In "update" mode: last write wins. A product edited on this server (admin) AFTER the seed row was last
@@ -421,11 +433,11 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
           keptNewer++;
           continue;
         }
-        if (old && old.id !== p.id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);
-        db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(p.id);
+        if (old && old.id !== id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);
+        db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
       }
       insProd.run(
-        p.id,
+        id,
         p.slug,
         str(p.name),
         num(p.price, 0),
@@ -449,9 +461,10 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
         str(p.createdAt, now),
         str(p.updatedAt, now),
       );
-      (p.categories ?? []).forEach((slug, i) => insPC.run(p.id, slug, i));
+      (p.categories ?? []).forEach((slug, i) => insPC.run(id, slug, i));
     }
     if (keptNewer) console.info(`[db] seed sync kept ${keptNewer} product(s) edited on this server after the seed was exported`);
+    if (reassigned) console.info(`[db] seed sync gave ${reassigned} new product(s) a fresh id because the seed id belonged to a product created on this server`);
 
     const insPage = db.prepare(`${verb} INTO pages (slug, title, content, date) VALUES (?, ?, ?, ?)`);
     for (const p of seed.pages ?? []) insPage.run(p.slug, p.title, p.content, p.date);

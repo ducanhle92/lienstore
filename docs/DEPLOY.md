@@ -134,6 +134,8 @@ npm run release -- minor ──► tag vX.Y.Z ──► Release: gắn tag X.Y.Z
 - Tuỳ chọn: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` trong Cron Job để nhận thông báo.
 - Máy dev: nếu `git push` treo ở Git Credential Manager, mở terminal thường và chạy `git push` một lần để đăng nhập lại GitHub qua trình duyệt (hoặc `gh auth login`); lệnh `npm run release` cần push được.
 
+**Thêm sản phẩm ở đâu?** Cả hai nơi đều được: sản phẩm tạo trong admin **prod** nằm trong DB prod và không bị bản mới đè (kể cả khi seed có sản phẩm mới trùng mã, sản phẩm seed sẽ nhận mã khác); sản phẩm tạo ở **máy dev** đi vào `seed.json` (`npm run db:export`) và lên cả dev + prod ở bản kế tiếp. Sản phẩm tạo trên prod không tự chảy ngược về máy dev; khi cần đồng bộ ngược, chép `lienstore.db` từ dataset prod (hoặc bản backup trong `<data>/backups/`) về `data/lienstore.db` rồi `npm run db:export`.
+
 **Lưu ý về schema**: migration chỉ chạy tiến. Bản cũ chạy trên DB đã nâng schema vẫn ổn (bỏ qua cột/bảng mới); nếu bắt buộc khôi phục dữ liệu, dừng app rồi copy file trong `<data>/backups/` về `lienstore.db`.
 
 **Sửa sản phẩm trực tiếp trên prod có an toàn không?** Có. `LIEN_SEED_SYNC=update` áp dụng luật *bản nào sửa sau thì thắng* cho từng sản phẩm: khi bản mới mang seed mới, sản phẩm đã được sửa trong admin prod **sau** thời điểm seed được xuất (`npm run db:export` ở máy dev) sẽ giữ nguyên bản prod (ảnh, giá, mô tả…); sản phẩm không sửa trên prod nhận dữ liệu từ seed. Muốn ép seed thắng cho một sản phẩm thì sửa lại sản phẩm đó ở máy dev (Excel/admin) rồi export, vì lúc đó `updatedAt` của seed mới hơn. Danh mục (tên, ảnh) hiện chưa có mốc thời gian nên vẫn theo seed. File ảnh upload nằm trong `<data>/uploads/` và không bị đụng.
