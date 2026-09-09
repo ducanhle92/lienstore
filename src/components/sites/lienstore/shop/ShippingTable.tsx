@@ -1,6 +1,6 @@
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
-import { billableKg, chargeableWeightG, estimateZoneFee, SHIPPING_LEGS, volumetricWeightG, type ShippingLeg } from "@/lib/shipping";
+import { billableKg, billableProductWeightG, estimateZoneFee, safetyFactor, SHIPPING_LEGS, volumetricWeightG, type DimsConfidence } from "@/lib/shipping";
 import type { ShippingMethod } from "@/types/shop";
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   /** Product weight (grams) and dimensions ("DxRxC" cm) → per-zone fee estimate for weight-based zones. */
   weightG?: number | null;
   dimsCm?: string | null;
+  dimsConfidence?: DimsConfidence | null;
 }
 
 const th = "border border-lien-line bg-lien-footer2 px-3 py-2.5 text-center text-[13px] font-bold text-lien-heading";
@@ -47,9 +48,11 @@ function Chip({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
  * Shipping fee tables grouped by leg (JP domestic → JP→VN → VN domestic). One table per method: columns = zones /
  * weight tiers, rows = base fee, optional surcharge, areas, delivery time (+ an estimate row when the product weight is known).
  */
-export function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null }: Props) {
-  const chargeable = chargeableWeightG(weightG, dimsCm);
+export function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null, dimsConfidence = null }: Props) {
+  const known = weightG !== null || dimsCm !== null;
+  const chargeable = known ? billableProductWeightG(weightG, dimsCm, dimsConfidence) : null;
   const volumetric = volumetricWeightG(dimsCm);
+  const showNumbers = dimsConfidence === "high";
   if (methods.length === 0 && notes.length === 0) {
     return <p className="m-0 text-[14px] text-lien-muted">Chưa có thông tin vận chuyển. Vui lòng liên hệ Zalo 0964 839 769 để được báo phí.</p>;
   }
@@ -61,10 +64,16 @@ export function ShippingTable({ methods, notes, compact = false, weightG = null,
       {chargeable ? (
         <p className="m-0 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-5 text-lien-text">
           <Fa name="cube" className="mr-1 text-lien-blue" />
-          Sản phẩm này{weightG ? ` nặng khoảng ${formatAmount(weightG)} g` : ""}
-          {dimsCm ? ` · kích thước ${dimsCm} cm` : ""}
-          {volumetric && weightG && volumetric > weightG ? ` · cân nặng quy đổi theo thể tích ${formatAmount(volumetric)} g` : ""}. Các cột tính theo kg bên dưới đã ước tính cho{" "}
-          <strong>{billableKg(chargeable)} kg</strong> (làm tròn lên từng kg). Phí thật tính trên cả đơn hàng khi đóng gói.
+          {showNumbers ? (
+            <>
+              Sản phẩm này{weightG ? ` nặng khoảng ${formatAmount(weightG)} g` : ""}
+              {dimsCm ? ` · kích thước ${dimsCm.replace(/x/g, " × ")} cm` : ""}
+              {volumetric && weightG && volumetric > weightG ? ` · cân quy đổi theo thể tích ${formatAmount(volumetric)} g` : ""}.
+            </>
+          ) : (
+            <>Kích thước sản phẩm này chưa được xác nhận chính xác nên phí ước tính đã nhân hệ số an toàn ×{safetyFactor(dimsConfidence)}.</>
+          )}{" "}
+          Các cột tính theo kg bên dưới đã ước tính cho <strong>{billableKg(chargeable)} kg</strong> (cân tính phí {formatAmount(chargeable)} g, làm tròn lên từng kg). Phí thật tính trên cả đơn hàng khi đóng gói.
         </p>
       ) : null}
 

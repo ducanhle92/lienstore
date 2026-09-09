@@ -30,6 +30,9 @@ Sheet **`Sản phẩm`** — script đọc theo **tên cột**, thứ tự khôn
 | `Từ khóa` | | Cách nhau bằng `,`. |
 | `Ảnh` | | Mỗi ảnh một dòng (Alt+Enter) hoặc `;`. URL http(s) được tải về `public/sites/lienstore/shared/products/import/`; đường dẫn `/sites/...` giữ nguyên. Ảnh đầu = ảnh đại diện. |
 | `Mô tả ngắn (HTML)`, `Mô tả chi tiết (HTML)` | | HTML đơn giản: `<p>`, `<ul><li>`, `<strong>`, `<br>`. |
+| `Khối lượng (g)`, `Kích thước (cm, DxRxC)` | | Dùng tính phí ship. |
+| `Độ tin cậy KT` | | `Cao` / `Trung bình` / `Thấp` — hệ số an toàn ×1,2 / ×1,5 / ×2 khi tính phí; khách chỉ thấy số đo khi Cao. |
+| `Nguồn KT` | | Cơ sở của số liệu (Amazon, ước theo quy cách…). |
 
 Sheet **`Danh mục`**: `Tên danh mục *`, `Slug`, `Mô tả`, `Ảnh`. Thêm dòng để tạo danh mục mới (script tạo trước khi gán sản phẩm).
 

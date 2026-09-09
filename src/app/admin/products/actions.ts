@@ -1,5 +1,7 @@
 "use server";
 
+import { isDimsConfidence } from "@/lib/shipping";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
@@ -55,6 +57,9 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const weightG = weightRaw === "" ? null : parseIntField(weightRaw);
   if (weightRaw !== "" && (weightG === null || weightG <= 0)) fields.weightG = "Khối lượng tính bằng gram, số nguyên > 0.";
   const dimsCm = get("dimsCm").replace(/\s+/g, "").replace(/[×*]/g, "x") || null;
+  const confRaw = get("dimsConfidence");
+  const dimsConfidence = isDimsConfidence(confRaw) ? confRaw : null;
+  const dimsSource = get("dimsSource").slice(0, 300);
   if (dimsCm && !/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/.test(dimsCm)) fields.dimsCm = "Kích thước ghi dạng Dài x Rộng x Cao (cm), ví dụ 12x8x5.";
 
   const stockRaw = get("stock");
@@ -92,6 +97,8 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     minStock,
     weightG,
     dimsCm,
+    dimsConfidence,
+    dimsSource,
     currency: existing?.currency ?? "VNĐ",
     sku: get("sku") || null,
     stock,

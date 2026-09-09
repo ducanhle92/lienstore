@@ -34,6 +34,8 @@ const products = q(
   minStock: r.min_stock ?? null,
   weightG: r.weight_g ?? null,
   dimsCm: r.dims_cm ?? null,
+  dimsConfidence: r.dims_confidence ?? null,
+  dimsSource: r.dims_source ?? "",
   currency: r.currency,
   sku: r.sku,
   stock: r.stock,

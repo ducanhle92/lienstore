@@ -5,6 +5,16 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Độ tin cậy kích thước / khối lượng** cho từng sản phẩm (Cao · Trung bình · Thấp + cơ sở/nguồn): cột `dims_confidence`, `dims_source` (migration v14), trường trong form sản phẩm, cột "Cân / KT" ở danh sách sản phẩm, cột Excel "Độ tin cậy KT", "Nguồn KT". Hệ số an toàn khi tính phí: Cao ×1,2 · Trung bình ×1,5 · Thấp/chưa đánh giá ×2. Khách chỉ thấy số đo trên trang sản phẩm khi độ tin cậy là Cao.
+- Dữ liệu: nạp bảng kích thước/khối lượng cào ngày 09/09 cho 316 sản phẩm (139 Cao, 109 Trung bình, 69 Thấp); giữ số liệu Amazon đã có cho 13 sản phẩm.
+- **Phí vận chuyển 3 chặng ở trang thanh toán** (chế độ "Tính riêng 3 chặng theo đơn", bật mặc định): ship nội địa Nhật + Nhật → Việt Nam (phương thức đang bật đứng đầu mỗi chặng, cột theo mốc cân hoặc /kg, giá ¥ đổi theo tỷ giá) + giao nội địa Việt Nam; chọn "Nhận tại kho" thì bỏ chặng nội địa Việt Nam. Server tính lại khi tạo đơn và ghi sẵn 3 chặng vào bảng vận chuyển của đơn. Cài đặt chế độ và tỷ giá ¥→đ ở Vận chuyển › Hiển thị cho khách.
+- 44 sản phẩm mới từ 2 file Facebook (Lê Thu Trang 27, My Chinh Nguyen 17) ở trạng thái Bản nháp (chưa có giá); 4 danh mục con mới (Tinh chất dưỡng, Chăm sóc sức khỏe, Chăm sóc cơ thể, Dầu gội – dầu xả). Danh mục **Đồ chơi & sưu tập › Thẻ bài Pokémon** và sản phẩm nháp "Thẻ bài Pokémon TCG bản Nhật (hàng order)".
+- `fetch_dimensions.py --jp-names`: tìm Amazon.co.jp theo tên tiếng Nhật khi sản phẩm chưa có link.
+
+### Changed
+- **Giao diện xanh lá kiểu iHerb**: thanh header xanh (#458500) chữ trắng, ô tìm kiếm trắng, màu chủ đạo/nút/link chuyển sang xanh lá, footer và sidebar admin xanh đậm.
+
 ## [1.14.0] - 2026-09-09
 
 ### Added

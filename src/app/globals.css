@@ -291,6 +291,7 @@
 
   /* lienstore design tokens (exact computed values from the live site) */
   --color-lien-page: var(--lien-page);
+  --color-lien-header: var(--lien-header);
   --color-lien-blue: var(--lien-blue);
   --color-lien-blue-hover: var(--lien-blue-hover);
   --color-lien-blue-soft: var(--lien-blue-soft);
@@ -337,19 +338,19 @@
   --card-foreground: #191919;
   --popover: #ffffff;
   --popover-foreground: #222222;
-  --primary: #1c7f9e; /* ocean blue (jifish.org) */
+  --primary: #458500; /* iHerb green */
   --primary-foreground: #ffffff;
   --secondary: #0d2a35; /* deep ocean — add-to-cart button */
   --secondary-foreground: #ffffff;
   --muted: #e6f2f6;
   --muted-foreground: #656464; /* rgb(101,100,100) link grey */
-  --accent: #1c7f9e;
+  --accent: #458500;
   --accent-foreground: #ffffff;
   --destructive: #e82016;
   --border: #d6e6ec;
   --input: #d6e6ec;
-  --ring: #3fe0ff;
-  --chart-1: #1c7f9e;
+  --ring: #8bc34a;
+  --chart-1: #458500;
   --chart-2: #0d2a35;
   --chart-3: #656464;
   --chart-4: #a8739d;
@@ -357,51 +358,52 @@
   --radius: 0.25rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #191919;
-  --sidebar-primary: #1c7f9e;
+  --sidebar-primary: #458500;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e6f2f6;
+  --sidebar-accent: #eef6e6;
   --sidebar-accent-foreground: #191919;
-  --sidebar-border: #d6e6ec;
-  --sidebar-ring: #3fe0ff;
+  --sidebar-border: #dbe8cf;
+  --sidebar-ring: #8bc34a;
 
   /* lienstore specific values */
   --lien-page: #ffffff;
-  --lien-blue: #1c7f9e; /* ocean blue, primary actions */
-  --lien-blue-hover: #166a85; /* darker ocean for hover */
-  --lien-blue-soft: #e6f2f6; /* tinted backgrounds (tabs, pagination, payment box) */
-  --lien-blue-ring: #3fe0ff; /* cyan hover ring */
+  --lien-header: #458500; /* iHerb-style green header bar */
+  --lien-blue: #458500; /* iHerb green, primary actions (token name kept for compatibility) */
+  --lien-blue-hover: #366800; /* darker green for hover */
+  --lien-blue-soft: #eef6e6; /* tinted backgrounds (tabs, pagination, payment box) */
+  --lien-blue-ring: #8bc34a; /* light green hover ring */
   --lien-cream: #f5f5f5; /* header / utility bar tint (neutral light grey, iHerb-like) */
   --lien-footer2: #f7f7f7; /* light footer / tiles */
   --lien-sale: #ff4e00; /* discount badge */
   --lien-sale-text: #ec0101; /* sale price */
   --lien-amber: #ffb83a; /* register CTA */
   --lien-info: #1878b9; /* "New" label */
-  --lien-price: #14607a; /* regular price (deep ocean) */
+  --lien-price: #2f5d00; /* regular price (deep green) */
   --lien-success: #228b22;
-  --lien-text: #14313d;
-  --lien-muted: #5b7079;
-  --lien-heading: #0d2a35; /* deep ocean headings */
-  --lien-nav: #123b4a; /* menu text */
-  --lien-dark: #0d2a35;
-  --lien-footer: #0d2a35; /* deep ocean footer / admin sidebar */
-  --lien-topbar: #0b2530;
-  --lien-tagline: #5b7079;
-  --lien-widget-title: #0d2a35;
+  --lien-text: #222222;
+  --lien-muted: #6b7280;
+  --lien-heading: #1a1a1a; /* near-black headings (iHerb) */
+  --lien-nav: #1a1a1a; /* menu text */
+  --lien-dark: #1f3a08;
+  --lien-footer: #1f3a08; /* deep green footer / admin sidebar */
+  --lien-topbar: #17300a;
+  --lien-tagline: #6b7280;
+  --lien-widget-title: #1a1a1a;
   --lien-widget-border: #e0e0e0;
-  --lien-hr: #b5cfd8;
+  --lien-hr: #c9d8bd;
   --lien-hr-border: #ededed;
-  --lien-price-track: #d6e6ec;
-  --lien-price-progress: #1c7f9e;
+  --lien-price-track: #dbe8cf;
+  --lien-price-progress: #458500;
   --lien-facebook: #3b5998; /* rgb(59,89,152) */
   --lien-heart: #e82016; /* rgb(232,32,22) */
   --lien-card-shadow: #dddddd;
   --lien-input-border: #cccccc;
-  --lien-input-text: #14313d;
+  --lien-input-text: #222222;
   --lien-line: #e5e5e5;
-  --lien-toggle: #0d2a35; /* mobile Menu button */
+  --lien-toggle: #1a1a1a; /* mobile Menu button */
   --lien-header-border: #e5e5e5;
   --lien-search-icon: #d9d9d9;
-  --lien-footer-hover: #7fe0f5; /* cyan accent on dark */
+  --lien-footer-hover: #b6e388; /* light green accent on dark */
 }
 
 .dark {

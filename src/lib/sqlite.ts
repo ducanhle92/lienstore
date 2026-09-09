@@ -417,6 +417,16 @@ export const MIGRATIONS: Migration[] = [
         WHERE m.leg = 'vn_domestic' AND m.name = 'Khách tự tới kho lấy' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
     ],
   },
+  {
+    version: 14,
+    name: "dims-confidence-shipping-pricing",
+    up: [
+      `ALTER TABLE products ADD COLUMN dims_confidence TEXT`,
+      `ALTER TABLE products ADD COLUMN dims_source TEXT NOT NULL DEFAULT ''`,
+      `INSERT OR IGNORE INTO settings (key, value) VALUES ('shipping_pricing_mode', 'per_order')`,
+      `INSERT OR IGNORE INTO settings (key, value) VALUES ('jpy_vnd_rate', '175')`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -606,12 +616,12 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
 
     const insProd = db.prepare(`${verb} INTO products
       (id, slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb, short_description, description,
-       related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+       related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
     const byId = db.prepare("SELECT slug FROM products WHERE id = ?");
-    const backfillDims = db.prepare("UPDATE products SET weight_g = COALESCE(weight_g, ?), dims_cm = COALESCE(dims_cm, ?) WHERE id = ?");
+    const backfillDims = db.prepare("UPDATE products SET weight_g = COALESCE(weight_g, ?), dims_cm = COALESCE(dims_cm, ?), dims_confidence = COALESCE(dims_confidence, ?), dims_source = CASE WHEN dims_source = '' THEN ? ELSE dims_source END WHERE id = ?");
     let nextId = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM products").get() as { m: number }).m;
     for (const p of seed.products ?? []) if (typeof p.id === "number" && p.id > nextId) nextId = p.id;
     const now = new Date().toISOString();
@@ -639,7 +649,8 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
           // updatedAt, so still fill it in where this server has none — never overwrite an admin-entered value.
           const w = num(p.weightG);
           const d = typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null;
-          if (w !== null || d !== null) backfillDims.run(w, d, old.id);
+          const conf = p.dimsConfidence === "high" || p.dimsConfidence === "medium" || p.dimsConfidence === "low" ? p.dimsConfidence : null;
+          if (w !== null || d !== null) backfillDims.run(w, d, conf, str(p.dimsSource), old.id);
           continue;
         }
         if (old && old.id !== id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);
@@ -671,6 +682,8 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
         str(p.updatedAt, now),
         num(p.weightG),
         typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null,
+        p.dimsConfidence === "high" || p.dimsConfidence === "medium" || p.dimsConfidence === "low" ? p.dimsConfidence : null,
+        str(p.dimsSource),
       );
       (p.categories ?? []).forEach((slug, i) => insPC.run(id, slug, i));
     }

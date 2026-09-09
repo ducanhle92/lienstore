@@ -3,6 +3,7 @@ import Link from "next/link";
 import { deleteProductAction } from "@/app/admin/products/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, btnPrimary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCategories } from "@/lib/db";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -96,6 +97,7 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>Giá vốn</th>
                 <th className={thClass}>Lợi nhuận</th>
                 <th className={thClass}>Tồn kho</th>
+                <th className={thClass}>Cân / KT</th>
                 <th className={thClass}>Trạng thái</th>
                 <th className={thClass}>Cập nhật</th>
                 <th className={thClass} />
@@ -104,7 +106,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={11} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -140,6 +142,16 @@ export default async function AdminProducts({ searchParams }: Props) {
                     })()}
                   </td>
                   <td className={tdClass}>{p.stock === null ? "—" : p.stock}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
+                    {p.weightG || p.dimsCm ? (
+                      <>
+                        <span className="block text-lien-text">{p.weightG ? `${p.weightG} g` : "—"}{p.dimsCm ? ` · ${p.dimsCm.replace(/x/g, "×")}` : ""}</span>
+                        <ConfidenceBadge value={p.dimsConfidence} />
+                      </>
+                    ) : (
+                      <span className="text-lien-muted">chưa có</span>
+                    )}
+                  </td>
                   <td className={tdClass}>
                     <ProductStatusBadge status={p.status} outOfStock={p.stockStatus === "outofstock"} />
                   </td>

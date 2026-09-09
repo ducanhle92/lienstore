@@ -3,14 +3,15 @@ import { CheckoutForm, type CheckoutZone } from "@/components/sites/lienstore/sh
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { displayEmail, getAllProducts, getPickupAddress, getShippingMethods } from "@/lib/db";
-import { chargeableWeightG } from "@/lib/shipping";
+import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getShippingMethods, getShippingPricingMode } from "@/lib/db";
+import { billableProductWeightG, buildQuoteConfig } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Thanh toán – LienStore" };
 
 export default async function Checkout() {
-  const [customer, methods, pickupAddress, products] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts()]);
+  const [customer, methods, pickupAddress, products, mode, jpyRate] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts(), getShippingPricingMode(), getJpyRate()]);
+  const quote = buildQuoteConfig(methods, mode, jpyRate);
   // Domestic delivery options = zones of the active "VN domestic" methods.
   const zones: CheckoutZone[] = methods
     .filter((m) => m.leg === "vn_domestic")
@@ -21,12 +22,9 @@ export default async function Checkout() {
     );
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
   const preorderIds = products.filter((p) => p.stock === null || p.stock <= 0).map((p) => p.id);
-  // Chargeable grams per product (max of actual and volumetric weight) for per-kg delivery estimates.
+  // Billable grams per product: max(actual, volumetric) × safety factor by confidence (500 g × 2 when unknown).
   const weights: Record<number, number> = {};
-  for (const p of products) {
-    const w = chargeableWeightG(p.weightG, p.dimsCm);
-    if (w) weights[p.id] = w;
-  }
+  for (const p of products) weights[p.id] = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);
   return (
     <SiteChrome>
       <TwoColumnShell sidebar={<StoreSidebar />} title="Thanh toán">
@@ -37,6 +35,7 @@ export default async function Checkout() {
             pickupAddress={pickupAddress}
             preorderIds={preorderIds}
             weights={weights}
+            quote={quote}
             defaults={
               customer
                 ? { firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: displayEmail(customer.email) }

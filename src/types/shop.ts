@@ -17,6 +17,10 @@ export interface CatalogProduct {
   minStock: number | null;
   /** Packed weight in grams (for shipping estimates); null = unknown. */
   weightG: number | null;
+  /** How reliable weight/dims are: high (seller data) · medium (inferred from a similar item) · low (guess). */
+  dimsConfidence: "high" | "medium" | "low" | null;
+  /** Where the numbers came from (Amazon page, inferred from the pack size…). */
+  dimsSource: string;
   /** Packed size "DxRxC" in cm, e.g. "12x8x5"; null = unknown. */
   dimsCm: string | null;
   currency: string;

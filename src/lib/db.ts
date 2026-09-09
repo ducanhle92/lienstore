@@ -25,7 +25,7 @@ import type {
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN } from "./customer-email";
-import { billableKg, chargeableWeightG, isShipStage, type ShipStage } from "./shipping";
+import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -52,6 +52,8 @@ interface ProductRow {
   min_stock: number | null;
   weight_g: number | null;
   dims_cm: string | null;
+  dims_confidence: string | null;
+  dims_source: string | null;
   currency: string;
   sku: string | null;
   stock: number | null;
@@ -95,6 +97,8 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     minStock: r.min_stock ?? null,
     weightG: r.weight_g ?? null,
     dimsCm: r.dims_cm ?? null,
+    dimsConfidence: isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null,
+    dimsSource: r.dims_source ?? "",
     currency: r.currency,
     sku: r.sku,
     stock: r.stock,
@@ -341,7 +345,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?,
-        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?
+        tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?
         WHERE id = ?`).run(
         input.slug,
         input.name,
@@ -366,12 +370,14 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         now,
         input.weightG,
         input.dimsCm,
+        input.dimsConfidence,
+        input.dimsSource,
         id,
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
       const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb,
-        short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm)
+        short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
@@ -520,14 +526,14 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let prepaidRequired = false;
     let weightG = 0;
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null }
+      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm, dims_confidence FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }
         | undefined;
       if (!row) continue;
       const qty = Math.max(1, Math.floor(it.quantity));
       // made-to-order: no tracked stock, or not enough on hand
       if (row.stock === null || row.stock < qty) prepaidRequired = true;
-      weightG += (chargeableWeightG(row.weight_g, row.dims_cm) ?? 0) * qty;
+      weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
       items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
@@ -569,6 +575,16 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       voucherCode = check.voucher.code;
       db.prepare("UPDATE vouchers SET used_count = used_count + 1, updated_at = ? WHERE id = ?").run(now, check.voucher.id);
     }
+    // Japan-side legs (per-order pricing mode): default method per leg, tier by billable weight, ¥ → VND.
+    const mode: ShippingPricingMode = getSetting(db, "shipping_pricing_mode") === "included" ? "included" : "per_order";
+    const rateRaw = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
+    const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
+    const jpLegs = mode === "per_order" ? quoteJpLegs(buildQuoteConfig(loadShippingMethods(db, true), mode, jpyRate), weightG || 1000, subtotal) : [];
+    const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
+    const vnFee = shippingFee;
+    const vnLabel = shippingLabel;
+    shippingFee = vnFee + jpFee;
+    if (jpLegs.length) shippingLabel = [...jpLegs.map((l) => l.label), vnLabel].filter(Boolean).join(" + ");
     const total = Math.max(0, subtotal - discount) + shippingFee;
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
@@ -606,6 +622,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity);
       decStock.run(it.quantity, it.quantity, now, it.productId);
     }
+    // Pre-fill the per-leg table so the admin sees what was quoted (editable later).
+    const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
+    for (const l of jpLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `Báo giá khi đặt: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
+    if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
+    else if (vnLabel) insLeg.run(id, "vn_domestic", null, input.shippingZoneId ?? null, vnLabel, vnFee, "", now);
     return {
       id,
       number,
@@ -639,6 +660,22 @@ export async function getPickupAddress(): Promise<string> {
 
 export async function setPickupAddress(value: string): Promise<void> {
   setSetting(getDb(), "pickup_address", value.trim());
+}
+
+/** "per_order": customer pays JP domestic + JP→VN + VN delivery per order; "included": only VN delivery. */
+export async function getShippingPricingMode(): Promise<ShippingPricingMode> {
+  return getSetting(getDb(), "shipping_pricing_mode") === "included" ? "included" : "per_order";
+}
+export async function setShippingPricingMode(mode: ShippingPricingMode): Promise<void> {
+  setSetting(getDb(), "shipping_pricing_mode", mode);
+}
+/** VND per JPY used to convert ¥-priced methods at checkout. */
+export async function getJpyRate(): Promise<number> {
+  const v = Number.parseFloat(getSetting(getDb(), "jpy_vnd_rate") ?? "175");
+  return Number.isFinite(v) && v > 0 ? v : 175;
+}
+export async function setJpyRate(rate: number): Promise<void> {
+  setSetting(getDb(), "jpy_vnd_rate", String(rate));
 }
 
 const ORDER_ORDER = "ORDER BY created_at DESC, number DESC";
@@ -755,9 +792,9 @@ export async function updateOrderShipping(id: string, patch: { fee: number; labe
 /** Sum of chargeable weight (max of actual and volumetric) × quantity over the order's lines, in grams. */
 export async function getOrderChargeableWeightG(orderId: string): Promise<number> {
   const rows = getDb()
-    .prepare("SELECT oi.quantity, p.weight_g, p.dims_cm FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?")
-    .all(orderId) as unknown as Array<{ quantity: number; weight_g: number | null; dims_cm: string | null }>;
-  return rows.reduce((s, r) => s + (chargeableWeightG(r.weight_g ?? null, r.dims_cm ?? null) ?? 0) * r.quantity, 0);
+    .prepare("SELECT oi.quantity, p.weight_g, p.dims_cm, p.dims_confidence FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?")
+    .all(orderId) as unknown as Array<{ quantity: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
+  return rows.reduce((s, r) => s + billableProductWeightG(r.weight_g ?? null, r.dims_cm ?? null, isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null) * r.quantity, 0);
 }
 
 interface OrderLegRow {
@@ -1398,7 +1435,10 @@ const rowToZone = (r: ShippingZoneRow): ShippingZone => ({
 
 /** Shipping methods with their zones, ordered by position. `activeOnly` hides disabled methods/zones (storefront). */
 export async function getShippingMethods(activeOnly = true): Promise<ShippingMethod[]> {
-  const db = getDb();
+  return loadShippingMethods(getDb(), activeOnly);
+}
+
+function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMethod[] {
   const where = activeOnly ? "WHERE active = 1" : "";
   const methods = db
     .prepare(`SELECT m.*, c.name AS carrier_name FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)
@@ -1548,6 +1588,8 @@ export async function exportCatalogue() {
     minStock: p.minStock,
     weightG: p.weightG,
     dimsCm: p.dimsCm,
+    dimsConfidence: p.dimsConfidence,
+    dimsSource: p.dimsSource,
     currency: p.currency,
     sku: p.sku,
     stock: p.stock,

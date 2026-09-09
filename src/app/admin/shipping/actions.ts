@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteShippingCarrier, deleteShippingMethod, deleteShippingZone, saveShippingCarrier, saveShippingMethod, saveShippingZone, setPickupAddress, setShippingNotes } from "@/lib/db";
+import { deleteShippingCarrier, deleteShippingMethod, deleteShippingZone, saveShippingCarrier, saveShippingMethod, saveShippingZone, setPickupAddress, setShippingNotes, setJpyRate, setShippingPricingMode } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
 import { isShippingLeg } from "@/lib/shipping";
 
@@ -133,6 +133,15 @@ export async function savePickupAction(formData: FormData): Promise<void> {
   await guard();
   await setPickupAddress(text(formData, "pickupAddress"));
   done("Đã lưu địa chỉ nhận tại kho.", "#pickup", "vn_domestic");
+}
+
+export async function savePricingAction(formData: FormData): Promise<void> {
+  await guard();
+  const mode = String(formData.get("mode")) === "included" ? "included" : "per_order";
+  const rate = Number.parseFloat(String(formData.get("jpyRate") ?? "").replace(",", "."));
+  await setShippingPricingMode(mode);
+  if (Number.isFinite(rate) && rate > 0) await setJpyRate(rate);
+  done("Đã lưu cách tính phí vận chuyển ở trang thanh toán.", "#pricing", "display");
 }
 
 export async function saveNotesAction(formData: FormData): Promise<void> {

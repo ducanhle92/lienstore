@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { deleteCarrierAction, deleteMethodAction, deleteZoneAction, saveCarrierAction, saveMethodAction, saveNotesAction, savePickupAction, saveZoneAction } from "@/app/admin/shipping/actions";
+import { deleteCarrierAction, deleteMethodAction, deleteZoneAction, saveCarrierAction, saveMethodAction, saveNotesAction, savePickupAction, savePricingAction, saveZoneAction } from "@/app/admin/shipping/actions";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { getJpyRate, getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { buildQuoteConfig } from "@/lib/shipping";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
@@ -393,7 +394,8 @@ export default async function AdminShipping({ searchParams }: Props) {
   const sp = await searchParams;
   const saved = first(sp.saved);
   const error = first(sp.error);
-  const [methods, notes, carriers, pickupAddress, allOrders] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders()]);
+  const [methods, notes, carriers, pickupAddress, allOrders, pricingMode, jpyRate] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders(), getShippingPricingMode(), getJpyRate()]);
+  const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate);
   const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
   const legMap = await getOrderLegs(orders.map((o) => o.id));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
@@ -434,6 +436,37 @@ export default async function AdminShipping({ searchParams }: Props) {
 
       {tab === "display" ? (
         <div className="space-y-6">
+          <div id="pricing">
+            <Card title="Cách tính phí vận chuyển ở trang thanh toán">
+              <form action={savePricingAction} className="grid gap-4 md:grid-cols-[1fr_200px_auto] md:items-end">
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 text-[14px]">
+                    <input type="radio" name="mode" value="per_order" defaultChecked={pricingMode === "per_order"} className="mt-1 h-4 w-4" />
+                    <span>
+                      <strong>Tính riêng 3 chặng theo đơn</strong> — khách trả ship nội địa Nhật + Nhật → Việt Nam + giao nội địa Việt Nam, theo cân tính phí của đơn (đã nhân hệ số an toàn). Chọn &quot;Nhận tại kho&quot; thì bỏ chặng nội địa Việt Nam.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-[14px]">
+                    <input type="radio" name="mode" value="included" defaultChecked={pricingMode === "included"} className="mt-1 h-4 w-4" />
+                    <span>
+                      <strong>Giá sản phẩm đã gồm ship về Việt Nam</strong> — khách chỉ trả phí giao nội địa Việt Nam.
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <label className={adminLabel}>Tỷ giá 1¥ = ? đ</label>
+                  <input name="jpyRate" inputMode="decimal" defaultValue={jpyRate} className={adminInput} />
+                </div>
+                <button type="submit" className={btnPrimary}>
+                  <Fa name="check" /> Lưu
+                </button>
+              </form>
+              <p className="mt-3 text-[12px] leading-5 text-lien-muted">
+                Phương thức dùng để báo giá = phương thức <strong>đang bật, đứng đầu</strong> mỗi chặng (kéo vị trí trong tab chặng): nội địa Nhật →{" "}
+                <strong>{quoteCfg.jpDomestic ? quoteCfg.jpDomestic.name : "chưa có"}</strong>, Nhật → Việt Nam → <strong>{quoteCfg.jpVn ? quoteCfg.jpVn.name : "chưa có"}</strong>. Cột chọn theo mốc cân (&quot;≤ 5 kg&quot;, &quot;Size 80 (≤5 kg)&quot;) hoặc nhân theo /kg; giá ¥ đổi sang đ theo tỷ giá trên.
+              </p>
+            </Card>
+          </div>
           <div id="notes">
             <Card title="Lưu ý chung về vận chuyển (hiện dưới các bảng; mỗi dòng một gạch đầu dòng)">
               <form action={saveNotesAction} className="space-y-3">

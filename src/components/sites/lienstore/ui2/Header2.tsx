@@ -76,22 +76,22 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
   }, [open]);
 
   const tree = buildCategoryTree(categories);
-  const navItem = "inline-flex h-[44px] items-center gap-1 px-3 text-[14px] font-semibold uppercase tracking-[0.2px] text-lien-heading no-underline hover:text-lien-blue";
+  const navItem = "inline-flex h-[44px] items-center gap-1 rounded-md px-3 text-[14px] font-semibold uppercase tracking-[0.2px] text-white no-underline hover:bg-white/15";
 
   return (
-    <header className={cn("sticky top-0 z-[9000] border-b border-lien-line bg-white shadow-[0_1px_0_0_#eee] transition-shadow", stuck && "shadow-[0_4px_16px_-8px_rgba(0,0,0,0.25)]")}>
+    <header className={cn("sticky top-0 z-[9000] bg-lien-header text-white transition-shadow", stuck && "shadow-[0_4px_16px_-8px_rgba(0,0,0,0.35)]")}>
       <div className="mx-auto flex max-w-[1300px] items-center gap-4 px-4 py-2 lg:gap-6" ref={navRef}>
-        <button type="button" onClick={() => setDrawer(true)} aria-label={t("openMenu")} className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream lg:hidden">
+        <button type="button" onClick={() => setDrawer(true)} aria-label={t("openMenu")} className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white hover:bg-white/15 lg:hidden">
           <Fa name="bars" />
         </button>
 
         <Link href="/" className="shrink-0" aria-label="LienStore">
-          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[150px] transition-[width] sm:w-[190px]", stuck && "sm:w-[160px]")} />
+          <Image src={logo.src.replace("lienstore-logo-horizontal.svg", "lienstore-logo-horizontal-dark.svg")} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[150px] transition-[width] sm:w-[190px]", stuck && "sm:w-[160px]")} />
         </Link>
 
         <nav aria-label="Menu chính" className="hidden items-center lg:flex">
           <div className="relative">
-            <button type="button" onClick={() => setOpen(open === "cat" ? null : "cat")} className={cn(navItem, open === "cat" && "text-lien-blue")} aria-expanded={open === "cat"}>
+            <button type="button" onClick={() => setOpen(open === "cat" ? null : "cat")} className={cn(navItem, open === "cat" && "bg-white/15")} aria-expanded={open === "cat"}>
               <Fa name="th-large" className="mr-1 text-[13px]" />
               {t("categories")}
               <Fa name="angle-down" className="text-[12px]" />
@@ -143,7 +143,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
             ) : null}
           </div>
           <div className="relative">
-            <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "text-lien-blue")} aria-expanded={open === "support"}>
+            <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "bg-white/15")} aria-expanded={open === "support"}>
               {t("support")}
               <Fa name="angle-down" className="text-[12px]" />
             </button>
@@ -158,7 +158,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
             ) : null}
           </div>
           <div className="relative">
-            <button type="button" onClick={() => setOpen(open === "news" ? null : "news")} className={cn(navItem, open === "news" && "text-lien-blue")} aria-expanded={open === "news"}>
+            <button type="button" onClick={() => setOpen(open === "news" ? null : "news")} className={cn(navItem, open === "news" && "bg-white/15")} aria-expanded={open === "news"}>
               {t("news")}
               <Fa name="angle-down" className="text-[12px]" />
               <span className="ml-1 rounded-full bg-lien-info px-1.5 py-px text-[9px] font-bold uppercase text-white">New</span>
@@ -182,9 +182,9 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           </Link>
         </nav>
 
-        <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] w-[280px] items-center overflow-hidden rounded-full border border-lien-line bg-lien-cream/60 focus-within:border-lien-blue focus-within:bg-white md:flex xl:w-[320px]">
+        <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] w-[300px] items-center overflow-hidden rounded-full border border-white/40 bg-white focus-within:border-white md:flex xl:w-[380px]">
           <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
-          <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading hover:text-lien-blue">
+          <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-blue hover:text-lien-blue-hover">
             <Fa name="search" />
           </button>
         </form>
@@ -195,16 +195,16 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
             onClick={() => setAccount(true)}
             aria-label={customer ? `${t("account")} · ${customer.username || customer.firstName}` : t("login")}
             title={customer ? `${customer.lastName} ${customer.firstName}`.trim() || customer.username : t("login")}
-            className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream hover:text-lien-blue", customer && "text-lien-blue")}
+            className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white hover:bg-white/15")}
           >
             <Fa name={customer ? "user-circle" : "user"} />
-            {customer ? <span className="absolute right-1 bottom-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-lien-success" aria-hidden="true" /> : null}
+            {customer ? <span className="absolute right-1 bottom-1 h-2.5 w-2.5 rounded-full border-2 border-lien-header bg-lien-amber" aria-hidden="true" /> : null}
           </button>
-          <Link href="/wishlist/" aria-label={t("wishlist")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading no-underline hover:bg-lien-cream hover:text-lien-blue">
+          <Link href="/wishlist/" aria-label={t("wishlist")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white no-underline hover:bg-white/15">
             <Fa name="heart-o" />
             {wishCount ? <Badge n={wishCount} /> : null}
           </Link>
-          <button type="button" onClick={openDrawer} aria-label={t("cart")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-lien-heading hover:bg-lien-cream hover:text-lien-blue" data-cart-count={cartCount}>
+          <button type="button" onClick={openDrawer} aria-label={t("cart")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white hover:bg-white/15" data-cart-count={cartCount}>
             <Fa name="shopping-cart" />
             <Badge n={cartCount} />
           </button>
@@ -212,9 +212,9 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
       </div>
 
       {/* mobile search row */}
-      <form action="/shop/" method="get" role="search" className="mx-4 mb-2 flex h-[40px] items-center overflow-hidden rounded-full border border-lien-line bg-lien-cream/60 md:hidden">
+      <form action="/shop/" method="get" role="search" className="mx-4 mb-2 flex h-[40px] items-center overflow-hidden rounded-full border border-white/40 bg-white md:hidden">
         <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
-        <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-heading">
+        <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-blue">
           <Fa name="search" />
         </button>
       </form>

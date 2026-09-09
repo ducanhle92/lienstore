@@ -7,7 +7,7 @@ import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
 import { BANK } from "@/lib/payment";
-import { billableKg } from "@/lib/shipping";
+import { billableKg, quoteJpLegs, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CheckoutState } from "./checkout-types";
 import { Price, Required, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass, wooInputClass } from "./WooUi";
@@ -73,12 +73,14 @@ interface Props {
   pickupAddress: string;
   /** Product ids that are bought to order (must be prepaid). */
   preorderIds: number[];
-  /** Chargeable grams per product id (for per-kg zones). */
+  /** Billable grams per product id (safety factor already applied). */
   weights?: Record<number, number>;
+  /** How the Japan-side legs are priced (per-order mode) — same function runs again on the server. */
+  quote?: ShippingQuoteConfig;
 }
 
 /** Checkout: billing fields, delivery choice (pickup / home delivery with zone fee), order review, payment, place order. */
-export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAddress, preorderIds, weights = {} }: Props) {
+export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAddress, preorderIds, weights = {}, quote }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
   const [delivery, setDelivery] = useState<"ship" | "pickup">(zones.length ? "ship" : "pickup");
@@ -95,10 +97,14 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
   const payment: "bacs" | "cod" = mustPrepay ? "bacs" : paymentChoice;
 
   const zone = zones.find((z) => z.id === zoneId) ?? null;
-  const totalWeightG = items.reduce((s, it) => s + (weights[it.productId] ?? 0) * it.quantity, 0);
+  const totalWeightG = items.reduce((s, it) => s + (weights[it.productId] ?? 1000) * it.quantity, 0);
   const kg = billableKg(totalWeightG || 1000);
   const zoneBase = (z: CheckoutZone) => z.fee * (/kg/i.test(z.unit) ? kg : 1);
-  const shippingFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
+  const vnFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
+  const jpLegs = quote ? quoteJpLegs(quote, totalWeightG || 1000, subtotal) : [];
+  const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
+  const shippingFee = vnFee + jpFee;
+  const perOrder = !!quote && quote.mode === "per_order";
   const discount = voucher ? Math.min(voucher.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + shippingFee;
 
@@ -241,8 +247,9 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
               </label>
             </div>
             <p className="mt-3 text-[12px] leading-5 text-lien-muted">
-              Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn
-              {totalWeightG ? `, tính cho khoảng ${formatAmount(totalWeightG)} g (${kg} kg làm tròn)` : ""}.
+              {perOrder
+                ? `Phí vận chuyển tính riêng theo đơn: ship nội địa Nhật + Nhật → Việt Nam + giao nội địa Việt Nam, theo cân tính phí ${formatAmount(totalWeightG)} g (${kg} kg làm tròn, đã nhân hệ số an toàn khi kích thước chưa chắc). Chọn "Nhận tại kho" thì không tính chặng nội địa Việt Nam.`
+                : `Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn${totalWeightG ? `, tính cho khoảng ${formatAmount(totalWeightG)} g (${kg} kg làm tròn)` : ""}.`}
             </p>
 
             <div className="woocommerce-additional-fields mt-4">
@@ -306,14 +313,37 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                   </td>
                 </tr>
               ) : null}
+              {jpLegs.map((l) => (
+                <tr key={l.leg} className="shipping">
+                  <th className={cn(shopTdClass, "font-bold")} scope="row">
+                    {l.leg === "jp_domestic" ? "Ship nội địa Nhật" : "Ship Nhật → Việt Nam"}
+                    <span className="block text-[12px] font-normal text-lien-muted">
+                      {l.label}
+                      {/¥/.test(l.currency) ? ` · ${formatAmount(l.feeRaw)}¥` : ""}
+                    </span>
+                  </th>
+                  <td className={shopTdClass}>{l.fee === 0 ? "Miễn phí" : <Price value={l.fee} />}</td>
+                </tr>
+              ))}
               <tr className="shipping">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
-                  Giao hàng
+                  {perOrder ? "Giao nội địa Việt Nam" : "Giao hàng"}
+                  {delivery === "pickup" && perOrder ? <span className="block text-[12px] font-normal text-lien-success">Tự tới kho lấy · không tính phí chặng này</span> : null}
                 </th>
                 <td className={shopTdClass}>
-                  {delivery === "pickup" ? "Nhận tại kho · miễn phí" : zone ? (shippingFee === 0 ? `${zone.label} · miễn phí` : <Price value={shippingFee} />) : "—"}
+                  {delivery === "pickup" ? "Nhận tại kho · miễn phí" : zone ? (vnFee === 0 ? `${zone.label} · miễn phí` : <Price value={vnFee} />) : "—"}
                 </td>
               </tr>
+              {perOrder ? (
+                <tr className="shipping-total">
+                  <th className={cn(shopTdClass, "font-semibold text-lien-muted")} scope="row">
+                    Tổng phí vận chuyển <span className="font-normal">({formatAmount(totalWeightG)} g cân tính phí → {kg} kg)</span>
+                  </th>
+                  <td className={cn(shopTdClass, "text-lien-muted")}>
+                    <Price value={shippingFee} />
+                  </td>
+                </tr>
+              ) : null}
               <tr className="order-total">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   Tổng

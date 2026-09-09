@@ -120,7 +120,7 @@ C = {
     "stock": col(H, "Tồn kho"), "oos": col(H, "Hết hàng"), "status": col(H, "Trạng thái"), "tags": col(H, "Từ khóa"),
     "images": col(H, "Danh sách ảnh", "Ảnh (URL", "Ảnh"), "short": col(H, "Mô tả ngắn"), "desc": col(H, "Mô tả chi tiết"),
     "jpy": col(H, "Giá Nhật"), "supplier": col(H, "Link tham khảo", "Link nhà cung cấp", "Link mua"),
-    "weight": col(H, "Khối lượng"), "dims": col(H, "Kích thước"),
+    "weight": col(H, "Khối lượng"), "dims": col(H, "Kích thước"), "conf": col(H, "Độ tin cậy", "Tin cậy"), "dsrc": col(H, "Nguồn KT", "Cơ sở", "Nguồn/Cơ sở"),
 }
 missing = [k for k in ("name",) if C[k] is None]
 if missing: sys.exit(f"missing required columns: {missing}; headers seen: {H}")
@@ -201,6 +201,11 @@ for r in rows[hdr_idx + 1:]:
     dm = get(r, "dims")
     if dm not in (None, ""):
         p["dimsCm"] = re.sub(r"\s+", "", str(dm)).replace("×", "x").replace("*", "x")
+    cf = norm(get(r, "conf"))
+    if cf:
+        p["dimsConfidence"] = "high" if cf.startswith("cao") or cf == "high" else "medium" if cf.startswith("trung") or cf == "medium" else "low" if cf.startswith("thap") or cf == "low" else p.get("dimsConfidence")
+    ds = get(r, "dsrc")
+    if ds not in (None, ""): p["dimsSource"] = str(ds).strip()[:300]
     if p.get("regularPrice") is not None and p["regularPrice"] <= p["price"]: p["regularPrice"] = None
     sku = get(r, "sku")
     if sku is not None and str(sku).strip(): p["sku"] = str(sku).strip()

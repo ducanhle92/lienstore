@@ -29,6 +29,8 @@ ap.add_argument("--limit", type=int, default=0)
 ap.add_argument("--no-amazon", action="store_true")
 ap.add_argument("--force", action="store_true", help="also re-process products that already have weight and dims")
 ap.add_argument("--only", help="comma-separated product ids")
+ap.add_argument("--min-id", type=int, default=0, help="only products with id >= this")
+ap.add_argument("--jp-names", help="JSON {slug: {jp: \"日本語名\"}} → search Amazon.co.jp by Japanese name when there is no product link")
 args = ap.parse_args()
 
 SIZE = re.compile(r"(\d+(?:[.,]\d+)?)\s?(ml|mL|ML|l|L|g|G|kg|KG|錠|粒|viên|包|袋|枚|本|回分|カプセル|gói|miếng|tờ|cái|日分|個)(?![a-zA-Z])")
@@ -122,10 +124,33 @@ def amazon(pg, url):
     return dims, weight, rows
 
 
+SIZE_TOK = re.compile(r"(\d+(?:\.\d+)?)\s?(ml|mL|g|kg|錠|粒|包|袋|枚|本|カプセル|個|日分)", re.I)
+def size_tokens(text):
+    t = (text or "").translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+    return {(m.group(1), m.group(2).lower()) for m in SIZE_TOK.finditer(t)}
+
+def amazon_search(pg, jp_name):
+    """Top organic result whose title shares a pack-size token with the Japanese name (or the first one). Returns (asin, title)."""
+    from urllib.parse import quote
+    pg.goto(f"https://www.amazon.co.jp/s?k={quote(jp_name)}", wait_until="domcontentloaded", timeout=60000)
+    pg.wait_for_timeout(1800)
+    items = pg.eval_on_selector_all("div.s-result-item[data-asin]:not([data-asin=''])", """els => els.slice(0, 10).map(e => ({
+        asin: e.getAttribute('data-asin'), title: (e.querySelector('h2')?.innerText || '').trim(),
+        sponsored: !!e.querySelector('[aria-label*="スポンサー"], .puis-sponsored-label-text, .s-sponsored-label-text')}))""")
+    items = [i for i in items if i["title"] and not i["sponsored"]]
+    if not items:
+        return None
+    want = size_tokens(jp_name)
+    for it in items:
+        if want and want & size_tokens(it["title"]):
+            return it["asin"], it["title"], True
+    return items[0]["asin"], items[0]["title"], False
+
 seed = json.loads(SEED.read_text(encoding="utf-8"))
 products = seed["products"]
 only = {int(x) for x in args.only.split(",")} if args.only else None
-todo = [p for p in products if (args.force or not (p.get("weightG") and p.get("dimsCm"))) and (only is None or p["id"] in only)]
+todo = [p for p in products if (args.force or not (p.get("weightG") and p.get("dimsCm"))) and (only is None or p["id"] in only) and p["id"] >= args.min_id]
+jp_names = json.loads(Path(args.jp_names).read_text(encoding="utf-8")) if args.jp_names else {}
 if args.limit:
     todo = todo[: args.limit]
 print(f"{len(todo)} product(s) to process", flush=True)
@@ -145,11 +170,23 @@ for i, p in enumerate(todo, 1):
     dims = weight = None
     source = ""
     err = ""
+    matched_title = ""
     if pg is not None and "amazon.co.jp" in url:
         try:
             dims, weight, rows = amazon(pg, url)
             if dims or weight:
                 source = "amazon"
+        except Exception as e:  # noqa: BLE001
+            err = str(e)[:120]
+    elif pg is not None and jp_names.get(p["slug"], {}).get("jp"):
+        try:
+            hit = amazon_search(pg, jp_names[p["slug"]]["jp"])
+            if hit:
+                asin, matched_title, sized = hit
+                dims, weight, rows = amazon(pg, f"https://www.amazon.co.jp/dp/{asin}")
+                if dims or weight:
+                    source = "amazon-search" + ("" if sized else "-loose")
+                    matched_title = f"{matched_title[:70]} ({asin})"
         except Exception as e:  # noqa: BLE001
             err = str(e)[:120]
     if dims and eval(dims.replace("x", "*")) < 10:  # "1x1x1" placeholders
@@ -163,9 +200,9 @@ for i, p in enumerate(todo, 1):
         if weight:
             source = source + "+heuristic" if source else "heuristic"
     results.append({"id": p["id"], "slug": p["slug"], "name": p["name"], "url": url, "weightG": weight, "dimsCm": dims, "source": source, "error": err,
-                    "hadWeight": p.get("weightG"), "hadDims": p.get("dimsCm")})
+                    "matched": matched_title, "hadWeight": p.get("weightG"), "hadDims": p.get("dimsCm")})
     print(f"[{i}/{len(todo)}] #{p['id']} {source or '-':>18} w={weight} d={dims} {p['name'][:50]}", flush=True)
-    if pg is not None and "amazon.co.jp" in url:
+    if pg is not None and ("amazon.co.jp" in url or matched_title):
         time.sleep(1.2)
 
 if browser:
@@ -209,6 +246,10 @@ if args.apply:
         if not p.get("dimsCm") and r["dimsCm"]:
             p["dimsCm"] = r["dimsCm"]
             changed += 1
+        if (r["weightG"] or r["dimsCm"]) and not p.get("dimsConfidence"):
+            src = r["source"]
+            p["dimsConfidence"] = "high" if src == "amazon" else "medium" if src.startswith("amazon-search") and src != "amazon-search-loose" else "low"
+            p["dimsSource"] = ("Amazon.co.jp (trang sản phẩm đã liên kết)" if src == "amazon" else f"Amazon JP tìm theo tên Nhật: {r['matched']}" if src.startswith("amazon-search") else "Ước lượng từ cỡ gói trong tên sản phẩm")[:300]
     seed.setdefault("meta", {})["seededAt"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     SEED.write_text(json.dumps(seed, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"applied {changed} field(s) to data/seed.json (meta.seededAt bumped)")

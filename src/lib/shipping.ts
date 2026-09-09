@@ -65,6 +65,131 @@ export function chargeableWeightG(weightG: number | null, dims: string | null): 
   return Math.max(weightG ?? 0, vol ?? 0);
 }
 
+/** How much we trust a product's weight/dimensions (set in the admin, harvested or inferred). */
+export type DimsConfidence = "high" | "medium" | "low";
+
+export const CONFIDENCE_LABEL: Record<DimsConfidence, string> = { high: "Cao", medium: "Trung bình", low: "Thấp" };
+
+/** Multiplier applied to the chargeable weight so shipping is never under-quoted: sure → 1.2, unsure → 2. */
+export const SAFETY_FACTOR: Record<DimsConfidence, number> = { high: 1.2, medium: 1.5, low: 2 };
+
+export function isDimsConfidence(v: unknown): v is DimsConfidence {
+  return v === "high" || v === "medium" || v === "low";
+}
+
+export function safetyFactor(confidence: DimsConfidence | null | undefined): number {
+  return confidence ? SAFETY_FACTOR[confidence] : SAFETY_FACTOR.low;
+}
+
+/** Grams a product costs to ship: max(actual, volumetric) × safety factor; 500 g assumed when nothing is known. */
+export const DEFAULT_ITEM_WEIGHT_G = 500;
+export function billableProductWeightG(weightG: number | null, dims: string | null, confidence: DimsConfidence | null | undefined): number {
+  const base = chargeableWeightG(weightG, dims) ?? DEFAULT_ITEM_WEIGHT_G;
+  return Math.round(base * safetyFactor(confidence));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Checkout quote for the Japan-side legs (the VN-domestic leg is the zone the customer picks)
+
+/** "per_order" = customer pays all three legs on top of the product prices; "included" = only VN delivery (prices cover the rest). */
+export type ShippingPricingMode = "per_order" | "included";
+
+export interface QuoteZone {
+  id: number;
+  name: string;
+  fee: number;
+  unit: string;
+  freeOver: number | null;
+  /** Upper weight bound parsed from the name ("≤ 5 kg", "Size 80 (≤5 kg)"), null when the zone is not weight-tiered. */
+  capKg: number | null;
+}
+export interface QuoteMethod {
+  id: number;
+  name: string;
+  carrierName: string | null;
+  currency: string;
+  zones: QuoteZone[];
+}
+/** Everything the checkout page (server and client) needs to price the JP legs of an order. */
+export interface ShippingQuoteConfig {
+  mode: ShippingPricingMode;
+  /** VND per 1 JPY, for methods priced in ¥. */
+  jpyRate: number;
+  jpDomestic: QuoteMethod | null;
+  jpVn: QuoteMethod | null;
+}
+export interface LegQuote {
+  leg: ShippingLeg;
+  methodId: number;
+  zoneId: number;
+  label: string;
+  /** Fee in VND (converted when the method is priced in ¥). */
+  fee: number;
+  /** Fee in the method's own currency. */
+  feeRaw: number;
+  currency: string;
+}
+
+const CAP_RE = /(?:≤|<=|dưới|đến|tới|~)\s*(\d+(?:[.,]\d+)?)\s*kg/i;
+export function zoneCapKg(name: string): number | null {
+  const m = CAP_RE.exec(name);
+  return m ? Number.parseFloat(m[1].replace(",", ".")) : null;
+}
+
+/** Turn full shipping methods into the lean quote config: first active method per JP leg is the default. */
+export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricingMode, jpyRate: number): ShippingQuoteConfig {
+  const pick = (leg: ShippingLeg): QuoteMethod | null => {
+    const m = methods.filter((x) => x.leg === leg && x.active && x.zones.some((z) => z.active)).sort((a, b) => a.position - b.position || a.id - b.id)[0];
+    if (!m) return null;
+    return {
+      id: m.id,
+      name: m.name,
+      carrierName: m.carrierName ?? null,
+      currency: m.currency,
+      zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
+    };
+  };
+  return { mode, jpyRate, jpDomestic: pick("jp_domestic"), jpVn: pick("jp_vn") };
+}
+
+/** Fee of one method for a billable weight: tiered zone by weight cap, else per-kg × kg, else flat first zone. */
+export function quoteMethod(m: QuoteMethod, leg: ShippingLeg, weightG: number, subtotal: number, jpyRate: number): LegQuote | null {
+  if (m.zones.length === 0) return null;
+  const kg = billableKg(weightG);
+  const tiered = m.zones.filter((z) => z.capKg !== null).sort((a, b) => (a.capKg ?? 0) - (b.capKg ?? 0));
+  let zone = tiered.find((z) => (z.capKg ?? 0) >= weightG / 1000) ?? (tiered.length ? tiered[tiered.length - 1] : m.zones[0]);
+  if (!tiered.length) zone = m.zones.find((z) => /kg/i.test(z.unit)) ?? m.zones[0];
+  const perKg = /kg/i.test(zone.unit);
+  const isJpy = /¥|jpy|yen/i.test(m.currency);
+  let raw = zone.fee * (perKg ? kg : 1);
+  if (!isJpy && zone.freeOver !== null && subtotal >= zone.freeOver) raw = 0;
+  const fee = isJpy ? Math.round(raw * jpyRate) : raw;
+  return {
+    leg,
+    methodId: m.id,
+    zoneId: zone.id,
+    label: `${m.name} · ${zone.name}${m.carrierName && !m.name.includes(m.carrierName) ? ` (${m.carrierName})` : ""}`,
+    fee,
+    feeRaw: raw,
+    currency: m.currency,
+  };
+}
+
+/** JP-side legs for an order (empty in "included" mode). */
+export function quoteJpLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal: number): LegQuote[] {
+  if (cfg.mode !== "per_order") return [];
+  const out: LegQuote[] = [];
+  if (cfg.jpDomestic) {
+    const q = quoteMethod(cfg.jpDomestic, "jp_domestic", weightG, subtotal, cfg.jpyRate);
+    if (q) out.push(q);
+  }
+  if (cfg.jpVn) {
+    const q = quoteMethod(cfg.jpVn, "jp_vn", weightG, subtotal, cfg.jpyRate);
+    if (q) out.push(q);
+  }
+  return out;
+}
+
 /** Where an order is on its way (shown to the customer as a progress bar, set by the admin step by step). */
 export type ShipStage = "ordered" | "purchased" | "jp_warehouse" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
 

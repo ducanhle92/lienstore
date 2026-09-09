@@ -140,7 +140,26 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                   <input id="dimsCm" name="dimsCm" defaultValue={product?.dimsCm ?? ""} placeholder="VD: 12x8x5" className={cn(adminInput, fields.dimsCm && "border-red-500")} />
                   <FieldError msg={fields.dimsCm} />
                 </div>
-                <p className="col-span-2 -mt-1 text-[12px] text-lien-muted">Dùng để ước tính phí gửi về Việt Nam trên trang sản phẩm (theo bảng vận chuyển, làm tròn lên từng kg; lấy số lớn hơn giữa cân thật và cân quy đổi thể tích D×R×C/6000).</p>
+                <div>
+                  <label className={adminLabel} htmlFor="dimsConfidence">
+                    Độ tin cậy kích thước / khối lượng
+                  </label>
+                  <select id="dimsConfidence" name="dimsConfidence" defaultValue={product?.dimsConfidence ?? ""} className={adminInput}>
+                    <option value="">Chưa đánh giá (tính như Thấp ×2)</option>
+                    <option value="high">Cao — nguồn bán hàng / cân thật (×1,2)</option>
+                    <option value="medium">Trung bình — suy luận tương đương (×1,5)</option>
+                    <option value="low">Thấp — ước đoán (×2)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={adminLabel} htmlFor="dimsSource">
+                    Cơ sở / nguồn số liệu
+                  </label>
+                  <input id="dimsSource" name="dimsSource" defaultValue={product?.dimsSource ?? ""} placeholder="VD: Amazon.co.jp 梱包サイズ; ước theo 60 viên" className={adminInput} />
+                </div>
+                <p className="col-span-2 -mt-1 text-[12px] text-lien-muted">
+                  Phí vận chuyển tính trên <strong>cân tính phí</strong> = max(cân thật, D×R×C/6000) × hệ số an toàn theo độ tin cậy (Cao ×1,2 · Trung bình ×1,5 · Thấp ×2), làm tròn lên từng kg. Khách chỉ thấy số đo khi độ tin cậy là Cao.
+                </p>
               </div>
               <div>
                 <label className={adminLabel} htmlFor="sku">
