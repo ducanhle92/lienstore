@@ -1,9 +1,9 @@
 {
  "version": 1,
- "note": "Seed catalogue imported into SQLite on first start (see src/lib/sqlite.ts). Regenerate with `npm run db:export`.",
+ "note": "Exported from the live catalogue (https://linconnn.io.vn). Catalogue only — no customers/orders.",
  "meta": {
   "nextOrderNumber": 1001,
-  "seededAt": "2026-09-08T18:13:29Z",
+  "seededAt": "2026-09-09T03:03:25Z",
   "removedSlugs": [
    "dau-goi-xa-mo-ngua-600ml-chai",
    "ngu-coc-calbee-thich-hop-an-voi-sua-tuoi-sua-chua-hoac-sua-dau-nanh",
@@ -45,178 +45,256 @@
  },
  "categories": [
   {
-   "slug": "chong-nang-uv",
-   "name": "CHỐNG NẮNG ( UV )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/uv-1-300x300-603bd9.png"
+   "slug": "my-pham",
+   "name": "MỸ PHẨM ( COSMETICS )",
+   "description": "Chăm sóc da mặt, chăm sóc body và trang điểm — hàng Nhật nội địa chính hãng.",
+   "image": null,
+   "parent": null
   },
   {
-   "slug": "duong-the-body",
-   "name": "DƯỠNG THỂ ( BODY )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/body-1-300x300-4c9006.png"
+   "slug": "cham-soc-da-mat",
+   "name": "CHĂM SÓC DA MẶT ( FACE CARE )",
+   "description": "Kem dưỡng, mặt nạ, chống nắng, sữa rửa mặt, tẩy trang và các bước skincare cho da mặt.",
+   "image": null,
+   "parent": "my-pham"
   },
   {
-   "slug": "giam-can-diet",
-   "name": "GIẢM CÂN ( DIET )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/diet-1-300x300-b93b6f.png"
+   "slug": "cham-soc-body",
+   "name": "CHĂM SÓC BODY ( BODY CARE )",
+   "description": "Dưỡng thể, sữa tắm, chăm sóc tóc.",
+   "image": null,
+   "parent": "my-pham"
   },
   {
-   "slug": "goc-chi-em-chung-minh-women",
-   "name": "GỐC CHỊ EM CHÚNG MÌNH ( WOMEN )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/women-1-300x300-5fd6bf.png"
+   "slug": "suc-khoe",
+   "name": "SỨC KHỎE ( HEALTH )",
+   "description": "Thực phẩm chức năng, tủ thuốc gia đình, giảm cân, răng miệng và sản phẩm cho từng đối tượng.",
+   "image": null,
+   "parent": null
   },
   {
-   "slug": "kem-duong-danh-cho-mat-face-cream",
-   "name": "KEM DƯỠNG DÀNH CHO MẶT ( FACE CREAM )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/face-cream-1-300x300-227252.png"
+   "slug": "nha-cua-doi-song",
+   "name": "NHÀ CỬA & ĐỜI SỐNG ( HOME & LIVING )",
+   "description": "Dụng cụ nhà bếp, đồ gia dụng, nến thơm.",
+   "image": null,
+   "parent": null
   },
   {
-   "slug": "mat-eyes",
-   "name": "MẮT ( EYES )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/giam-tham-mat-hieu-qua-300x300-3fa34b.jpg"
-  },
-  {
-   "slug": "mat-na-mask",
-   "name": "MẶT NẠ ( MASK )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/mask-1-300x300-3a4b61.png"
+   "slug": "thoi-trang-phu-kien",
+   "name": "THỜI TRANG & PHỤ KIỆN ( FASHION & ACCESSORIES )",
+   "description": "Thời trang, đồng hồ và phụ kiện Nhật.",
+   "image": null,
+   "parent": null
   },
   {
    "slug": "mom-and-baby",
    "name": "MOM AND BABY",
    "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/babeskin-300x300-0895c6.jpg"
-  },
-  {
-   "slug": "nuoc-hoa-hong-lotion",
-   "name": "NƯỚC HOA HỒNG ( LOTION )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/Lotion-300x300-34f9e3.png"
-  },
-  {
-   "slug": "phuc-hoi-toc-tai-nha-hair",
-   "name": "PHỤC HỒI TÓC TẠI NHÀ ( HAIR )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/hair-300x300-402643.png"
-  },
-  {
-   "slug": "san-pham-danh-cho-nam-men",
-   "name": "SẢN PHẨM DÀNH CHO NAM ( MEN )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/men-1-300x300-c8c69e.png"
-  },
-  {
-   "slug": "son-moi-lipstick",
-   "name": "SON MÔI ( LIPSTICK )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/son-300x300-0b507d.png"
-  },
-  {
-   "slug": "sua-rua-mat",
-   "name": "SỮA RỬA MẶT",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/z2123472900570_c4e2de5c553e7b388c485fb6545afdf4-300x300-15ff21.jpg"
-  },
-  {
-   "slug": "sua-tam-shower-gel",
-   "name": "SỮA TẮM ( SHOWER GEL )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/sua-tam-hatomugi-moisturizing-washing-800ml-nhat-ban-300x300-5c824c.jpg"
-  },
-  {
-   "slug": "tay-te-bao-chet-exfoliate-dead-skin",
-   "name": "TÂY TẾ BÀO CHẾT ( EXFOLIATE DEAD SKIN )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/taydachet-300x300-3bc73f.png"
-  },
-  {
-   "slug": "tay-trang-cleansing",
-   "name": "TẨY TRANG ( CLEANSING )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/taytrang-300x300-c20df3.jpg"
-  },
-  {
-   "slug": "thuc-pham-chuc-nang-functional-foods",
-   "name": "THỰC PHẨM CHỨC NĂNG ( FUNCTIONAL FOODS )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/m_t-n_-g_o-1-300x300-27aeaa.png"
-  },
-  {
-   "slug": "tri-mun-acne-treatment",
-   "name": "TRỊ MỤN ( ACNE TREATRMENT )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/vien-uong-tri-mun-pair-120-vien-nhat-ban-9-700x700-1-300x300-06f7ea.jpg"
-  },
-  {
-   "slug": "tri-nam-tan-nhang-treat-melasma-freckles",
-   "name": "TRỊ NÁM - TÀN NHANG ( TREAT MELASMA FRECKLES )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/trinam-300x300-71bf1e.jpg"
-  },
-  {
-   "slug": "tu-thuoc-gia-dinh-family-medicine",
-   "name": "TỦ THUỐC GIA ĐÌNH ( FAMILY MEDICINE )",
-   "description": "",
-   "image": "/sites/lienstore/root-8a5edab2/images/thuoc-cam-300x300-00c7a5.jpg"
-  },
-  {
-   "slug": "cham-soc-rang-mieng-oral-care",
-   "name": "CHĂM SÓC RĂNG MIỆNG ( ORAL CARE )",
-   "description": "",
-   "image": null
+   "image": "/sites/lienstore/root-8a5edab2/images/babeskin-300x300-0895c6.jpg",
+   "parent": null
   },
   {
    "slug": "thuc-pham-do-uong-food-drink",
    "name": "THỰC PHẨM - ĐỒ UỐNG ( FOOD & DRINK )",
    "description": "",
-   "image": null
+   "image": null,
+   "parent": null
+  },
+  {
+   "slug": "cham-soc-rang-mieng-oral-care",
+   "name": "CHĂM SÓC RĂNG MIỆNG ( ORAL CARE )",
+   "description": "",
+   "image": null,
+   "parent": "suc-khoe"
+  },
+  {
+   "slug": "chong-nang-uv",
+   "name": "CHỐNG NẮNG ( UV )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/uv-1-300x300-603bd9.png",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "duong-the-body",
+   "name": "DƯỠNG THỂ ( BODY )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/body-1-300x300-4c9006.png",
+   "parent": "cham-soc-body"
   },
   {
    "slug": "dung-cu-cham-soc-da-skincare-tools",
    "name": "DỤNG CỤ CHĂM SÓC DA ( SKINCARE TOOLS )",
    "description": "",
-   "image": null
+   "image": null,
+   "parent": "cham-soc-da-mat"
   },
   {
    "slug": "dung-cu-nha-bep-kitchen-tools",
    "name": "DỤNG CỤ NHÀ BẾP ( KITCHEN TOOLS )",
    "description": "Dụng cụ nhà bếp nội địa Nhật Bản",
-   "image": null
+   "image": null,
+   "parent": "nha-cua-doi-song"
   },
   {
-   "slug": "dong-ho-watch",
-   "name": "ĐỒNG HỒ ( WATCH )",
-   "description": "Đồng hồ nội địa Nhật Bản",
-   "image": null
+   "slug": "giam-can-diet",
+   "name": "GIẢM CÂN ( DIET )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/diet-1-300x300-b93b6f.png",
+   "parent": "suc-khoe"
   },
   {
-   "slug": "do-gia-dung-household",
-   "name": "ĐỒ GIA DỤNG ( HOUSEHOLD )",
-   "description": "Đồ gia dụng nội địa Nhật Bản",
-   "image": null
+   "slug": "goc-chi-em-chung-minh-women",
+   "name": "GÓC CHỊ EM CHÚNG MÌNH ( WOMEN )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/women-1-300x300-5fd6bf.png",
+   "parent": "suc-khoe"
   },
   {
-   "slug": "trang-diem-makeup",
-   "name": "TRANG ĐIỂM ( MAKEUP )",
-   "description": "Sản phẩm trang điểm nội địa Nhật Bản",
-   "image": null
+   "slug": "kem-duong-danh-cho-mat-face-cream",
+   "name": "KEM DƯỠNG DÀNH CHO MẶT ( FACE CREAM )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/face-cream-1-300x300-227252.png",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "mat-eyes",
+   "name": "MẮT ( EYES )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/giam-tham-mat-hieu-qua-300x300-3fa34b.jpg",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "mat-na-mask",
+   "name": "MẶT NẠ ( MASK )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/mask-1-300x300-3a4b61.png",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "nuoc-hoa-hong-lotion",
+   "name": "NƯỚC HOA HỒNG ( LOTION )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/Lotion-300x300-34f9e3.png",
+   "parent": "cham-soc-da-mat"
   },
   {
    "slug": "nen-thom-candle",
    "name": "NẾN THƠM ( CANDLE )",
    "description": "Nến thơm và sản phẩm tạo hương",
-   "image": null
+   "image": null,
+   "parent": "nha-cua-doi-song"
+  },
+  {
+   "slug": "phuc-hoi-toc-tai-nha-hair",
+   "name": "PHỤC HỒI TÓC TẠI NHÀ ( HAIR )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/hair-300x300-402643.png",
+   "parent": "cham-soc-body"
+  },
+  {
+   "slug": "son-moi-lipstick",
+   "name": "SON MÔI ( LIPSTICK )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/son-300x300-0b507d.png",
+   "parent": "trang-diem-makeup"
+  },
+  {
+   "slug": "san-pham-danh-cho-nam-men",
+   "name": "SẢN PHẨM DÀNH CHO NAM ( MEN )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/men-1-300x300-c8c69e.png",
+   "parent": "suc-khoe"
+  },
+  {
+   "slug": "sua-rua-mat",
+   "name": "SỮA RỬA MẶT",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/z2123472900570_c4e2de5c553e7b388c485fb6545afdf4-300x300-15ff21.jpg",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "sua-tam-shower-gel",
+   "name": "SỮA TẮM ( SHOWER GEL )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/sua-tam-hatomugi-moisturizing-washing-800ml-nhat-ban-300x300-5c824c.jpg",
+   "parent": "cham-soc-body"
   },
   {
    "slug": "thoi-trang-fashion",
    "name": "THỜI TRANG ( FASHION )",
    "description": "Quần áo và phụ kiện thời trang",
-   "image": null
+   "image": null,
+   "parent": "thoi-trang-phu-kien"
+  },
+  {
+   "slug": "thuc-pham-chuc-nang-functional-foods",
+   "name": "THỰC PHẨM CHỨC NĂNG ( FUNCTIONAL FOODS )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/m_t-n_-g_o-1-300x300-27aeaa.png",
+   "parent": "suc-khoe"
+  },
+  {
+   "slug": "trang-diem-makeup",
+   "name": "TRANG ĐIỂM ( MAKEUP )",
+   "description": "Sản phẩm trang điểm nội địa Nhật Bản",
+   "image": null,
+   "parent": "my-pham"
+  },
+  {
+   "slug": "tri-mun-acne-treatment",
+   "name": "TRỊ MỤN ( ACNE TREATMENT )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/vien-uong-tri-mun-pair-120-vien-nhat-ban-9-700x700-1-300x300-06f7ea.jpg",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "tri-nam-tan-nhang-treat-melasma-freckles",
+   "name": "TRỊ NÁM - TÀN NHANG ( TREAT MELASMA FRECKLES )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/trinam-300x300-71bf1e.jpg",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "tay-trang-cleansing",
+   "name": "TẨY TRANG ( CLEANSING )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/taytrang-300x300-c20df3.jpg",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "tay-te-bao-chet-exfoliate-dead-skin",
+   "name": "TẨY TẾ BÀO CHẾT ( EXFOLIATE DEAD SKIN )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/taydachet-300x300-3bc73f.png",
+   "parent": "cham-soc-da-mat"
+  },
+  {
+   "slug": "tu-thuoc-gia-dinh-family-medicine",
+   "name": "TỦ THUỐC GIA ĐÌNH ( FAMILY MEDICINE )",
+   "description": "",
+   "image": "/sites/lienstore/root-8a5edab2/images/thuoc-cam-300x300-00c7a5.jpg",
+   "parent": "suc-khoe"
+  },
+  {
+   "slug": "iherb",
+   "name": "iherb",
+   "description": "Chuyên các sản phẩm order từ jp.iherb.com",
+   "image": "/sites/lienstore/shared/products/uploads/categories/2026-09/unnamed-13a10bd3-300x300.jpg",
+   "parent": "suc-khoe"
+  },
+  {
+   "slug": "do-gia-dung-household",
+   "name": "ĐỒ GIA DỤNG ( HOUSEHOLD )",
+   "description": "Đồ gia dụng nội địa Nhật Bản",
+   "image": null,
+   "parent": "nha-cua-doi-song"
+  },
+  {
+   "slug": "dong-ho-watch",
+   "name": "ĐỒNG HỒ ( WATCH )",
+   "description": "Đồng hồ nội địa Nhật Bản",
+   "image": null,
+   "parent": "thoi-trang-phu-kien"
   }
  ],
  "products": [
@@ -13245,20 +13323,147 @@
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
    "updatedAt": "2026-09-08T07:52:25Z"
+  },
+  {
+   "id": 2230,
+   "slug": "vien-uong-vitamin-d3-k2-micro-ingredients-300-vien",
+   "name": "Viên uống Vitamin D3 5000 IU + K2 MK-7 Micro Ingredients 300 viên",
+   "price": 1260000,
+   "regularPrice": null,
+   "costPrice": 933000,
+   "supplierUrl": "https://jp.iherb.com/pr/micro-ingredients-vitamin-d3-k2-300-softgels/156465",
+   "minStock": null,
+   "currency": "VNĐ",
+   "sku": "MII-61694",
+   "stock": null,
+   "stockStatus": "instock",
+   "categories": [
+    "iherb"
+   ],
+   "tags": [
+    "vitamin d3",
+    "vitamin k2",
+    "mk-7",
+    "micro ingredients",
+    "iherb",
+    "xương",
+    "miễn dịch",
+    "5000 iu"
+   ],
+   "images": [
+    "/sites/lienstore/shared/products/uploads/products/2026-09/2-a65a72ee.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/3-3d0e141e.jpg"
+   ],
+   "thumb": "/sites/lienstore/shared/products/uploads/products/2026-09/2-a65a72ee-300x300.jpg",
+   "shortDescription": "",
+   "description": "",
+   "related": [],
+   "rating": null,
+   "reviewCount": 0,
+   "status": "publish",
+   "createdAt": "2026-09-09T02:16:05.394Z",
+   "updatedAt": "2026-09-09T02:35:19.977Z"
+  },
+  {
+   "id": 2231,
+   "slug": "vien-uong-magie-doctors-best-high-absorption-magnesium-120-vien",
+   "name": "Viên uống Magie hấp thu cao Doctor's Best High Absorption Magnesium 100mg 120 viên",
+   "price": 520000,
+   "regularPrice": null,
+   "costPrice": 384000,
+   "supplierUrl": "https://jp.iherb.com/pr/doctor-s-best-high-absorption-magnesium-120-tablets-100-mg-per-tablet/15",
+   "minStock": null,
+   "currency": "VNĐ",
+   "sku": "DRB-00025",
+   "stock": null,
+   "stockStatus": "instock",
+   "categories": [
+    "iherb"
+   ],
+   "tags": [
+    "magie",
+    "magnesium",
+    "doctor's best",
+    "glycinate",
+    "iherb",
+    "ngủ ngon",
+    "chuột rút",
+    "thư giãn cơ"
+   ],
+   "images": [
+    "/sites/lienstore/shared/products/uploads/products/2026-09/124-e5d95d62.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/134-c1d3232f.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/136-301f086d.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/137-8e93049f.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/135-0e35c944.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/133-408beb0d.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/129-ccef8f4f.jpg"
+   ],
+   "thumb": "/sites/lienstore/shared/products/uploads/products/2026-09/124-e5d95d62-300x300.jpg",
+   "shortDescription": "",
+   "description": "",
+   "related": [],
+   "rating": null,
+   "reviewCount": 0,
+   "status": "publish",
+   "createdAt": "2026-09-09T02:18:09.862Z",
+   "updatedAt": "2026-09-09T02:34:36.528Z"
+  },
+  {
+   "id": 2232,
+   "slug": "dau-ca-omega-3-nordic-naturals-ultimate-omega-d3-chanh-120-vien",
+   "name": "Dầu cá Omega-3 Nordic Naturals Ultimate Omega-D3 1280mg vị chanh 120 viên",
+   "price": 1650000,
+   "regularPrice": null,
+   "costPrice": 1223000,
+   "supplierUrl": "https://jp.iherb.com/pr/nordic-naturals-ultimate-omega-d3-lemon-120-soft-gels/16898",
+   "minStock": null,
+   "currency": "VNĐ",
+   "sku": "NOR-01793",
+   "stock": null,
+   "stockStatus": "instock",
+   "categories": [
+    "iherb"
+   ],
+   "tags": [
+    "omega 3",
+    "dầu cá",
+    "nordic naturals",
+    "epa",
+    "dha",
+    "vitamin d3",
+    "iherb",
+    "tim mạch",
+    "trí não"
+   ],
+   "images": [
+    "/sites/lienstore/shared/products/uploads/products/2026-09/84-b0d5a6a8.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/92-77c53dc3.jpg",
+    "/sites/lienstore/shared/products/uploads/products/2026-09/95-04c3e4fe.jpg"
+   ],
+   "thumb": "/sites/lienstore/shared/products/uploads/products/2026-09/84-b0d5a6a8-300x300.jpg",
+   "shortDescription": "",
+   "description": "",
+   "related": [],
+   "rating": null,
+   "reviewCount": 0,
+   "status": "publish",
+   "createdAt": "2026-09-09T02:19:44.702Z",
+   "updatedAt": "2026-09-09T02:35:00.834Z"
   }
  ],
  "pages": [
-  {
-   "slug": "chinh-sach-doi-tra",
-   "title": "CHÍNH SÁCH ĐỔI TRẢ",
-   "content": "<p>1. Đổi trả trong vòng 5 ngày sau khi khách hàng nhận hàng và kiểm tra thấy sản phẩm không đúng yêu cầu và cam kết của LienStore<br>2. Sản phẩm phải còn nguyên tem niêm phong của LienStore hoặc của nhà sản xuất<br>3. Sản phẩm được xác định bị lỗi kỹ thuật bởi các bộ phận giao hàng hoặc lỗi của LienStore <br>4. Sản phẩm nhận lại phải còn nguyên vẹn vỏ thùng, xốp và đầy đủ các phụ kiện kèm theo, quà khuyến mãi (nếu có)… <br>5. Sản phẩm nhận lại không bị lỗi hình thức (gãy vụn, vỡ, móp méo …) <br>6. Sản phẩm khi nhận lại phải có đầy đủ các chứng từ kèm theo như (chứng từ mua hàng, hóa đơn VAT nếu có, các hướng dẫn sử dụng…)</p>",
-   "date": "2020-09-07T16:35:56"
-  },
   {
    "slug": "gioi-thieu-ve-lienstore",
    "title": "GIỚI THIỆU VỀ LIENSTORE",
    "content": "<p>Nhu cầu sử dụng hàng Nhật nội địa ở Việt Nam ngày càng tăng cao. Vì thế đã có nhiều cá nhân, nhiều cửa hàng đã lợi dụng việc này để sản xuất hoặc nhập các mặt hàng giả mang tiếng hàng Nhật nội địa để phục vụ bà con và đã để lại không ít hậu quả cho nhiều người khi sài phải hàng giả. Và đây cũng là lí do tại sao LienStore ra đời.</p>\n<p>Tôi (là người đang viết bài giới thiệu này) với một người bạn hiện tại chúng tôi đang sinh sống tại Nhật Bản. Khi qua đây chúng tôi đã nghĩ ngay tới việc kinh doanh và tạo ra cho mình một thương hiệu về &#8221; Hàng Nhật Nội Địa&#8221;, vì đam mê kinh doanh và muốn đem sản phẩm tốt nhất chuẩn Nhật nhất phục vụ cho mọi người sớm nhất có thể, thế là chúng tôi lao vào thực hiện ngay. Tôi bắt đầu tìm hiểu các sản phẩm và bạn tôi thì làm web, mỗi người một việc. Sau chưa đầy 2 tháng thì chúng tôi đã sẵn sàng cho những dự định của mình. LienStore ra đời và các mặt hàng đã và sẽ có mặt trên <a href=\"https://linconnn.io.vn/\">linconnn.io.vn</a> là được chính tay tôi đi chọn từng sản phẩm ở từng cửa hàng tại Nhật nên chúng tôi luôn tự tin cam kết với mọi khách hàng rằng : &#8220;Đối với LienStore giá không thể rẻ nhất nhưng luôn luôn là hàng Nhật nội địa&#8221;.</p>\n<p>Ai rồi cũng có những sai lầm nhưng mua hàng ở LienStore là không bao giờ sai lầm nhé^^</p>\n<p>Không hứa hẹn gì nhiều nhưng niềm tin tưởng và sự ủng hộ của khách hàng là động lực và niềm vinh hạnh của LienStore chúng tôi.</p>\n<p>Được phục vụ và đem sản phẩm tốt nhất đến&nbsp; cho mọi người là sứ mệnh của LienStore!!!</p>\n<p>Cảm ơn mọi người đã đọc bài giới thiệu này.<br>Chúc một ngày tốt lành!!!</p>",
    "date": "2020-09-07T16:30:42"
+  },
+  {
+   "slug": "chinh-sach-doi-tra",
+   "title": "CHÍNH SÁCH ĐỔI TRẢ",
+   "content": "<p>1. Đổi trả trong vòng 5 ngày sau khi khách hàng nhận hàng và kiểm tra thấy sản phẩm không đúng yêu cầu và cam kết của LienStore<br>2. Sản phẩm phải còn nguyên tem niêm phong của LienStore hoặc của nhà sản xuất<br>3. Sản phẩm được xác định bị lỗi kỹ thuật bởi các bộ phận giao hàng hoặc lỗi của LienStore <br>4. Sản phẩm nhận lại phải còn nguyên vẹn vỏ thùng, xốp và đầy đủ các phụ kiện kèm theo, quà khuyến mãi (nếu có)… <br>5. Sản phẩm nhận lại không bị lỗi hình thức (gãy vụn, vỡ, móp méo …) <br>6. Sản phẩm khi nhận lại phải có đầy đủ các chứng từ kèm theo như (chứng từ mua hàng, hóa đơn VAT nếu có, các hướng dẫn sử dụng…)</p>",
+   "date": "2020-09-07T16:35:56"
   },
   {
    "slug": "huong-dan-dat-hang",
@@ -13267,10 +13472,10 @@
    "date": "2020-09-08T13:17:36"
   },
   {
-   "slug": "lien-he",
-   "title": "LIÊN HỆ",
-   "content": "<p><strong>Website:</strong> linconnn.io.vn</p>\n<p><strong>Hotline VN:</strong> <a href=\"tel:+84964839769\">0964 839 769</a></p>\n<p><strong>Hotline JP:</strong> <a href=\"tel:+817091381512\">070-9138-1512</a></p>\n<p><strong>Email:</strong> <a href=\"mailto:contact@linconnn.io.vn\">contact@linconnn.io.vn</a></p>\n<p><strong>Facebook:</strong> <a href=\"https://www.facebook.com/dien.luc.809784\" target=\"_blank\" rel=\"noreferrer\">facebook.com/dien.luc.809784</a> · <strong>Zalo:</strong> <a href=\"https://zalo.me/0964839769\" target=\"_blank\" rel=\"noreferrer\">zalo.me/0964839769</a> · <strong>Messenger:</strong> <a href=\"https://m.me/dien.luc.809784\" target=\"_blank\" rel=\"noreferrer\">m.me/dien.luc.809784</a></p>\n<p><strong>Địa chỉ:</strong> Xã Hoằng Hóa, Tỉnh Thanh Hóa</p>\n<p><strong>LienStore</strong> — Giá không thể rẻ nhất, nhưng <strong>CAM KẾT</strong> luôn luôn là <strong>HÀNG NHẬT NỘI ĐỊA</strong>.</p>",
-   "date": "2026-09-08"
+   "slug": "them-ung-dung-lien-vao-mobile",
+   "title": "THÊM ỨNG DỤNG LienStore VÀO MOBILE",
+   "content": "<p>Hiện tại thì LienStore mới chỉ ra mắt phiên bản ứng dụng LienStore cho điện thoại trên nền tảng Android, vì thế Quý Khách Hàng nào đang sử dụng IOS thì đợi thêm một thời gian ngắn nữa nhé!!! Xin được hướng dẫn cách thêm ứng dụng nhanh chóng mà không cần tải từ Google Store và tốn dung lượng bộ nhớ rất ít.<br>1. Mở trình duyệt Google Chrome và truy cập vào linconnn.io.vn<br>2. Sau khi tải thành công trang linconnn.io.vn thì Quý Khách Hàng thao tác vuốt màn hình lên/xuống.<br>    Trường hợp 1 : Thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào thông     báo này.<br>    Trường hợp 2 : Không thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào biểu tượng dấu <img decoding=\"async\" loading=\"lazy\" width=\"47\" height=\"41\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture.png\" alt=\"\"> của trình duyệt Web, sau đó tiếp tục chọn &#8220;Thêm vào Màn hình chính&#8221;.<br>3. Sau khi thực hiện &#8220;bước thứ 2&#8221; xong thì sẽ có thông báo &#8220;Thêm vào Màn hình chính&#8221;, Quý Khách Hàng chọn &#8220;Thêm&#8221;.<br>4. Hệ thống sẽ tiến thành tự động cài đặt Ứng dụng LienStore phiên bản Mobile trong 3->5 giây. Sau đó Quý Khách Hàng trở lại màn hình điện thoại và tìm kiếm ở các màn hình sẽ thấy Icon App LienStore như thế này là đã cài đặt thành công.<br><img decoding=\"async\" loading=\"lazy\" width=\"296\" height=\"599\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png\" alt=\"\" srcset=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png 296w, https://j86store.com/wp-content/uploads/2020/09/Capture2-148x300.png 148w\" sizes=\"(max-width: 296px) 100vw, 296px\" /><br><br>Xin chân thành cảm ơn Quý Khách Hàng đã tiến hành cài đặt App LienStore, từ bây giờ Quý Khách có thể sử dụng một cách dễ dàng và tiện lợi cho việc mua sắm của mình. Một lần nữa xin chân thành cảm ơn sự ủng hộ của tất cả Quý Khách.</p>\n<p><br>               </p>",
+   "date": "2020-09-10T07:53:24"
   },
   {
    "slug": "privacy-policy",
@@ -13279,10 +13484,10 @@
    "date": "2021-02-21T14:01:55"
   },
   {
-   "slug": "them-ung-dung-lien-vao-mobile",
-   "title": "THÊM ỨNG DỤNG LienStore VÀO MOBILE",
-   "content": "<p>Hiện tại thì LienStore mới chỉ ra mắt phiên bản ứng dụng LienStore cho điện thoại trên nền tảng Android, vì thế Quý Khách Hàng nào đang sử dụng IOS thì đợi thêm một thời gian ngắn nữa nhé!!! Xin được hướng dẫn cách thêm ứng dụng nhanh chóng mà không cần tải từ Google Store và tốn dung lượng bộ nhớ rất ít.<br>1. Mở trình duyệt Google Chrome và truy cập vào linconnn.io.vn<br>2. Sau khi tải thành công trang linconnn.io.vn thì Quý Khách Hàng thao tác vuốt màn hình lên/xuống.<br>    Trường hợp 1 : Thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào thông     báo này.<br>    Trường hợp 2 : Không thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào biểu tượng dấu <img decoding=\"async\" loading=\"lazy\" width=\"47\" height=\"41\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture.png\" alt=\"\"> của trình duyệt Web, sau đó tiếp tục chọn &#8220;Thêm vào Màn hình chính&#8221;.<br>3. Sau khi thực hiện &#8220;bước thứ 2&#8221; xong thì sẽ có thông báo &#8220;Thêm vào Màn hình chính&#8221;, Quý Khách Hàng chọn &#8220;Thêm&#8221;.<br>4. Hệ thống sẽ tiến thành tự động cài đặt Ứng dụng LienStore phiên bản Mobile trong 3->5 giây. Sau đó Quý Khách Hàng trở lại màn hình điện thoại và tìm kiếm ở các màn hình sẽ thấy Icon App LienStore như thế này là đã cài đặt thành công.<br><img decoding=\"async\" loading=\"lazy\" width=\"296\" height=\"599\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png\" alt=\"\" srcset=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png 296w, https://j86store.com/wp-content/uploads/2020/09/Capture2-148x300.png 148w\" sizes=\"(max-width: 296px) 100vw, 296px\" /><br><br>Xin chân thành cảm ơn Quý Khách Hàng đã tiến hành cài đặt App LienStore, từ bây giờ Quý Khách có thể sử dụng một cách dễ dàng và tiện lợi cho việc mua sắm của mình. Một lần nữa xin chân thành cảm ơn sự ủng hộ của tất cả Quý Khách.</p>\n<p><br>               </p>",
-   "date": "2020-09-10T07:53:24"
+   "slug": "lien-he",
+   "title": "LIÊN HỆ",
+   "content": "<p><strong>Website:</strong> linconnn.io.vn</p>\n<p><strong>Hotline VN:</strong> <a href=\"tel:+84964839769\">0964 839 769</a></p>\n<p><strong>Hotline JP:</strong> <a href=\"tel:+817091381512\">070-9138-1512</a></p>\n<p><strong>Email:</strong> <a href=\"mailto:contact@linconnn.io.vn\">contact@linconnn.io.vn</a></p>\n<p><strong>Facebook:</strong> <a href=\"https://www.facebook.com/dien.luc.809784\" target=\"_blank\" rel=\"noreferrer\">facebook.com/dien.luc.809784</a> · <strong>Zalo:</strong> <a href=\"https://zalo.me/0964839769\" target=\"_blank\" rel=\"noreferrer\">zalo.me/0964839769</a> · <strong>Messenger:</strong> <a href=\"https://m.me/dien.luc.809784\" target=\"_blank\" rel=\"noreferrer\">m.me/dien.luc.809784</a></p>\n<p><strong>Địa chỉ:</strong> Xã Hoằng Hóa, Tỉnh Thanh Hóa</p>\n<p><strong>LienStore</strong> — Giá không thể rẻ nhất, nhưng <strong>CAM KẾT</strong> luôn luôn là <strong>HÀNG NHẬT NỘI ĐỊA</strong>.</p>",
+   "date": "2026-09-08"
   }
  ],
  "posts": [
