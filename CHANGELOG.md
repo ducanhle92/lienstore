@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-09-09
+
 ### Added
 - **Vận chuyển theo đơn hàng**: tab đầu của Vận chuyển đổi thành bảng **Đơn hàng** — mỗi đơn một dòng, 3 chặng theo chiều ngang; từng ô chọn phương thức · cột, phí (để trống thì tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú; ô nội địa Việt Nam có thể áp phí vào tổng tiền khách trả. Trang chi tiết đơn có khung "Vận chuyển đơn này (3 chặng)". Bảng `order_legs` (migration v11).
 - Trang thanh toán tính phí giao theo **khối lượng toàn đơn** (khối lượng hoặc cân quy đổi thể tích × số lượng, làm tròn lên kg) cho các cột tính /kg; server tính lại tương tự.
