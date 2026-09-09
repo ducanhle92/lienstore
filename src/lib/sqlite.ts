@@ -281,6 +281,24 @@ export const MIGRATIONS: Migration[] = [
         ('Khách tự tới kho lấy', '', '', 'Nhận tại kho Việt Nam, không tính phí', 10, 'vn_domestic')`,
     ],
   },
+  {
+    version: 11,
+    name: "order-legs",
+    up: [
+      `CREATE TABLE order_legs (
+        order_id  TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        leg       TEXT NOT NULL,
+        method_id INTEGER,
+        zone_id   INTEGER,
+        label     TEXT NOT NULL DEFAULT '',
+        fee       INTEGER NOT NULL DEFAULT 0,
+        tracking  TEXT NOT NULL DEFAULT '',
+        note      TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (order_id, leg)
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -475,6 +493,7 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
     const insPC = db.prepare("INSERT OR REPLACE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     const exists = db.prepare("SELECT id, updated_at FROM products WHERE slug = ?");
     const byId = db.prepare("SELECT slug FROM products WHERE id = ?");
+    const backfillDims = db.prepare("UPDATE products SET weight_g = COALESCE(weight_g, ?), dims_cm = COALESCE(dims_cm, ?) WHERE id = ?");
     let nextId = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM products").get() as { m: number }).m;
     for (const p of seed.products ?? []) if (typeof p.id === "number" && p.id > nextId) nextId = p.id;
     const now = new Date().toISOString();
@@ -498,6 +517,11 @@ function importCatalogue(db: DatabaseSync, seed: SeedFile, verb: InsertVerb) {
         const old = exists.get(p.slug) as { id: number; updated_at: string } | undefined;
         if (old && typeof p.updatedAt === "string" && old.updated_at > p.updatedAt) {
           keptNewer++;
+          // Logistics data (weight / dimensions) is harvested offline and merged into the seed without touching
+          // updatedAt, so still fill it in where this server has none — never overwrite an admin-entered value.
+          const w = num(p.weightG);
+          const d = typeof p.dimsCm === "string" && p.dimsCm ? p.dimsCm : null;
+          if (w !== null || d !== null) backfillDims.run(w, d, old.id);
           continue;
         }
         if (old && old.id !== id) db.prepare("DELETE FROM products WHERE id = ?").run(old.id);

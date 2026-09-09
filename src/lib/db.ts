@@ -13,6 +13,7 @@ import type {
   ProductQuery,
   ProductQueryResult,
   ShopCategory,
+  OrderLeg,
   ShippingCarrier,
   ShippingMethod,
   ShippingZone,
@@ -21,6 +22,7 @@ import type {
   UserRole,
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
+import { billableKg, chargeableWeightG } from "./shipping";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
 /** Synchronous category list for use inside transactions. */
@@ -505,14 +507,14 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let prepaidRequired = false;
     let weightG = 0;
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null }
+      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null }
         | undefined;
       if (!row) continue;
       const qty = Math.max(1, Math.floor(it.quantity));
       // made-to-order: no tracked stock, or not enough on hand
       if (row.stock === null || row.stock < qty) prepaidRequired = true;
-      weightG += (row.weight_g ?? 0) * qty;
+      weightG += (chargeableWeightG(row.weight_g, row.dims_cm) ?? 0) * qty;
       items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
@@ -537,7 +539,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       if (!zone && anyZone) throw new Error("Vui lòng chọn khu vực giao hàng.");
       if (zone) {
         const perKg = /kg/i.test(zone.unit);
-        const kg = Math.max(1, Math.ceil((weightG || 1000) / 1000));
+        const kg = billableKg(weightG || 1000);
         shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : zone.fee * (perKg ? kg : 1);
         shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
       } else {
@@ -634,6 +636,68 @@ export async function findOrder(number: number, phone: string): Promise<Order | 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null> {
   const res = getDb().prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, new Date().toISOString(), id);
   return Number(res.changes) > 0 ? getOrderById(id) : null;
+}
+
+/** Admin override of what the customer pays for delivery; total is recomputed. */
+export async function updateOrderShipping(id: string, patch: { fee: number; label: string; delivery: "ship" | "pickup" }): Promise<boolean> {
+  const db = getDb();
+  const row = db.prepare("SELECT subtotal FROM orders WHERE id = ?").get(id) as { subtotal: number } | undefined;
+  if (!row) return false;
+  const fee = Math.max(0, Math.round(patch.fee));
+  db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, updated_at = ? WHERE id = ?").run(fee, patch.label, patch.delivery, row.subtotal + fee, new Date().toISOString(), id);
+  return true;
+}
+
+/** Sum of chargeable weight (max of actual and volumetric) × quantity over the order's lines, in grams. */
+export async function getOrderChargeableWeightG(orderId: string): Promise<number> {
+  const rows = getDb()
+    .prepare("SELECT oi.quantity, p.weight_g, p.dims_cm FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?")
+    .all(orderId) as unknown as Array<{ quantity: number; weight_g: number | null; dims_cm: string | null }>;
+  return rows.reduce((s, r) => s + (chargeableWeightG(r.weight_g ?? null, r.dims_cm ?? null) ?? 0) * r.quantity, 0);
+}
+
+interface OrderLegRow {
+  order_id: string;
+  leg: string;
+  method_id: number | null;
+  zone_id: number | null;
+  label: string;
+  fee: number;
+  tracking: string;
+  note: string;
+  updated_at: string;
+}
+const rowToOrderLeg = (r: OrderLegRow): OrderLeg => ({
+  orderId: r.order_id,
+  leg: r.leg === "jp_domestic" || r.leg === "vn_domestic" ? r.leg : "jp_vn",
+  methodId: r.method_id,
+  zoneId: r.zone_id,
+  label: r.label,
+  fee: r.fee,
+  tracking: r.tracking,
+  note: r.note,
+  updatedAt: r.updated_at,
+});
+
+/** Leg assignments for many orders at once (admin tables). */
+export async function getOrderLegs(orderIds: string[]): Promise<Map<string, OrderLeg[]>> {
+  const out = new Map<string, OrderLeg[]>();
+  if (orderIds.length === 0) return out;
+  const rows = getDb().prepare(`SELECT * FROM order_legs WHERE order_id IN (${orderIds.map(() => "?").join(",")})`).all(...orderIds) as unknown as OrderLegRow[];
+  for (const r of rows) {
+    const l = rowToOrderLeg(r);
+    out.set(l.orderId, [...(out.get(l.orderId) ?? []), l]);
+  }
+  return out;
+}
+
+export async function saveOrderLeg(input: Omit<OrderLeg, "updatedAt">): Promise<void> {
+  getDb()
+    .prepare(
+      `INSERT INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(order_id, leg) DO UPDATE SET method_id = excluded.method_id, zone_id = excluded.zone_id, label = excluded.label, fee = excluded.fee, tracking = excluded.tracking, note = excluded.note, updated_at = excluded.updated_at`,
+    )
+    .run(input.orderId, input.leg, input.methodId, input.zoneId, input.label, Math.max(0, Math.round(input.fee)), input.tracking, input.note, new Date().toISOString());
 }
 
 export async function updateOrderAdminNote(id: string, note: string): Promise<boolean> {

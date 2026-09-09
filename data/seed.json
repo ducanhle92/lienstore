@@ -3,7 +3,7 @@
  "note": "Exported from the live catalogue (https://linconnn.io.vn). Catalogue only — no customers/orders.",
  "meta": {
   "nextOrderNumber": 1001,
-  "seededAt": "2026-09-09T03:03:25Z",
+  "seededAt": "2026-09-09T06:03:07Z",
   "removedSlugs": [
    "dau-goi-xa-mo-ngua-600ml-chai",
    "ngu-coc-calbee-thich-hop-an-voi-sua-tuoi-sua-chua-hoac-sua-dau-nanh",
@@ -337,7 +337,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-05-28T11:45:11",
-   "updatedAt": "2023-06-03T12:11:04"
+   "updatedAt": "2023-06-03T12:11:04",
+   "weightG": 40
   },
   {
    "id": 187,
@@ -466,7 +467,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-05-31T06:44:09",
-   "updatedAt": "2021-11-04T20:05:39"
+   "updatedAt": "2021-11-04T20:05:39",
+   "weightG": 91
   },
   {
    "id": 223,
@@ -684,7 +686,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-06-02T08:46:19",
-   "updatedAt": "2021-12-04T07:29:08"
+   "updatedAt": "2021-12-04T07:29:08",
+   "weightG": 51
   },
   {
    "id": 247,
@@ -810,7 +813,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-06-02T09:51:30",
-   "updatedAt": "2024-08-01T21:32:31"
+   "updatedAt": "2024-08-01T21:32:31",
+   "weightG": 190
   },
   {
    "id": 258,
@@ -994,7 +998,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-11-19T08:34:38",
-   "updatedAt": "2025-12-24T19:30:14"
+   "updatedAt": "2025-12-24T19:30:14",
+   "weightG": 113
   },
   {
    "id": 301,
@@ -1037,7 +1042,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-06-03T12:25:49",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 510,
+   "dimsCm": "18.3x10.3x9.4"
   },
   {
    "id": 303,
@@ -1206,7 +1213,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-09-29T13:06:22",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 58
   },
   {
    "id": 753,
@@ -1304,7 +1312,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-10-06T09:29:14",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 30
   },
   {
    "id": 791,
@@ -1442,7 +1451,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-12-11T14:51:04",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 130,
+   "dimsCm": "22.1x7x6.2"
   },
   {
    "id": 915,
@@ -1485,7 +1496,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2020-12-11T14:55:31",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 168
   },
   {
    "id": 916,
@@ -1693,7 +1705,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2021-10-27T19:16:21",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 260
   },
   {
    "id": 1269,
@@ -1735,7 +1748,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2021-11-09T15:47:34",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 582
   },
   {
    "id": 1274,
@@ -2234,7 +2248,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-01-04T15:56:40",
-   "updatedAt": "2024-08-01T21:36:54"
+   "updatedAt": "2024-08-01T21:36:54",
+   "weightG": 355
   },
   {
    "id": 1410,
@@ -2681,7 +2696,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-03-04T16:23:04",
-   "updatedAt": "2022-03-07T20:12:25"
+   "updatedAt": "2022-03-07T20:12:25",
+   "weightG": 76
   },
   {
    "id": 1436,
@@ -2719,7 +2735,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-03-04T16:40:39",
-   "updatedAt": "2022-11-02T16:06:39"
+   "updatedAt": "2022-11-02T16:06:39",
+   "weightG": 950
   },
   {
    "id": 1438,
@@ -2766,7 +2783,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-03-04T16:49:33",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 420,
+   "dimsCm": "15.75x7.62x4.32"
   },
   {
    "id": 1476,
@@ -2848,7 +2867,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-03-05T21:32:46",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 850
   },
   {
    "id": 1481,
@@ -2887,7 +2907,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-03-05T21:35:45",
-   "updatedAt": "2022-03-27T09:07:05"
+   "updatedAt": "2022-03-27T09:07:05",
+   "weightG": 685
   },
   {
    "id": 1490,
@@ -3139,7 +3160,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-06-27T13:56:08",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 135
   },
   {
    "id": 1533,
@@ -3221,7 +3243,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-06-27T14:28:05",
-   "updatedAt": "2025-12-24T19:16:15"
+   "updatedAt": "2025-12-24T19:16:15",
+   "weightG": 905
   },
   {
    "id": 1539,
@@ -3262,7 +3285,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-06-27T14:39:02",
-   "updatedAt": "2022-06-27T14:39:03"
+   "updatedAt": "2022-06-27T14:39:03",
+   "weightG": 905
   },
   {
    "id": 1564,
@@ -3505,7 +3529,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-09-25T13:58:13",
-   "updatedAt": "2022-10-16T14:01:05"
+   "updatedAt": "2022-10-16T14:01:05",
+   "weightG": 720
   },
   {
    "id": 1586,
@@ -3548,7 +3573,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-09-25T14:17:27",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 605
   },
   {
    "id": 1588,
@@ -3588,7 +3614,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2022-09-25T14:23:23",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 605
   },
   {
    "id": 1590,
@@ -3992,7 +4019,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2023-03-13T13:13:23",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 134
   },
   {
    "id": 1640,
@@ -4428,7 +4456,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2023-06-03T12:08:06",
-   "updatedAt": "2023-06-03T12:08:07"
+   "updatedAt": "2023-06-03T12:08:07",
+   "weightG": 113
   },
   {
    "id": 1731,
@@ -4608,7 +4637,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2023-07-18T22:19:39",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 237
   },
   {
    "id": 1742,
@@ -4648,7 +4678,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2023-10-09T14:50:57",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 91
   },
   {
    "id": 1744,
@@ -4735,7 +4766,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2024-08-13T13:14:49",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 64
   },
   {
    "id": 1756,
@@ -4955,7 +4987,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2024-08-25T15:04:14",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 80
   },
   {
    "id": 1769,
@@ -5039,7 +5072,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 100
   },
   {
    "id": 2002,
@@ -5085,7 +5119,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 41,
+   "dimsCm": "13x7.6x3.4"
   },
   {
    "id": 2003,
@@ -5129,7 +5165,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 2720,
+   "dimsCm": "22.3x21.2x12.7"
   },
   {
    "id": 2004,
@@ -5216,7 +5254,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 710,
+   "dimsCm": "26.2x19.8x8.6"
   },
   {
    "id": 2006,
@@ -5263,7 +5303,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 200,
+   "dimsCm": "18x15x12"
   },
   {
    "id": 2007,
@@ -5310,7 +5352,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 196,
+   "dimsCm": "17.2x9.7x5.6"
   },
   {
    "id": 2008,
@@ -5353,7 +5397,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 280,
+   "dimsCm": "19.4x5.5x5.4"
   },
   {
    "id": 2009,
@@ -5443,7 +5489,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 370,
+   "dimsCm": "21.2x7.4x4.6"
   },
   {
    "id": 2012,
@@ -5489,7 +5537,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "dimsCm": "22.5x6.7x6.6"
   },
   {
    "id": 2014,
@@ -5532,7 +5581,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 113,
+   "dimsCm": "17.5x4.8x4.1"
   },
   {
    "id": 2015,
@@ -5572,7 +5623,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T17:15:45.264Z"
+   "updatedAt": "2026-09-08T17:15:45.264Z",
+   "weightG": 240,
+   "dimsCm": "18.2x4.5x4.4"
   },
   {
    "id": 2017,
@@ -5614,7 +5667,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 370,
+   "dimsCm": "18.4x14.8x4.4"
   },
   {
    "id": 2018,
@@ -5657,7 +5712,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 100
   },
   {
    "id": 2019,
@@ -5700,7 +5756,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 160,
+   "dimsCm": "12x4.8x4.7"
   },
   {
    "id": 2020,
@@ -5749,7 +5807,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "dimsCm": "21.7x13.2x3.3"
   },
   {
    "id": 2021,
@@ -5789,7 +5848,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "dimsCm": "12x9x6"
   },
   {
    "id": 2022,
@@ -5833,7 +5893,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 548
   },
   {
    "id": 2025,
@@ -5876,7 +5937,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 70,
+   "dimsCm": "6x3x2"
   },
   {
    "id": 2026,
@@ -5921,7 +5984,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 90,
+   "dimsCm": "2.4x2.4x2.4"
   },
   {
    "id": 2027,
@@ -6000,7 +6065,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 80
   },
   {
    "id": 2029,
@@ -6046,7 +6112,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 20,
+   "dimsCm": "19x7.5x2.5"
   },
   {
    "id": 2030,
@@ -6085,7 +6153,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 260,
+   "dimsCm": "9x9x7"
   },
   {
    "id": 2031,
@@ -6128,7 +6198,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 170
   },
   {
    "id": 2032,
@@ -6255,7 +6326,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 90,
+   "dimsCm": "14x5.6x3.2"
   },
   {
    "id": 2035,
@@ -6293,7 +6366,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 90,
+   "dimsCm": "14x5.5x3.1"
   },
   {
    "id": 2036,
@@ -6335,7 +6410,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 100,
+   "dimsCm": "7.7x7.4x7.1"
   },
   {
    "id": 2037,
@@ -6424,7 +6501,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 80
   },
   {
    "id": 2039,
@@ -6466,7 +6544,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 50,
+   "dimsCm": "10x5.5x5.5"
   },
   {
    "id": 2040,
@@ -6508,7 +6588,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 160,
+   "dimsCm": "7x7x6.8"
   },
   {
    "id": 2041,
@@ -6597,7 +6679,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 200,
+   "dimsCm": "7x7x5.2"
   },
   {
    "id": 2043,
@@ -6721,7 +6805,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 110,
+   "dimsCm": "18x9.3x6"
   },
   {
    "id": 2047,
@@ -6763,7 +6849,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 40,
+   "dimsCm": "12.7x3.56x0.76"
   },
   {
    "id": 2048,
@@ -6809,7 +6897,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 1000,
+   "dimsCm": "31x22x2.5"
   },
   {
    "id": 2050,
@@ -6853,7 +6943,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 140,
+   "dimsCm": "17.2x5.84x4.83"
   },
   {
    "id": 2051,
@@ -6894,7 +6986,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 135
   },
   {
    "id": 2052,
@@ -6941,7 +7034,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 110,
+   "dimsCm": "16.26x5.33x4.06"
   },
   {
    "id": 2053,
@@ -6989,7 +7084,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 50,
+   "dimsCm": "18x8.8x2.8"
   },
   {
    "id": 2054,
@@ -7032,7 +7129,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 64
   },
   {
    "id": 2055,
@@ -7112,7 +7210,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 300,
+   "dimsCm": "20x6x6"
   },
   {
    "id": 2057,
@@ -7153,7 +7253,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 240,
+   "dimsCm": "12.1x5.4x4.4"
   },
   {
    "id": 2058,
@@ -7193,7 +7295,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 70,
+   "dimsCm": "17.8x15.5x4.3"
   },
   {
    "id": 2059,
@@ -7235,7 +7339,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 480,
+   "dimsCm": "20.1x8.2x7"
   },
   {
    "id": 2061,
@@ -7275,7 +7381,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 230,
+   "dimsCm": "16x7.5x7.5"
   },
   {
    "id": 2062,
@@ -7316,7 +7424,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 181,
+   "dimsCm": "10.16x5.08x5.08"
   },
   {
    "id": 2063,
@@ -7358,7 +7468,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 650,
+   "dimsCm": "25.1x8x6.9"
   },
   {
    "id": 2064,
@@ -7486,7 +7598,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 86,
+   "dimsCm": "11.5x4.5x3"
   },
   {
    "id": 2067,
@@ -7529,7 +7643,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 20,
+   "dimsCm": "12.4x6.8x1.7"
   },
   {
    "id": 2069,
@@ -7578,7 +7694,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 20,
+   "dimsCm": "12.6x3.4x2.2"
   },
   {
    "id": 2072,
@@ -7665,7 +7783,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 900,
+   "dimsCm": "15.9x13.1x12.9"
   },
   {
    "id": 2074,
@@ -7707,7 +7827,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 47
   },
   {
    "id": 2075,
@@ -7752,7 +7873,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 150,
+   "dimsCm": "20x6x4"
   },
   {
    "id": 2076,
@@ -7795,7 +7918,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 150,
+   "dimsCm": "19x6.9x4.4"
   },
   {
    "id": 2078,
@@ -7840,7 +7965,9 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 530,
+   "dimsCm": "20.6x18.1x7.4"
   },
   {
    "id": 2079,
@@ -7886,7 +8013,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 130,
+   "dimsCm": "15.9x4.8x4.5"
   },
   {
    "id": 2080,
@@ -7931,7 +8060,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 130,
+   "dimsCm": "16.6x6.9x4.4"
   },
   {
    "id": 2083,
@@ -7980,7 +8111,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 500,
+   "dimsCm": "18.9x7.2x7.2"
   },
   {
    "id": 2084,
@@ -8022,7 +8155,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 600,
+   "dimsCm": "20.29x10.8x5.89"
   },
   {
    "id": 2085,
@@ -8066,7 +8201,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 181,
+   "dimsCm": "10.41x5.33x3.56"
   },
   {
    "id": 2087,
@@ -8106,7 +8243,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 443
   },
   {
    "id": 2088,
@@ -8147,7 +8285,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 355
   },
   {
    "id": 2089,
@@ -8230,7 +8369,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 1270,
+   "dimsCm": "17.9x10.6x7.6"
   },
   {
    "id": 2091,
@@ -8271,7 +8412,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 50,
+   "dimsCm": "12.4x10.7x2.3"
   },
   {
    "id": 2093,
@@ -8315,7 +8458,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 90
   },
   {
    "id": 2094,
@@ -8400,7 +8544,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "dimsCm": "9.3x5x5",
+   "weightG": 70
   },
   {
    "id": 2096,
@@ -8442,7 +8588,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 23,
+   "dimsCm": "9.6x7.19x3.71"
   },
   {
    "id": 2097,
@@ -8532,7 +8680,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 190
   },
   {
    "id": 2101,
@@ -8621,7 +8770,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 100,
+   "dimsCm": "10.8x7.8x6"
   },
   {
    "id": 2103,
@@ -8804,7 +8955,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 195,
+   "dimsCm": "11.9x6.1x5.8"
   },
   {
    "id": 2107,
@@ -8850,7 +9003,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 130,
+   "dimsCm": "9x5x5"
   },
   {
    "id": 2108,
@@ -8893,7 +9048,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 184,
+   "dimsCm": "17x12.8x5"
   },
   {
    "id": 2109,
@@ -9023,7 +9180,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 59,
+   "dimsCm": "11.4x5.9x5.9"
   },
   {
    "id": 2112,
@@ -9069,7 +9228,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T14:23:45.954Z"
+   "updatedAt": "2026-09-08T14:23:45.954Z",
+   "weightG": 200,
+   "dimsCm": "11x3.5x3"
   },
   {
    "id": 2113,
@@ -9120,7 +9281,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 35,
+   "dimsCm": "20x10.9x3.1"
   },
   {
    "id": 2114,
@@ -9162,7 +9325,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 90,
+   "dimsCm": "16.8x10.3x1.9"
   },
   {
    "id": 2116,
@@ -9205,7 +9370,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "dimsCm": "6x6x6",
+   "weightG": 84
   },
   {
    "id": 2117,
@@ -9248,7 +9415,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 280,
+   "dimsCm": "21x15.5x9.5"
   },
   {
    "id": 2118,
@@ -9293,7 +9462,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 100
   },
   {
    "id": 2119,
@@ -9336,7 +9506,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 78,
+   "dimsCm": "9.4x4.4x4.4"
   },
   {
    "id": 2121,
@@ -9382,7 +9554,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 260,
+   "dimsCm": "12.2x6.3x6.3"
   },
   {
    "id": 2122,
@@ -9428,7 +9602,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 20,
+   "dimsCm": "16.8x9.7x0.8"
   },
   {
    "id": 2123,
@@ -9515,7 +9691,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T13:56:49.966Z"
+   "updatedAt": "2026-09-08T13:56:49.966Z",
+   "weightG": 100,
+   "dimsCm": "15x12.5x5.2"
   },
   {
    "id": 2128,
@@ -9556,7 +9734,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 410,
+   "dimsCm": "13.3x7x7"
   },
   {
    "id": 2129,
@@ -9604,7 +9784,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 181,
+   "dimsCm": "9.3x5.51x5.51"
   },
   {
    "id": 2130,
@@ -9649,7 +9831,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 360,
+   "dimsCm": "12.8x7.2x7.2"
   },
   {
    "id": 2131,
@@ -9690,7 +9874,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 259,
+   "dimsCm": "11.99x5.89x5.89"
   },
   {
    "id": 2132,
@@ -9732,7 +9918,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 160
   },
   {
    "id": 2134,
@@ -9778,7 +9965,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T07:47:54Z"
+   "updatedAt": "2026-09-08T07:47:54Z",
+   "weightG": 41,
+   "dimsCm": "17x12x2"
   },
   {
    "id": 2135,
@@ -9823,7 +10012,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 20,
+   "dimsCm": "15.6x8.6x1.2"
   },
   {
    "id": 2136,
@@ -9863,7 +10054,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T13:57:10.381Z"
+   "updatedAt": "2026-09-08T13:57:10.381Z",
+   "weightG": 150,
+   "dimsCm": "19.4x16.8x2.1"
   },
   {
    "id": 2137,
@@ -9949,7 +10142,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T01:35:19Z",
-   "updatedAt": "2026-09-08T05:52:49Z"
+   "updatedAt": "2026-09-08T05:52:49Z",
+   "weightG": 135,
+   "dimsCm": "13x6x2.5"
   },
   {
    "id": 2139,
@@ -9988,7 +10183,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 150,
+   "dimsCm": "18.2x16x6.5"
   },
   {
    "id": 2140,
@@ -10028,7 +10225,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 30,
+   "dimsCm": "14.8x10x2.6"
   },
   {
    "id": 2141,
@@ -10106,7 +10305,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 222,
+   "dimsCm": "10.9x5.5x5.4"
   },
   {
    "id": 2143,
@@ -10264,7 +10465,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 240
   },
   {
    "id": 2147,
@@ -10303,7 +10505,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 90,
+   "dimsCm": "8.7x5.4x4.8"
   },
   {
    "id": 2148,
@@ -10341,7 +10545,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 204,
+   "dimsCm": "10.01x5.51x5.51"
   },
   {
    "id": 2149,
@@ -10378,7 +10584,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 59,
+   "dimsCm": "18.5x11.7x1.7"
   },
   {
    "id": 2150,
@@ -10415,7 +10623,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 1400,
+   "dimsCm": "17.6x11.2x7.29"
   },
   {
    "id": 2151,
@@ -10497,7 +10707,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 175,
+   "dimsCm": "12x9x4.5"
   },
   {
    "id": 2153,
@@ -10574,7 +10786,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 190,
+   "dimsCm": "20x4.9x4.8"
   },
   {
    "id": 2155,
@@ -10612,7 +10826,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 72,
+   "dimsCm": "9.5x5x5"
   },
   {
    "id": 2156,
@@ -10691,7 +10907,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 50,
+   "dimsCm": "19x18.3x2.7"
   },
   {
    "id": 2158,
@@ -10728,7 +10946,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 350
   },
   {
    "id": 2159,
@@ -10766,7 +10985,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 46,
+   "dimsCm": "14.6x5.5x2.4"
   },
   {
    "id": 2160,
@@ -10804,7 +11025,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 46,
+   "dimsCm": "14.7x5.6x2.4"
   },
   {
    "id": 2161,
@@ -10841,7 +11064,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 80,
+   "dimsCm": "19.1x4.1x3"
   },
   {
    "id": 2162,
@@ -10921,7 +11146,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 30,
+   "dimsCm": "19.6x7.9x2.2"
   },
   {
    "id": 2164,
@@ -10962,7 +11189,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 400,
+   "dimsCm": "13.3x6.6x6.6"
   },
   {
    "id": 2165,
@@ -11000,7 +11229,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 22,
+   "dimsCm": "19x12x1"
   },
   {
    "id": 2166,
@@ -11040,7 +11271,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 360,
+   "dimsCm": "9.3x8.9x6.7"
   },
   {
    "id": 2167,
@@ -11079,7 +11312,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 20,
+   "dimsCm": "15.8x10.8x1.1"
   },
   {
    "id": 2168,
@@ -11155,7 +11390,9 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 300,
+   "dimsCm": "19.3x14.8x4.4"
   },
   {
    "id": 2170,
@@ -11195,7 +11432,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 240,
+   "dimsCm": "11.9x6.2x6"
   },
   {
    "id": 2171,
@@ -11233,7 +11472,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 25,
+   "dimsCm": "14.8x5.5x3.6"
   },
   {
    "id": 2172,
@@ -11305,7 +11546,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z"
+   "updatedAt": "2026-09-08T08:01:07Z",
+   "weightG": 500
   },
   {
    "id": 2174,
@@ -11343,7 +11585,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 300,
+   "dimsCm": "20x18x9"
   },
   {
    "id": 2175,
@@ -11386,7 +11630,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 90,
+   "dimsCm": "22.2x10.5x2.6"
   },
   {
    "id": 2176,
@@ -11425,7 +11671,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 70,
+   "dimsCm": "14.4x5.8x3.1"
   },
   {
    "id": 2177,
@@ -11536,7 +11784,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 120,
+   "dimsCm": "15.5x7.1x3.4"
   },
   {
    "id": 2180,
@@ -11573,7 +11823,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 130,
+   "dimsCm": "9.3x5.2x5.2"
   },
   {
    "id": 2181,
@@ -11611,7 +11863,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 160,
+   "dimsCm": "10.9x6x5.9"
   },
   {
    "id": 2182,
@@ -11655,7 +11909,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 920,
+   "dimsCm": "31.4x25x10.5"
   },
   {
    "id": 2183,
@@ -11730,7 +11986,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 189,
+   "dimsCm": "26.5x18x1.4"
   },
   {
    "id": 2186,
@@ -11769,7 +12027,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 25,
+   "dimsCm": "14.9x5.6x3.4"
   },
   {
    "id": 2187,
@@ -11809,7 +12069,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 200,
+   "dimsCm": "21.4x12.6x9.7"
   },
   {
    "id": 2188,
@@ -11885,7 +12147,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 30,
+   "dimsCm": "13.7x4.7x3.9"
   },
   {
    "id": 2191,
@@ -11923,7 +12187,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 170,
+   "dimsCm": "18.6x13.5x3.4"
   },
   {
    "id": 2192,
@@ -11960,7 +12226,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 210,
+   "dimsCm": "21.6x20.2x4.3"
   },
   {
    "id": 2193,
@@ -12077,7 +12345,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 500,
+   "dimsCm": "25x15x5"
   },
   {
    "id": 2196,
@@ -12119,7 +12389,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 410,
+   "dimsCm": "12.4x10.3x9.9"
   },
   {
    "id": 2197,
@@ -12158,7 +12430,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 370,
+   "dimsCm": "18.2x12.5x5.7"
   },
   {
    "id": 2198,
@@ -12272,7 +12546,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z"
+   "updatedAt": "2026-09-08T08:01:07Z",
+   "weightG": 200
   },
   {
    "id": 2201,
@@ -12347,7 +12622,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 97,
+   "dimsCm": "8.5x5x5"
   },
   {
    "id": 2203,
@@ -12384,7 +12661,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T08:01:07Z"
+   "updatedAt": "2026-09-08T08:01:07Z",
+   "weightG": 1020,
+   "dimsCm": "17.8x13x12.9"
   },
   {
    "id": 2204,
@@ -12422,7 +12701,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 1000,
+   "dimsCm": "29x7x7"
   },
   {
    "id": 2205,
@@ -12504,7 +12785,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 110,
+   "dimsCm": "18x10x3"
   },
   {
    "id": 2207,
@@ -12582,7 +12865,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 100,
+   "dimsCm": "11.4x6.5x5.3"
   },
   {
    "id": 2210,
@@ -12619,7 +12904,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 322
   },
   {
    "id": 2212,
@@ -12658,7 +12944,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 272,
+   "dimsCm": "9.4x8x8"
   },
   {
    "id": 2213,
@@ -12698,7 +12986,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 130,
+   "dimsCm": "9.5x5.4x5.4"
   },
   {
    "id": 2214,
@@ -12814,7 +13104,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 582
   },
   {
    "id": 2217,
@@ -12851,7 +13142,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 360,
+   "dimsCm": "15.6x8.2x7"
   },
   {
    "id": 2218,
@@ -12889,7 +13182,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 60,
+   "dimsCm": "8x4.3x4.2"
   },
   {
    "id": 2219,
@@ -12927,7 +13222,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 50,
+   "dimsCm": "8x4.3x4.3"
   },
   {
    "id": 2220,
@@ -12964,7 +13261,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T11:47:47Z"
+   "updatedAt": "2026-09-08T11:47:47Z",
+   "weightG": 40
   },
   {
    "id": 2221,
@@ -13001,7 +13299,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "dimsCm": "11.43x4.83x4.83",
+   "weightG": 88
   },
   {
    "id": 2222,
@@ -13077,7 +13377,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 20,
+   "dimsCm": "12.1x6.7x2.9"
   },
   {
    "id": 2224,
@@ -13117,7 +13419,9 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 170,
+   "dimsCm": "21.5x20x0.1"
   },
   {
    "id": 2225,
@@ -13160,7 +13464,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T18:13:29Z"
+   "updatedAt": "2026-09-08T18:13:29Z",
+   "weightG": 315,
+   "dimsCm": "17x15x3"
   },
   {
    "id": 2226,
@@ -13197,7 +13503,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 835
   },
   {
    "id": 2227,
@@ -13237,7 +13544,8 @@
    "reviewCount": 0,
    "status": "draft",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T12:46:18Z"
+   "updatedAt": "2026-09-08T12:46:18Z",
+   "weightG": 36
   },
   {
    "id": 2228,
@@ -13285,7 +13593,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 91,
+   "dimsCm": "16x6x3"
   },
   {
    "id": 2229,
@@ -13322,7 +13632,9 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-08T07:52:25Z",
-   "updatedAt": "2026-09-08T07:52:25Z"
+   "updatedAt": "2026-09-08T07:52:25Z",
+   "weightG": 90,
+   "dimsCm": "16x6x3"
   },
   {
    "id": 2230,
@@ -13362,7 +13674,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-09T02:16:05.394Z",
-   "updatedAt": "2026-09-09T02:35:19.977Z"
+   "updatedAt": "2026-09-09T02:35:19.977Z",
+   "weightG": 190
   },
   {
    "id": 2231,
@@ -13407,7 +13720,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-09T02:18:09.862Z",
-   "updatedAt": "2026-09-09T02:34:36.528Z"
+   "updatedAt": "2026-09-09T02:34:36.528Z",
+   "weightG": 100
   },
   {
    "id": 2232,
@@ -13449,7 +13763,8 @@
    "reviewCount": 0,
    "status": "publish",
    "createdAt": "2026-09-09T02:19:44.702Z",
-   "updatedAt": "2026-09-09T02:35:00.834Z"
+   "updatedAt": "2026-09-09T02:35:00.834Z",
+   "weightG": 100
   }
  ],
  "pages": [

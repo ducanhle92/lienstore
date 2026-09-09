@@ -7,6 +7,7 @@ import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
 import { BANK } from "@/lib/payment";
+import { billableKg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CheckoutState } from "./checkout-types";
 import { Price, Required, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass, wooInputClass } from "./WooUi";
@@ -72,10 +73,12 @@ interface Props {
   pickupAddress: string;
   /** Product ids that are bought to order (must be prepaid). */
   preorderIds: number[];
+  /** Chargeable grams per product id (for per-kg zones). */
+  weights?: Record<number, number>;
 }
 
 /** Checkout: billing fields, delivery choice (pickup / home delivery with zone fee), order review, payment, place order. */
-export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAddress, preorderIds }: Props) {
+export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAddress, preorderIds, weights = {} }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
   const [delivery, setDelivery] = useState<"ship" | "pickup">(zones.length ? "ship" : "pickup");
@@ -88,7 +91,10 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
   const payment: "bacs" | "cod" = mustPrepay ? "bacs" : paymentChoice;
 
   const zone = zones.find((z) => z.id === zoneId) ?? null;
-  const shippingFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zone.fee;
+  const totalWeightG = items.reduce((s, it) => s + (weights[it.productId] ?? 0) * it.quantity, 0);
+  const kg = billableKg(totalWeightG || 1000);
+  const zoneBase = (z: CheckoutZone) => z.fee * (/kg/i.test(z.unit) ? kg : 1);
+  const shippingFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
   const total = subtotal + shippingFee;
 
   if (!hydrated) return <div className="min-h-[240px]" aria-busy="true" />;
@@ -194,7 +200,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                       <select name="shipping_zone" value={zoneId} onChange={(e) => setZoneId(Number(e.target.value))} disabled={delivery !== "ship"} className={cn(wooInputClass, "mt-2 !h-auto !py-2 text-[14px]", fields.shipping_zone && "border-[#b81c23]")}>
                         {zones.map((z) => (
                           <option key={z.id} value={z.id}>
-                            {z.label} — {formatAmount(z.fee)}đ{z.unit}
+                            {z.label} — {formatAmount(zoneBase(z))}đ{/kg/i.test(z.unit) ? ` (${kg} kg)` : ""}
                             {z.freeOver ? ` (miễn phí từ ${formatAmount(z.freeOver)}đ)` : ""}
                             {z.eta ? ` · ${z.eta}` : ""}
                           </option>
@@ -207,7 +213,10 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                 </span>
               </label>
             </div>
-            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn.</p>
+            <p className="mt-3 text-[12px] leading-5 text-lien-muted">
+              Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn
+              {totalWeightG ? `, tính cho khoảng ${formatAmount(totalWeightG)} g (${kg} kg làm tròn)` : ""}.
+            </p>
 
             <div className="woocommerce-additional-fields mt-4">
               <p className="form-row notes mb-1.5 p-[3px]">

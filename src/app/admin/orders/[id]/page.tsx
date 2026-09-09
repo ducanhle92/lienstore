@@ -7,7 +7,8 @@ import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit"
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerOverview, getOrderById, getOrderFiles } from "@/lib/db";
+import { getCustomerOverview, getOrderById, getOrderFiles, getOrderLegs, getShippingMethods } from "@/lib/db";
+import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
 
@@ -24,7 +25,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
   await requireAdmin("orders");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [order, files, overview] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview()]);
+  const [order, files, overview, legMap, shippingMethods] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false)]);
   if (!order) notFound();
   const c = order.customer;
   const customerKey =
@@ -107,6 +108,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </tfoot>
             </table>
           </Card>
+
+        <Card title="Vận chuyển đơn này (3 chặng)">
+          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} />
+          <p className="mt-3 text-[12px] text-lien-muted">Chọn phương thức · cột cho từng chặng; để trống phí thì tự tính theo cột và khối lượng đơn. Chặng nội địa Việt Nam có thể áp lại phí vào tổng tiền khách trả.</p>
+        </Card>
 
           <div id="bill">
             <Card

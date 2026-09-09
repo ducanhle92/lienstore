@@ -109,3 +109,19 @@ python scripts/xlsx/fetch_packshots.py --only slug-a,slug-b --apply
 ```
 
 Thứ tự ưu tiên: ảnh nền trắng sẵn có trong gallery → ảnh chính từ link Amazon JP đã có (`supplierUrl`) → tìm Amazon JP theo tên (chỉ nhận khi tiêu đề chứa tên thương hiệu và cùng quy cách). Mọi ảnh tải về được kiểm tra lại nền trắng trước khi dùng; ảnh cũ vẫn nằm sau ảnh mới trong gallery. Ảnh lưu ở `public/sites/lienstore/shared/products/packshot/<slug>.jpg` (+ `-300x300.jpg`). Sau Amazon, script tìm thêm trên Rakuten (cùng điều kiện khớp), và cuối cùng **tách nền ảnh của cửa hàng** bằng `rembg` (cài: `pip install rembg onnxruntime`; model U2-Net ~170 MB tải lần đầu) rồi đặt lên nền trắng vuông, lưu ở `packshot/cutout/`. Ảnh tách nền được đánh dấu `cutout` trong trang rà soát vì ảnh có chữ chèn hoặc tay cầm có thể chưa đẹp; thay bằng ảnh khác trong admin nếu cần. Các trường hợp chỉ khớp thương hiệu (không có quy cách) lưu ở `packshot/candidates/` để tham khảo. Tuỳ chọn: `--no-rakuten`, `--no-cutout`, `--skip-search`.
+
+## Khối lượng & kích thước để tính phí ship (`fetch_dimensions.py`)
+
+Phí giao nội địa Việt Nam (và phí các chặng trong Admin › Vận chuyển › Đơn hàng) tính theo **cân tính phí** của đơn = Σ max(khối lượng, D×R×C/6000) × số lượng, làm tròn lên kg. Để có dữ liệu cho sản phẩm cũ:
+
+```bash
+cd "D:/AI/clone web/screenshot-to-code/backend"
+poetry run python "D:/AI/clone web/ai-website-cloner-template/scripts/xlsx/fetch_dimensions.py"          # chỉ xem báo cáo
+poetry run python "D:/AI/clone web/ai-website-cloner-template/scripts/xlsx/fetch_dimensions.py" --apply  # ghi vào data/seed.json
+```
+
+- Sản phẩm có link Amazon.co.jp: đọc 「梱包サイズ」/「商品の寸法」 và 「商品の重量」 trên trang sản phẩm.
+- Còn lại: ước lượng từ cỡ gói trong tên (500ml, 250g, 60 viên…). Đây là **ước lượng gộp bao bì**, đủ để tính bậc /kg; sửa lại trong Admin › Sản phẩm khi cần.
+- Chỉ điền vào chỗ còn trống, không đụng tới `updatedAt`; server khi đồng bộ seed (`LIEN_SEED_SYNC=update`) cũng chỉ điền hai cột này cho sản phẩm chưa có, kể cả sản phẩm đã sửa tay trên prod.
+- Báo cáo: `docs/reports/dimensions-<ngày>.html` (xanh = Amazon, vàng = ước lượng, đỏ = không có).
+

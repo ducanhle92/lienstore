@@ -208,6 +208,19 @@ export interface ShippingZone {
   active: boolean;
 }
 
+/** Shipping arrangement of one order for one leg (internal logistics + cost tracking). */
+export interface OrderLeg {
+  orderId: string;
+  leg: "jp_domestic" | "jp_vn" | "vn_domestic";
+  methodId: number | null;
+  zoneId: number | null;
+  label: string;
+  fee: number;
+  tracking: string;
+  note: string;
+  updatedAt: string;
+}
+
 export interface ShippingCarrier {
   id: number;
   name: string;

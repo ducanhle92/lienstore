@@ -4,7 +4,8 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
@@ -207,7 +208,11 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
 function AddMethodCard({ leg, carriers, position, tab }: { leg: ShippingLeg | null; carriers: ShippingCarrier[]; position: number; tab: string }) {
   const list = leg ? carriersFor(carriers, leg) : carriers;
   return (
-    <Card title={`Thêm phương thức vận chuyển${leg ? ` · ${LEG_LABEL[leg]}` : ""}`}>
+    <details className="group rounded-lg border border-dashed border-[#d1d5db] bg-white">
+      <summary className="flex cursor-pointer items-center gap-2 px-5 py-3 text-[14px] font-semibold text-lien-blue select-none">
+        <Fa name="plus" /> Thêm phương thức vận chuyển{leg ? ` · ${LEG_LABEL[leg]}` : ""}
+      </summary>
+      <div className="border-t border-[#e5e7eb] p-5">
       <form action={saveMethodAction} className="grid gap-3 md:grid-cols-3">
         <input type="hidden" name="backTab" value={tab} />
         <div>
@@ -267,7 +272,8 @@ function AddMethodCard({ leg, carriers, position, tab }: { leg: ShippingLeg | nu
           </button>
         </div>
       </form>
-    </Card>
+      </div>
+    </details>
   );
 }
 
@@ -335,40 +341,45 @@ function CarriersCard({ leg, carriers, methods, tab }: { leg: ShippingLeg | null
                   </tr>
                 );
               })}
-              <tr className="bg-[#f9fafb]">
-                <td className={cell}>
-                  <input name="name" form="new-carrier" placeholder="Tên đơn vị mới…" required className={`${small} min-w-[170px]`} />
-                </td>
-                <td className={cell}>
-                  <input name="phone" form="new-carrier" className={`${small} w-[130px]`} />
-                </td>
-                <td className={cell}>
-                  <input name="website" form="new-carrier" placeholder="https://…" className={`${small} min-w-[170px]`} />
-                </td>
-                <td className={cell}>
-                  <input name="note" form="new-carrier" className={`${small} min-w-[200px]`} />
-                </td>
-                <td className={`${cell} whitespace-nowrap`}>
-                  {SHIPPING_LEGS.map((l) => (
-                    <label key={l.key} className="mr-2 inline-flex items-center gap-1 text-[12px]" title={l.label}>
-                      <input type="checkbox" name="legs" value={l.key} form="new-carrier" defaultChecked={leg ? l.key === leg : l.key === "jp_vn"} className="h-3.5 w-3.5" />
-                      <Fa name={LEG_ICON[l.key]} className="text-lien-muted" />
-                    </label>
-                  ))}
-                </td>
-                <td className={cell} />
-                <td className={`${cell} whitespace-nowrap`}>
-                  <form id="new-carrier" action={saveCarrierAction} className="inline">
-                    <input type="hidden" name="backTab" value={tab} />
-                    <button type="submit" className={`${btnPrimary} !px-2.5 !py-1.5 !text-[13px]`}>
-                      <Fa name="plus" /> Thêm đơn vị
-                    </button>
-                  </form>
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
+        <details className="mt-3 rounded-md border border-dashed border-[#d1d5db]">
+          <summary className="cursor-pointer px-4 py-2 text-[13px] font-semibold text-lien-blue select-none">
+            <Fa name="plus" /> Thêm đơn vị vận chuyển
+          </summary>
+          <form id="new-carrier" action={saveCarrierAction} className="grid gap-3 border-t border-[#e5e7eb] p-4 md:grid-cols-[1fr_140px_1fr_1fr_auto_auto] md:items-end">
+            <input type="hidden" name="backTab" value={tab} />
+            <div>
+              <label className={adminLabel}>Tên đơn vị *</label>
+              <input name="name" required placeholder="VD: Sagawa, Bưu điện…" className={adminInput} />
+            </div>
+            <div>
+              <label className={adminLabel}>Điện thoại</label>
+              <input name="phone" className={adminInput} />
+            </div>
+            <div>
+              <label className={adminLabel}>Website</label>
+              <input name="website" placeholder="https://…" className={adminInput} />
+            </div>
+            <div>
+              <label className={adminLabel}>Ghi chú</label>
+              <input name="note" className={adminInput} />
+            </div>
+            <div className="whitespace-nowrap">
+              <label className={adminLabel}>Chặng</label>
+              {SHIPPING_LEGS.map((l) => (
+                <label key={l.key} className="mr-2 inline-flex items-center gap-1 text-[12px]" title={l.label}>
+                  <input type="checkbox" name="legs" value={l.key} defaultChecked={leg ? l.key === leg : l.key === "jp_vn"} className="h-3.5 w-3.5" />
+                  <Fa name={LEG_ICON[l.key]} className="text-lien-muted" />
+                </label>
+              ))}
+            </div>
+            <button type="submit" className={btnPrimary}>
+              <Fa name="plus" /> Thêm
+            </button>
+          </form>
+        </details>
         <p className="mt-2 text-[12px] text-lien-muted">
           Cột &quot;Chặng&quot;: <Fa name="cube" /> nội địa Nhật · <Fa name="plane" /> Nhật → Việt Nam · <Fa name="truck" /> nội địa Việt Nam. Một đơn vị có thể phục vụ nhiều chặng (VD Japan Post vừa gửi nội địa Nhật vừa EMS quốc tế).
         </p>
@@ -382,7 +393,9 @@ export default async function AdminShipping({ searchParams }: Props) {
   const sp = await searchParams;
   const saved = first(sp.saved);
   const error = first(sp.error);
-  const [methods, notes, carriers, pickupAddress] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress()]);
+  const [methods, notes, carriers, pickupAddress, allOrders] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders()]);
+  const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
+  const legMap = await getOrderLegs(orders.map((o) => o.id));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
   const tabParam = first(sp.leg);
   const tab: ShippingLeg | "display" | "" = tabParam === "display" ? "display" : isShippingLeg(tabParam) ? tabParam : "";
@@ -404,7 +417,8 @@ export default async function AdminShipping({ searchParams }: Props) {
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Link href="/admin/shipping/" className={tabBtn(tab === "")}>
-          Tất cả
+          <Fa name="list" className="mr-1" />
+          Đơn hàng
         </Link>
         {SHIPPING_LEGS.map((l) => (
           <Link key={l.key} href={`/admin/shipping/?leg=${l.key}`} className={tabBtn(tab === l.key)}>
@@ -435,9 +449,63 @@ export default async function AdminShipping({ searchParams }: Props) {
             <p className="mt-3 text-[12px] text-lien-muted">Chỉ phương thức và cột đang bật &quot;Hiển thị&quot; mới xuất hiện. Sửa nội dung ở tab từng chặng.</p>
           </Card>
         </div>
+      ) : !tab ? (
+        <Card title={`Đơn hàng & vận chuyển theo 3 chặng (${orders.length} đơn gần nhất, trừ đơn đã huỷ)`}>
+          <p className="mb-4 text-[13px] text-lien-muted">
+            Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-[13px]">
+              <thead>
+                <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
+                  <th className="px-2 py-2">Đơn</th>
+                  {SHIPPING_LEGS.map((l) => (
+                    <th key={l.key} className="px-2 py-2">
+                      <Fa name={LEG_ICON[l.key]} className="mr-1" />
+                      {l.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => {
+                  const legs = legMap.get(o.id) ?? [];
+                  return (
+                    <tr key={o.id} id={`order-${o.id}`} className="align-top odd:bg-white even:bg-[#fafafa]">
+                      <td className="border-b border-[#f0f0f0] px-2 py-3">
+                        <Link href={`/admin/orders/${o.id}/`} className="font-semibold text-lien-blue hover:underline">
+                          #{o.number}
+                        </Link>
+                        <div className="text-[12px] text-lien-muted">
+                          {o.customer.lastName} {o.customer.firstName}
+                          <br />
+                          {o.items.reduce((n, it) => n + it.quantity, 0)} sp · {formatAmount(o.total)}đ
+                          <br />
+                          {o.delivery === "pickup" ? "Nhận tại kho" : o.shippingLabel || "Giao tận nhà"} · phí khách {formatAmount(o.shippingFee)}đ
+                        </div>
+                      </td>
+                      {SHIPPING_LEGS.map((l) => (
+                        <td key={l.key} className="border-b border-[#f0f0f0] px-2 py-3">
+                          <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" />
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-2 py-6 text-center text-lien-muted">
+                      Chưa có đơn hàng.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       ) : (
         <div className="space-y-10">
-          {SHIPPING_LEGS.filter((l) => !tab || l.key === tab).map((leg) => {
+          {SHIPPING_LEGS.filter((l) => l.key === tab).map((leg) => {
             const list = methods.filter((m) => m.leg === leg.key);
             return (
               <section key={leg.key} id={`leg-${leg.key}`} className="space-y-6">
@@ -477,12 +545,7 @@ export default async function AdminShipping({ searchParams }: Props) {
               </section>
             );
           })}
-          {!tab ? (
-            <>
-              <AddMethodCard leg={null} carriers={carriers} position={methods.length + 1} tab="" />
-              <CarriersCard leg={null} carriers={carriers} methods={methods} tab="" />
-            </>
-          ) : null}
+
         </div>
       )}
     </>
