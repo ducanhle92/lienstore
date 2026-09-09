@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-09-09
+
 ### Added
 - **Độ tin cậy kích thước / khối lượng** cho từng sản phẩm (Cao · Trung bình · Thấp + cơ sở/nguồn): cột `dims_confidence`, `dims_source` (migration v14), trường trong form sản phẩm, cột "Cân / KT" ở danh sách sản phẩm, cột Excel "Độ tin cậy KT", "Nguồn KT". Hệ số an toàn khi tính phí: Cao ×1,2 · Trung bình ×1,5 · Thấp/chưa đánh giá ×2. Khách chỉ thấy số đo trên trang sản phẩm khi độ tin cậy là Cao.
 - Dữ liệu: nạp bảng kích thước/khối lượng cào ngày 09/09 cho 316 sản phẩm (139 Cao, 109 Trung bình, 69 Thấp); giữ số liệu Amazon đã có cho 13 sản phẩm.
