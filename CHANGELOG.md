@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-09
+
 ### Added
 - **Trang thanh toán**: chọn **Nhận tại kho** (miễn phí, hiện địa chỉ kho do admin đặt ở Vận chuyển → Nhận tại kho) hoặc **Giao tận nhà** với dropdown khu vực lấy từ các phương thức chặng Nội địa Việt Nam (phí theo cột, miễn phí khi đạt mức; cột "/kg" nhân theo khối lượng đơn). Phí giao hiện thành dòng riêng và cộng vào Tổng; server tính lại, lưu vào đơn (`shipping_fee`, `shipping_label`, `delivery`). Migration v9.
 - **Chuyển khoản**: sau khi đặt hàng, trang "Đơn hàng đã nhận" hiện tài khoản BIDV (LE THI LIEN · 26010000748323 · CN Mỹ Đình), **mã VietQR** đã điền sẵn số tiền và **nội dung chuyển khoản tự sinh** `LIENSTORE <mã đơn>`; admin thấy nội dung CK ở chi tiết đơn.
