@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-09
+
 ### Added
 - **Tiến độ vận chuyển từng đơn** (kiểu Mercari): 7 bước Đã đặt hàng → Đã mua tại Nhật → Đã tới kho Nhật → Đang về Việt Nam → Đã tới kho Việt Nam → Đang giao → Đã nhận hàng. Admin bấm "Chuyển sang bước tiếp" (kèm ghi chú cho khách) ở cột phải trang đơn; khách thấy thanh tiến độ với ngày giờ ở trang "Đơn hàng đã nhận", mục Đơn hàng của tài khoản và tra cứu đơn. Tới "Đã nhận hàng" thì đơn tự chuyển Hoàn thành. Bảng `order_stage_log`, cột `orders.ship_stage` (migration v13).
 - **Chat theo đơn hàng**: khách nhắn với LienStore ngay dưới đơn (trang đơn hàng đã nhận và tài khoản), admin trả lời trong trang đơn với 4 câu mẫu; tự làm mới 20 giây; danh sách đơn admin có huy hiệu số tin chưa đọc. Bảng `order_messages`.
