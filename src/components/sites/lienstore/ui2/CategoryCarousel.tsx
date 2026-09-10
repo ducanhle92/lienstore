@@ -24,6 +24,7 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
   const ref = useRef<HTMLUListElement>(null);
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(0);
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -53,7 +54,36 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
     <section aria-label="Danh mục sản phẩm" className="relative mt-6">
       <ul
         ref={ref}
-        className="m-0 flex list-none snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth p-0 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="m-0 flex list-none snap-x snap-mandatory gap-3 overflow-x-auto p-0 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [@media(hover:hover)]:cursor-grab [@media(hover:hover)]:active:cursor-grabbing"
+        onDragStart={(e) => e.preventDefault()}
+        onPointerDown={(e) => {
+          if (e.pointerType !== "mouse" || !ref.current) return;
+          e.preventDefault();
+          drag.current = { x: e.clientX, left: ref.current.scrollLeft, moved: false };
+          ref.current.classList.remove("snap-x");
+        }}
+        onPointerMove={(e) => {
+          if (!drag.current || !ref.current) return;
+          const dx = e.clientX - drag.current.x;
+          if (Math.abs(dx) > 4) drag.current.moved = true;
+          ref.current.scrollLeft = drag.current.left - dx;
+        }}
+        onPointerUp={() => {
+          ref.current?.classList.add("snap-x");
+          window.setTimeout(() => {
+            drag.current = null;
+          }, 0);
+        }}
+        onPointerLeave={() => {
+          ref.current?.classList.add("snap-x");
+          drag.current = null;
+        }}
+        onClickCapture={(e) => {
+          if (drag.current?.moved) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
       >
         {tiles.map((c) => (
           <li key={c.slug} className="w-[calc((100%-0.75rem*2)/3)] shrink-0 snap-start sm:w-[calc((100%-0.75rem*3)/4)] md:w-[calc((100%-0.75rem*5)/6)] lg:w-[calc((100%-0.75rem*7)/8)]">

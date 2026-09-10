@@ -437,6 +437,11 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE categories ADD COLUMN name_ja TEXT NOT NULL DEFAULT ''`,
     ],
   },
+  {
+    version: 16,
+    name: "drop-mobile-app-page",
+    up: [`DELETE FROM pages WHERE slug = 'them-ung-dung-lien-vao-mobile'`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

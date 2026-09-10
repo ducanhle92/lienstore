@@ -3,7 +3,7 @@
  "note": "Exported from the live catalogue (https://linconnn.io.vn). Catalogue only — no customers/orders.",
  "meta": {
   "nextOrderNumber": 1001,
-  "seededAt": "2026-09-09T17:35:55Z",
+  "seededAt": "2026-09-10T00:55:17Z",
   "removedSlugs": [
    "dau-goi-xa-mo-ngua-600ml-chai",
    "ngu-coc-calbee-thich-hop-an-voi-sua-tuoi-sua-chua-hoac-sua-dau-nanh",
@@ -1219,7 +1219,8 @@
     "dau goi cho be",
     "san pham cho bé",
     "sua tam cho be",
-    "sua tam goi cho be"
+    "sua tam goi cho be",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/packshot/sua-tam-goi-cho-be-arau-baby.jpg",
@@ -1687,7 +1688,8 @@
     "sua rua mat ngua mun",
     "sua rua mat oxy",
     "sua rua mat oxy danh cho nam",
-    "sua rua mat xanh oxy"
+    "sua rua mat xanh oxy",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/packshot/sua-rua-mat-oxy-mau-xanh-130g.jpg",
@@ -3235,7 +3237,8 @@
     "white",
     "conc",
     "sữa",
-    "tắm"
+    "tắm",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/sua-tam-white-conc.jpg",
@@ -5898,7 +5901,8 @@
     "nho",
     "bình",
     "sữa",
-    "nhỏ"
+    "nhỏ",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/binh-sua-to-nho-pigeon.jpg",
@@ -5950,7 +5954,8 @@
     "25g",
     "bình",
     "xịt",
-    "ngăn"
+    "ngăn",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/binh-xit-ngan-ngua-sau-rang-hamikea-cua-tampei.jpg",
@@ -6000,7 +6005,8 @@
     "dầu",
     "gội",
     "ngựa",
-    "dầu gội và dầu xả mỡ ngựa nhật bản 600ml/chai"
+    "dầu gội và dầu xả mỡ ngựa nhật bản 600ml/chai",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/uploads/2026-09/71hy6-zvg5l-ac-sl1200-1a52837c.jpg",
@@ -6100,7 +6106,8 @@
     "bột",
     "ngũ",
     "cốc",
-    "ngũ cốc calbee nhật bản"
+    "ngũ cốc calbee nhật bản",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/bot-ngu-coc-calbee-nhat-ban-goi-800gr.jpg",
@@ -6153,7 +6160,8 @@
     "200g",
     "bột",
     "trà",
-    "sữa"
+    "sữa",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/uploads/2026-09/81pmrcjq8jl-ac-sl1500-37c7445b.jpg",
@@ -6207,7 +6215,8 @@
     "bột",
     "uống",
     "đẹp",
-    "beauté"
+    "beauté",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/packshot/bot-uong-dep-da-meiji-the-collagen-beaute.jpg",
@@ -6260,7 +6269,8 @@
     "ban",
     "xịt",
     "giảm",
-    "đau"
+    "đau",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/chai-xit-salonpas-giam-dau-tuc-thi-cua-nhat-ban.jpg",
@@ -6362,7 +6372,8 @@
     "gội",
     "tóc",
     "đầu",
-    "ngứa"
+    "ngứa",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/dau-goi-hs-danh-cho-toc-dau-ngua-mng-nha.jpg",
@@ -6417,7 +6428,8 @@
     "dầu",
     "gội",
     "sữa",
-    "tắm"
+    "tắm",
+    "bán chạy"
    ],
    "images": [
     "/sites/lienstore/shared/products/import/dau-goi-xa-va-sua-tamdove-nhat-ban-set-2-va-set-3.jpg",
@@ -17584,12 +17596,6 @@
    "title": "HƯỚNG DẪN ĐẶT HÀNG",
    "content": "<p>Quý khách có thể đặt hàng trực tuyến ở website <a href=\"https://linconnn.io.vn/\">linconnn.io.vn</a> thông qua các bước đặt hàng cơ bản.<br></p>\n<p>Vui lòng tham khảo thông tin chi tiết về từng bước đặt hàng như sau:<br></p>\n<p><strong>1. Đăng nhập tài khoản tại <a href=\"https://linconnn.io.vn/my-account/\">LienStore</a>:</strong></p>\n<p>Quý khách vui lòng đăng nhập bằng tài khoản đã có ở <a href=\"https://linconnn.io.vn/my-account/\">LienStore</a>. Trong trường hợp chưa&nbsp;<a href=\"https://linconnn.io.vn/my-account/\">đăng ký tài khoản</a>, quý khách có thể chọn dòng “Đăng Ký / Đăng Nhập” để đăng ký tài khoản tại LienStore.</p>\n<p>Sau khi đã hoàn tất, quý khách có thể bấm vào chữ “Đăng ký” để hoàn tất quá trình đăng ký.</p>\n<p><strong>2. Tìm kiếm sản phẩm</strong></p>\n<p>Quý khách có thể tìm sản phẩm theo&nbsp;3 cách:</p>\n<ul><li>Gõ tên sản phẩm vào thanh tìm kiếm.</li><li>Tìm theo danh mục.</li><li>Tìm theo các sản phẩm mới nhất, bán chạy hoặc danh mục phổ biến trên từng ngành hàng.</li></ul>\n<p><strong>3.&nbsp;Thêm sản phẩm vào giỏ hàng</strong></p>\n<p>Khi đã tìm được sản phẩm mong muốn, quý khách vui lòng bấm vào hình hoặc tên sản phẩm để vào được trang thông tin chi tiết của sản phẩm, sau đó:</p>\n<ul><li>Kiểm tra thông tin sản phẩm: giá, thông tin khuyến mãi.</li><li>Chọn số lượng mong muốn.</li><li>Thêm sản phẩm vào giỏ hàng.</li></ul>\n<p>Khi đã thao tác bỏ sản phẩm đầu tiên vào đơn hàng, quý khách vui lòng thực hiện các bước sau để thêm các sản phẩm khác vào giỏ hàng:</p>\n<ul><li>Chọn vào logo <a href=\"https://linconnn.io.vn/\">LienStore</a> để trở về trang chủ hoặc gõ tìm kiếm sản phẩm trên thanh công cụ.</li><li>Thêm sản phẩm vào giỏ hàng bằng cách chọn số lượng và “Mua hàng”.</li></ul>\n<p><em>*Qúa trình này có thể lặp lại cho đến khi quý khách hoàn tất việc bỏ tất cả các sản phẩm cần đặt mua vào giỏ hàng*.</em></p>\n<p><strong>4. Kiểm tra giỏ hàng và đặt hàng.&nbsp;</strong></p>\n<p>Quý&nbsp;khách có thể đặt các sản phẩm khác nhau trong 1 giỏ hàng thành 1 đơn hàng, các sản phẩm trong giỏ hàng&nbsp;sẽ được đóng thành&nbsp;1 kiện hàng (nếu sản phẩm thuộc cùng 1 nhà cung cấp/kho xử lý) và giao đến địa chỉ quý khách đã&nbsp;đăng ký.</p>\n<p>Sau khi quý khách đã có đủ sản phẩm cần đặt trong giỏ hàng, vui lòng sử dụng mã giảm giá (nếu có)&nbsp;và&nbsp;tiếp tục các bước sau để đặt hàng:</p>\n<ul><li>Điều chỉnh số lượng và cập nhật giỏ hàng.</li><li>Bấm “Tiến hành thanh toán”&nbsp;để bắt đầu đặt hàng.</li></ul>\n<p><strong>5. Điền địa chỉ giao hàng</strong><br>Quí khách hàng chỉ cần điền thông tin giao hàng 1 lần duy nhất thì những lần mua sau sẽ không cần thực hiện bước này. </p>\n<p><strong>6. Chọn phương thức thanh toán và “Đặt Hàng”</strong></p>\n<p>Sau khi hoàn tất quá trình chọn phương thức thanh toán, vui lòng kiểm tra lại các thông tin sau: địa chỉ nhận hàng, giá khuyến mãi, tổng tiền&#8230;</p>\n<p>Nếu các thông tin trên đã chính xác, quý khách&nbsp;vui lòng&nbsp;bấm “Đặt&nbsp;Mua”, hệ thống sẽ bắt đầu tiến hành tạo đơn hàng dựa trên các thông tin quý khách đã đăng ký.</p>\n<p><strong>7. Kiểm tra, xác nhận và theo dõi&nbsp;đơn hàng</strong></p>\n<p>Sau khi hoàn tất cả bước đặt mua, hệ thống sẽ gửi đến quý khách một mã số đơn hàng và thông tin đơn hàng qua Email cá nhân đã đăng ký trước đó, quý khách có thể kiểm tra lại đơn hàng bằng cách bấm vào dòng “My Account -&gt; Đơn hàng” hoặc email xác nhận đơn hàng.</p>",
    "date": "2020-09-08T13:17:36"
-  },
-  {
-   "slug": "them-ung-dung-lien-vao-mobile",
-   "title": "THÊM ỨNG DỤNG LienStore VÀO MOBILE",
-   "content": "<p>Hiện tại thì LienStore mới chỉ ra mắt phiên bản ứng dụng LienStore cho điện thoại trên nền tảng Android, vì thế Quý Khách Hàng nào đang sử dụng IOS thì đợi thêm một thời gian ngắn nữa nhé!!! Xin được hướng dẫn cách thêm ứng dụng nhanh chóng mà không cần tải từ Google Store và tốn dung lượng bộ nhớ rất ít.<br>1. Mở trình duyệt Google Chrome và truy cập vào linconnn.io.vn<br>2. Sau khi tải thành công trang linconnn.io.vn thì Quý Khách Hàng thao tác vuốt màn hình lên/xuống.<br>    Trường hợp 1 : Thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào thông     báo này.<br>    Trường hợp 2 : Không thấy gợi ý &#8220;Thêm LienStore vào màn hình chính&#8221; thì chọn vào biểu tượng dấu <img decoding=\"async\" loading=\"lazy\" width=\"47\" height=\"41\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture.png\" alt=\"\"> của trình duyệt Web, sau đó tiếp tục chọn &#8220;Thêm vào Màn hình chính&#8221;.<br>3. Sau khi thực hiện &#8220;bước thứ 2&#8221; xong thì sẽ có thông báo &#8220;Thêm vào Màn hình chính&#8221;, Quý Khách Hàng chọn &#8220;Thêm&#8221;.<br>4. Hệ thống sẽ tiến thành tự động cài đặt Ứng dụng LienStore phiên bản Mobile trong 3->5 giây. Sau đó Quý Khách Hàng trở lại màn hình điện thoại và tìm kiếm ở các màn hình sẽ thấy Icon App LienStore như thế này là đã cài đặt thành công.<br><img decoding=\"async\" loading=\"lazy\" width=\"296\" height=\"599\" src=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png\" alt=\"\" srcset=\"https://j86store.com/wp-content/uploads/2020/09/Capture2.png 296w, https://j86store.com/wp-content/uploads/2020/09/Capture2-148x300.png 148w\" sizes=\"(max-width: 296px) 100vw, 296px\" /><br><br>Xin chân thành cảm ơn Quý Khách Hàng đã tiến hành cài đặt App LienStore, từ bây giờ Quý Khách có thể sử dụng một cách dễ dàng và tiện lợi cho việc mua sắm của mình. Một lần nữa xin chân thành cảm ơn sự ủng hộ của tất cả Quý Khách.</p>\n<p><br>               </p>",
-   "date": "2020-09-10T07:53:24"
   },
   {
    "slug": "privacy-policy",

@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-/** Pill "🌐 VI | JP": each entry links to /api/lang/ which stores the cookie and returns to the current page. */
+/** Pill "🌐 VI | JP": plain links to /api/lang/, which stores the cookie and sends the browser back (full reload → <html lang> updates too). */
 export function LangSwitch({ lang, langs, label, className }: Props) {
   const pathname = usePathname();
   const search = useSearchParams();

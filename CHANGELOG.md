@@ -5,6 +5,19 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Trang **Hướng dẫn mua hàng** (`/huong-dan-dat-hang/`) với hình 5 bước dựng bằng CSS (chọn sản phẩm / xác nhận đơn / thanh toán / theo dõi & bill / nhận hàng), giải thích từng bước, có bản tiếng Nhật; khối "Hướng dẫn mua hàng" trên trang chủ dẫn tới trang này.
+- Nhãn **Bán chạy** trên thẻ sản phẩm (sản phẩm có từ khoá "bán chạy" / "bestseller"; 12 sản phẩm điểm cao nhất đã được gắn).
+- `ProductCarousel`: dải sản phẩm ngang cho các khối trang chủ — mũi tên hai bên, kéo chuột trên máy tính, vuốt trên điện thoại.
+
+### Changed
+- Banner trang chủ chạy hết chiều ngang màn hình (ảnh gốc ở giữa, hai bên là ảnh mờ), cao tối đa 520px.
+- Các khối Hàng mới về / Bán chạy / Giảm giá / theo danh mục chuyển từ lưới 2 hàng sang dải trượt 1 hàng; nút cuối khối chỉ ghi "Xem thêm".
+- Dải danh mục kéo được bằng chuột (không chỉ bấm mũi tên).
+- Bỏ khối "Góc chia sẻ" khỏi trang chủ (vẫn còn trong menu Tin tức); bỏ trang và link "Cài LienStore lên điện thoại" (migration v16).
+- Footer: tên danh mục viết thường, bỏ phần tiếng Anh; icon Facebook/Zalo/Messenger bo tròn như dock; dock liên hệ nằm sát góc dưới phải.
+- Nút chuyển VI | JP dùng chuyển hướng tương đối, hết lỗi nhảy sang 0.0.0.0:3000 khi chạy local hoặc sau proxy.
+
 ## [1.17.0] - 2026-09-09
 
 ### Added

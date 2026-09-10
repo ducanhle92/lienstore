@@ -81,6 +81,7 @@ const DICT = {
   added: ["Đã thêm vào giỏ", "追加しました"],
   outOfStock: ["Hết hàng", "在庫切れ"],
   isNew: ["Mới", "新着"],
+  bestseller: ["Bán chạy", "人気"],
   boughtTogether: ["Thường được mua cùng với :", "よく一緒に購入されている商品："],
   // footer
   fAccount: ["Tài khoản", "アカウント"],

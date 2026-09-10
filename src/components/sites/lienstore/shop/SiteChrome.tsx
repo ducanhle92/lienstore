@@ -28,7 +28,6 @@ const NEWS: L2[] = [
   { label: "Hàng mới về", ja: "新着商品", href: "/shop/?orderby=date" },
   { label: "Sản phẩm bán chạy", ja: "人気商品", href: "/shop/?orderby=rating" },
   { label: "Hướng dẫn đặt hàng & mua hộ", ja: "ご注文・購入代行ガイド", href: "/huong-dan-dat-hang/" },
-  { label: "Cài LienStore lên điện thoại", ja: "スマホにLienStoreを追加", href: "/them-ung-dung-lien-vao-mobile/" },
 ];
 const ACCOUNT: L2[] = [
   { label: "Đăng nhập", ja: "ログイン", href: "/my-account/" },

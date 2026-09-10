@@ -94,3 +94,9 @@ export function ancestorChain<T extends CategoryLike>(categories: T[], slug: str
 export function shortName(name: string): string {
   return name.replace(/\s*\(.*?\)\s*/g, " ").trim();
 }
+
+/** Category name for running text: English part dropped, sentence case ("SỨC KHỎE ( HEALTH )" → "Sức khỏe"). */
+export function displayName(name: string): string {
+  const s = shortName(name).toLocaleLowerCase("vi");
+  return s ? s.charAt(0).toLocaleUpperCase("vi") + s.slice(1) : s;
+}

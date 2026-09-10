@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { buildCategoryTree } from "@/lib/categories";
+import { buildCategoryTree, displayName } from "@/lib/categories";
 import type { ContactInfo } from "@/types/lienstore";
 import { SOCIAL_COLORS, SocialIcon } from "@/components/sites/lienstore/shared/BrandIcons";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -83,7 +83,7 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
           </Link>
           {topCats.map((c) => (
             <Link key={c.slug} href={`/product-category/${c.slug}/`} className={colLink}>
-              {c.name}
+              {displayName(c.name)}
             </Link>
           ))}
         </div>
@@ -99,10 +99,10 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
                   rel="noreferrer"
                   aria-label={s.label}
                   title={s.label}
-                  className="inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-white no-underline hover:opacity-85"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-white no-underline shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)] transition-transform hover:scale-110"
                   style={{ backgroundColor: SOCIAL_COLORS[s.kind] }}
                 >
-                  <SocialIcon kind={s.kind} className="text-[17px]" />
+                  {s.kind === "zalo" ? <span className="text-[13px] font-extrabold tracking-tight">Zalo</span> : <SocialIcon kind={s.kind} className="text-[20px]" />}
                 </a>
               </li>
             ))}

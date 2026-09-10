@@ -18,12 +18,14 @@ export interface HeroSliderProps {
   /** Autoplay delay in milliseconds. Defaults to 5000 (FlexSlider slideshowSpeed). */
   intervalMs?: number;
   className?: string;
+  /** Edge-to-edge banner: no rounding, the artwork stays centred at its native width and a blurred copy fills the sides. */
+  fullBleed?: boolean;
 }
 
 const SLIDE_WIDTH = 1280;
 const SLIDE_HEIGHT = 520;
 
-export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className }: HeroSliderProps) {
+export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className, fullBleed = false }: HeroSliderProps) {
   const [index, setIndex] = useState(0);
   const count = slides.length;
 
@@ -54,12 +56,12 @@ export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className }
   );
 
   return (
-    <div className={cn("group relative mb-[40px] w-full rounded-[4px]", className)}>
+    <div className={cn("group relative mb-[40px] w-full", fullBleed ? "" : "rounded-[4px]", className)}>
       <div
         role="region"
         aria-roledescription="carousel"
         aria-label="Featured products"
-        className="relative aspect-[1280/520] w-full overflow-hidden rounded-[4px]"
+        className={cn("relative aspect-[1280/520] w-full overflow-hidden", fullBleed ? "max-h-[520px] bg-lien-blue-soft" : "rounded-[4px]")}
       >
         <ul className="m-0 list-none p-0">
           {slides.map((slide, i) => {
@@ -73,14 +75,15 @@ export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className }
                   active ? "z-[2] opacity-100" : "pointer-events-none z-[1] opacity-0",
                 )}
               >
-                <a href={slide.href} tabIndex={active ? undefined : -1} className="block">
+                <a href={slide.href} tabIndex={active ? undefined : -1} className="relative block h-full w-full">
+                  {fullBleed ? <Image src={slide.image} alt="" fill sizes="100vw" aria-hidden className="scale-110 object-cover opacity-80 blur-2xl" /> : null}
                   <Image
                     src={slide.image}
                     alt={slide.alt}
                     width={SLIDE_WIDTH}
                     height={SLIDE_HEIGHT}
                     priority={i === 0}
-                    className="block h-auto w-full"
+                    className={cn("relative block", fullBleed ? "mx-auto h-full w-auto max-w-full object-contain" : "h-auto w-full")}
                   />
                 </a>
               </li>

@@ -65,6 +65,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
   const out = product.stockStatus === "outofstock";
   const pct = discountPercent(product);
   const fresh = isNewProduct(product);
+  const hot = product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
   const primary = product.thumb || product.images[0];
   const second = product.images.find((src) => src && src !== primary && src !== product.images[0]) ?? (product.images[0] && product.images[0] !== primary ? product.images[0] : null);
   return (
@@ -91,7 +92,8 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
         </Link>
         <div className="pointer-events-none absolute top-2 right-2 flex flex-col items-end gap-1">
           {pct ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white">-{pct}%</span> : null}
-          {fresh && !out ? <span className="rounded bg-lien-info px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="isNew" /></span> : null}
+          {hot && !out ? <span className="rounded bg-lien-success px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="bestseller" /></span> : null}
+          {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="isNew" /></span> : null}
           {out ? <span className="rounded bg-lien-muted px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="outOfStock" /></span> : null}
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
