@@ -90,31 +90,31 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
             />
           ) : null}
         </Link>
-        <div className="pointer-events-none absolute top-2 right-2 flex flex-col items-end gap-1">
-          {pct ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white">-{pct}%</span> : null}
-          {hot && !out ? <span className="rounded bg-lien-success px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="bestseller" /></span> : null}
-          {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="isNew" /></span> : null}
-          {out ? <span className="rounded bg-lien-muted px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"><T k="outOfStock" /></span> : null}
+        <div className="pointer-events-none absolute top-1.5 right-1.5 flex flex-col items-end gap-1 sm:top-2 sm:right-2">
+          {pct ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]">-{pct}%</span> : null}
+          {hot && !out ? <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="bestseller" /></span> : null}
+          {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="isNew" /></span> : null}
+          {out ? <span className="rounded bg-lien-muted px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="outOfStock" /></span> : null}
         </div>
-        <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-          <WishlistButton product={toCartProduct(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[14px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white" />
+        <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+          <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />
           <QuickViewButton product={toQuickView(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white [@media(hover:none)]:hidden" iconOnly />
         </div>
         <CardCartButton product={toCartProduct(product)} disabled={out} />
       </div>
-      <div className="flex flex-1 flex-col px-3 pt-2 pb-3 text-center">
+      <div className="flex flex-1 flex-col px-2 pt-2 pb-2.5 text-center sm:px-3 sm:pb-3">
         <Link href={productHref(product)} className="no-underline">
-          <h2 className="m-0 line-clamp-2 min-h-[42px] text-[14px] font-medium leading-[21px] text-lien-heading hover:text-lien-blue">{product.name}</h2>
+          <h2 className="m-0 line-clamp-2 min-h-[36px] text-[12px] font-medium leading-[18px] text-lien-heading hover:text-lien-blue sm:min-h-[42px] sm:text-[14px] sm:leading-[21px]">{product.name}</h2>
         </Link>
         {product.rating ? (
           <span className="mt-1 block">
-            <StarRating rating={product.rating} />
+            <StarRating rating={product.rating} className="text-[11px] sm:text-[13.7px]" size={0} />
           </span>
         ) : null}
-        <p className="mt-1.5 mb-0 flex flex-wrap items-baseline justify-center gap-x-2 text-[15px] font-semibold leading-5">
+        <p className="mt-1.5 mb-0 flex flex-wrap items-baseline justify-center gap-x-1.5 text-[13px] font-semibold leading-5 sm:gap-x-2 sm:text-[15px]">
           {product.regularPrice && product.regularPrice > product.price ? (
             <>
-              <del className="text-[12px] font-normal text-lien-muted">{formatAmount(product.regularPrice)}đ</del>
+              <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]">{formatAmount(product.regularPrice)}đ</del>
               <span className="text-lien-sale-text">{formatAmount(product.price)}đ</span>
             </>
           ) : (
@@ -129,11 +129,11 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
   );
 }
 
-/** Responsive product grid: 2 columns on phones, 3 on tablets, `cols` on desktop (default 4). */
+/** Responsive product grid: 3 columns on phones and tablets, `cols` on desktop (default 4). */
 export function ShopProductGrid({ products, className, cols = 4 }: { products: CatalogProduct[]; className?: string; cols?: 4 | 5 | 6 }) {
   const desktop = cols === 6 ? "lg:grid-cols-6" : cols === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4";
   return (
-    <ul className={cn("m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 md:gap-4", desktop, className)}>
+    <ul className={cn("m-0 grid list-none grid-cols-3 gap-2 p-0 sm:gap-3 md:gap-4", desktop, className)}>
       {products.map((p) => (
         <ShopProductCard key={p.id} product={p} />
       ))}

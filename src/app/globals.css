@@ -446,6 +446,7 @@
     @apply bg-background text-foreground;
     font-size: 14px;
     line-height: 1.5;
+    overflow-x: clip; /* absolutely-positioned decorations must never widen the page on phones */
   }
   /* The original theme (WordPress "New York Business") uses a 1200px Bootstrap 3 grid. */
 }

@@ -50,13 +50,13 @@ export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className, 
   if (count === 0) return null;
 
   const arrowBase = cn(
-    "absolute top-1/2 z-10 mt-[-20px] block h-[30px] w-[30px] cursor-pointer overflow-hidden",
+    "absolute top-1/2 z-10 mt-[-20px] block h-[30px] w-[30px] cursor-pointer overflow-hidden [@media(hover:none)]:hidden",
     "border-0 bg-transparent bg-no-repeat p-0 opacity-0",
     "[transition:all_0.3s_ease] group-hover:opacity-80 hover:opacity-100",
   );
 
   return (
-    <div className={cn("group relative mb-[40px] w-full", fullBleed ? "" : "rounded-[4px]", className)}>
+    <div className={cn("group relative mb-[40px] w-full overflow-x-clip", fullBleed ? "" : "rounded-[4px]", className)}>
       <div
         role="region"
         aria-roledescription="carousel"

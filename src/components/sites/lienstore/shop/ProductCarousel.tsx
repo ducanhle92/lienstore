@@ -41,7 +41,7 @@ export function ProductCarousel({ children, className, ariaLabel }: { children: 
       <ul
         ref={ref}
         aria-label={ariaLabel}
-        className="m-0 flex list-none snap-x snap-mandatory gap-3 overflow-x-auto p-0 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-4 [@media(hover:hover)]:cursor-grab [@media(hover:hover)]:active:cursor-grabbing"
+        className="m-0 flex list-none snap-x snap-mandatory gap-2 overflow-x-auto p-0 pb-1 sm:gap-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-4 [@media(hover:hover)]:cursor-grab [@media(hover:hover)]:active:cursor-grabbing"
         onDragStart={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           if (e.pointerType !== "mouse" || !ref.current) return;

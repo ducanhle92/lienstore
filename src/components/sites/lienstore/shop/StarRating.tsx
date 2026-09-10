@@ -15,7 +15,7 @@ export function StarRating({ rating, size = 13.712, className }: StarRatingProps
       role="img"
       aria-label={`Được xếp hạng ${rating.toFixed(2)} 5 sao`}
       className={cn("inline-flex items-center gap-px text-lien-muted", className)}
-      style={{ fontSize: size, lineHeight: 1 }}
+      style={{ fontSize: size || undefined, lineHeight: 1 }}
     >
       {Array.from({ length: 5 }, (_, i) => (
         <Fa key={i} name={i < full ? "star" : "star-o"} />
