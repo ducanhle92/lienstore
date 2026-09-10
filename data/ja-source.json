@@ -13439,7 +13439,8 @@
    }
   ],
   "weak": true,
-  "imageSaved": "/sites/lienstore/shared/products/import/nuoc-uong-nhau-thai-collagen-dr-placen-40000.jpg"
+  "imageSaved": null,
+  "imageNote": "picture discarded: source is a different product"
  },
  "2258": {
   "asin": "B08DXQH4KN",
@@ -13481,7 +13482,8 @@
    }
   ],
   "weak": true,
-  "imageSaved": "/sites/lienstore/shared/products/import/nuoc-uong-collagen-hifu-100000mg.jpg"
+  "imageSaved": null,
+  "imageNote": "picture discarded: source is a different product"
  },
  "2260": {
   "slug": "thuoc-tsumura-seihaito-so-90-hop-42-goi",

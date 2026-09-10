@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SEED = ROOT / "data" / "seed.json"
 SRC = ROOT / "data" / "ja-source.json"
 ALLOWED_TAGS = {"p", "ul", "ol", "li", "strong", "em", "br", "b"}
+# product ids whose saved Amazon picture is a fair illustration even though the listing is a generic/order item
+ILLUSTRATION_OK = {2233}
 
 
 def strip(h):
@@ -124,6 +126,19 @@ def merge(d: Path, rev, report: Path):
             p["description"] = r["description"].strip()
             applied.append({"id": pid, "name": p["name"], "nameJa": p["nameJa"], "match": match, "url": r.get("sourceUrl", ""), "vi": strip(p["description"])[:160], "ja": strip(p["descriptionJa"])[:120]})
     missing = [p["id"] for p in seed["products"] if p["id"] not in seen]
+    # Products that had no picture: use the white-background Amazon main image saved by find_ja_sources.py, but only when
+    # the reviewer confirmed the source is the right product (or the picture is explicitly allowed as an illustration).
+    src = json.loads(SRC.read_text(encoding="utf-8")) if SRC.exists() else {}
+    ok_ids = {a["id"] for a in applied if a["match"] == "ok"} | ILLUSTRATION_OK
+    pictured = []
+    for p in seed["products"]:
+        img = (src.get(str(p["id"])) or {}).get("imageSaved")
+        if img and not p.get("images") and p["id"] in ok_ids:
+            p["images"] = [img]
+            p["thumb"] = img.replace(".jpg", "-300x300.jpg")
+            pictured.append(p["id"])
+    if pictured:
+        print("pictures attached:", pictured)
     seed.setdefault("meta", {})["contentRev"] = rev
     SEED.write_text(json.dumps(seed, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"applied {len(applied)}, mismatch {len(mism)}, nosource {len(skipped)}, errors {len(errors)}, not in any output: {len(missing)} {missing[:20]}")
