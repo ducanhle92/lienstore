@@ -478,6 +478,21 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, status)`,
     ],
   },
+  {
+    // Weight / box size measured by the owner for the 8 products the audit flagged (overwrites wrong values).
+    version: 20,
+    name: "owner-dims-2026-09-11",
+    up: [
+      `UPDATE products SET weight_g = 290, dims_cm = '7.5x7.5x19', dims_confidence = 'low', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'binh-sua-to-nho-pigeon'`,
+      `UPDATE products SET weight_g = 1700, dims_cm = '23x21x7', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'dau-goi-xa-va-sua-tamdove-nhat-ban-set-2-va-set-3'`,
+      `UPDATE products SET weight_g = 70, dims_cm = '21.7x13.2x3.3', dims_confidence = 'high', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'goc-giai-dap-tra-giam-can-night-diet-tea-orihiro'`,
+      `UPDATE products SET weight_g = 120, dims_cm = '6.5x6.5x7', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'hang-cao-cap-kem-duong-mat-kose-sekkisei'`,
+      `UPDATE products SET weight_g = 900, dims_cm = '39x21.5x7.5', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'set-dao-inox-global-nhat-ban'`,
+      `UPDATE products SET weight_g = 200, dims_cm = '14x14.6x2', dims_confidence = 'low', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'socola-tuoi-nama-nhat-ban'`,
+      `UPDATE products SET weight_g = 270, dims_cm = '8x8x24', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'binh-giu-nhiet-thermos'`,
+      `UPDATE products SET weight_g = 290, dims_cm = '11.43x4.83x4.83', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'tinh-chat-estee-lauder-advanced-night-repair-50ml'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
