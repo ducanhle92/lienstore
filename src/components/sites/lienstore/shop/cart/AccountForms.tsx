@@ -5,6 +5,7 @@ import Link from "next/link";
 import { customerLogin, customerRegister, lostPassword, updateAccountDetails, type AccountFormState } from "@/app/my-account/actions";
 import type { PublicCustomer } from "@/lib/db";
 import { displayEmail } from "@/lib/customer-email";
+import { PasswordInput } from "@/components/sites/lienstore/shared/PasswordInput";
 import { cn } from "@/lib/utils";
 import { Required, WooHeading, WooNotice, wooButtonClass, wooInputClass } from "./WooUi";
 
@@ -82,7 +83,13 @@ export function LoginRegisterForms() {
           <label htmlFor="reg_password" className={LABEL}>
             Mật khẩu <Required />
           </label>
-          <input id="reg_password" name="password" type="password" autoComplete="new-password" required minLength={6} className={wooInputClass} />
+          <PasswordInput id="reg_password" name="password" autoComplete="new-password" required minLength={6} className={wooInputClass} />
+        </p>
+        <p className="form-row mb-4">
+          <label htmlFor="reg_password2" className={LABEL}>
+            Nhập lại mật khẩu <Required />
+          </label>
+          <PasswordInput id="reg_password2" name="password_confirm" autoComplete="new-password" required minLength={6} className={wooInputClass} />
         </p>
         <p className="mb-4 text-[16px] leading-6 text-lien-text">
           Thông tin cá nhân của bạn chỉ được dùng để hỗ trợ trải nghiệm mua hàng và quản lý tài khoản trên website này, theo{" "}

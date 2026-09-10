@@ -50,6 +50,7 @@ export async function customerRegister(_prev: AccountFormState, formData: FormDa
   if (!USERNAME_RE.test(username)) return { error: "Lỗi: Tên đăng nhập gồm 3–30 ký tự chữ không dấu, số, dấu chấm, gạch ngang hoặc gạch dưới." };
   if (email && !EMAIL_RE.test(email)) return { error: "Lỗi: Địa chỉ email không hợp lệ (có thể bỏ trống)." };
   if (password.length < 6) return { error: "Lỗi: Mật khẩu phải có ít nhất 6 ký tự." };
+  if (formData.has("password_confirm") && String(formData.get("password_confirm") ?? "") !== password) return { error: "Lỗi: Mật khẩu nhập lại không khớp." };
   if (await findCustomerByLogin(username)) return { error: "Lỗi: Tên đăng nhập này đã được dùng. Chọn tên khác hoặc đăng nhập." };
   if (email && (await findCustomerByEmail(email))) return { error: "Lỗi: Một tài khoản đã được đăng ký với địa chỉ email này. Vui lòng đăng nhập." };
   let customer;

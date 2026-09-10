@@ -48,7 +48,20 @@ export function ProductGallery({ images, alt, className }: ProductGalleryProps) 
           className="woocommerce-product-gallery__image relative aspect-square w-full overflow-visible rounded-md border border-lien-line bg-white"
         >
           <a href={current} target="_blank" rel="noreferrer" className="absolute inset-0 block p-3">
-            <Image src={current} alt={alt} width={600} height={600} priority className="block h-full w-full object-contain" />
+            {/* all pictures stay mounted and pre-loaded; only the selected one is visible, so a thumbnail click is instant */}
+            {images.map((src, i) => (
+              <Image
+                key={src}
+                src={src}
+                alt={i === index ? alt : ""}
+                width={600}
+                height={600}
+                priority={i === 0}
+                loading={i === 0 ? undefined : "eager"}
+                aria-hidden={i === index ? undefined : true}
+                className={cn("absolute inset-3 block h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain transition-opacity duration-150", i === index ? "opacity-100" : "pointer-events-none opacity-0")}
+              />
+            ))}
           </a>
           {lens ? (
             <>

@@ -18,14 +18,15 @@ export function OrderTracker({ order, className, compact = false }: { order: Pic
   const cancelled = order.status === "cancelled";
   const reachedAt = (key: string) => order.stageLog.filter((l) => l.stage === key).at(-1)?.at;
   const note = order.stageLog.at(-1)?.note;
-  const pct = SHIP_STAGES.length > 1 ? (cur / (SHIP_STAGES.length - 1)) * 100 : 0;
+  const n = SHIP_STAGES.length;
+  const pct = n > 1 ? (cur / (n - 1)) * 100 : 0;
   return (
     <div className={cn("order-tracker", className)} aria-label="Trạng thái vận chuyển">
       {cancelled ? <p className="m-0 mb-3 rounded-md bg-[#fde8ea] px-3 py-2 text-[13px] font-semibold text-[#842029]">Đơn hàng đã huỷ.</p> : null}
       <ol className="relative m-0 grid list-none p-0" style={{ gridTemplateColumns: `repeat(${SHIP_STAGES.length}, minmax(0, 1fr))` }}>
         {/* rail */}
-        <span aria-hidden="true" className="absolute top-[7px] right-[calc(100%/14)] left-[calc(100%/14)] h-[3px] rounded bg-[#e5e5e5]" />
-        <span aria-hidden="true" className={cn("absolute top-[7px] left-[calc(100%/14)] h-[3px] rounded transition-[width]", cancelled ? "bg-[#9ca3af]" : "bg-lien-heart")} style={{ width: `calc((100% - 100% / 7) * ${pct / 100})` }} />
+        <span aria-hidden="true" className="absolute top-[7px] h-[3px] rounded bg-[#e5e5e5]" style={{ left: `calc(100% / ${n * 2})`, right: `calc(100% / ${n * 2})` }} />
+        <span aria-hidden="true" className={cn("absolute top-[7px] h-[3px] rounded transition-[width]", cancelled ? "bg-[#9ca3af]" : "bg-lien-heart")} style={{ left: `calc(100% / ${n * 2})`, width: `calc((100% - 100% / ${n}) * ${pct / 100})` }} />
         {SHIP_STAGES.map((s, i) => {
           const done = i <= cur && !cancelled;
           const current = i === cur && !cancelled;

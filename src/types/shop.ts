@@ -132,7 +132,7 @@ export interface Order {
   discount: number;
   voucherCode: string;
   /** Logistics progress shown to the customer (see SHIP_STAGES). */
-  shipStage: "ordered" | "purchased" | "jp_warehouse" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
+  shipStage: "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
   /** When each stage was reached (only filled for single-order loads). */
   stageLog: Array<{ stage: Order["shipStage"]; note: string; at: string }>;
   total: number;
@@ -185,10 +185,27 @@ export interface Database {
 
 export type ProductOrderBy = "popularity" | "rating" | "date" | "price" | "price-desc";
 
+/** A customer's star rating + comment on a product; shown once an admin approved it. */
+export interface ProductReview {
+  id: number;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  customerId: string;
+  /** Account name at the time of posting (masked on the storefront). */
+  author: string;
+  rating: number;
+  comment: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 export interface ProductQuery {
   category?: string;
   tag?: string;
   search?: string;
+  /** only products whose regular price is above the selling price */
+  onSale?: boolean;
   orderby?: ProductOrderBy;
   page?: number;
   perPage?: number;

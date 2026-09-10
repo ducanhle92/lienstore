@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   ProductQuery,
   ProductQueryResult,
+  ProductReview,
   ShopCategory,
   OrderLeg,
   OrderMessage,
@@ -288,6 +289,14 @@ function normalise(s: string): string {
  * Listing query. Filtering/sorting happens in JS after a single SELECT: the catalogue is small (hundreds of rows)
  * and Vietnamese accent-insensitive search is simpler here than in SQL. Move to FTS5 when the catalogue grows.
  */
+/** Units bought per product across all orders that were not cancelled — the "bán chạy" ranking (no revenue shown). */
+export function getUnitsSold(): Map<number, number> {
+  const rows = getDb()
+    .prepare("SELECT oi.product_id AS id, SUM(oi.quantity) AS n FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status != 'cancelled' GROUP BY oi.product_id")
+    .all() as unknown as Array<{ id: number; n: number }>;
+  return new Map(rows.map((r) => [r.id, Number(r.n)]));
+}
+
 export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryResult> {
   const perPage = q.perPage ?? 32;
   const page = Math.max(1, q.page ?? 1);
@@ -308,6 +317,7 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
       return terms.every((t) => hay.includes(t));
     });
   }
+  if (q.onSale) items = items.filter((p) => (p.regularPrice ?? 0) > p.price);
   switch (q.orderby) {
     case "price":
       items = [...items].sort((a, b) => a.price - b.price);
@@ -321,9 +331,11 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
     case "rating":
       items = [...items].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
       break;
-    default:
-      // "popularity": the original lists newest ids first
-      items = [...items].sort((a, b) => b.id - a.id);
+    default: {
+      // "popularity" = units bought (orders that were not cancelled), newest id first among equals
+      const sold = getUnitsSold();
+      items = [...items].sort((a, b) => (sold.get(b.id) ?? 0) - (sold.get(a.id) ?? 0) || b.id - a.id);
+    }
   }
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -640,6 +652,19 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     for (const l of jpLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `Báo giá khi đặt: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
     else if (vnLabel) insLeg.run(id, "vn_domestic", null, input.shippingZoneId ?? null, vnLabel, vnFee, "", now);
+    // The account's saved contact details follow the latest checkout, so "Địa chỉ" in my-account matches the order;
+    // an ID-only account also adopts the email typed at checkout when no other account owns it.
+    if (input.customerId) {
+      const cust = db.prepare("SELECT email FROM customers WHERE id = ?").get(input.customerId) as { email: string } | undefined;
+      if (cust) {
+        db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, address = ?, updated_at = ? WHERE id = ?").run(c.firstName, c.lastName, c.phone, c.address, now, input.customerId);
+        const typed = c.email.trim().toLowerCase();
+        if (typed && cust.email.endsWith(`@${NO_EMAIL_DOMAIN}`)) {
+          const taken = db.prepare("SELECT 1 FROM customers WHERE lower(email) = ? AND id != ?").get(typed, input.customerId);
+          if (!taken) db.prepare("UPDATE customers SET email = ?, updated_at = ? WHERE id = ?").run(typed, now, input.customerId);
+        }
+      }
+    }
     return {
       id,
       number,
@@ -1652,4 +1677,79 @@ export async function getStats() {
     revenue: one<{ n: number | null }>("SELECT SUM(total) AS n FROM orders WHERE status != 'cancelled'").n ?? 0,
     schema: getSchemaInfo(db),
   };
+}
+
+// ---- reviews ------------------------------------------------------------------------------------------------------
+
+interface ReviewRow {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_slug: string;
+  customer_id: string;
+  author: string;
+  rating: number;
+  comment: string;
+  status: ProductReview["status"];
+  created_at: string;
+}
+
+const REVIEW_SELECT = `SELECT r.*, p.name AS product_name, p.slug AS product_slug FROM reviews r JOIN products p ON p.id = r.product_id`;
+
+const rowToReview = (r: ReviewRow): ProductReview => ({
+  id: r.id,
+  productId: r.product_id,
+  productName: r.product_name,
+  productSlug: r.product_slug,
+  customerId: r.customer_id,
+  author: r.author,
+  rating: r.rating,
+  comment: r.comment,
+  status: r.status,
+  createdAt: r.created_at,
+});
+
+/** Approved reviews of one product, newest first. */
+export async function getProductReviews(productId: number): Promise<ProductReview[]> {
+  const rows = getDb().prepare(`${REVIEW_SELECT} WHERE r.product_id = ? AND r.status = 'approved' ORDER BY r.created_at DESC`).all(productId) as unknown as ReviewRow[];
+  return rows.map(rowToReview);
+}
+
+export async function hasPendingReview(productId: number, customerId: string): Promise<boolean> {
+  return !!getDb().prepare("SELECT 1 FROM reviews WHERE product_id = ? AND customer_id = ? AND status = 'pending'").get(productId, customerId);
+}
+
+export async function addReview(input: { productId: number; customerId: string; author: string; rating: number; comment: string }): Promise<number> {
+  const now = new Date().toISOString();
+  const r = getDb()
+    .prepare("INSERT INTO reviews (product_id, customer_id, author, rating, comment, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)")
+    .run(input.productId, input.customerId, input.author, input.rating, input.comment, now, now);
+  return Number(r.lastInsertRowid);
+}
+
+/** Every review for the admin screen (pending first, then newest). */
+export async function getReviewsForAdmin(): Promise<ProductReview[]> {
+  const rows = getDb().prepare(`${REVIEW_SELECT} ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.created_at DESC`).all() as unknown as ReviewRow[];
+  return rows.map(rowToReview);
+}
+
+/** Average rating / count on the product follow its approved reviews (the seeded values stay while there are none). */
+function refreshProductRating(db: DatabaseSync, productId: number) {
+  const agg = db.prepare("SELECT AVG(rating) AS avg, COUNT(*) AS n FROM reviews WHERE product_id = ? AND status = 'approved'").get(productId) as { avg: number | null; n: number };
+  if (agg.n > 0) db.prepare("UPDATE products SET rating = ?, review_count = ? WHERE id = ?").run(Math.round((agg.avg ?? 0) * 10) / 10, agg.n, productId);
+}
+
+export async function setReviewStatus(id: number, status: ProductReview["status"]): Promise<void> {
+  const db = getDb();
+  const row = db.prepare("SELECT product_id FROM reviews WHERE id = ?").get(id) as { product_id: number } | undefined;
+  if (!row) return;
+  db.prepare("UPDATE reviews SET status = ?, updated_at = ? WHERE id = ?").run(status, new Date().toISOString(), id);
+  refreshProductRating(db, row.product_id);
+}
+
+export async function deleteReview(id: number): Promise<void> {
+  const db = getDb();
+  const row = db.prepare("SELECT product_id FROM reviews WHERE id = ?").get(id) as { product_id: number } | undefined;
+  db.prepare("DELETE FROM reviews WHERE id = ?").run(id);
+  if (row) refreshProductRating(db, row.product_id);
 }

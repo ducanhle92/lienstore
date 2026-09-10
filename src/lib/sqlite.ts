@@ -442,6 +442,42 @@ export const MIGRATIONS: Migration[] = [
     name: "drop-mobile-app-page",
     up: [`DELETE FROM pages WHERE slug = 'them-ung-dung-lien-vao-mobile'`],
   },
+  {
+    // Product prices now include the Japan legs; checkout only adds the Vietnam domestic fee.
+    version: 17,
+    name: "shipping-included-in-price",
+    up: [`UPDATE settings SET value = 'included' WHERE key = 'shipping_pricing_mode'`],
+  },
+  {
+    // Customer-facing progress goes ordered → paid → in_transit → vn_warehouse → delivering → delivered.
+    version: 18,
+    name: "six-ship-stages",
+    up: [
+      `UPDATE orders SET ship_stage = 'paid' WHERE ship_stage = 'purchased'`,
+      `UPDATE orders SET ship_stage = 'in_transit' WHERE ship_stage = 'jp_warehouse'`,
+      `UPDATE order_stage_log SET stage = 'paid' WHERE stage = 'purchased'`,
+      `UPDATE order_stage_log SET stage = 'in_transit' WHERE stage = 'jp_warehouse'`,
+    ],
+  },
+  {
+    // Customer reviews, moderated in admin before they appear on the product page.
+    version: 19,
+    name: "reviews",
+    up: [
+      `CREATE TABLE IF NOT EXISTS reviews (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id  INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        customer_id TEXT NOT NULL,
+        author      TEXT NOT NULL,
+        rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment     TEXT NOT NULL,
+        status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, status)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -454,7 +490,7 @@ export interface SeedFile {
   orders?: Array<Record<string, unknown> & { id: string; number: number; items?: Array<Record<string, unknown>> }>;
   pages?: Array<{ slug: string; title: string; content: string; date: string }>;
   posts?: Array<{ slug: string; title: string; content: string; excerpt: string; date: string }>;
-  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[]; contentRev?: number };
+  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[]; contentRev?: number; categoryMoves?: Record<string, string> };
 }
 
 type SqliteModule = typeof import("node:sqlite");
@@ -632,7 +668,31 @@ function syncContent(db: DatabaseSync, seed: SeedFile) {
   console.info(`[db] seed content rev ${rev}: refreshed the copy of ${n} product(s)${pics ? `, added pictures to ${pics}` : ""}`);
 }
 
+/**
+ * meta.categoryMoves {old: new}: the catalogue tree was compacted offline. Product links (including those of products
+ * edited or created on this server) move to the new category and the old category row disappears.
+ */
+function moveCategories(db: DatabaseSync, seed: SeedFile) {
+  const moves = seed.meta?.categoryMoves ?? {};
+  const entries = Object.entries(moves).filter(([a, b]) => a && b && a !== b);
+  if (entries.length === 0) return;
+  const dup = db.prepare("DELETE FROM product_categories WHERE category_slug = ? AND product_id IN (SELECT product_id FROM product_categories WHERE category_slug = ?)");
+  const mv = db.prepare("UPDATE product_categories SET category_slug = ? WHERE category_slug = ?");
+  const reparent = db.prepare("UPDATE categories SET parent_slug = ? WHERE parent_slug = ?");
+  const del = db.prepare("DELETE FROM categories WHERE slug = ?");
+  let links = 0;
+  let removed = 0;
+  for (const [from, to] of entries) {
+    dup.run(from, to);
+    links += Number(mv.run(to, from).changes);
+    reparent.run(to, from);
+    removed += Number(del.run(from).changes);
+  }
+  if (links || removed) console.info(`[db] category moves: ${links} product link(s) moved, ${removed} old category row(s) removed`);
+}
+
 function removeListed(db: DatabaseSync, seed: SeedFile) {
+  moveCategories(db, seed);
   const slugs = (seed.meta?.removedSlugs ?? []).filter((s) => typeof s === "string" && s);
   if (slugs.length === 0) return;
   const del = db.prepare("DELETE FROM products WHERE slug = ?");

@@ -46,10 +46,10 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
 
   if (!firstName) fields.first_name = "Tên là trường bắt buộc.";
   if (!lastName) fields.last_name = "Họ là trường bắt buộc.";
-  if (delivery === "ship" && !address) fields.address = "Địa chỉ là trường bắt buộc khi giao tận nhà.";
+  if (!address) fields.address = "Địa chỉ nhận hàng là trường bắt buộc.";
   const digits = phone.replace(/\D/g, "");
   if (!phone) fields.phone = "Số điện thoại là trường bắt buộc.";
-  else if (digits.length < 9 || digits.length > 11) fields.phone = "Số điện thoại không hợp lệ.";
+  else if (digits.length !== 10) fields.phone = "Số điện thoại phải gồm 10 chữ số.";
   if (email && !EMAIL_RE.test(email)) fields.email = "Địa chỉ email không hợp lệ.";
   if (delivery === "ship" && (!shippingZoneId || !Number.isInteger(shippingZoneId))) fields.shipping_zone = "Vui lòng chọn khu vực giao hàng.";
 
@@ -83,7 +83,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   let order: Order;
   try {
     order = await createOrder({
-      customer: { firstName, lastName, address: delivery === "pickup" && !address ? "Nhận tại kho" : address, phone, email, note },
+      customer: { firstName, lastName, address, phone, email, note },
       items,
       paymentMethod,
       customerId,

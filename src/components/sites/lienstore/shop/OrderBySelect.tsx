@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ProductOrderBy } from "@/types/shop";
 
@@ -26,8 +27,14 @@ interface OrderBySelectProps {
 export function OrderBySelect({ value, basePath, params = {} }: OrderBySelectProps) {
   const router = useRouter();
   const { t } = useLang();
+  const [pending, startTransition] = useTransition();
   return (
-    <form className="m-0" onSubmit={(e) => e.preventDefault()}>
+    <form className="m-0 inline-flex items-center gap-2" onSubmit={(e) => e.preventDefault()}>
+      {pending ? (
+        <span role="status" className="text-[12px] text-lien-muted">
+          {t("sortLoading")}
+        </span>
+      ) : null}
       <label htmlFor="orderby" className="sr-only">
         {t("shopOrder")}
       </label>
@@ -40,8 +47,9 @@ export function OrderBySelect({ value, basePath, params = {} }: OrderBySelectPro
           for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
           if (e.target.value !== "popularity") q.set("orderby", e.target.value);
           const qs = q.toString();
-          router.push(qs ? `${basePath}?${qs}` : basePath);
+          startTransition(() => router.push(qs ? `${basePath}?${qs}` : basePath));
         }}
+        disabled={pending}
         className="inline-block h-9 w-[220px] max-w-full rounded-full border border-lien-line bg-white pl-3 pr-8 text-[13px] text-lien-text outline-none focus:border-lien-blue"
       >
         {ORDER_OPTIONS.map((o) => (

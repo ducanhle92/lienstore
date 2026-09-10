@@ -41,6 +41,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/customers/", label: "Khách hàng", icon: "users", module: "customers" },
       { href: "/admin/promotions/discounts/", label: "Giảm giá sản phẩm", icon: "tag", module: "promotions" },
       { href: "/admin/promotions/vouchers/", label: "Voucher", icon: "gift", module: "promotions" },
+      { href: "/admin/reviews/", label: "Đánh giá", icon: "star", module: "reviews" },
     ],
   },
   {

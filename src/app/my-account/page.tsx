@@ -7,6 +7,7 @@ import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { AccountDetailsForm, LoginRegisterForms } from "@/components/sites/lienstore/shop/cart/AccountForms";
 import { OrderAddress, OrderSummary, STATUS_LABEL } from "@/components/sites/lienstore/shop/cart/OrderDetails";
 import { OrderLookupForm } from "@/components/sites/lienstore/shop/cart/OrderLookupForm";
+import { displayEmail } from "@/lib/customer-email";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { Price, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
@@ -106,7 +107,7 @@ export default async function MyAccount({ searchParams }: Props) {
                     </WooHeading>
                     <p className="mb-4 text-[16px] leading-6 text-lien-muted">Địa chỉ sau sẽ được dùng mặc định trên trang thanh toán.</p>
                     {customer.address || customer.phone ? (
-                      <OrderAddress customer={{ firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: customer.email, note: "" }} />
+                      <OrderAddress customer={{ firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: displayEmail(customer.email), note: "" }} />
                     ) : (
                       <WooNotice kind="info">Bạn chưa thiết lập địa chỉ này.</WooNotice>
                     )}

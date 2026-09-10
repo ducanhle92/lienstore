@@ -8,10 +8,10 @@ import { ProductMeta } from "@/components/sites/lienstore/shop/product/ProductMe
 import { ProductPageNotice } from "@/components/sites/lienstore/shop/product/ProductPageNotice";
 import { ProductShare } from "@/components/sites/lienstore/shop/product/ProductShare";
 import { ProductTabs } from "@/components/sites/lienstore/shop/product/ProductTabs";
-import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getCategories, getProductBySlug, getRelatedProducts, getShippingMethods, getShippingNotes } from "@/lib/db";
+import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts } from "@/lib/db";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { localizeCategories, localizeProduct, localizeProducts } from "@/lib/localize";
@@ -56,7 +56,8 @@ export default async function ProductPage({ params }: PageProps) {
   const lang = await getLang();
   const product = localizeProduct(raw, lang);
 
-  const [cats, relatedRaw, shipping, shippingNotes] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getShippingMethods(), getShippingNotes()]);
+  const [cats, relatedRaw, reviews, me] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer()]);
+  const reviewer = me ? me.username || [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email.split("@")[0] : null;
   const categories = localizeCategories(cats, lang);
   const related = localizeProducts(relatedRaw, lang);
   const categoryNames = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
@@ -93,7 +94,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
 
         <div className="mt-10">
-          <ProductTabs name={product.name} description={product.description} reviewCount={product.reviewCount} shipping={<ShippingTable methods={shipping} notes={shippingNotes} compact weightG={product.weightG} dimsCm={product.dimsCm} dimsConfidence={product.dimsConfidence} />} />
+          <ProductTabs name={product.name} productId={product.id} description={product.description} reviews={reviews} reviewer={reviewer} />
         </div>
 
         {related.length > 0 ? (

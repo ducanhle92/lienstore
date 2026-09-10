@@ -97,6 +97,9 @@ export function shortName(name: string): string {
 
 /** Category name for running text: English part dropped, sentence case ("SỨC KHỎE ( HEALTH )" → "Sức khỏe"). */
 export function displayName(name: string): string {
-  const s = shortName(name).toLocaleLowerCase("vi");
+  const short = shortName(name);
+  // names already written in sentence case (new catalogue) are kept as they are — only SHOUTING names are folded
+  if (short !== short.toLocaleUpperCase("vi")) return short;
+  const s = short.toLocaleLowerCase("vi");
   return s ? s.charAt(0).toLocaleUpperCase("vi") + s.slice(1) : s;
 }

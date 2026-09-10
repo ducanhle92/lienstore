@@ -1,17 +1,27 @@
 "use client";
 
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useActionState, useId, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { submitReviewAction, type ReviewFormState } from "@/app/product/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
-import { ProductDescription } from "./ProductDescription";
+import { StarRating } from "@/components/sites/lienstore/shop/StarRating";
+import { formatDateTime } from "@/lib/format";
+import { maskReviewer } from "@/lib/reviews";
 import { cn } from "@/lib/utils";
+import type { ProductReview } from "@/types/shop";
+import { ProductDescription } from "./ProductDescription";
 
 interface ProductTabsProps {
   name: string;
+  productId: number;
   /** Sanitised HTML description. */
   description: string;
-  reviewCount: number;
-  /** Server-rendered shipping fee tables (ShippingTable). */
+  /** Approved reviews, newest first. */
+  reviews: ProductReview[];
+  /** Account name of the signed-in customer (null when signed out). */
+  reviewer: string | null;
+  /** Optional extra panel (unused by default). */
   shipping?: ReactNode;
 }
 
@@ -22,8 +32,8 @@ const FIELD =
   "box-border w-full rounded-[3px] border border-lien-input-border bg-white p-[5px] font-arial text-[16px] leading-6 text-lien-input-text focus:border-lien-blue focus:outline-none";
 const REQUIRED = <span className="required text-[#e2401c]">*</span>;
 
-/** `.woocommerce-tabs`: "Mô tả" / "Đánh giá (n)" tabs with the WooCommerce grey tab strip. */
-export function ProductTabs({ name, description, reviewCount, shipping }: ProductTabsProps) {
+/** `.woocommerce-tabs`: "Thông tin sản phẩm" / "Đánh giá (n)" tabs with the grey tab strip. */
+export function ProductTabs({ name, productId, description, reviews, reviewer, shipping }: ProductTabsProps) {
   const [tab, setTab] = useState<TabKey>("description");
   const base = useId();
   const { t } = useLang();
@@ -31,23 +41,16 @@ export function ProductTabs({ name, description, reviewCount, shipping }: Produc
   const tabs: { key: TabKey; label: string }[] = [
     { key: "description", label: t("tabInfo") },
     ...(shipping ? [{ key: "shipping" as TabKey, label: t("tabShipping") }] : []),
-    { key: "reviews", label: `${t("tabReviews")} (${reviewCount})` },
+    { key: "reviews", label: `${t("tabReviews")} (${reviews.length})` },
   ];
 
   return (
     <div className="woocommerce-tabs wc-tabs-wrapper clear-both rounded-md bg-lien-cream/60 px-4 py-6 sm:px-8">
-      <ul
-        role="tablist"
-        className="tabs wc-tabs m-0 mb-6 flex list-none flex-wrap justify-center gap-2 p-0"
-      >
+      <ul role="tablist" className="tabs wc-tabs m-0 mb-6 flex list-none flex-wrap justify-center gap-2 p-0">
         {tabs.map(({ key, label }) => {
           const active = tab === key;
           return (
-            <li
-              key={key}
-              role="presentation"
-              className={cn("inline-block rounded-full border", active ? "border-lien-heading bg-white" : "border-transparent bg-transparent")}
-            >
+            <li key={key} role="presentation" className={cn("inline-block rounded-full border", active ? "border-lien-heading bg-white" : "border-transparent bg-transparent")}>
               <button
                 type="button"
                 role="tab"
@@ -68,12 +71,7 @@ export function ProductTabs({ name, description, reviewCount, shipping }: Produc
       </ul>
 
       {tab === "description" ? (
-        <div
-          role="tabpanel"
-          id={`${base}-panel-description`}
-          aria-labelledby={`${base}-tab-description`}
-          className="woocommerce-Tabs-panel woocommerce-Tabs-panel--description panel entry-content mb-8"
-        >
+        <div role="tabpanel" id={`${base}-panel-description`} aria-labelledby={`${base}-tab-description`} className="woocommerce-Tabs-panel woocommerce-Tabs-panel--description panel entry-content mb-8">
           <h2 className={H2}>Mô tả</h2>
           <ProductDescription name={name} description={description} />
         </div>
@@ -83,15 +81,25 @@ export function ProductTabs({ name, description, reviewCount, shipping }: Produc
           {shipping}
         </div>
       ) : (
-        <div
-          role="tabpanel"
-          id={`${base}-panel-reviews`}
-          aria-labelledby={`${base}-tab-reviews`}
-          className="woocommerce-Tabs-panel woocommerce-Tabs-panel--reviews panel entry-content mb-8"
-        >
+        <div role="tabpanel" id={`${base}-panel-reviews`} aria-labelledby={`${base}-tab-reviews`} className="woocommerce-Tabs-panel woocommerce-Tabs-panel--reviews panel entry-content mb-8">
           <h2 className={H2}>Đánh giá</h2>
-          <p className="woocommerce-noreviews mb-4 text-[16px] leading-6 text-lien-text">{t("noReviews")}</p>
-          <ReviewForm name={name} />
+          {reviews.length ? (
+            <ol className="m-0 mb-8 grid list-none gap-3 p-0">
+              {reviews.map((r) => (
+                <li key={r.id} className="rounded-md border border-lien-line bg-white px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <StarRating rating={r.rating} />
+                    <span className="text-[14px] font-semibold text-lien-heading">{maskReviewer(r.author)}</span>
+                    <span className="text-[12px] text-lien-muted">{formatDateTime(r.createdAt)}</span>
+                  </div>
+                  <p className="m-0 mt-2 whitespace-pre-line text-[15px] leading-6 text-lien-text">{r.comment}</p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="woocommerce-noreviews mb-4 text-[16px] leading-6 text-lien-text">{t("noReviews")}</p>
+          )}
+          <ReviewForm name={name} productId={productId} reviewer={reviewer} />
         </div>
       )}
     </div>
@@ -100,102 +108,80 @@ export function ProductTabs({ name, description, reviewCount, shipping }: Produc
 
 const RATING_LABELS = ["Rất tệ", "Tệ", "Bình thường", "Tốt", "Rất tốt"];
 
-/** WooCommerce review form; purely client-side (no backend) — submitting shows a "pending moderation" notice. */
-function ReviewForm({ name }: { name: string }) {
+/** Review form for signed-in customers: stars + comment only; the account name is taken from the session. */
+function ReviewForm({ name, productId, reviewer }: { name: string; productId: number; reviewer: string | null }) {
   const id = useId();
   const { t, lang } = useLang();
   const ratingLabels = lang === "ja" ? ["とても悪い", "悪い", "普通", "良い", "とても良い"] : RATING_LABELS;
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, action, pending] = useActionState<ReviewFormState, FormData>(submitReviewAction, null);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (rating === 0) {
-      setError(t("pickStars"));
-      return;
-    }
-    setError(null);
-    setSent(true);
-  };
-
-  if (sent) {
+  if (!reviewer) {
     return (
-      <p
-        role="status"
-        className="woocommerce-message relative mb-8 border-t-[3px] border-[#8fae1b] bg-[#f7f6f7] px-8 py-4 text-[16px] leading-6 text-[#515151]"
-      >
+      <p className="rounded-md border border-lien-line bg-white px-4 py-3 text-[15px] leading-6 text-lien-text">
+        <Fa name="user" className="mr-2 text-lien-blue" />
+        {t("reviewLogin")}{" "}
+        <Link href="/my-account/" className="font-semibold text-lien-blue hover:underline">
+          {t("login")}
+        </Link>
+      </p>
+    );
+  }
+
+  if (state && "ok" in state) {
+    return (
+      <p role="status" className="woocommerce-message relative mb-8 border-t-[3px] border-[#8fae1b] bg-[#f7f6f7] px-8 py-4 text-[16px] leading-6 text-[#515151]">
         {t("reviewThanks")}
       </p>
     );
   }
 
   const shown = hover || rating;
+  const error = state && "error" in state ? state.error : null;
 
   return (
     <div id="review_form_wrapper" className="max-w-[760px]">
       <h3 className="comment-reply-title mb-4 text-[16px] leading-6 font-bold text-lien-text">
         {t("reviewFirst")} &ldquo;{name}&rdquo;
       </h3>
-      <form id="commentform" className="comment-form" onSubmit={onSubmit}>
+      <form id="commentform" className="comment-form" action={action}>
+        <input type="hidden" name="productId" value={productId} />
         <p className="comment-notes mb-4 text-[14px] leading-5 text-lien-muted">
-          {t("reviewNotes")} {REQUIRED}
+          {t("reviewPostAs")}: <strong className="text-lien-heading">{maskReviewer(reviewer)}</strong> {t("reviewMasked")}
         </p>
 
         <fieldset className="comment-form-rating mb-4 border-0 p-0">
-          <legend className="mb-1 text-[16px] leading-6 text-lien-text">{t("yourRating")} {REQUIRED}</legend>
+          <legend className="mb-1 text-[16px] leading-6 text-lien-text">
+            {t("yourRating")} {REQUIRED}
+          </legend>
           <div className="stars flex gap-0.5" onMouseLeave={() => setHover(0)}>
             {ratingLabels.map((label, i) => {
               const value = i + 1;
               return (
                 <label key={value} className="cursor-pointer" onMouseEnter={() => setHover(value)}>
-                  <input
-                    type="radio"
-                    name="rating"
-                    value={value}
-                    checked={rating === value}
-                    onChange={() => setRating(value)}
-                    className="sr-only"
-                  />
-                  <Fa
-                    name={value <= shown ? "star" : "star-o"}
-                    label={`${value} ${t("star")} – ${label}`}
-                    className="text-[18px] leading-[18px] text-lien-blue"
-                  />
+                  <input type="radio" name="rating" value={value} checked={rating === value} onChange={() => setRating(value)} className="sr-only" />
+                  <Fa name={value <= shown ? "star" : "star-o"} label={`${value} ${t("star")} – ${label}`} className="text-[18px] leading-[18px] text-lien-blue" />
                 </label>
               );
             })}
           </div>
-          {error ? <p className="mt-1 text-[14px] leading-5 text-[#e2401c]">{error}</p> : null}
         </fieldset>
 
         <p className="comment-form-comment mb-4">
           <label htmlFor={`${id}-comment`} className="mb-1 block text-[16px] leading-6 text-lien-text">
             {t("yourReview")} {REQUIRED}
           </label>
-          <textarea id={`${id}-comment`} name="comment" rows={6} required className={FIELD} />
+          <textarea id={`${id}-comment`} name="comment" rows={6} required minLength={5} maxLength={2000} className={FIELD} />
         </p>
 
-        <div className="sm:flex sm:gap-4">
-          <p className="comment-form-author mb-4 sm:flex-1">
-            <label htmlFor={`${id}-author`} className="mb-1 block text-[16px] leading-6 text-lien-text">
-              {t("name")} {REQUIRED}
-            </label>
-            <input id={`${id}-author`} name="author" type="text" required autoComplete="name" className={FIELD} />
-          </p>
-          <p className="comment-form-email mb-4 sm:flex-1">
-            <label htmlFor={`${id}-email`} className="mb-1 block text-[16px] leading-6 text-lien-text">
-              Email {REQUIRED}
-            </label>
-            <input id={`${id}-email`} name="email" type="email" required autoComplete="email" className={FIELD} />
-          </p>
-        </div>
+        {error ? <p className="mb-3 text-[14px] leading-5 text-[#e2401c]">{error}</p> : null}
 
         <p className="form-submit">
           <button
             type="submit"
-            className="submit inline-block cursor-pointer rounded-[3px] border-0 bg-lien-blue px-4 py-[9.888px] font-arial text-[16px] leading-4 font-bold text-white transition-[background] duration-200 hover:bg-lien-blue-hover"
+            disabled={pending}
+            className="submit inline-block cursor-pointer rounded-[3px] border-0 bg-lien-blue px-4 py-[9.888px] font-arial text-[16px] leading-4 font-bold text-white transition-[background] duration-200 hover:bg-lien-blue-hover disabled:opacity-60"
           >
             {t("submit")}
           </button>

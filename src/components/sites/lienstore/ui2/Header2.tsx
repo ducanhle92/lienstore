@@ -76,7 +76,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
   }, [open]);
 
   const tree = buildCategoryTree(categories);
-  const navItem = "inline-flex h-[44px] items-center gap-1 rounded-md px-3 text-[14px] font-semibold uppercase tracking-[0.2px] text-white no-underline hover:bg-white/15";
+  const navItem = "inline-flex h-[44px] items-center gap-1 whitespace-nowrap rounded-md px-2 text-[13px] font-semibold uppercase tracking-[0.2px] text-white no-underline hover:bg-white/15 xl:px-3 xl:text-[14px]";
 
   return (
     <header className={cn("sticky top-0 z-[9000] bg-lien-header text-white transition-shadow", stuck && "shadow-[0_4px_16px_-8px_rgba(0,0,0,0.35)]")}>
@@ -95,7 +95,6 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
               <Fa name="th-large" className="mr-1 text-[13px]" />
               {t("categories")}
               <Fa name="angle-down" className="text-[12px]" />
-              <span className="ml-1 rounded-full bg-lien-sale px-1.5 py-px text-[9px] font-bold uppercase text-white">Sale</span>
             </button>
             {open === "cat" ? (
               <div className="absolute top-full left-0 z-50 mt-1 w-[860px] rounded-md border border-lien-line bg-white p-5 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">
@@ -142,6 +141,14 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
               </div>
             ) : null}
           </div>
+          <Link href="/shop/?onsale=1" className={cn(navItem, "text-[#ffd8d8]")} onClick={() => setOpen(null)}>
+            <Fa name="tag" className="text-[12px]" />
+            {t("menuSale")}
+          </Link>
+          <Link href="/shop/?orderby=popularity" className={navItem} onClick={() => setOpen(null)}>
+            <Fa name="fire" className="text-[12px]" />
+            {t("menuBest")}
+          </Link>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "bg-white/15")} aria-expanded={open === "support"}>
               {t("support")}
@@ -182,7 +189,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           </Link>
         </nav>
 
-        <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] w-[300px] items-center overflow-hidden rounded-full border border-white/40 bg-white focus-within:border-white md:flex xl:w-[380px]">
+        <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] w-[300px] shrink items-center overflow-hidden rounded-full border border-white/40 bg-white focus-within:border-white md:flex lg:w-[240px] xl:w-[340px] 2xl:w-[380px]">
           <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
           <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-blue hover:text-lien-blue-hover">
             <Fa name="search" />
@@ -251,7 +258,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                 </ul>
               </div>
               <div className="px-4 py-3">
-                {[{ label: t("allProducts"), href: "/shop/" }, ...supportLinks, ...newsLinks, { label: t("news"), href: newsHref }, { label: t("aboutContact"), href: aboutHref }, { label: t("account"), href: "/my-account/" }].map((l) => (
+                {[{ label: t("allProducts"), href: "/shop/" }, { label: t("menuSale"), href: "/shop/?onsale=1" }, { label: t("menuBest"), href: "/shop/?orderby=popularity" }, ...supportLinks, ...newsLinks, { label: t("news"), href: newsHref }, { label: t("aboutContact"), href: aboutHref }, { label: t("account"), href: "/my-account/" }].map((l) => (
                   <Link key={l.href + l.label} href={l.href} className="block py-2 text-[14px] font-medium text-lien-heading no-underline">
                     {l.label}
                   </Link>

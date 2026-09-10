@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { customerLogin, customerLogout, customerRegister, type AccountFormState } from "@/app/my-account/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { PasswordInput } from "@/components/sites/lienstore/shared/PasswordInput";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 
@@ -106,7 +107,7 @@ export function AccountDrawer({ open, onClose, customer }: Props) {
                   {t("password")}
                   <Req />
                 </label>
-                <input id="drawer-password" name="password" type="password" autoComplete="current-password" required className={input} />
+                <PasswordInput id="drawer-password" name="password" autoComplete="current-password" required className={input} />
               </div>
               <button type="submit" disabled={loginPending} className={primary}>
                 {loginPending ? t("loggingIn") : t("login")}
@@ -159,7 +160,14 @@ export function AccountDrawer({ open, onClose, customer }: Props) {
                   {t("password")}
                   <Req />
                 </label>
-                <input id="drawer-reg-password" name="password" type="password" autoComplete="new-password" required minLength={6} className={input} />
+                <PasswordInput id="drawer-reg-password" name="password" autoComplete="new-password" required minLength={6} className={input} />
+              </div>
+              <div>
+                <label htmlFor="drawer-reg-password2" className={label}>
+                  {t("passwordConfirm")}
+                  <Req />
+                </label>
+                <PasswordInput id="drawer-reg-password2" name="password_confirm" autoComplete="new-password" required minLength={6} className={input} />
               </div>
               <p className="m-0 text-[13px] leading-6 text-lien-text">
                 {t("privacyNote")}{" "}

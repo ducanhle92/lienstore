@@ -39,11 +39,13 @@ export async function ShopListing({ page, searchParams }: ShopListingProps) {
   const s = first(searchParams.s)?.trim() || undefined;
   const productCat = first(searchParams.product_cat) || undefined;
   const tag = first(searchParams.tag) || undefined;
+  const onSale = first(searchParams.onsale) === "1";
 
   const result = await queryProducts({
     search: s,
     category: productCat,
     tag,
+    onSale,
     orderby,
     page,
     perPage: PER_PAGE,
@@ -53,16 +55,18 @@ export async function ShopListing({ page, searchParams }: ShopListingProps) {
 
   const crumbs = s
     ? [{ label: "Shop", href: "/shop/" }, { label: `${t(lang, "searchResultsFor")} “${s}”` }]
-    : [{ label: "Shop" }];
+    : onSale
+      ? [{ label: "Shop", href: "/shop/" }, { label: t(lang, "saleListing") }]
+      : [{ label: "Shop" }];
 
   return (
     <ProductListing
       crumbs={crumbs}
-      title={s ? `${t(lang, "searchResultsFor")}: “${s}”` : undefined}
+      title={s ? `${t(lang, "searchResultsFor")}: “${s}”` : onSale ? t(lang, "saleListing") : undefined}
       result={result}
       orderby={orderby}
       basePath="/shop/"
-      params={{ s, product_cat: productCat, tag }}
+      params={{ s, product_cat: productCat, tag, onsale: onSale ? "1" : undefined }}
     />
   );
 }

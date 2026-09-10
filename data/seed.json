@@ -3,7 +3,7 @@
  "note": "Exported from the live catalogue (https://linconnn.io.vn). Catalogue only — no customers/orders.",
  "meta": {
   "nextOrderNumber": 1001,
-  "seededAt": "2026-09-10T01:50:19Z",
+  "seededAt": "2026-09-10T18:31:17Z",
   "removedSlugs": [
    "dau-goi-xa-mo-ngua-600ml-chai",
    "ngu-coc-calbee-thich-hop-an-voi-sua-tuoi-sua-chua-hoac-sua-dau-nanh",
@@ -42,116 +42,58 @@
    "socola-ghana-nhat-ban",
    "tinh-chat-pure-retinol-high-class-moist-essence-60ml"
   ],
-  "contentRev": 2
+  "contentRev": 2,
+  "categoryMoves": {
+   "iherb": "thuc-pham-chuc-nang-functional-foods",
+   "cham-soc-suc-khoe": "tu-thuoc-gia-dinh-family-medicine",
+   "cham-soc-da-mat": "my-pham",
+   "sua-rua-mat": "sua-rua-mat-tay-trang",
+   "tay-trang-cleansing": "sua-rua-mat-tay-trang",
+   "tay-te-bao-chet-exfoliate-dead-skin": "sua-rua-mat-tay-trang",
+   "kem-duong-danh-cho-mat-face-cream": "duong-da-mat",
+   "nuoc-hoa-hong-lotion": "duong-da-mat",
+   "tinh-chat-duong": "duong-da-mat",
+   "tri-nam-tan-nhang-treat-melasma-freckles": "duong-da-mat",
+   "dung-cu-cham-soc-da-skincare-tools": "dung-cu-lam-dep",
+   "son-moi-lipstick": "trang-diem-makeup",
+   "duong-the-body": "cham-soc-body",
+   "sua-tam-shower-gel": "cham-soc-body",
+   "cham-soc-co-the": "cham-soc-body",
+   "phuc-hoi-toc-tai-nha-hair": "cham-soc-toc",
+   "dau-goi-dau-xa": "cham-soc-toc",
+   "dung-cu-nha-bep-kitchen-tools": "nha-cua-doi-song",
+   "nen-thom-candle": "nha-cua-doi-song",
+   "do-gia-dung-household": "nha-cua-doi-song"
+  }
  },
  "categories": [
   {
-   "slug": "my-pham",
-   "name": "MỸ PHẨM ( COSMETICS )",
-   "description": "Chăm sóc da mặt, chăm sóc body và trang điểm — hàng Nhật nội địa chính hãng.",
-   "image": "/sites/lienstore/shared/categories/icons/3d/my-pham.png",
-   "parent": null,
-   "nameJa": "コスメ・スキンケア"
-  },
-  {
-   "slug": "cham-soc-da-mat",
-   "name": "CHĂM SÓC DA MẶT ( FACE CARE )",
-   "description": "Kem dưỡng, mặt nạ, chống nắng, sữa rửa mặt, tẩy trang và các bước skincare cho da mặt.",
-   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-da-mat.png",
-   "parent": "my-pham",
-   "nameJa": "フェイスケア"
-  },
-  {
-   "slug": "cham-soc-body",
-   "name": "CHĂM SÓC BODY ( BODY CARE )",
-   "description": "Dưỡng thể, sữa tắm, chăm sóc tóc.",
-   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-body.png",
-   "parent": "my-pham",
-   "nameJa": "ボディケア"
-  },
-  {
    "slug": "suc-khoe",
-   "name": "SỨC KHỎE ( HEALTH )",
+   "name": "Sức khỏe",
    "description": "Thực phẩm chức năng, tủ thuốc gia đình, giảm cân, răng miệng và sản phẩm cho từng đối tượng.",
    "image": "/sites/lienstore/shared/categories/icons/3d/suc-khoe.png",
    "parent": null,
    "nameJa": "ヘルスケア"
   },
   {
-   "slug": "nha-cua-doi-song",
-   "name": "NHÀ CỬA & ĐỜI SỐNG ( HOME & LIVING )",
-   "description": "Dụng cụ nhà bếp, đồ gia dụng, nến thơm.",
-   "image": "/sites/lienstore/shared/categories/icons/3d/nha-cua-doi-song.png",
-   "parent": null,
-   "nameJa": "ホーム＆リビング"
-  },
-  {
-   "slug": "thoi-trang-phu-kien",
-   "name": "THỜI TRANG & PHỤ KIỆN ( FASHION & ACCESSORIES )",
-   "description": "Thời trang, đồng hồ và phụ kiện Nhật.",
-   "image": "/sites/lienstore/shared/categories/icons/3d/thoi-trang-phu-kien.png",
-   "parent": null,
-   "nameJa": "ファッション・アクセサリー"
-  },
-  {
-   "slug": "mom-and-baby",
-   "name": "MOM AND BABY",
+   "slug": "thuc-pham-chuc-nang-functional-foods",
+   "name": "Thực phẩm chức năng",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/mom-and-baby.png",
-   "parent": null,
-   "nameJa": "ママ＆ベビー"
-  },
-  {
-   "slug": "thuc-pham-do-uong-food-drink",
-   "name": "THỰC PHẨM - ĐỒ UỐNG ( FOOD & DRINK )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/thuc-pham-do-uong-food-drink.png",
-   "parent": null,
-   "nameJa": "食品・飲料"
-  },
-  {
-   "slug": "cham-soc-rang-mieng-oral-care",
-   "name": "CHĂM SÓC RĂNG MIỆNG ( ORAL CARE )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-rang-mieng-oral-care.png",
+   "image": "/sites/lienstore/shared/categories/icons/3d/thuc-pham-chuc-nang-functional-foods.png",
    "parent": "suc-khoe",
-   "nameJa": "オーラルケア"
+   "nameJa": "サプリメント"
   },
   {
-   "slug": "chong-nang-uv",
-   "name": "CHỐNG NẮNG ( UV )",
+   "slug": "tu-thuoc-gia-dinh-family-medicine",
+   "name": "Tủ thuốc gia đình",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/chong-nang-uv.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "日焼け止め（UV）"
-  },
-  {
-   "slug": "duong-the-body",
-   "name": "DƯỠNG THỂ ( BODY )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/duong-the-body.png",
-   "parent": "cham-soc-body",
-   "nameJa": "ボディローション・クリーム"
-  },
-  {
-   "slug": "dung-cu-cham-soc-da-skincare-tools",
-   "name": "DỤNG CỤ CHĂM SÓC DA ( SKINCARE TOOLS )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/dung-cu-cham-soc-da-skincare-tools.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "スキンケア用品"
-  },
-  {
-   "slug": "dung-cu-nha-bep-kitchen-tools",
-   "name": "DỤNG CỤ NHÀ BẾP ( KITCHEN TOOLS )",
-   "description": "Dụng cụ nhà bếp nội địa Nhật Bản",
-   "image": "/sites/lienstore/shared/categories/icons/3d/dung-cu-nha-bep-kitchen-tools.png",
-   "parent": "nha-cua-doi-song",
-   "nameJa": "キッチン用品"
+   "image": "/sites/lienstore/shared/categories/icons/3d/tu-thuoc-gia-dinh-family-medicine.png",
+   "parent": "suc-khoe",
+   "nameJa": "常備薬"
   },
   {
    "slug": "giam-can-diet",
-   "name": "GIẢM CÂN ( DIET )",
+   "name": "Giảm cân",
    "description": "",
    "image": "/sites/lienstore/shared/categories/icons/3d/giam-can-diet.png",
    "parent": "suc-khoe",
@@ -159,175 +101,159 @@
   },
   {
    "slug": "goc-chi-em-chung-minh-women",
-   "name": "GÓC CHỊ EM CHÚNG MÌNH ( WOMEN )",
+   "name": "Sức khỏe phụ nữ",
    "description": "",
    "image": "/sites/lienstore/shared/categories/icons/3d/goc-chi-em-chung-minh-women.png",
    "parent": "suc-khoe",
-   "nameJa": "女性向けケア"
-  },
-  {
-   "slug": "kem-duong-danh-cho-mat-face-cream",
-   "name": "KEM DƯỠNG DÀNH CHO MẶT ( FACE CREAM )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/kem-duong-danh-cho-mat-face-cream.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "フェイスクリーム"
-  },
-  {
-   "slug": "mat-eyes",
-   "name": "MẮT ( EYES )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/mat-eyes.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "アイケア"
-  },
-  {
-   "slug": "mat-na-mask",
-   "name": "MẶT NẠ ( MASK )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/mat-na-mask.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "フェイスマスク"
-  },
-  {
-   "slug": "nuoc-hoa-hong-lotion",
-   "name": "NƯỚC HOA HỒNG ( LOTION )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/nuoc-hoa-hong-lotion.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "化粧水"
-  },
-  {
-   "slug": "nen-thom-candle",
-   "name": "NẾN THƠM ( CANDLE )",
-   "description": "Nến thơm và sản phẩm tạo hương",
-   "image": "/sites/lienstore/shared/categories/icons/3d/nen-thom-candle.png",
-   "parent": "nha-cua-doi-song",
-   "nameJa": "アロマキャンドル"
-  },
-  {
-   "slug": "phuc-hoi-toc-tai-nha-hair",
-   "name": "PHỤC HỒI TÓC TẠI NHÀ ( HAIR )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/phuc-hoi-toc-tai-nha-hair.png",
-   "parent": "cham-soc-body",
-   "nameJa": "ヘアケア"
-  },
-  {
-   "slug": "son-moi-lipstick",
-   "name": "SON MÔI ( LIPSTICK )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/son-moi-lipstick.png",
-   "parent": "trang-diem-makeup",
-   "nameJa": "リップ"
+   "nameJa": "女性の健康"
   },
   {
    "slug": "san-pham-danh-cho-nam-men",
-   "name": "SẢN PHẨM DÀNH CHO NAM ( MEN )",
+   "name": "Dành cho nam",
    "description": "",
    "image": "/sites/lienstore/shared/categories/icons/3d/san-pham-danh-cho-nam-men.png",
    "parent": "suc-khoe",
    "nameJa": "メンズ"
   },
   {
-   "slug": "sua-rua-mat",
-   "name": "SỮA RỬA MẶT",
+   "slug": "cham-soc-rang-mieng-oral-care",
+   "name": "Chăm sóc răng miệng",
+   "description": "",
+   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-rang-mieng-oral-care.png",
+   "parent": "suc-khoe",
+   "nameJa": "オーラルケア"
+  },
+  {
+   "slug": "my-pham",
+   "name": "Mỹ phẩm",
+   "description": "Chăm sóc da mặt, chăm sóc body và trang điểm — hàng Nhật nội địa chính hãng.",
+   "image": "/sites/lienstore/shared/categories/icons/3d/my-pham.png",
+   "parent": null,
+   "nameJa": "コスメ"
+  },
+  {
+   "slug": "sua-rua-mat-tay-trang",
+   "name": "Sữa rửa mặt & tẩy trang",
    "description": "",
    "image": "/sites/lienstore/shared/categories/icons/3d/sua-rua-mat.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "洗顔料"
+   "parent": "my-pham",
+   "nameJa": "洗顔・クレンジング"
   },
   {
-   "slug": "sua-tam-shower-gel",
-   "name": "SỮA TẮM ( SHOWER GEL )",
+   "slug": "duong-da-mat",
+   "name": "Dưỡng da mặt",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/sua-tam-shower-gel.png",
-   "parent": "cham-soc-body",
-   "nameJa": "ボディソープ"
+   "image": "/sites/lienstore/shared/categories/icons/3d/kem-duong-danh-cho-mat-face-cream.png",
+   "parent": "my-pham",
+   "nameJa": "スキンケア"
   },
   {
-   "slug": "thoi-trang-fashion",
-   "name": "THỜI TRANG ( FASHION )",
-   "description": "Quần áo và phụ kiện thời trang",
-   "image": "/sites/lienstore/shared/categories/icons/3d/thoi-trang-fashion.png",
-   "parent": "thoi-trang-phu-kien",
-   "nameJa": "ファッション"
-  },
-  {
-   "slug": "thuc-pham-chuc-nang-functional-foods",
-   "name": "THỰC PHẨM CHỨC NĂNG ( FUNCTIONAL FOODS )",
+   "slug": "mat-na-mask",
+   "name": "Mặt nạ",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/thuc-pham-chuc-nang-functional-foods.png",
-   "parent": "suc-khoe",
-   "nameJa": "サプリメント・健康食品"
+   "image": "/sites/lienstore/shared/categories/icons/3d/mat-na-mask.png",
+   "parent": "my-pham",
+   "nameJa": "フェイスマスク"
+  },
+  {
+   "slug": "chong-nang-uv",
+   "name": "Chống nắng",
+   "description": "",
+   "image": "/sites/lienstore/shared/categories/icons/3d/chong-nang-uv.png",
+   "parent": "my-pham",
+   "nameJa": "日やけ止め"
+  },
+  {
+   "slug": "tri-mun-acne-treatment",
+   "name": "Trị mụn",
+   "description": "",
+   "image": "/sites/lienstore/shared/categories/icons/3d/tri-mun-acne-treatment.png",
+   "parent": "my-pham",
+   "nameJa": "ニキビケア"
+  },
+  {
+   "slug": "mat-eyes",
+   "name": "Chăm sóc mắt",
+   "description": "",
+   "image": "/sites/lienstore/shared/categories/icons/3d/mat-eyes.png",
+   "parent": "my-pham",
+   "nameJa": "アイケア"
   },
   {
    "slug": "trang-diem-makeup",
-   "name": "TRANG ĐIỂM ( MAKEUP )",
+   "name": "Trang điểm",
    "description": "Sản phẩm trang điểm nội địa Nhật Bản",
    "image": "/sites/lienstore/shared/categories/icons/3d/trang-diem-makeup.png",
    "parent": "my-pham",
    "nameJa": "メイクアップ"
   },
   {
-   "slug": "tri-mun-acne-treatment",
-   "name": "TRỊ MỤN ( ACNE TREATMENT )",
+   "slug": "cham-soc-body",
+   "name": "Chăm sóc body",
+   "description": "Dưỡng thể, sữa tắm, chăm sóc tóc.",
+   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-body.png",
+   "parent": "my-pham",
+   "nameJa": "ボディケア"
+  },
+  {
+   "slug": "cham-soc-toc",
+   "name": "Chăm sóc tóc",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tri-mun-acne-treatment.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "ニキビケア"
+   "image": "/sites/lienstore/shared/categories/icons/3d/phuc-hoi-toc-tai-nha-hair.png",
+   "parent": "my-pham",
+   "nameJa": "ヘアケア"
   },
   {
-   "slug": "tri-nam-tan-nhang-treat-melasma-freckles",
-   "name": "TRỊ NÁM - TÀN NHANG ( TREAT MELASMA FRECKLES )",
+   "slug": "dung-cu-lam-dep",
+   "name": "Dụng cụ làm đẹp",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tri-nam-tan-nhang-treat-melasma-freckles.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "シミ・そばかすケア"
+   "image": "/sites/lienstore/shared/categories/icons/3d/dung-cu-cham-soc-da-skincare-tools.png",
+   "parent": "my-pham",
+   "nameJa": "美容ツール"
   },
   {
-   "slug": "tay-trang-cleansing",
-   "name": "TẨY TRANG ( CLEANSING )",
+   "slug": "mom-and-baby",
+   "name": "Mẹ và bé",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tay-trang-cleansing.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "クレンジング"
+   "image": "/sites/lienstore/shared/categories/icons/3d/mom-and-baby.png",
+   "parent": null,
+   "nameJa": "ママ＆ベビー"
   },
   {
-   "slug": "tay-te-bao-chet-exfoliate-dead-skin",
-   "name": "TẨY TẾ BÀO CHẾT ( EXFOLIATE DEAD SKIN )",
+   "slug": "thuc-pham-do-uong-food-drink",
+   "name": "Thực phẩm & đồ uống",
    "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tay-te-bao-chet-exfoliate-dead-skin.png",
-   "parent": "cham-soc-da-mat",
-   "nameJa": "角質ケア・ピーリング"
+   "image": "/sites/lienstore/shared/categories/icons/3d/thuc-pham-do-uong-food-drink.png",
+   "parent": null,
+   "nameJa": "食品・飲料"
   },
   {
-   "slug": "tu-thuoc-gia-dinh-family-medicine",
-   "name": "TỦ THUỐC GIA ĐÌNH ( FAMILY MEDICINE )",
-   "description": "",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tu-thuoc-gia-dinh-family-medicine.png",
-   "parent": "suc-khoe",
-   "nameJa": "常備薬・家庭用医薬品"
+   "slug": "nha-cua-doi-song",
+   "name": "Nhà cửa & đời sống",
+   "description": "Dụng cụ nhà bếp, đồ gia dụng, nến thơm.",
+   "image": "/sites/lienstore/shared/categories/icons/3d/nha-cua-doi-song.png",
+   "parent": null,
+   "nameJa": "ホーム＆リビング"
   },
   {
-   "slug": "iherb",
-   "name": "iherb",
-   "description": "Chuyên các sản phẩm order từ jp.iherb.com",
-   "image": "/sites/lienstore/shared/categories/icons/3d/iherb.png",
-   "parent": "suc-khoe",
-   "nameJa": "iHerb"
+   "slug": "thoi-trang-phu-kien",
+   "name": "Thời trang & phụ kiện",
+   "description": "Thời trang, đồng hồ và phụ kiện Nhật.",
+   "image": "/sites/lienstore/shared/categories/icons/3d/thoi-trang-phu-kien.png",
+   "parent": null,
+   "nameJa": "ファッション・アクセサリー"
   },
   {
-   "slug": "do-gia-dung-household",
-   "name": "ĐỒ GIA DỤNG ( HOUSEHOLD )",
-   "description": "Đồ gia dụng nội địa Nhật Bản",
-   "image": "/sites/lienstore/shared/categories/icons/3d/do-gia-dung-household.png",
-   "parent": "nha-cua-doi-song",
-   "nameJa": "日用品"
+   "slug": "thoi-trang-fashion",
+   "name": "Thời trang",
+   "description": "Quần áo và phụ kiện thời trang",
+   "image": "/sites/lienstore/shared/categories/icons/3d/thoi-trang-fashion.png",
+   "parent": "thoi-trang-phu-kien",
+   "nameJa": "ファッション"
   },
   {
    "slug": "dong-ho-watch",
-   "name": "ĐỒNG HỒ ( WATCH )",
+   "name": "Đồng hồ",
    "description": "Đồng hồ nội địa Nhật Bản",
    "image": "/sites/lienstore/shared/categories/icons/3d/dong-ho-watch.png",
    "parent": "thoi-trang-phu-kien",
@@ -335,56 +261,19 @@
   },
   {
    "slug": "do-choi-suu-tap",
-   "name": "ĐỒ CHƠI & SƯU TẬP ( TOYS & HOBBY )",
+   "name": "Đồ chơi & sưu tập",
    "description": "Thẻ bài, mô hình, đồ sưu tập Nhật Bản đặt theo yêu cầu",
    "image": "/sites/lienstore/shared/categories/icons/3d/do-choi-suu-tap.png",
-   "count": 0,
+   "parent": null,
    "nameJa": "おもちゃ・ホビー"
   },
   {
    "slug": "the-bai-pokemon",
-   "name": "THẺ BÀI POKÉMON ( POKEMON CARDS )",
+   "name": "Thẻ bài Pokémon",
    "description": "Booster box, pack, thẻ lẻ Pokémon TCG bản Nhật — hàng order theo yêu cầu",
    "image": "/sites/lienstore/shared/categories/icons/3d/the-bai-pokemon.png",
-   "count": 0,
    "parent": "do-choi-suu-tap",
    "nameJa": "ポケモンカード"
-  },
-  {
-   "slug": "tinh-chat-duong",
-   "name": "TINH CHẤT DƯỠNG ( SERUM/ESSENCE )",
-   "description": "Serum và essence dưỡng da",
-   "image": "/sites/lienstore/shared/categories/icons/3d/tinh-chat-duong.png",
-   "count": 0,
-   "parent": "my-pham",
-   "nameJa": "美容液・エッセンス"
-  },
-  {
-   "slug": "cham-soc-suc-khoe",
-   "name": "CHĂM SÓC SỨC KHỎE",
-   "description": "Sản phẩm chăm sóc sức khỏe thông dụng",
-   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-suc-khoe.png",
-   "count": 0,
-   "parent": "suc-khoe",
-   "nameJa": "健康ケア"
-  },
-  {
-   "slug": "cham-soc-co-the",
-   "name": "CHĂM SÓC CƠ THỂ",
-   "description": "Sản phẩm chăm sóc cơ thể",
-   "image": "/sites/lienstore/shared/categories/icons/3d/cham-soc-co-the.png",
-   "count": 0,
-   "parent": "my-pham",
-   "nameJa": "ボディケア用品"
-  },
-  {
-   "slug": "dau-goi-dau-xa",
-   "name": "DẦU GỘI - DẦU XẢ",
-   "description": "Sản phẩm chăm sóc tóc",
-   "image": "/sites/lienstore/shared/categories/icons/3d/dau-goi-dau-xa.png",
-   "count": 0,
-   "parent": "my-pham",
-   "nameJa": "シャンプー・コンディショナー"
   }
  ],
  "products": [
@@ -600,7 +489,7 @@
    "stock": 1,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion",
+    "duong-da-mat",
     "tri-mun-acne-treatment"
    ],
    "tags": [
@@ -752,7 +641,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "perfect white",
@@ -1052,7 +941,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "cac loai sua rua mat cua nhat",
@@ -1110,7 +999,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "perfect whip",
@@ -1311,7 +1200,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tri-nam-tan-nhang-treat-melasma-freckles"
+    "duong-da-mat"
    ],
    "tags": [
     "trang da",
@@ -1407,7 +1296,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem duong mat",
@@ -1520,7 +1409,7 @@
    "stock": 14,
    "stockStatus": "instock",
    "categories": [
-    "son-moi-lipstick"
+    "trang-diem-makeup"
    ],
    "tags": [
     "son duong moi mentholatum 5g",
@@ -1572,7 +1461,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "matcha",
@@ -1625,7 +1514,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem chifure",
@@ -1679,7 +1568,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "oxy danh cho nam",
@@ -1732,7 +1621,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "oxy danh cho nam",
@@ -1782,7 +1671,7 @@
    "stock": 2,
    "stockStatus": "outofstock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "dau tay trang",
@@ -1977,7 +1866,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "dau tay trang",
@@ -2272,7 +2161,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "chong nang hatomugi",
@@ -2321,7 +2210,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "duong body hatomugi",
@@ -2611,7 +2500,7 @@
    "stock": 5,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "kem body nhat ban",
@@ -2855,7 +2744,7 @@
    "stockStatus": "instock",
    "categories": [
     "thuc-pham-chuc-nang-functional-foods",
-    "tri-nam-tan-nhang-treat-melasma-freckles"
+    "duong-da-mat"
    ],
    "tags": [
     "collagen",
@@ -3181,7 +3070,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sua tam duong da",
@@ -3226,7 +3115,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sua tam duong trang da toan than",
@@ -3423,7 +3312,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sua rua mat",
@@ -3472,7 +3361,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "cac loai sua rua mat cua nhat",
@@ -3666,7 +3555,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "cc melano",
@@ -3909,7 +3798,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "tay te bao chet",
@@ -3958,7 +3847,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "body white conc",
@@ -4006,7 +3895,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "hadalabo",
@@ -4100,7 +3989,7 @@
    "stockStatus": "instock",
    "categories": [
     "san-pham-danh-cho-nam-men",
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sua tam cho nam",
@@ -4146,7 +4035,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "nuoc hoa hong 500ml",
@@ -4196,7 +4085,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "nuoc hoa hong",
@@ -4243,7 +4132,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "nuoc hoa hong",
@@ -4384,7 +4273,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "phuc-hoi-toc-tai-nha-hair"
+    "cham-soc-toc"
    ],
    "tags": [
     "kem hap toc",
@@ -4666,7 +4555,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "nuoc hoa hong",
@@ -4718,7 +4607,7 @@
    "stockStatus": "instock",
    "categories": [
     "san-pham-danh-cho-nam-men",
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sua rua mat cho nam",
@@ -4810,7 +4699,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body",
+    "cham-soc-body",
     "tu-thuoc-gia-dinh-family-medicine"
    ],
    "tags": [
@@ -4953,7 +4842,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "phuc-hoi-toc-tai-nha-hair"
+    "cham-soc-toc"
    ],
    "tags": [
     "dau goi cua nhat",
@@ -5230,7 +5119,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "gel tay te bao chet",
@@ -5285,7 +5174,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "gel tay te bao chet",
@@ -5340,7 +5229,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "cure",
@@ -5390,7 +5279,7 @@
    "stock": 20,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [],
    "images": [
@@ -5787,7 +5676,7 @@
    "stock": 18,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "tinh chat transino",
@@ -5841,7 +5730,7 @@
    "stock": 5,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem duong ban dem transino",
@@ -5993,7 +5882,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "phuc-hoi-toc-tai-nha-hair"
+    "cham-soc-toc"
    ],
    "tags": [
     "bộ dầu gội và dầu xả mỡ ngựa nhật bản 600ml",
@@ -6308,7 +6197,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "dung-cu-cham-soc-da-skincare-tools"
+    "dung-cu-lam-dep"
    ],
    "tags": [
     "cọ rửa mặt lông mềm nhật bản",
@@ -6358,7 +6247,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "phuc-hoi-toc-tai-nha-hair"
+    "cham-soc-toc"
    ],
    "tags": [
     "dầu gội head spa (hs) cho tóc dầu",
@@ -6413,8 +6302,8 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "phuc-hoi-toc-tai-nha-hair",
-    "sua-tam-shower-gel"
+    "cham-soc-toc",
+    "cham-soc-body"
    ],
    "tags": [
     "set dầu gội",
@@ -6466,7 +6355,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "dầu tẩy trang dhc deep cleansing oil 70ml",
@@ -6516,7 +6405,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "dầu tẩy trang muji cleansing oil",
@@ -6662,7 +6551,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "tinh chất dưỡng sáng da genoptics aura essence",
@@ -6814,7 +6703,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sữa tắm dưỡng trắng white body manis",
@@ -7113,7 +7002,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng da aloins nhật bản",
@@ -7159,7 +7048,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng da ban đêm shiseido elixir enriched cream",
@@ -7209,7 +7098,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng chống lão hoá collana la avenir cream ex",
@@ -7261,7 +7150,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng da sk-ii lxp ultimate perfecting cream",
@@ -7308,7 +7197,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "kem dưỡng da tay kose coenrich q10 whitening medicated",
@@ -7357,7 +7246,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "kem dưỡng da tay q10",
@@ -7403,7 +7292,7 @@
    "stockStatus": "instock",
    "categories": [
     "goc-chi-em-chung-minh-women",
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng dành cho phụ nữ từ 50 tuổi",
@@ -7451,7 +7340,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng đêm shiseido elixir white reset brightenist",
@@ -7501,7 +7390,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng giàu ẩm giúp da căng bóng",
@@ -7555,7 +7444,7 @@
    "stockStatus": "instock",
    "categories": [
     "chong-nang-uv",
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng hada labo uv white gel 7 trong 1",
@@ -7603,7 +7492,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng kanebo freshel 5 in 1 dạng gel",
@@ -7652,7 +7541,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng làm trắng one day brightener",
@@ -7703,7 +7592,7 @@
    "stockStatus": "instock",
    "categories": [
     "mat-eyes",
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng mắt chống lão hoá sk-ii r.n.a. power eye cream",
@@ -7802,7 +7691,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng trắng da instawhite",
@@ -7847,7 +7736,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "kem dưỡng trắng da nhau thai meishoku",
@@ -8002,7 +7891,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "kem tẩy trang kose sekkisei 140g",
@@ -8053,7 +7942,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "kem dưỡng trắng body silky vei",
@@ -8101,7 +7990,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body",
+    "cham-soc-body",
     "mom-and-baby"
    ],
    "tags": [
@@ -8210,7 +8099,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "kem trị viêm nang lông zaraporo rohto",
@@ -8306,7 +8195,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "lotion se khít lỗ chân lông labo labo",
@@ -8355,7 +8244,7 @@
    "stockStatus": "instock",
    "categories": [
     "tri-mun-acne-treatment",
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "lotion trị mụn meishoku bigansui",
@@ -8449,7 +8338,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "tinh chất ngăn ngừa hư tổn cho da",
@@ -8498,7 +8387,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "nước thần sk-ii facial treatment essence",
@@ -8545,7 +8434,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "nước hoa hồng kose sekkisei lotion",
@@ -8642,7 +8531,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "serum ha cosme dưỡng ẩm - hàng nội địa nhật",
@@ -8692,7 +8581,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "serum hyaluronic acid dùng cho lăn kim và dưỡng da nhật bản",
@@ -8744,7 +8633,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "serum fracora làn da không tuổi",
@@ -8791,7 +8680,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "son-moi-lipstick"
+    "trang-diem-makeup"
    ],
    "tags": [
     "son dưỡng có màu dhc (mẫu 2017)",
@@ -8841,7 +8730,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "son-moi-lipstick"
+    "trang-diem-makeup"
    ],
    "tags": [
     "son dưỡng môi dhc lip cream 10g nhật bản",
@@ -8998,7 +8887,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt nhật bản 20g",
@@ -9047,7 +8936,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt nhật bản không gây khô căng (đủ loại)",
@@ -9099,7 +8988,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt kose softymo (mẫu 2018)",
@@ -9149,7 +9038,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt tạo bọt hada labo",
@@ -9201,7 +9090,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt transino dưỡng mịn da",
@@ -9254,7 +9143,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "sữa rửa mặt chiết xuất hạt ý dĩ hatomugi",
@@ -9306,7 +9195,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sữa tắm hatomugi chiết xuất hạt ý dĩ",
@@ -9362,7 +9251,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sữa tắm shiseido senka perfect whip bubble",
@@ -9411,7 +9300,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sữa tắm trắng da white conc vitamin c nhật bản",
@@ -9462,7 +9351,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "sữa tắm nhật bản 380g",
@@ -9509,7 +9398,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "tẩy tế bào chết apatheia 300g",
@@ -9557,7 +9446,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "serum dạng thanh lăn dưỡng da nhật bản",
@@ -10626,7 +10515,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "tinh chất nâng cơ chống nhăn shiseido elixir enriched serum",
@@ -11297,7 +11186,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tri-nam-tan-nhang-treat-melasma-freckles",
+    "duong-da-mat",
     "thuc-pham-chuc-nang-functional-foods"
    ],
    "tags": [
@@ -11345,7 +11234,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tri-nam-tan-nhang-treat-melasma-freckles",
+    "duong-da-mat",
     "thuc-pham-chuc-nang-functional-foods"
    ],
    "tags": [
@@ -11598,7 +11487,7 @@
    "stockStatus": "instock",
    "categories": [
     "tri-mun-acne-treatment",
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "xà phòng trị mụn và trị thâm",
@@ -11970,7 +11859,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "aqualabel shiseido",
@@ -12243,7 +12132,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "nmn",
@@ -12337,7 +12226,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "son-moi-lipstick"
+    "trang-diem-makeup"
    ],
    "tags": [
     "shu uemura",
@@ -12521,7 +12410,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "dung-cu-nha-bep-kitchen-tools"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "global",
@@ -12698,7 +12587,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "do-gia-dung-household"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "muji",
@@ -12885,7 +12774,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-tam-shower-gel"
+    "cham-soc-body"
    ],
    "tags": [
     "lux unilever",
@@ -12978,7 +12867,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-te-bao-chet-exfoliate-dead-skin"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "botanical",
@@ -13474,7 +13363,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "elixir shiseido",
@@ -13658,7 +13547,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tri-nam-tan-nhang-treat-melasma-freckles"
+    "duong-da-mat"
    ],
    "tags": [
     "viên uống hỗ",
@@ -13793,7 +13682,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nen-thom-candle"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "jo malone",
@@ -13887,7 +13776,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "dung-cu-cham-soc-da-skincare-tools"
+    "dung-cu-lam-dep"
    ],
    "tags": [
     "shiseido",
@@ -14066,7 +13955,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "dung-cu-nha-bep-kitchen-tools"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "set dao dĩa",
@@ -14206,7 +14095,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "sk-ii",
@@ -14342,7 +14231,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "do-gia-dung-household"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "thermos",
@@ -14610,7 +14499,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tay-trang-cleansing"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "fancl",
@@ -14752,7 +14641,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "nmn",
@@ -15204,7 +15093,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "estée lauder",
@@ -15248,7 +15137,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "revita",
@@ -15625,7 +15514,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "iherb"
+    "thuc-pham-chuc-nang-functional-foods"
    ],
    "tags": [
     "vitamin d3",
@@ -15672,7 +15561,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "iherb"
+    "thuc-pham-chuc-nang-functional-foods"
    ],
    "tags": [
     "magie",
@@ -15724,7 +15613,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "iherb"
+    "thuc-pham-chuc-nang-functional-foods"
    ],
    "tags": [
     "omega 3",
@@ -15773,8 +15662,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "the-bai-pokemon",
-    "do-choi-suu-tap"
+    "the-bai-pokemon"
    ],
    "tags": [
     "pokemon",
@@ -15817,7 +15705,7 @@
    "stockStatus": "instock",
    "categories": [
     "mom-and-baby",
-    "duong-the-body"
+    "cham-soc-body"
    ],
    "tags": [
     "pigeon",
@@ -15899,7 +15787,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "nmn",
@@ -15940,7 +15828,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "tinh-chat-duong"
+    "duong-da-mat"
    ],
    "tags": [
     "nmn",
@@ -15981,7 +15869,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion"
+    "duong-da-mat"
    ],
    "tags": [
     "the stem cell",
@@ -16145,7 +16033,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "shiseido",
@@ -16186,7 +16074,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "whitening skincare cream",
@@ -16268,7 +16156,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "cham-soc-suc-khoe"
+    "tu-thuoc-gia-dinh-family-medicine"
    ],
    "tags": [
     "kenko",
@@ -16349,7 +16237,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "cham-soc-co-the"
+    "cham-soc-body"
    ],
    "tags": [
     "veet",
@@ -16511,7 +16399,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "sua-rua-mat"
+    "sua-rua-mat-tay-trang"
    ],
    "tags": [
     "shiseido",
@@ -16593,7 +16481,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "shiseido",
@@ -16716,7 +16604,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "dau-goi-dau-xa"
+    "cham-soc-toc"
    ],
    "tags": [
     "tigi đỏ",
@@ -17340,8 +17228,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion",
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "aqualabel",
@@ -17383,8 +17270,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "nuoc-hoa-hong-lotion",
-    "kem-duong-danh-cho-mat-face-cream"
+    "duong-da-mat"
    ],
    "tags": [
     "aqualabel",
@@ -17550,7 +17436,7 @@
    "stock": null,
    "stockStatus": "instock",
    "categories": [
-    "do-gia-dung-household"
+    "nha-cua-doi-song"
    ],
    "tags": [
     "sanei",

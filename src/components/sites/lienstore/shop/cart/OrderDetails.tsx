@@ -67,10 +67,10 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
         ) : null}
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
-            Giao hàng{order.shippingFee > 0 && order.shippingLabel ? ` (${order.shippingLabel})` : ""}:
+            Giao hàng{order.shippingFee > 0 && order.shippingLabel ? ` (${vnLegLabel(order.shippingLabel)})` : ""}:
           </th>
           <td className={shopTdClass}>
-            {order.shippingFee > 0 ? <Price value={order.shippingFee} currency={order.currency} /> : <span>{order.shippingLabel || "Nhận tại kho"} · miễn phí</span>}
+            {order.shippingFee > 0 ? <Price value={order.shippingFee} currency={order.currency} /> : <span>{vnLegLabel(order.shippingLabel) || "Nhận tại kho"} · miễn phí</span>}
           </td>
         </tr>
         <tr>
@@ -151,6 +151,11 @@ export function OrderReceipts({ files }: { files: OrderReceiptLink[] }) {
 }
 
 /** "Chi tiết đơn hàng" + "Địa chỉ thanh toán" sections shared by the thank-you page and the order lookup. */
+/** Customers only see the Vietnam leg of the shipping label — the Japan legs are included in product prices. */
+function vnLegLabel(label: string): string {
+  return label.split(" + ").pop()?.trim() ?? label;
+}
+
 export function OrderSummary({ order, receipts = [] }: { order: Order; receipts?: OrderReceiptLink[] }) {
   return (
     <>

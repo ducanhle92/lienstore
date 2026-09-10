@@ -50,35 +50,6 @@ export function ProductDescription({ name, description, className }: Props) {
   const withIntro = d.introHtml.trim().length > 0;
   return (
     <div className={cn("product-description", className)}>
-      {d.facts.length ? (
-        <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {d.facts.map((f) => (
-            <div key={f.label} className="rounded-md border border-lien-widget-border bg-lien-blue-soft/60 px-3 py-2">
-              <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">
-                <Fa name={FACT_ICONS[f.label] ?? "info-circle"} className="text-lien-blue" />
-                {factLabel(f.label)}
-              </dt>
-              <dd className="mt-0.5 text-[15px] leading-6 text-lien-heading">{f.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-
-      {d.sections.length > 1 ? (
-        <nav aria-label={t("descToc")} className="mb-5 flex flex-wrap gap-2">
-          {d.sections.map((s, i) => (
-            <a
-              key={`${s.key}-${i}`}
-              href={`#mo-ta-${s.key}-${i}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-lien-blue/30 px-3 py-1 text-[13px] leading-5 text-lien-blue no-underline hover:bg-lien-blue hover:text-white"
-            >
-              <Fa name={ICONS[s.key]} />
-              {secTitle(s)}
-            </a>
-          ))}
-        </nav>
-      ) : null}
-
       {withIntro ? <div className="lien-prose mb-6" dangerouslySetInnerHTML={{ __html: d.introHtml }} /> : null}
 
       <div className="grid gap-4">
@@ -94,6 +65,20 @@ export function ProductDescription({ name, description, className }: Props) {
           </section>
         ))}
       </div>
+
+      {d.facts.length ? (
+        <dl className="mt-6 mb-0 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {d.facts.map((f) => (
+            <div key={f.label} className="rounded-md border border-lien-widget-border bg-lien-blue-soft/60 px-3 py-2">
+              <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">
+                <Fa name={FACT_ICONS[f.label] ?? "info-circle"} className="text-lien-blue" />
+                {factLabel(f.label)}
+              </dt>
+              <dd className="mt-0.5 text-[15px] leading-6 text-lien-heading">{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </div>
   );
 }

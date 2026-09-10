@@ -6,6 +6,7 @@ import { deleteProductAction, saveProductAction, type ProductFormState } from "@
 import { cn } from "@/lib/utils";
 import type { CatalogProduct, ShopCategory } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
+import { DescriptionEditor } from "./DescriptionEditor";
 import { ProductImageManager } from "./ProductImageManager";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash } from "./ui";
 
@@ -71,10 +72,8 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                 <textarea id="shortDescription" name="shortDescription" rows={3} defaultValue={product?.shortDescription} className={adminInput} />
               </div>
               <div>
-                <label className={adminLabel} htmlFor="description">
-                  Mô tả chi tiết (HTML)
-                </label>
-                <textarea id="description" name="description" rows={14} defaultValue={product?.description} className={cn(adminInput, "font-mono text-[13px]")} />
+                <p className={adminLabel}>Mô tả chi tiết</p>
+                <DescriptionEditor name="description" lang="vi" initialHtml={product?.description ?? ""} productName={product?.name} />
               </div>
               <div>
                 <label className={adminLabel} htmlFor="shortDescriptionJa">
@@ -83,10 +82,10 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                 <textarea id="shortDescriptionJa" name="shortDescriptionJa" rows={2} defaultValue={product?.shortDescriptionJa} className={adminInput} />
               </div>
               <div>
-                <label className={adminLabel} htmlFor="descriptionJa">
-                  Mô tả chi tiết tiếng Nhật (HTML) <span className="font-normal text-lien-muted">— lấy từ trang bán hàng Nhật; để trống thì hiện bản tiếng Việt</span>
-                </label>
-                <textarea id="descriptionJa" name="descriptionJa" rows={8} defaultValue={product?.descriptionJa} className={cn(adminInput, "font-mono text-[13px]")} />
+                <p className={adminLabel}>
+                  Mô tả chi tiết tiếng Nhật <span className="font-normal text-lien-muted">— để trống thì hiện bản tiếng Việt</span>
+                </p>
+                <DescriptionEditor name="descriptionJa" lang="ja" initialHtml={product?.descriptionJa ?? ""} productName={product?.nameJa || product?.name} />
               </div>
             </div>
           </Card>

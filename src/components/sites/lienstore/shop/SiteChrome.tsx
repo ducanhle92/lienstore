@@ -18,22 +18,21 @@ import { localizeCategories } from "@/lib/localize";
 type L2 = HeaderLink & { ja: string };
 const SUPPORT: L2[] = [
   { label: "Hướng dẫn đặt hàng", ja: "ご注文方法", href: "/huong-dan-dat-hang/" },
-  { label: "Chi phí vận chuyển", ja: "配送料", href: "/van-chuyen/" },
   { label: "Chính sách đổi trả", ja: "返品・交換ポリシー", href: "/chinh-sach-doi-tra/" },
-  { label: "Tra cứu đơn hàng", ja: "注文を確認", href: "/my-account/" },
+  { label: "Tra cứu đơn hàng", ja: "注文を確認", href: "/my-account/?tab=orders" },
   { label: "Chính sách bảo mật", ja: "プライバシーポリシー", href: "/privacy-policy/" },
   { label: "Liên hệ", ja: "お問い合わせ", href: "/ve-chung-toi/#lien-he" },
 ];
 const NEWS: L2[] = [
   { label: "Hàng mới về", ja: "新着商品", href: "/shop/?orderby=date" },
-  { label: "Sản phẩm bán chạy", ja: "人気商品", href: "/shop/?orderby=rating" },
+  { label: "Sản phẩm bán chạy", ja: "人気商品", href: "/shop/?orderby=popularity" },
   { label: "Hướng dẫn đặt hàng & mua hộ", ja: "ご注文・購入代行ガイド", href: "/huong-dan-dat-hang/" },
 ];
 const ACCOUNT: L2[] = [
   { label: "Đăng nhập", ja: "ログイン", href: "/my-account/" },
   { label: "Đăng kí tài khoản", ja: "会員登録", href: "/my-account/" },
   { label: "Đơn hàng của tôi", ja: "注文履歴", href: "/my-account/?tab=orders" },
-  { label: "Tra cứu đơn hàng", ja: "注文を確認", href: "/my-account/" },
+  { label: "Tra cứu đơn hàng", ja: "注文を確認", href: "/my-account/?tab=orders" },
   { label: "Danh sách yêu thích", ja: "お気に入りリスト", href: "/wishlist/" },
   { label: "Giỏ hàng", ja: "カート", href: "/cart/" },
 ];

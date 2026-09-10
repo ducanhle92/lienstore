@@ -14,7 +14,7 @@ import { formatAmount, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Đơn hàng đã nhận – LienStore" };
+export const metadata: Metadata = { title: "Đơn hàng đã xác nhận – LienStore" };
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -32,12 +32,12 @@ export default async function OrderReceived({ params }: Props) {
 
   return (
     <SiteChrome>
-      <TwoColumnShell sidebar={<StoreSidebar />} title="Đơn hàng đã nhận">
+      <TwoColumnShell sidebar={<StoreSidebar />} title="Đơn hàng đã xác nhận">
         <article className="entry-content woocommerce">
           <ClearCartOnMount />
           <div className="woocommerce-order">
             <p className="woocommerce-thankyou-order-received mb-6 text-[18px] leading-7 text-lien-text">
-              Cảm ơn bạn. Đơn hàng của bạn đã được nhận.
+              Cảm ơn bạn. Đơn hàng của bạn đã được xác nhận.
             </p>
             <ul className="order_details mb-8 flex list-none flex-wrap p-0">
               <li className={detail}>

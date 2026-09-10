@@ -39,6 +39,7 @@ const GLYPHS = {
   "exclamation-circle": "",
   "arrow-left": "",
   "eye": "",
+  "eye-slash": "",
   "times": "",
   "minus": "",
   "info-circle": "",

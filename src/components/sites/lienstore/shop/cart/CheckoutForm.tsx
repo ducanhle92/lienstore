@@ -188,7 +188,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                 <Field name="last_name" label={t("lastNameShort")} autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
                 <Field name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={defaults.phone} />
                 <Field name="email" label={t("emailOptionalLabel")} type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
-                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} defaultValue={defaults.address} required={delivery === "ship"} />
+                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} defaultValue={defaults.address} />
               </div>
             </div>
             {!loggedIn ? (
@@ -248,10 +248,9 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                 </span>
               </label>
             </div>
-            <p className="mt-3 text-[12px] leading-5 text-lien-muted">
-              {perOrder
-                ? `Phí vận chuyển tính riêng theo đơn: ship nội địa Nhật + Nhật → Việt Nam + giao nội địa Việt Nam, theo cân tính phí ${formatAmount(totalWeightG)} g (${kg} kg làm tròn, đã nhân hệ số an toàn khi kích thước chưa chắc). Chọn "Nhận tại kho" thì không tính chặng nội địa Việt Nam.`
-                : `Giá sản phẩm đã gồm phí mua hộ và vận chuyển Nhật → Việt Nam. Phí trên là phí giao từ kho Việt Nam tới nhà bạn${totalWeightG ? `, tính cho khoảng ${formatAmount(totalWeightG)} g (${kg} kg làm tròn)` : ""}.`}
+            <p className="mt-3 text-[13px] leading-5 text-lien-text">
+              <Fa name="info-circle" className="mr-1 text-lien-blue" />
+              {t("mergeOrdersHint")}
             </p>
 
             <div className="woocommerce-additional-fields mt-4">
