@@ -454,7 +454,7 @@ export interface SeedFile {
   orders?: Array<Record<string, unknown> & { id: string; number: number; items?: Array<Record<string, unknown>> }>;
   pages?: Array<{ slug: string; title: string; content: string; date: string }>;
   posts?: Array<{ slug: string; title: string; content: string; excerpt: string; date: string }>;
-  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[] };
+  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[]; contentRev?: number };
 }
 
 type SqliteModule = typeof import("node:sqlite");
@@ -589,6 +589,7 @@ function syncSeed(db: DatabaseSync) {
     withTransaction(db, () => {
       importCatalogue(db, seed, "INSERT OR REPLACE");
       removeListed(db, seed);
+      syncContent(db, seed);
       setSetting(db, "seed_version", version);
     });
   } else {
@@ -604,6 +605,27 @@ function syncSeed(db: DatabaseSync) {
 }
 
 /** Delete products the seed marks as removed (duplicates merged away). Order lines keep their snapshot, so this is safe. */
+/**
+ * Product copy (Vietnamese + Japanese names and descriptions) is authored offline from the makers' pages and shipped in
+ * the seed. When the seed carries a newer meta.contentRev, that copy replaces the server copy for every seed product —
+ * even ones edited in admin after the export (last-write-wins would otherwise keep the old text). Prices, stock,
+ * images and categories are not touched.
+ */
+function syncContent(db: DatabaseSync, seed: SeedFile) {
+  const rev = seed.meta?.contentRev;
+  if (!rev || getSetting(db, "seed_content_rev") === String(rev)) return;
+  const upd = db.prepare(
+    "UPDATE products SET short_description = ?, description = ?, name_ja = ?, short_description_ja = ?, description_ja = ? WHERE slug = ?",
+  );
+  let n = 0;
+  for (const p of seed.products ?? []) {
+    const r = upd.run(str(p.shortDescription), str(p.description), str(p.nameJa), str(p.shortDescriptionJa), str(p.descriptionJa), p.slug);
+    n += Number(r.changes);
+  }
+  setSetting(db, "seed_content_rev", String(rev));
+  console.info(`[db] seed content rev ${rev}: refreshed the copy of ${n} product(s)`);
+}
+
 function removeListed(db: DatabaseSync, seed: SeedFile) {
   const slugs = (seed.meta?.removedSlugs ?? []).filter((s) => typeof s === "string" && s);
   if (slugs.length === 0) return;

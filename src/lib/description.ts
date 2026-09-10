@@ -44,12 +44,12 @@ export const SECTION_TITLES: Record<SectionKey, string> = {
 const SECTION_ORDER: SectionKey[] = ["info", "benefits", "ingredients", "usage", "audience", "notes", "other"];
 
 const FACT_LABELS: Array<[RegExp, string]> = [
-  [/^(xuat xu|nguon goc|made in)/, "Xuất xứ"],
-  [/^(thuong hieu|hang|nhan hieu|brand)/, "Thương hiệu"],
-  [/^(nha san xuat|hang san xuat|san xuat boi|nsx)/, "Nhà sản xuất"],
-  [/^(trong luong|khoi luong|dung tich|quy cach|dong goi|the tich|kich thuoc)/, "Quy cách"],
-  [/^(han su dung|hsd)/, "Hạn sử dụng"],
-  [/^(doi tuong)/, "Đối tượng"],
+  [/^(xuat xu|nguon goc|made in|原産国|生産国|製造国)/, "Xuất xứ"],
+  [/^(thuong hieu|hang|nhan hieu|brand|ブランド)/, "Thương hiệu"],
+  [/^(nha san xuat|hang san xuat|san xuat boi|nsx|メーカー|製造元|製造販売元|販売元)/, "Nhà sản xuất"],
+  [/^(trong luong|khoi luong|dung tich|quy cach|dong goi|the tich|kich thuoc|内容量|容量|規格|サイズ)/, "Quy cách"],
+  [/^(han su dung|hsd|賞味期限|使用期限)/, "Hạn sử dụng"],
+  [/^(doi tuong|対象)/, "Đối tượng"],
 ];
 
 function fold(s: string): string {
@@ -154,6 +154,14 @@ function normaliseBullets(blocks: string[]): string[] {
   return out;
 }
 
+/** Canonical fact label for a "Label: value" pair. Japanese labels are matched on the raw text: fold() decomposes
+ *  katakana with dakuten (ブ → フ + ゛) so a Japanese key would never match after folding. */
+function factLabelOf(rawLabel: string): string | undefined {
+  const raw = rawLabel.trim().toLowerCase();
+  const folded = fold(rawLabel);
+  return FACT_LABELS.find(([re]) => re.test(folded) || re.test(raw))?.[1];
+}
+
 /** Pull "Label: value" facts out of <li> / short <p> blocks; returns remaining blocks. */
 function extractFacts(blocks: string[], facts: DescriptionFact[]): string[] {
   const remaining: string[] = [];
@@ -164,7 +172,7 @@ function extractFacts(blocks: string[], facts: DescriptionFact[]): string[] {
       for (const li of items) {
         const text = stripTags(li);
         const m = text.match(/^([^:]{2,30}):\s*(.{1,80})$/);
-        const label = m ? FACT_LABELS.find(([re]) => re.test(fold(m[1])))?.[1] : undefined;
+        const label = m ? factLabelOf(m[1]) : undefined;
         if (m && label && !facts.some((f) => f.label === label)) facts.push({ label, value: m[2].trim() });
         else keep.push(li);
       }
@@ -172,7 +180,7 @@ function extractFacts(blocks: string[], facts: DescriptionFact[]): string[] {
     } else if (/^<p/i.test(b)) {
       const text = stripTags(b);
       const m = text.match(/^([^:]{2,30}):\s*(.{1,80})$/);
-      const label = m ? FACT_LABELS.find(([re]) => re.test(fold(m[1])))?.[1] : undefined;
+      const label = m ? factLabelOf(m[1]) : undefined;
       if (m && label && !facts.some((f) => f.label === label)) facts.push({ label, value: m[2].trim() });
       else remaining.push(b);
     } else {

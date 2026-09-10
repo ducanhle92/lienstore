@@ -11,6 +11,15 @@ const args = process.argv.slice(2);
 const all = args.includes("--all");
 const out = args.find((a) => !a.startsWith("--")) ?? path.join("data", "seed.json");
 const dbPath = process.env.LIEN_DB_PATH ?? path.join("data", "lienstore.db");
+// meta.contentRev marks offline-authored product copy (see syncContent in src/lib/sqlite.ts); carry it over from the
+// file being replaced so an export never silently drops it.
+const contentRev = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(out, "utf8")).meta?.contentRev;
+  } catch {
+    return undefined;
+  }
+})();
 if (!fs.existsSync(dbPath)) {
   console.error(`database not found: ${dbPath}`);
   process.exit(1);
@@ -65,7 +74,7 @@ const seed = {
   note: all
     ? "Full backup (includes customers with hashed passwords and orders)."
     : "Seed catalogue imported into SQLite on first start (see src/lib/sqlite.ts). Regenerate with `npm run db:export`.",
-  meta: { nextOrderNumber: all ? nextOrderNumber : 1001, seededAt: new Date().toISOString() },
+  meta: { nextOrderNumber: all ? nextOrderNumber : 1001, seededAt: new Date().toISOString(), ...(contentRev ? { contentRev } : {}) },
   categories,
   products,
   pages,
