@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.18.2] - 2026-09-10
+
 ### Changed
 - Thanh trạng thái trình duyệt / web app (theme-color, manifest) đổi từ xanh biển cũ sang xanh lá #458500 cho đồng màu với header.
 
