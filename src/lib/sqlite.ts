@@ -571,6 +571,9 @@ function syncSeed(db: DatabaseSync) {
     console.warn(`[db] cannot read seed at ${SEED_PATH}: ${e instanceof Error ? e.message : e}`);
     return;
   }
+  // Offline-authored product copy travels with its own revision and is refreshed even when the seed version itself
+  // (meta.seededAt) has not changed — a content-only release does not re-export the seed.
+  withTransaction(db, () => syncContent(db, seed));
   const version = seedVersion(seed);
   if (!version || getSetting(db, "seed_version") === version) return;
   const before = {
@@ -589,7 +592,6 @@ function syncSeed(db: DatabaseSync) {
     withTransaction(db, () => {
       importCatalogue(db, seed, "INSERT OR REPLACE");
       removeListed(db, seed);
-      syncContent(db, seed);
       setSetting(db, "seed_version", version);
     });
   } else {
@@ -617,13 +619,17 @@ function syncContent(db: DatabaseSync, seed: SeedFile) {
   const upd = db.prepare(
     "UPDATE products SET short_description = ?, description = ?, name_ja = ?, short_description_ja = ?, description_ja = ? WHERE slug = ?",
   );
+  // pictures found while sourcing the copy: only fill in where this server still has none
+  const pic = db.prepare("UPDATE products SET images = ?, thumb = ? WHERE slug = ? AND (images IS NULL OR images = '' OR images = '[]')");
   let n = 0;
+  let pics = 0;
   for (const p of seed.products ?? []) {
     const r = upd.run(str(p.shortDescription), str(p.description), str(p.nameJa), str(p.shortDescriptionJa), str(p.descriptionJa), p.slug);
     n += Number(r.changes);
+    if (Array.isArray(p.images) && p.images.length) pics += Number(pic.run(arr(p.images), str(p.thumb), p.slug).changes);
   }
   setSetting(db, "seed_content_rev", String(rev));
-  console.info(`[db] seed content rev ${rev}: refreshed the copy of ${n} product(s)`);
+  console.info(`[db] seed content rev ${rev}: refreshed the copy of ${n} product(s)${pics ? `, added pictures to ${pics}` : ""}`);
 }
 
 function removeListed(db: DatabaseSync, seed: SeedFile) {
