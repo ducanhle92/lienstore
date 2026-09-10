@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.18.1] - 2026-09-10
+
 ### Changed
 - Dữ liệu: cập nhật khối lượng, kích thước và độ tin cậy cho 44 sản phẩm mới theo file cào ngày 09/09 (`docs/reports/kich-thuoc-khoi-luong-44-san-pham-moi-2026-09-09.csv`): 13 Cao, 24 Trung bình, 7 Thấp; 8 sản phẩm trước đó chưa có số đo nay đã có.
 
