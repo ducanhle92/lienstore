@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Chuyên Sản Phẩm Nhật Nội Địa",
     start_url: "/",
     display: "standalone",
-    background_color: "#f3fafc",
-    theme_color: "#1c7f9e",
+    background_color: "#ffffff",
+    theme_color: "#458500",
     lang: "vi",
     icons: [
       { src: "/sites/lienstore/brand/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

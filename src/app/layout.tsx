@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { CartProvider } from "@/components/sites/lienstore/shop/CartProvider";
 import "./globals.css";
 import { getLang } from "@/lib/lang-server";
@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/sites/lienstore/brand/icon-192.png", sizes: "192x192" }],
   },
 };
+
+/** Browser chrome / iOS status bar takes the header green so the top of the app is one colour. */
+export const viewport: Viewport = { themeColor: "#458500" };
 
 export default async function RootLayout({
   children,
