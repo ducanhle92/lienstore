@@ -1,3 +1,4 @@
+import { requoteOrderAction } from "@/app/admin/shipping/carrier-actions";
 import { saveOrderLegAction } from "@/app/admin/shipping/order-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
@@ -77,6 +78,19 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG }: { 
   );
 }
 
+/** "Báo giá lại" for the VN leg: fresh quotes from every carrier for the order's address and parcel (before the waybill). */
+export function RequoteButton({ orderId, back }: { orderId: string; back: string }) {
+  return (
+    <form action={requoteOrderAction} className="mt-1.5">
+      <input type="hidden" name="orderId" value={orderId} />
+      <input type="hidden" name="back" value={back} />
+      <button type="submit" className={`${btnSecondary} !px-2 !py-1 !text-[12px]`} title="Lấy cước mới nhất của các hãng cho địa chỉ và kiện hàng của đơn; không tự đổi tiền khách">
+        <Fa name="refresh" /> Báo giá lại cước nội địa
+      </button>
+    </form>
+  );
+}
+
 /** The legs of one order, as stacked cards (order detail page). */
 export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) {
   return (
@@ -88,6 +102,7 @@ export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) 
             {l.label}
           </p>
           <OrderLegCell order={order} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back={back} weightG={weightG} />
+          {l.key === "vn_domestic" && order.delivery === "ship" ? <RequoteButton orderId={order.id} back={back} /> : null}
         </div>
       ))}
     </div>

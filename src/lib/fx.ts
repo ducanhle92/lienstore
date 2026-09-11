@@ -7,8 +7,10 @@ import { parsePricing, suggestPrice } from "./pricing";
 /**
  * JPY → VND exchange rate and the nightly cost/price job.
  *
- *  - DCOM (the remittance service Vietnamese in Japan use) publishes its rate only in its app / Facebook, so the owner
- *    types it in Admin › Kho hàng › Công thức giá ("Tỉ giá DCOM"); it stays the effective rate while `fx_mode` = dcom.
+ *  - DCOM (the remittance service Vietnamese in Japan use) publishes its rate on https://sendmoney.co.jp/vi/fx-rate
+ *    (row "Viet Nam Dong (VND) · VND 167.4000"). `fetchDcomRate` scrapes that row; the nightly job and the admin
+ *    button refresh it, and it is the effective rate while `fx_mode` = dcom. The owner may still type a manual value
+ *    (`fx_dcom_manual`) which wins over the scraped one until cleared — for the days the page is down or wrong.
  *  - A market rate (open.er-api.com, free, no key) is fetched every night as the fallback / reference.
  *  - The effective rate is stored in `jpy_vnd_rate`, which shipping quotes and the price formula already read.
  *  - `runPricingJob` (04:00 Asia/Ho_Chi_Minh, see src/instrumentation.ts; also the admin button and /api/cron/pricing):
@@ -16,8 +18,17 @@ import { parsePricing, suggestPrice } from "./pricing";
  */
 export interface FxState {
   mode: "dcom" | "market";
+  /** DCOM rate in force: the manual override when set, else the scraped one. */
   dcomRate: number | null;
   dcomUpdatedAt: string | null;
+  /** Scraped from sendmoney.co.jp (null until the first successful fetch). */
+  dcomAutoRate: number | null;
+  dcomAutoUpdatedAt: string | null;
+  /** "Cập nhật lúc" shown on the DCOM page for the scraped rate. */
+  dcomAutoPageTime: string | null;
+  /** Owner-typed override (null = follow the scraped rate). */
+  dcomManualRate: number | null;
+  dcomManualUpdatedAt: string | null;
   marketRate: number | null;
   marketUpdatedAt: string | null;
   marketSource: string;
@@ -35,14 +46,21 @@ const num = (v: string | null): number | null => {
 
 export function readFx(db: DatabaseSync = getDb()): FxState {
   const mode = getSetting(db, "fx_mode") === "market" ? "market" : "dcom";
-  const dcomRate = num(getSetting(db, "fx_dcom_rate"));
+  const dcomManualRate = num(getSetting(db, "fx_dcom_manual"));
+  const dcomAutoRate = num(getSetting(db, "fx_dcom_auto"));
+  const dcomRate = dcomManualRate ?? dcomAutoRate ?? num(getSetting(db, "fx_dcom_rate"));
   const marketRate = num(getSetting(db, "fx_market_rate"));
   const stored = num(getSetting(db, "jpy_vnd_rate")) ?? 175;
   const effective = mode === "dcom" && dcomRate ? dcomRate : (marketRate ?? dcomRate ?? stored);
   return {
     mode,
     dcomRate,
-    dcomUpdatedAt: getSetting(db, "fx_dcom_updated_at"),
+    dcomUpdatedAt: dcomManualRate ? getSetting(db, "fx_dcom_manual_at") : dcomAutoRate ? getSetting(db, "fx_dcom_auto_at") : getSetting(db, "fx_dcom_updated_at"),
+    dcomAutoRate,
+    dcomAutoUpdatedAt: getSetting(db, "fx_dcom_auto_at"),
+    dcomAutoPageTime: getSetting(db, "fx_dcom_auto_page_time"),
+    dcomManualRate,
+    dcomManualUpdatedAt: getSetting(db, "fx_dcom_manual_at"),
     marketRate,
     marketUpdatedAt: getSetting(db, "fx_market_updated_at"),
     marketSource: getSetting(db, "fx_market_source") ?? "",
@@ -72,10 +90,52 @@ export async function fetchMarketRate(): Promise<{ rate: number; source: string 
   return null;
 }
 
-/** Owner-typed DCOM rate (VND per 1 JPY). */
-export function setDcomRate(rate: number, db: DatabaseSync = getDb()): void {
-  setSetting(db, "fx_dcom_rate", String(Math.round(rate * 100) / 100));
-  setSetting(db, "fx_dcom_updated_at", new Date().toISOString());
+export const DCOM_RATE_URL = "https://sendmoney.co.jp/vi/fx-rate";
+
+/** Pull "VND 167.4000" out of the DCOM page HTML (exported for tests). */
+export function parseDcomRate(html: string): { rate: number; pageTime: string | null } | null {
+  const row = /Viet\s*Nam\s*Dong\s*\(VND\)[\s\S]{0,1500}?VND\s*([\d]+(?:[.,]\d+)?)/i.exec(html);
+  if (!row) return null;
+  const rate = Number.parseFloat(row[1].replace(",", "."));
+  if (!Number.isFinite(rate) || rate < 50 || rate > 1000) return null;
+  const time = /C[ậa]p\s*nh[ậa]t\s*l[úu]c:?\s*([0-9]{4}-[0-9]{2}-[0-9]{2}[^<\n]{0,10})/i.exec(html);
+  return { rate: Math.round(rate * 100) / 100, pageTime: time ? time[1].trim() : null };
+}
+
+/** DCOM JPY→VND rate scraped from sendmoney.co.jp; null when the page is unreachable or changed layout. */
+export async function fetchDcomRate(): Promise<{ rate: number; pageTime: string | null } | null> {
+  try {
+    const r = await fetch(DCOM_RATE_URL, { cache: "no-store", signal: AbortSignal.timeout(10000), headers: { "User-Agent": "Mozilla/5.0 (compatible; LienStore pricing bot)", Accept: "text/html" } });
+    if (!r.ok) return null;
+    return parseDcomRate(await r.text());
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch + store the DCOM rate; returns the stored value (or null when the fetch failed — the old value stays). */
+export async function refreshDcomRate(db: DatabaseSync = getDb()): Promise<{ rate: number; pageTime: string | null } | null> {
+  const got = await fetchDcomRate();
+  if (got) {
+    setSetting(db, "fx_dcom_auto", String(got.rate));
+    setSetting(db, "fx_dcom_auto_at", new Date().toISOString());
+    setSetting(db, "fx_dcom_auto_page_time", got.pageTime ?? "");
+    applyEffectiveRate(db);
+  }
+  return got;
+}
+
+/** Owner-typed DCOM override (VND per 1 JPY); null clears it so the scraped rate applies again. */
+export function setDcomRate(rate: number | null, db: DatabaseSync = getDb()): void {
+  if (rate === null) {
+    setSetting(db, "fx_dcom_manual", "");
+    setSetting(db, "fx_dcom_manual_at", "");
+    // legacy single-value key from before the scraper existed — drop it so it cannot shadow the live rate
+    setSetting(db, "fx_dcom_rate", "");
+  } else {
+    setSetting(db, "fx_dcom_manual", String(Math.round(rate * 100) / 100));
+    setSetting(db, "fx_dcom_manual_at", new Date().toISOString());
+  }
   applyEffectiveRate(db);
 }
 
@@ -104,6 +164,8 @@ export interface PricingRun {
   rate: number;
   rateSource: string;
   marketFetched: boolean;
+  dcomFetched: boolean;
+  dcomRate: number | null;
   costsUpdated: number;
   pricesUpdated: number;
   skippedSale: number;
@@ -113,7 +175,7 @@ export interface PricingRun {
 /** The nightly job (also run from the admin button). Safe to call any time; idempotent for a given rate. */
 export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise<PricingRun> {
   const db = getDb();
-  const market = await fetchMarketRate();
+  const [dcom, market] = await Promise.all([refreshDcomRate(db), fetchMarketRate()]);
   if (market) {
     setSetting(db, "fx_market_rate", String(market.rate));
     setSetting(db, "fx_market_source", market.source);
@@ -150,12 +212,12 @@ export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise
       }
     }
   }
-  const run: PricingRun = { rate, rateSource: fx.mode === "dcom" && fx.dcomRate ? "DCOM" : fx.marketSource || "market", marketFetched: !!market, costsUpdated, pricesUpdated, skippedSale, at: now };
+  const run: PricingRun = { rate, rateSource: fx.mode === "dcom" && fx.dcomRate ? (fx.dcomManualRate ? "DCOM nhập tay" : "DCOM") : fx.marketSource || "market", marketFetched: !!market, dcomFetched: !!dcom, dcomRate: dcom?.rate ?? null, costsUpdated, pricesUpdated, skippedSale, at: now };
   setSetting(db, "pricing_last_run_at", now);
   setSetting(
     db,
     "pricing_last_run_summary",
-    `Tỉ giá ${rate} (${run.rateSource}${market ? `, thị trường ${market.rate}` : ", không lấy được tỉ giá thị trường"}) · giá vốn ${costsUpdated} sp · giá bán ${applySell ? `${pricesUpdated} sp${skippedSale ? `, bỏ qua ${skippedSale} đang giảm giá` : ""}` : "không tự động"}`,
+    `Tỉ giá ${rate} (${run.rateSource}${dcom ? `, DCOM ${dcom.rate}` : ", không lấy được DCOM"}${market ? `, thị trường ${market.rate}` : ", không lấy được tỉ giá thị trường"}) · giá vốn ${costsUpdated} sp · giá bán ${applySell ? `${pricesUpdated} sp${skippedSale ? `, bỏ qua ${skippedSale} đang giảm giá` : ""}` : "không tự động"}`,
   );
   return run;
 }

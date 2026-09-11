@@ -21,11 +21,12 @@ const TRACK_LABEL: Record<OrderLeg["leg"], string> = {
  */
 export function OrderParcel({ order, legs }: { order: Order; legs: OrderLeg[] }) {
   const tracked = legs.filter((l) => l.tracking.trim());
-  let quote: { service?: string; carrier?: string } | null = null;
+  let quote: { service?: string; carrier?: string; fromPrice?: boolean } | null = null;
   if (order.shipQuote) {
     try {
-      const j = JSON.parse(order.shipQuote) as { service?: { name?: string }; carrier?: string };
-      quote = { service: j.service?.name, carrier: j.carrier };
+      // new snapshot: { quote: ShippingQuote, … }; legacy GHN snapshot: { service: { name }, carrier }
+      const j = JSON.parse(order.shipQuote) as { quote?: { carrierName?: string; serviceName?: string; accuracy?: string }; service?: { name?: string }; carrier?: string };
+      quote = j.quote ? { service: j.quote.serviceName, carrier: j.quote.carrierName, fromPrice: j.quote.accuracy === "from_price" } : { service: j.service?.name, carrier: j.carrier };
     } catch {
       quote = null;
     }
@@ -39,8 +40,11 @@ export function OrderParcel({ order, legs }: { order: Order; legs: OrderLeg[] })
       "Phí giao hàng",
       order.shippingFee > 0 ? (
         <>
-          {formatAmount(order.shippingFee)}đ{order.shipFeePayment === "on_delivery" ? <span className="text-lien-muted"> · trả cho shipper khi nhận</span> : null}
+          {quote?.fromPrice ? "Từ " : ""}
+          {formatAmount(order.shippingFee)}đ{order.shipFeePayment === "on_delivery" ? <span className="text-lien-muted"> · trả cho shipper khi nhận{quote?.fromPrice ? " (cước tham khảo, hãng xác nhận)" : ""}</span> : null}
         </>
+      ) : order.delivery === "ship" && order.shipFeePayment === "on_delivery" ? (
+        <span className="text-lien-muted">Trả cho shipper khi nhận hàng (hãng xác nhận cước)</span>
       ) : (
         "Miễn phí"
       ),

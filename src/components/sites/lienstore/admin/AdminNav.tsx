@@ -64,10 +64,10 @@ const NAV: NavGroup[] = [
     module: "shipping",
     children: [
       { href: "/admin/shipping/", label: "Đơn hàng · 4 chặng", icon: "list", module: "shipping" },
-      { href: "/admin/shipping/?leg=jp_domestic", label: "Nội địa Nhật", icon: "cube", module: "shipping" },
-      { href: "/admin/shipping/?leg=jp_vn", label: "Nhật → Việt Nam", icon: "plane", module: "shipping" },
-      { href: "/admin/shipping/?leg=vn_transfer", label: "Kho ĐVVC → kho shop", icon: "building", module: "shipping" },
-      { href: "/admin/shipping/?leg=vn_domestic", label: "Nội địa Việt Nam", icon: "truck", module: "shipping" },
+      { href: "/admin/shipping/?leg=jp_domestic", label: "① Nội địa Nhật", icon: "cube", module: "shipping" },
+      { href: "/admin/shipping/?leg=jp_vn", label: "② Nhật → Việt Nam", icon: "plane", module: "shipping" },
+      { href: "/admin/shipping/?leg=vn_transfer", label: "③ Kho ĐVVC → kho shop", icon: "building", module: "shipping" },
+      { href: "/admin/shipping/?leg=vn_domestic", label: "④ Nội địa Việt Nam", icon: "truck", module: "shipping" },
       { href: "/admin/shipping/?leg=display", label: "Hiển thị cho khách", icon: "eye", module: "shipping" },
     ],
   },
@@ -112,7 +112,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
   const [open, setOpen] = useState<Record<string, boolean | undefined>>({});
 
   return (
-    <aside className="flex w-full flex-col bg-lien-footer text-white md:min-h-screen md:w-60">
+    <aside className="flex w-full flex-col bg-lien-footer text-white md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto" data-testid="admin-sidebar">
       <div className="border-b border-white/10 px-5 py-4">
         <Link href="/admin/" className="block font-oswald text-[22px] leading-7 text-white no-underline">
           {shopName} <span className="text-white/60">· Quản trị</span>

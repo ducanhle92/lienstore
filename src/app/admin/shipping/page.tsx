@@ -8,6 +8,7 @@ import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPick
 import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
+import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
@@ -581,6 +582,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                   </h2>
                   <p className="text-[13px] text-lien-muted">{leg.description}</p>
                 </div>
+                {leg.key === "vn_domestic" ? <CarrierStatusPanel /> : null}
                 {list.map((m) => (
                   <MethodCard key={m.id} m={m} carriers={carriers} tab={tab} />
                 ))}

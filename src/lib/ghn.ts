@@ -192,10 +192,12 @@ export interface GhnQuoteInput {
 export interface GhnQuote {
   carrier: "GHN";
   currency: "VND";
-  service: { typeId: number; name: string };
+  service: { id?: number; typeId: number; name: string };
   fee: { total: number; shipping: number; insurance: number; cod: number; pickupRemoteArea: number; deliveryRemoteArea: number; coupon: number };
   quotedAt: string;
   expiresAt: string;
+  /** ISO time GHN expects to deliver (leadtime API), when it answered. */
+  expectedDelivery?: string;
 }
 
 /** Light goods (type 2) under 20 kg, heavy goods (type 5) from 20 kg — only when the route really offers it. */
@@ -272,13 +274,25 @@ export async function quoteGhn(input: GhnQuoteInput): Promise<GhnQuote> {
     });
     if (!Number.isFinite(fee?.total) || fee.total <= 0) throw new GhnApiError("GHN trả về phí không hợp lệ.", 502, "GHN_INVALID_RESPONSE");
     const quotedAt = new Date();
+    // ETA from GHN's own lead-time API for this route (never a fixed number of days per region); optional
+    let expectedDelivery: string | undefined;
+    try {
+      const lt = await request<{ leadtime?: number }>("/shiip/public-api/v2/shipping-order/leadtime", {
+        method: "POST",
+        body: JSON.stringify({ from_district_id: cfg.pickupDistrictId, from_ward_code: cfg.pickupWardCode, to_district_id: input.toDistrictId, to_ward_code: input.toWardCode.trim(), service_id: service.service_id }),
+      });
+      if (lt?.leadtime && Number.isFinite(lt.leadtime)) expectedDelivery = new Date(lt.leadtime * 1000).toISOString();
+    } catch {
+      /* ETA is optional */
+    }
     return {
       carrier: "GHN",
       currency: "VND",
-      service: { typeId: service.service_type_id, name: service.short_name },
+      service: { id: service.service_id, typeId: service.service_type_id, name: service.short_name },
       fee: normalizeFee(fee),
       quotedAt: quotedAt.toISOString(),
       expiresAt: new Date(quotedAt.getTime() + 5 * 60 * 1000).toISOString(),
+      ...(expectedDelivery ? { expectedDelivery } : {}),
     };
   });
 }

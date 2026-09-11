@@ -4,10 +4,10 @@ import type { ShippingMethod, ShippingZone } from "@/types/shop";
 export type ShippingLeg = "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic";
 
 export const SHIPPING_LEGS: Array<{ key: ShippingLeg; label: string; description: string }> = [
-  { key: "jp_domestic", label: "Ship nội địa Nhật", description: "Từ nơi mua (cửa hàng, Amazon) tới kho gom hàng tại Nhật." },
-  { key: "jp_vn", label: "Ship Nhật → Việt Nam", description: "Từ kho Nhật về kho Việt Nam (đường bay / đường biển / EMS / xách tay)." },
-  { key: "vn_transfer", label: "Kho ĐVVC → kho shop", description: "Từ kho đơn vị vận chuyển tại Việt Nam (Hà Nội) về kho LienStore Thanh Hóa. Mặc định Kiến Express, admin chọn hãng khác nếu muốn." },
-  { key: "vn_domestic", label: "Ship nội địa Việt Nam", description: "Từ kho Việt Nam giao tới tận nhà khách." },
+  { key: "jp_domestic", label: "① Ship nội địa Nhật", description: "Từ nơi mua (cửa hàng, Amazon) tới kho gom hàng tại Nhật." },
+  { key: "jp_vn", label: "② Ship Nhật → Việt Nam", description: "Từ kho Nhật về kho Việt Nam (đường bay / đường biển / EMS / xách tay)." },
+  { key: "vn_transfer", label: "③ Kho ĐVVC → kho shop", description: "Từ kho đơn vị vận chuyển tại Việt Nam (Hà Nội) về kho LienStore Thanh Hóa. Mặc định Kiến Express, admin chọn hãng khác nếu muốn." },
+  { key: "vn_domestic", label: "④ Ship nội địa Việt Nam", description: "Từ kho Thanh Hóa giao tới tận nhà khách. Cước báo theo địa chỉ nhận qua từng hãng (GHN API, Viettel Post API, biểu phí VNPost / SPX) — không dùng bảng vùng cố định." },
 ];
 
 export const LEG_LABEL: Record<ShippingLeg, string> = Object.fromEntries(SHIPPING_LEGS.map((l) => [l.key, l.label])) as Record<ShippingLeg, string>;

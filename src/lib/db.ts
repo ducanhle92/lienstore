@@ -30,8 +30,12 @@ import type {
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
-import { applyShipPolicy, parseShipPolicy, policyFreeOver, type ShipPolicy } from "./ship-policy";
-import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig, zoneFeeForWeight } from "./shipping";
+import { findQuote } from "./carriers";
+import { CARRIER_NAME, usableForCheckoutTotal, type ShippingQuote } from "./carriers/types";
+import { quoteCart } from "./ship-quote";
+import { coarseRegionOf } from "./vn-address";
+import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
+import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, type PricingConfig } from "./pricing";
 import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
@@ -586,24 +590,31 @@ export interface CreateOrderInput {
   voucherCode?: string;
   /** Who pays the domestic delivery fee: with the order (default) or to the courier on delivery. */
   shipFeePayment?: ShipFeePayment;
-  /** GHN 3-level address when the customer chose the live-quoted GHN option. */
-  ghn?: { districtId: number; wardCode: string; provinceName: string; districtName: string; wardName: string } | null;
+  /**
+   * Delivery address in the 2-level model + the carrier/service the customer picked (home delivery). `clientFee` is what
+   * the browser showed; the server re-quotes and never charges more than that without telling the customer.
+   */
+  shipTo?: { provinceCode: string; wardCode: string; street: string; carrier?: string; serviceCode?: string; clientFee?: number | null } | null;
 }
 
 /** Billable weight, parcel size and subtotal of a set of cart lines, from the catalogue (never from the browser). */
-function parcelOf(db: DatabaseSync, lines: Array<{ productId: number; quantity: number }>): { weightG: number; dims: ReturnType<typeof packageDims>; subtotal: number } {
+export function parcelOf(db: DatabaseSync, lines: Array<{ productId: number; quantity: number }>): { weightG: number; dims: ReturnType<typeof packageDims>; subtotal: number; quantity: number; special: boolean } {
   let weightG = 0;
   let subtotal = 0;
+  let quantity = 0;
+  let special = false;
   const parcel: Array<{ dims: string | null; quantity: number }> = [];
   for (const it of lines) {
-    const row = db.prepare("SELECT price, weight_g, dims_cm, dims_confidence FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as { price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null } | undefined;
+    const row = db.prepare("SELECT price, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as { price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null } | undefined;
     if (!row) continue;
     const qty = Math.max(1, Math.floor(it.quantity));
     weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
     subtotal += row.price * qty;
+    quantity += qty;
+    if (isSpecialHandling(parseArr(row.tags ?? "[]"))) special = true;
     parcel.push({ dims: row.dims_cm, quantity: qty });
   }
-  return { weightG: Math.max(1, weightG), dims: packageDims(parcel), subtotal };
+  return { weightG: Math.max(1, weightG), dims: packageDims(parcel), subtotal, quantity, special };
 }
 
 /** Live GHN quote for a cart (checkout preview and order creation share this). */
@@ -615,9 +626,27 @@ export async function quoteCartGhn(lines: Array<{ productId: number; quantity: n
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const db = getDb();
-  // The live carrier quote is fetched before the transaction (network); it is re-quoted here, never trusted from the browser.
-  const live = input.delivery !== "pickup" && input.ghn ? await quoteCartGhn(input.items, input.ghn, input.paymentMethod === "cod") : null;
-  const ghnMethod = live ? (db.prepare("SELECT id, name FROM shipping_methods WHERE live_quote = 'ghn' AND active = 1 ORDER BY position LIMIT 1").get() as { id: number; name: string } | undefined) : undefined;
+  // Home delivery: re-quote the chosen carrier for the exact address right before the order is written (network, so
+  // outside the transaction). The browser's number is only compared against it — never trusted.
+  let live: { quote: ShippingQuote; bundle: Awaited<ReturnType<typeof quoteCart>>; fullAddress: string } | null = null;
+  let shipAddress: string | null = null;
+  if (input.shipTo) {
+    const r = await quoteCart({ lines: input.items, destination: input.shipTo, cod: input.paymentMethod === "cod" }, { fresh: input.delivery !== "pickup" });
+    if ("error" in r) throw new Error(r.error);
+    shipAddress = r.request.destination.fullAddress;
+    if (input.delivery !== "pickup") {
+      if (!input.shipTo.carrier || !input.shipTo.serviceCode) throw new Error("Vui lòng chọn một phương án vận chuyển.");
+      const q = findQuote(r.quotes, input.shipTo.carrier, input.shipTo.serviceCode);
+      if (!q || !q.available) throw new Error(`${CARRIER_NAME[input.shipTo.carrier as keyof typeof CARRIER_NAME] ?? input.shipTo.carrier} hiện không báo được cước cho địa chỉ này — vui lòng chọn phương án khác.`);
+      const clientFee = input.shipTo.clientFee ?? null;
+      if (clientFee !== null && q.totalFeeVnd !== null && q.totalFeeVnd > clientFee) {
+        console.info(`[ship-quote] fee moved up for ${q.carrier}/${q.serviceCode}: shown ${clientFee} → now ${q.totalFeeVnd}`);
+        throw new Error(`Cước ${q.carrierName} vừa đổi từ ${clientFee.toLocaleString("vi-VN")}đ thành ${q.totalFeeVnd.toLocaleString("vi-VN")}đ. Vui lòng kiểm tra lại phương án vận chuyển và bấm Thanh toán lần nữa.`);
+      }
+      if (clientFee !== null && q.totalFeeVnd !== null && q.totalFeeVnd < clientFee) console.info(`[ship-quote] fee moved down for ${q.carrier}/${q.serviceCode}: shown ${clientFee} → now ${q.totalFeeVnd} (customer pays the lower one)`);
+      live = { quote: q, bundle: r, fullAddress: r.request.destination.fullAddress };
+    }
+  }
   return withTransaction(db, () => {
     const now = new Date().toISOString();
     // Re-price items from the catalogue so the client cannot tamper with prices.
@@ -641,35 +670,26 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     if (prepaidRequired && input.paymentMethod === "cod") throw new Error("Đơn có hàng order (đặt mua theo yêu cầu) cần thanh toán trước 100% bằng chuyển khoản.");
     const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
 
-    // Delivery: pickup is free; home delivery uses the chosen VN-domestic zone (per-order or per-kg fee, free above a threshold).
+    // Delivery: pickup is free; home delivery = the carrier quote re-fetched above (a "Từ …" quote is paid to the courier,
+    // never collected with the order); the shop covers the fee above the policy threshold of the destination region.
     const delivery: "ship" | "pickup" = input.delivery === "pickup" ? "pickup" : "ship";
     let shippingFee = 0;
     let shippingLabel = "Nhận tại kho";
-    if (delivery === "ship" && live && input.ghn) {
-      shippingFee = live.quote.fee.total;
-      shippingLabel = `${ghnMethod?.name ?? "Giao Hàng Nhanh (GHN)"} · ${live.quote.service.name} · ${[input.ghn.wardName, input.ghn.districtName, input.ghn.provinceName].filter(Boolean).join(", ")}`;
-    } else if (delivery === "ship") {
-      const zone = input.shippingZoneId
-        ? (db
-            .prepare(
-              `SELECT z.name, z.fee, z.unit, z.free_over, z.base_g, z.step_g, z.step_fee, z.extra_fee, m.name AS method, c.name AS carrier FROM shipping_zones z
-               JOIN shipping_methods m ON m.id = z.method_id LEFT JOIN shipping_carriers c ON c.id = m.carrier_id
-               WHERE z.id = ? AND z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'`,
-            )
-            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; base_g: number | null; step_g: number | null; step_fee: number | null; extra_fee: number | null; method: string; carrier: string | null } | undefined)
-        : undefined;
-      const anyZone = db.prepare("SELECT 1 FROM shipping_zones z JOIN shipping_methods m ON m.id = z.method_id WHERE z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'").get();
-      if (!zone && anyZone) throw new Error("Vui lòng chọn khu vực giao hàng.");
-      if (zone) {
-        // carrier tariff by billable weight + surcharge for liquids / bulky items; the shop covers it above free_over
-        const base = zoneFeeForWeight({ fee: zone.fee, unit: zone.unit, baseG: zone.base_g, stepG: zone.step_g, stepFee: zone.step_fee }, weightG || 1000) + (special && zone.extra_fee ? zone.extra_fee : 0);
-        const freeOver = policyFreeOver(parseShipPolicy(getSetting(db, "ship_policy")), zone.name);
-        shippingFee = freeOver !== null && subtotal >= freeOver ? 0 : base;
-        shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
-      } else {
-        shippingLabel = "Giao tận nhà (phí báo sau)";
-      }
+    let fromPrice = false;
+    let shipSupport = 0;
+    if (delivery === "ship") {
+      if (!live || !input.shipTo) throw new Error("Vui lòng chọn một phương án vận chuyển.");
+      const q = live.quote;
+      fromPrice = !usableForCheckoutTotal(q);
+      const policy = parseShipPolicy(getSetting(db, "ship_policy"));
+      const region = coarseRegionOf(input.shipTo.provinceCode);
+      const freeOver = policy.enabled && region ? policy.thresholds[region] : null;
+      const gross = q.totalFeeVnd ?? 0;
+      shipSupport = !fromPrice && freeOver !== null && subtotal >= freeOver ? gross : 0;
+      shippingFee = fromPrice ? gross : Math.max(0, gross - shipSupport);
+      shippingLabel = `${q.carrierName}${q.serviceName ? ` · ${q.serviceName}` : ""}`;
     }
+    void special;
     // Voucher (validated against the live table inside the same transaction; usage counted here).
     let discount = 0;
     let voucherCode = "";
@@ -690,17 +710,14 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const vnLabel = shippingLabel;
     shippingFee = vnFee + jpFee;
     if (jpLegs.length) shippingLabel = [...jpLegs.map((l) => l.label), vnLabel].filter(Boolean).join(" + ");
-    // Fee paid to the courier on delivery stays out of the amount the shop collects.
-    const shipFeePayment: ShipFeePayment = delivery === "ship" && input.shipFeePayment === "on_delivery" ? "on_delivery" : "prepaid";
+    // Fee paid to the courier on delivery stays out of the amount the shop collects; a "Từ …" quote is always paid that way.
+    const shipFeePayment: ShipFeePayment = delivery === "ship" && (fromPrice || input.shipFeePayment === "on_delivery") ? "on_delivery" : "prepaid";
     const total = Math.max(0, subtotal - discount) + (shipFeePayment === "prepaid" ? shippingFee : 0);
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
     const id = randomUUID();
     const c = { ...input.customer };
-    if (input.ghn) {
-      const tail = [input.ghn.wardName, input.ghn.districtName, input.ghn.provinceName].filter(Boolean).join(", ");
-      if (tail && !c.address.toLowerCase().includes(input.ghn.districtName.toLowerCase())) c.address = `${c.address}, ${tail}`;
-    }
+    if (shipAddress) c.address = shipAddress;
     db.prepare(`INSERT INTO orders (id, number, customer_id, status, payment_method, first_name, last_name, address, phone, email, note,
       subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code, ship_fee_payment, ship_quote_json) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
@@ -724,7 +741,17 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       discount,
       voucherCode,
       shipFeePayment,
-      live ? JSON.stringify({ ...live.quote, weightG: live.weightG, dims: live.dims, to: input.ghn }) : null,
+      live
+        ? JSON.stringify({
+            quote: live.quote,
+            parcel: live.bundle && !("error" in live.bundle) ? live.bundle.parcel : null,
+            destination: live.bundle && !("error" in live.bundle) ? live.bundle.request.destination : null,
+            clientFee: input.shipTo?.clientFee ?? null,
+            shipSupport,
+            quotedAt: live.bundle && !("error" in live.bundle) ? live.bundle.quotedAt : now,
+            others: live.bundle && !("error" in live.bundle) ? live.bundle.quotes.map((q) => ({ carrier: q.carrier, serviceCode: q.serviceCode, available: q.available, totalFeeVnd: q.totalFeeVnd, accuracy: q.accuracy })) : [],
+          })
+        : null,
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -739,8 +766,21 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
     for (const l of jpLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `Báo giá khi đặt: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
-    else if (live) insLeg.run(id, "vn_domestic", ghnMethod?.id ?? null, null, vnLabel, vnFee, `Báo giá GHN ${live.quote.service.name} lúc đặt · kiện ${live.weightG} g ${live.dims.length}×${live.dims.width}×${live.dims.height} cm${shipFeePayment === "on_delivery" ? " · khách trả phí cho shipper" : ""}`, now);
-    else if (vnLabel) insLeg.run(id, "vn_domestic", null, input.shippingZoneId ?? null, vnLabel, vnFee, shipFeePayment === "on_delivery" ? "Khách trả phí ship cho shipper khi nhận" : "", now);
+    else if (live) {
+      const q = live.quote;
+      const par = live.bundle && !("error" in live.bundle) ? live.bundle.parcel : null;
+      const method = db.prepare("SELECT m.id FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id WHERE m.leg = 'vn_domestic' AND (lower(m.name) LIKE ? OR lower(c.name) LIKE ?) ORDER BY m.active DESC, m.position LIMIT 1").get(`%${q.carrier === "GHN" ? "ghn" : q.carrier === "SPX" ? "spx" : q.carrier === "VNPOST" ? "vnpost" : "viettel"}%`, `%${q.carrier === "GHN" ? "ghn" : q.carrier === "SPX" ? "spx" : q.carrier === "VNPOST" ? "vnpost" : "viettel"}%`) as { id: number } | undefined;
+      insLeg.run(
+        id,
+        "vn_domestic",
+        method?.id ?? null,
+        null,
+        vnLabel,
+        q.totalFeeVnd ?? 0,
+        `Báo giá ${q.carrierName} (${q.source === "live_api" ? "API" : `biểu phí v${q.rateCardVersion ?? "?"}`}, ${q.accuracy === "exact_now" ? "chính xác" : q.accuracy === "estimated" ? "ước tính" : "từ — chưa gồm phụ phí"}) lúc đặt${par ? ` · kiện ${par.weightG} g ${par.length}×${par.width}×${par.height} cm` : ""}${shipSupport ? ` · shop hỗ trợ ${shipSupport.toLocaleString("vi-VN")}đ` : ""}${shipFeePayment === "on_delivery" ? " · khách trả phí cho shipper" : ""}`,
+        now,
+      );
+    }
     // The account's saved contact details follow the latest checkout, so "Địa chỉ" in my-account matches the order;
     // an ID-only account also adopts the email typed at checkout when no other account owns it.
     if (input.customerId) {
@@ -1737,7 +1777,7 @@ export async function getShippingMethods(activeOnly = true): Promise<ShippingMet
   return loadShippingMethods(getDb(), activeOnly);
 }
 
-function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMethod[] {
+export function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMethod[] {
   const where = activeOnly ? "WHERE active = 1" : "";
   const methods = db
     .prepare(`SELECT m.*, c.name AS carrier_name, c.website AS carrier_website FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)

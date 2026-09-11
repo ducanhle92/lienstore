@@ -58,6 +58,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
       {sp.noted ? <Flash>Đã lưu ghi chú nội bộ.</Flash> : null}
       {sp.staged ? <Flash>Đã cập nhật tiến độ vận chuyển; khách thấy ngay trong trang đơn hàng.</Flash> : null}
       {sp.fileError ? <Flash kind="warning">{first(sp.fileError)}</Flash> : null}
+      {sp.saved ? <Flash>{first(sp.saved)}</Flash> : null}
+      {sp.error ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

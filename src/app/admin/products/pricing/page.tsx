@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { applySuggestedPricesAction, runPricingNowAction, saveFxAction, savePricingConfigAction } from "@/app/admin/products/pricing/actions";
+import { applySuggestedPricesAction, refreshDcomAction, runPricingNowAction, saveFxAction, savePricingConfigAction } from "@/app/admin/products/pricing/actions";
 import { readFx } from "@/lib/fx";
 import { formatDateTime } from "@/lib/format";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
@@ -52,17 +52,31 @@ export default async function AdminPricing({ searchParams }: Props) {
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <form action={saveFxAction} className="grid gap-4 sm:grid-cols-[200px_1fr] sm:items-start">
             <div>
-              <label className={adminLabel} htmlFor="dcomRate">
-                Tỉ giá DCOM (đ / 1 ¥)
+              <p className={adminLabel}>Tỉ giá DCOM tự lấy (đ / 1 ¥)</p>
+              <p className="m-0 text-[22px] font-bold leading-7 text-lien-heading" data-testid="dcom-auto">
+                {fx.dcomAutoRate ? fx.dcomAutoRate.toLocaleString("vi-VN", { maximumFractionDigits: 2 }) : "—"}
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-lien-muted">
+                {fx.dcomAutoRate ? (
+                  <>
+                    Từ <a href="https://sendmoney.co.jp/vi/fx-rate" target="_blank" rel="noreferrer" className="text-lien-blue underline">sendmoney.co.jp</a>
+                    {fx.dcomAutoPageTime ? ` (DCOM cập nhật ${fx.dcomAutoPageTime})` : ""} · lấy lúc {fx.dcomAutoUpdatedAt ? formatDateTime(fx.dcomAutoUpdatedAt) : "?"}
+                  </>
+                ) : (
+                  "Chưa lấy được — bấm \"Lấy tỉ giá DCOM ngay\" hoặc chờ 04:00."
+                )}
+              </p>
+              <label className={`${adminLabel} mt-3`} htmlFor="dcomRate">
+                Nhập tay (ghi đè, để trống = theo DCOM tự lấy)
               </label>
-              <input id="dcomRate" name="dcomRate" inputMode="decimal" defaultValue={fx.dcomRate ?? ""} placeholder="VD: 176,5" className={adminInput} />
-              <p className="mt-1 text-[12px] text-lien-muted">{fx.dcomUpdatedAt ? `Nhập lúc ${formatDateTime(fx.dcomUpdatedAt)}` : "Chưa nhập — DCOM chỉ công bố trên app / Facebook, nhập tay ở đây."}</p>
+              <input id="dcomRate" name="dcomRate" inputMode="decimal" defaultValue={fx.dcomManualRate ?? ""} placeholder="VD: 167,4" className={adminInput} />
+              {fx.dcomManualRate ? <p className="mt-1 text-[12px] text-amber-700">Đang ghi đè bằng {formatAmount(fx.dcomManualRate)} đ/¥ (nhập lúc {fx.dcomManualUpdatedAt ? formatDateTime(fx.dcomManualUpdatedAt) : "?"}). Xóa ô này và Lưu để quay về tỉ giá tự lấy.</p> : null}
             </div>
             <div className="space-y-2 text-[14px]">
               <label className="flex items-start gap-2">
                 <input type="radio" name="mode" value="dcom" defaultChecked={fx.mode === "dcom"} className="mt-1 h-4 w-4" />
                 <span>
-                  <strong>Dùng tỉ giá DCOM</strong> đã nhập; khi chưa nhập thì tạm dùng tỉ giá thị trường.
+                  <strong>Dùng tỉ giá DCOM</strong> (tự lấy mỗi đêm từ sendmoney.co.jp; khi chưa lấy được thì tạm dùng tỉ giá thị trường).
                 </span>
               </label>
               <label className="flex items-start gap-2">
@@ -84,8 +98,13 @@ export default async function AdminPricing({ searchParams }: Props) {
           </form>
           <div className="rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-4 text-[13px] leading-6 text-lien-text">
             <p className="m-0">
-              Đang dùng: <strong>{formatAmount(fx.effective)} đ/¥</strong> ({fx.mode === "dcom" && fx.dcomRate ? "DCOM" : "thị trường"}) · {withJpy} sản phẩm có giá ¥.
+              Đang dùng: <strong data-testid="fx-effective">{fx.effective.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} đ/¥</strong> ({fx.mode === "dcom" && fx.dcomRate ? (fx.dcomManualRate ? "DCOM nhập tay" : "DCOM tự lấy") : "thị trường"}) · {withJpy} sản phẩm có giá ¥.
             </p>
+            <form action={refreshDcomAction} className="mt-2">
+              <button type="submit" className="inline-flex items-center gap-1 rounded-md border border-lien-blue bg-white px-3 py-1.5 text-[13px] font-semibold text-lien-blue hover:bg-lien-blue-soft">
+                <Fa name="refresh" /> Lấy tỉ giá DCOM ngay
+              </button>
+            </form>
             <p className="m-0 mt-1 text-lien-muted">Tự chạy lúc <strong>04:00</strong> mỗi ngày: lấy tỉ giá → giá vốn VNĐ = giá ¥ × tỉ giá → giá bán (nếu bật). Lần cuối: {fx.lastRunAt ? `${formatDateTime(fx.lastRunAt)} — ${fx.lastRunSummary}` : "chưa chạy"}.</p>
             <form action={runPricingNowAction} className="mt-3">
               <button type="submit" className={btnPrimary}>

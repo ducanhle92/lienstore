@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getImportQuoteConfig, getPricingConfig, setPricingConfig, updateProductPricing } from "@/lib/db";
 import { MARGIN_RANGE } from "@/lib/pricing";
-import { runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
+import { refreshDcomRate, runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
 import { suggestPrice } from "@/lib/pricing";
 
 const PAGE = "/admin/products/pricing/";
@@ -55,12 +55,21 @@ export async function saveFxAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
   const raw = text(formData, "dcomRate").replace(/\./g, "").replace(",", ".");
   const dcom = Number.parseFloat(raw);
-  if (raw && (!Number.isFinite(dcom) || dcom < 50 || dcom > 1000)) back("error", "Tỉ giá DCOM phải là số VND cho 1 yên, ví dụ 176,5.");
-  if (raw) setDcomRate(dcom);
+  if (raw && (!Number.isFinite(dcom) || dcom < 50 || dcom > 1000)) back("error", "Tỉ giá DCOM phải là số VND cho 1 yên, ví dụ 167,4.");
+  setDcomRate(raw ? dcom : null);
   setFxMode(text(formData, "mode") === "market" ? "market" : "dcom");
   setAutoSell(formData.get("autoSell") === "on");
   revalidatePath("/admin", "layout");
-  back("saved", raw ? `Đã lưu tỉ giá DCOM ${dcom} đ/¥.` : "Đã lưu thiết lập tỉ giá.");
+  back("saved", raw ? `Đã lưu tỉ giá DCOM nhập tay ${dcom} đ/¥ (ghi đè tỉ giá tự lấy).` : "Đã lưu thiết lập tỉ giá — dùng tỉ giá DCOM tự lấy.");
+}
+
+/** "Lấy tỉ giá DCOM ngay" — scrape sendmoney.co.jp and apply. */
+export async function refreshDcomAction(): Promise<void> {
+  await requireAdmin("products");
+  const got = await refreshDcomRate();
+  revalidatePath("/admin", "layout");
+  if (!got) return back("error", "Không lấy được tỉ giá từ sendmoney.co.jp (trang không phản hồi hoặc đổi bố cục). Tỉ giá cũ vẫn giữ.");
+  back("saved", `Đã lấy tỉ giá DCOM ${got.rate} đ/¥${got.pageTime ? ` (DCOM cập nhật ${got.pageTime})` : ""}.`);
 }
 
 /** "Cập nhật giá vốn theo tỉ giá ngay" — the same job that runs at 04:00. */
