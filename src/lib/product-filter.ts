@@ -17,7 +17,7 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
     .filter((p) => !q || `${p.name} ${p.slug} ${p.sku ?? ""} #${p.id}`.toLowerCase().includes(q))
     .filter((p) => !status || p.status === status)
     .filter((p) => !category || p.categories.includes(category))
-    .filter((p) => !stock || (stock === "out" ? p.stockStatus === "outofstock" : p.stockStatus === "instock"))
+    .filter((p) => !stock || (stock === "out" ? p.stockStatus === "discontinued" : p.stockStatus === "instock"))
     .filter((p) => !fulfillment || p.fulfillment === fulfillment);
   const cmp = (a: CatalogProduct, b: CatalogProduct): number => {
     switch (sort) {

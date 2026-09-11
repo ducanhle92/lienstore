@@ -4,7 +4,7 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
 import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
@@ -156,7 +156,7 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
           </div>
           <div className="md:col-span-2">
             <label className={adminLabel}>Kho / địa điểm nhận & giao (hiện cho khách)</label>
-            <textarea name="warehouse" defaultValue={m.warehouse} rows={2} placeholder="VD: Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho VN: Hà Nội" className={adminInput} />
+            <textarea name="warehouse" defaultValue={m.warehouse} rows={2} placeholder="VD: Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Kiến Express) · Kho VN: Hà Nội" className={adminInput} />
           </div>
           <div>
             <label className={adminLabel}>Lưu ý riêng của phương thức (mỗi dòng một ý)</label>
@@ -408,8 +408,8 @@ export default async function AdminShipping({ searchParams }: Props) {
   const sp = await searchParams;
   const saved = first(sp.saved);
   const error = first(sp.error);
-  const [methods, notes, carriers, pickupAddress, allOrders, pricingMode, jpyRate] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders(), getShippingPricingMode(), getJpyRate()]);
-  const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate);
+  const [methods, notes, carriers, pickupAddress, allOrders, pricingMode, jpyRate, quoteDefaults] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders(), getShippingPricingMode(), getJpyRate(), getQuoteDefaults()]);
+  const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate, quoteDefaults);
   const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
   const legMap = await getOrderLegs(orders.map((o) => o.id));
   const weightMap = new Map(await Promise.all(orders.map(async (o) => [o.id, await getOrderChargeableWeightG(o.id)] as const)));
@@ -552,7 +552,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                       </td>
                       {SHIPPING_LEGS.map((l) => (
                         <td key={l.key} className="border-b border-[#f0f0f0] px-2 py-3">
-                          <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" weightG={weightMap.get(o.id)} />
+                          <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" weightG={weightMap.get(o.id)} quote={quoteCfg} />
                         </td>
                       ))}
                     </tr>

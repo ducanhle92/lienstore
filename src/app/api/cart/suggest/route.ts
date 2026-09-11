@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   const out: CatalogProduct[] = [];
   const seen = new Set<number>();
   const push = (p: CatalogProduct) => {
-    if (seen.has(p.id) || inCart.has(p.id) || p.stockStatus === "outofstock") return;
+    if (seen.has(p.id) || inCart.has(p.id) || p.stockStatus === "discontinued") return;
     seen.add(p.id);
     out.push(p);
   };

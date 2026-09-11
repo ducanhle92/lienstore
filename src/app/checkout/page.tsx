@@ -5,7 +5,7 @@ import { CheckoutForm } from "@/components/sites/lienstore/shop/cart/CheckoutFor
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getShippingMethods, getShippingPricingMode, listAddresses } from "@/lib/db";
+import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getQuoteDefaults, getShippingMethods, getShippingPricingMode, listAddresses } from "@/lib/db";
 import { billableProductWeightG, buildQuoteConfig } from "@/lib/shipping";
 import { parseAddressToCodes } from "@/lib/vn-address";
 
@@ -14,8 +14,8 @@ export const metadata: Metadata = { title: "Thanh toán – LienStore" };
 
 export default async function Checkout() {
   const lang = await getLang();
-  const [customer, methods, pickupAddress, products, mode, jpyRate] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts(), getShippingPricingMode(), getJpyRate()]);
-  const quote = buildQuoteConfig(methods, mode, jpyRate);
+  const [customer, methods, pickupAddress, products, mode, jpyRate, defaults] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts(), getShippingPricingMode(), getJpyRate(), getQuoteDefaults()]);
+  const quote = buildQuoteConfig(methods, mode, jpyRate, defaults);
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
   const preorderIds = products.filter((p) => p.fulfillment === "order" || p.stock === null || p.stock <= 0).map((p) => p.id);
   // Billable grams per product: max(actual, volumetric) × safety factor by confidence (500 g × 2 when unknown) — for the JP legs.

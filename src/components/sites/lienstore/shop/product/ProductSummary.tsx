@@ -30,7 +30,7 @@ function Amount({ value, currency }: { value: number; currency: string }) {
  * product meta. 48% of the row floated right at ≥768px, full width below.
  */
 export function ProductSummary({ product, compareCategory, children }: ProductSummaryProps) {
-  const out = product.stockStatus === "outofstock";
+  const out = product.stockStatus === "discontinued";
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
   const regular = product.regularPrice !== null && product.regularPrice > product.price ? product.regularPrice : null;

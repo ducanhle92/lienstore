@@ -1,8 +1,7 @@
 import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSetting, setSetting } from "./sqlite";
-import { buildQuoteConfig } from "./shipping";
-import { parsePricing, suggestPrice } from "./pricing";
+import { suggestPrice } from "./pricing";
 
 /**
  * JPY → VND exchange rate and the nightly cost/price job.
@@ -192,20 +191,16 @@ export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise
   let skippedSale = 0;
   const applySell = opts.applySell ?? fx.autoSell;
   if (applySell) {
-    const pricing = parsePricing(getSetting(db, "pricing_config"));
-    const { loadShippingMethodsForQuote } = await import("./db");
-    const quote = buildQuoteConfig(loadShippingMethodsForQuote(db), "per_order", rate);
-    const rows = db
-      .prepare("SELECT id, price, regular_price, cost_price, weight_g, dims_cm, dims_confidence, margin_pct FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND cost_price IS NOT NULL")
-      .all() as unknown as Array<{ id: number; price: number; regular_price: number | null; cost_price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; margin_pct: number | null }>;
+    const { getAllProducts, getImportQuoteConfig, getPricingConfig } = await import("./db");
+    const [pricing, quote, all] = await Promise.all([getPricingConfig(), getImportQuoteConfig(), getAllProducts(true)]);
+    const rows = all.filter((p) => p.costJpy && p.costJpy > 0 && p.costPrice !== null);
     const upd = db.prepare("UPDATE products SET price = ?, updated_at = ? WHERE id = ?");
     for (const p of rows) {
-      if (p.regular_price !== null) {
+      if (p.regularPrice !== null) {
         skippedSale++;
         continue;
       }
-      const conf = p.dims_confidence === "high" || p.dims_confidence === "medium" || p.dims_confidence === "low" ? p.dims_confidence : null;
-      const s = suggestPrice({ costPrice: p.cost_price, weightG: p.weight_g, dimsCm: p.dims_cm, dimsConfidence: conf, marginPct: p.margin_pct }, quote, pricing);
+      const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
       if (s && s.suggested !== p.price) {
         upd.run(s.suggested, now, p.id);
         pricesUpdated++;

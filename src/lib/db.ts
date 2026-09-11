@@ -35,8 +35,8 @@ import { CARRIER_NAME, usableForCheckoutTotal, type ShippingQuote } from "./carr
 import { quoteCart } from "./ship-quote";
 import { coarseRegionOf } from "./vn-address";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
-import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
-import { parsePricing, type PricingConfig } from "./pricing";
+import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
+import { parsePricing, serializePricing, type PricingConfig } from "./pricing";
 import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
@@ -73,7 +73,8 @@ interface ProductRow {
   currency: string;
   sku: string | null;
   stock: number | null;
-  stock_status: "instock" | "outofstock";
+  /** DB spelling: 'outofstock' (column CHECK) is read as "discontinued" — the model is no longer sold in Japan. */
+  stock_status: "instock" | "discontinued" | "outofstock";
   fulfillment: string | null;
   cost_jpy: number | null;
   cost_source: string | null;
@@ -132,7 +133,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     currency: r.currency,
     sku: r.sku,
     stock: r.stock,
-    stockStatus: r.stock_status,
+    stockStatus: r.stock_status === "discontinued" || r.stock_status === "outofstock" ? "discontinued" : "instock",
     fulfillment: r.fulfillment === "stock" ? "stock" : "order",
     categories: parseArr(r.categories),
     tags: parseArr(r.tags),
@@ -412,7 +413,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.currency,
         input.sku,
         input.stock,
-        input.stockStatus,
+        input.stockStatus === "discontinued" ? "outofstock" : "instock", // the column's CHECK still spells "discontinued" as 'outofstock'
         input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
         input.costJpy ?? null,
         input.costSource ?? "",
@@ -453,7 +454,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.currency,
         input.sku,
         input.stock,
-        input.stockStatus,
+        input.stockStatus === "discontinued" ? "outofstock" : "instock", // the column's CHECK still spells "discontinued" as 'outofstock'
         input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
         input.costJpy ?? null,
         input.costSource ?? "",
@@ -704,7 +705,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const mode: ShippingPricingMode = getSetting(db, "shipping_pricing_mode") === "included" ? "included" : "per_order";
     const rateRaw = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
     const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
-    const jpLegs = mode === "per_order" ? quoteJpLegs(buildQuoteConfig(loadShippingMethods(db, true), mode, jpyRate), weightG || 1000, subtotal) : [];
+    // the default import flow (Japan Post → Kiến Express → Viettel Post) is always recorded on the order for the admin;
+    // the customer only pays it in per-order mode
+    const importLegs = quoteImportLegs(buildQuoteConfig(loadShippingMethods(db, true), mode, jpyRate, loadQuoteDefaults(db)), weightG || 1000, subtotal);
+    const jpLegs = mode === "per_order" ? importLegs : [];
     const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
     const vnFee = shippingFee;
     const vnLabel = shippingLabel;
@@ -755,16 +759,15 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?),
-      stock_status = CASE WHEN MAX(0, stock - ?) = 0 THEN 'outofstock' ELSE 'instock' END, updated_at = ?
-      WHERE id = ? AND stock IS NOT NULL`);
+    // stock 0 makes the product "Hàng order" (bought to order); it never becomes "Hết hàng" (that means discontinued in Japan)
+    const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?), updated_at = ? WHERE id = ? AND stock IS NOT NULL`);
     for (const it of items) {
       insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity);
-      decStock.run(it.quantity, it.quantity, now, it.productId);
+      decStock.run(it.quantity, now, it.productId);
     }
     // Pre-fill the per-leg table so the admin sees what was quoted (editable later).
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
-    for (const l of jpLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `Báo giá khi đặt: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
+    for (const l of importLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `${mode === "per_order" ? "Báo giá khi đặt" : "Mặc định theo luồng nhập hàng (đã gồm trong giá bán)"}: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
     else if (live) {
       const q = live.quote;
@@ -1261,7 +1264,7 @@ export async function countOrderFiles(): Promise<Map<string, number>> {
 
 export async function updateProductStock(id: number, stock: number | null, minStock?: number | null): Promise<boolean> {
   const db = getDb();
-  const status = stock === 0 ? "outofstock" : stock === null ? null : "instock";
+  const status: string | null = null; // the sale status (còn bán / ngừng bán tại Nhật) is independent of the stock level
   const res =
     minStock === undefined
       ? db.prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), updated_at = ? WHERE id = ?").run(stock, status, new Date().toISOString(), id)
@@ -1924,18 +1927,40 @@ export async function setSiteTheme(theme: SiteTheme): Promise<void> {
 
 /** Selling-price formula parameters (Admin › Kho hàng › Công thức giá). */
 export async function getPricingConfig(): Promise<PricingConfig> {
-  return parsePricing(getSetting(getDb(), "pricing_config"));
+  const db = getDb();
+  const cfg = parsePricing(getSetting(db, "pricing_config"));
+  const rows = db.prepare("SELECT slug, parent_slug FROM categories").all() as unknown as Array<{ slug: string; parent_slug: string | null }>;
+  cfg.categoryParent = Object.fromEntries(rows.map((r) => [r.slug, r.parent_slug ?? null]));
+  return cfg;
 }
 
 export async function setPricingConfig(cfg: PricingConfig): Promise<void> {
-  setSetting(getDb(), "pricing_config", JSON.stringify(cfg));
+  setSetting(getDb(), "pricing_config", serializePricing(cfg));
+}
+
+/** Default method per import leg for the price formula and the pre-filled order legs (Công thức giá › Tham số chi phí). */
+export function loadQuoteDefaults(db: DatabaseSync = getDb()): Partial<Record<ShippingLeg, number>> {
+  try {
+    const raw = JSON.parse(getSetting(db, "pricing_default_methods") || "{}") as Record<string, unknown>;
+    const out: Partial<Record<ShippingLeg, number>> = {};
+    for (const leg of ["jp_domestic", "jp_vn", "vn_transfer"] as ShippingLeg[]) if (typeof raw[leg] === "number" && Number.isInteger(raw[leg])) out[leg] = raw[leg] as number;
+    return out;
+  } catch {
+    return {};
+  }
+}
+export async function getQuoteDefaults(): Promise<Partial<Record<ShippingLeg, number>>> {
+  return loadQuoteDefaults();
+}
+export async function setQuoteDefaults(defaults: Partial<Record<ShippingLeg, number>>): Promise<void> {
+  setSetting(getDb(), "pricing_default_methods", JSON.stringify(defaults));
 }
 
 /** Active methods of the import legs + current ¥ rate, for the selling-price formula (independent of the checkout pricing mode). */
 export async function getImportQuoteConfig(): Promise<ShippingQuoteConfig> {
   const db = getDb();
   const rate = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
-  return buildQuoteConfig(loadShippingMethods(db, true), "per_order", Number.isFinite(rate) && rate > 0 ? rate : 175);
+  return buildQuoteConfig(loadShippingMethods(db, true), "per_order", Number.isFinite(rate) && rate > 0 ? rate : 175, loadQuoteDefaults(db));
 }
 
 /** Free-text notes shown under the shipping tables (one per line in admin). */

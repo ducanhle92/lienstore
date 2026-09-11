@@ -38,7 +38,7 @@ export function ProductStatusBadge({ status, outOfStock }: { status: "publish" |
       >
         {status === "publish" ? "Đang bán" : "Bản nháp"}
       </span>
-      {outOfStock ? <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-[12px] font-semibold leading-5 text-red-800">Hết hàng</span> : null}
+      {outOfStock ? <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-[12px] font-semibold leading-5 text-red-800" title="Mẫu này không còn bán tại Nhật">Hết hàng · ngừng bán</span> : null}
     </span>
   );
 }

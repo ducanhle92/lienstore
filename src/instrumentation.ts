@@ -27,4 +27,14 @@ export async function register() {
   };
   setTimeout(tick, 15_000); // catch-up shortly after start
   setInterval(tick, 60_000);
+  // one-time: even out uploaded product thumbnails (white margins trimmed) — public/ thumbs are trimmed in the repo
+  setTimeout(async () => {
+    try {
+      const { trimUploadedThumbs } = await import("./lib/thumb-trim-job");
+      const r = await trimUploadedThumbs();
+      if (r) console.info(`[thumbs] trimmed ${r.trimmed} uploaded thumbnails (${r.skipped} unchanged)`);
+    } catch (e) {
+      console.warn(`[thumbs] trim failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 5_000);
 }

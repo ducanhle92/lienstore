@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+import { availabilityOf } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
@@ -25,7 +26,8 @@ function stripHtml(s: string): string {
 /** Product summary column (sesofoods style): title, price + saving badge, stock, short description, qty stepper, CTA, info boxes. */
 export function ProductInfo2({ product, categoryNames, children }: Props) {
   const { t } = useLang();
-  const out = product.stockStatus === "outofstock";
+  const avail = availabilityOf(product);
+  const out = avail === "discontinued";
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
   const [more, setMore] = useState(false);
@@ -64,11 +66,11 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
       <p className="m-0 mt-3 text-[14px]">
         {t("status")}:{" "}
         {out ? (
-          <span className="font-semibold text-lien-sale-text">{t("outOfStock")}</span>
-        ) : product.stock !== null && product.stock > 0 ? (
-          <span className="font-semibold text-lien-success">{t("inStock")} ({product.stock})</span>
+          <span className="font-semibold text-lien-sale-text" data-testid="avail-discontinued">{t("discontinuedNote")}</span>
+        ) : avail === "available" ? (
+          <span className="font-semibold text-lien-success" data-testid="avail-available">{t("availableNow")} ({product.stock})</span>
         ) : (
-          <span className="font-semibold text-lien-success">{t("madeToOrder")}</span>
+          <span className="font-semibold text-amber-700" data-testid="avail-order">{avail === "order_temp" ? t("orderTemp") : t("orderOnDemand")}</span>
         )}
         {product.sku ? <span className="ml-3 text-lien-muted">SKU: {product.sku}</span> : null}
         {product.weightG && product.dimsConfidence === "high" ? <span className="ml-3 text-lien-muted">{t("weight")}: {formatAmount(product.weightG)} g</span> : null}

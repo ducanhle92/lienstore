@@ -248,7 +248,7 @@ export const MIGRATIONS: Migration[] = [
         (4, 'Viettel Post', '1900 8095', 'https://viettelpost.com.vn', 'Giao nội địa Việt Nam', 4),
         (5, 'Giao Hàng Tiết Kiệm', '1900 6092', 'https://giaohangtietkiem.vn', 'Giao nội địa Việt Nam', 5)`,
       `UPDATE shipping_methods SET leg = 'jp_vn', carrier_id = 1, includes_both_ends = 1, home_delivery = 0,
-        warehouse = 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Việt Nam: Hà Nội (giao tiếp bằng ship nội địa)',
+        warehouse = 'Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari) · Kho Việt Nam: Hà Nội (giao tiếp bằng ship nội địa)',
         notes = 'Kiện dưới 5 kg phụ thu 40.000đ/kiện\nGiá trọn gói từ kho Nhật đến kho Việt Nam, chưa gồm ship nội địa hai đầu\nHàng điện tử, rượu, trang sức, vòng huyết áp có bảng phụ thu riêng'
         WHERE id = 1`,
       `UPDATE shipping_methods SET leg = 'vn_domestic', carrier_id = 4, includes_both_ends = 1, home_delivery = 1 WHERE id = 2`,
@@ -352,28 +352,28 @@ export const MIGRATIONS: Migration[] = [
       // Default methods so every leg has something to pick from (skipped where the shop already has one with that name).
       // Japan domestic (¥, per parcel size)
       `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
-        SELECT 'Yamato 宅急便', 'Chuyển phát nội địa Nhật theo cỡ kiện (size = dài+rộng+cao, cm).', '', '¥', 10, 'jp_domestic', 3, 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        SELECT 'Yamato 宅急便', 'Chuyển phát nội địa Nhật theo cỡ kiện (size = dài+rộng+cao, cm).', '', '¥', 10, 'jp_domestic', 3, 0, 'Về kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)', 1, ''
         WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Yamato 宅急便')`,
       `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
         SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
         JOIN (SELECT 'Size 60 (≤2 kg)' AS name, 940 AS fee, 1 AS pos UNION ALL SELECT 'Size 80 (≤5 kg)', 1230, 2 UNION ALL SELECT 'Size 100 (≤10 kg)', 1530, 3 UNION ALL SELECT 'Size 120 (≤15 kg)', 1850, 4) z
         WHERE m.leg = 'jp_domestic' AND m.name = 'Yamato 宅急便' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
       `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
-        SELECT 'Japan Post ゆうパック', 'Bưu điện Nhật, gửi tại bưu cục hoặc combini.', '', '¥', 11, 'jp_domestic', 2, 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        SELECT 'Japan Post ゆうパック', 'Bưu điện Nhật, gửi tại bưu cục hoặc combini.', '', '¥', 11, 'jp_domestic', 2, 0, 'Về kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)', 1, ''
         WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Japan Post ゆうパック')`,
       `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
         SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
         JOIN (SELECT 'Size 60' AS name, 810 AS fee, 1 AS pos UNION ALL SELECT 'Size 80', 1100, 2 UNION ALL SELECT 'Size 100', 1400, 3 UNION ALL SELECT 'Size 120', 1700, 4) z
         WHERE m.leg = 'jp_domestic' AND m.name = 'Japan Post ゆうパック' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
       `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
-        SELECT 'Sagawa 飛脚宅配便', 'Chuyển phát nội địa Nhật.', '', '¥', 12, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name LIKE 'Sagawa%' LIMIT 1), 0, 'Về kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 1, ''
+        SELECT 'Sagawa 飛脚宅配便', 'Chuyển phát nội địa Nhật.', '', '¥', 12, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name LIKE 'Sagawa%' LIMIT 1), 0, 'Về kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)', 1, ''
         WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Sagawa 飛脚宅配便')`,
       `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
         SELECT m.id, z.name, z.fee, '', NULL, NULL, NULL, 'Toàn Nhật Bản', '1–2 ngày', z.pos FROM shipping_methods m
         JOIN (SELECT 'Size 60' AS name, 880 AS fee, 1 AS pos UNION ALL SELECT 'Size 80', 1210, 2 UNION ALL SELECT 'Size 100', 1500, 3) z
         WHERE m.leg = 'jp_domestic' AND m.name = 'Sagawa 飛脚宅配便' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
       `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
-        SELECT 'Tự mang tới kho Nhật', 'Khách / người mua tự mang hàng tới kho gom, không tính phí.', '', '¥', 13, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name = 'Tự mang tới kho Nhật' LIMIT 1), 0, 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34', 0, ''
+        SELECT 'Tự mang tới kho Nhật', 'Khách / người mua tự mang hàng tới kho gom, không tính phí.', '', '¥', 13, 'jp_domestic', (SELECT id FROM shipping_carriers WHERE name = 'Tự mang tới kho Nhật' LIMIT 1), 0, 'Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)', 0, ''
         WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_domestic' AND name = 'Tự mang tới kho Nhật')`,
       `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
         SELECT m.id, 'Miễn phí', 0, '', NULL, NULL, NULL, 'Kho Nhật', 'Theo lịch hẹn', 1 FROM shipping_methods m
@@ -386,7 +386,7 @@ export const MIGRATIONS: Migration[] = [
         WHERE m.leg = 'jp_domestic' AND m.name = 'LienStore gom tại nhà' AND NOT EXISTS (SELECT 1 FROM shipping_zones WHERE method_id = m.id)`,
       // Japan → Vietnam: make sure the Kiến Express table exists, and add EMS as a second option
       `INSERT INTO shipping_methods (name, description, extra_label, currency, position, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
-        SELECT 'Vận chuyển Nhật Bản → Việt Nam', 'Gom đơn hàng tuần và gửi về Việt Nam. Phí tính theo cân nặng thực tế sau khi đóng gói.', 'Hàng lỏng / bình xịt / cồng kềnh', 'đ', 1, 'jp_vn', 1, 1, 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 · Kho Việt Nam: Hà Nội', 0, ''
+        SELECT 'Vận chuyển Nhật Bản → Việt Nam', 'Gom đơn hàng tuần và gửi về Việt Nam. Phí tính theo cân nặng thực tế sau khi đóng gói.', 'Hàng lỏng / bình xịt / cồng kềnh', 'đ', 1, 'jp_vn', 1, 1, 'Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari) · Kho Việt Nam: Hà Nội', 0, ''
         WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'jp_vn')`,
       `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position)
         SELECT m.id, z.name, z.fee, '/kg', NULL, z.extra, NULL, 'Toàn quốc', z.eta, z.pos FROM shipping_methods m
@@ -611,11 +611,11 @@ export const MIGRATIONS: Migration[] = [
     name: "default-import-flow",
     up: [
       `INSERT OR REPLACE INTO settings (key, value) VALUES ('jp_sender_address', '〒273-0005 千葉県船橋市本町 2-15-8 ジョイフル船橋 605')`,
-      `UPDATE shipping_carriers SET phone = '0949281182', note = 'Gom hàng Nhật → Việt Nam. Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Hà Nội: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm' WHERE id = 1`,
+      `UPDATE shipping_carriers SET phone = '0949281182', note = 'Gom hàng Nhật → Việt Nam. Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari) · Kho Hà Nội: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm' WHERE id = 1`,
       `UPDATE shipping_methods SET position = 5, description = 'Mặc định: gửi từ nhà tại Funabashi tới kho Kiến Express bằng bưu điện Nhật (ゆうパック, gửi tại bưu cục hoặc combini).',
-        warehouse = 'Từ: 〒273-0005 Chiba-ken, Funabashi-shi, Honcho 2-15-8 Joyful Funabashi 605 · Đến: kho Kiến Express Nhật — Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221)'
+        warehouse = 'Từ: 〒273-0005 Chiba-ken, Funabashi-shi, Honcho 2-15-8 Joyful Funabashi 605 · Đến: kho Kiến Express Nhật — 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)'
         WHERE leg = 'jp_domestic' AND name = 'Japan Post ゆうパック'`,
-      `UPDATE shipping_methods SET warehouse = 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Việt Nam: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội (hotline 0949281182)'
+      `UPDATE shipping_methods SET warehouse = 'Kho Nhật: 〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari) · Kho Việt Nam: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội (hotline 0949281182)'
         WHERE id = 1 AND leg = 'jp_vn'`,
       `UPDATE shipping_methods SET name = 'Viettel Post: kho Kiến Express (Hà Nội) → kho Thanh Hóa', carrier_id = 4,
         description = 'Kiến Express gửi tiếp lô hàng từ kho Hà Nội về kho LienStore qua Viettel Post. Cước Viettel Post nội vùng miền Bắc theo nấc 500 g.',
@@ -725,6 +725,16 @@ export const MIGRATIONS: Migration[] = [
     version: 33,
     name: "product-margin",
     up: [`ALTER TABLE products ADD COLUMN margin_pct REAL`],
+  },
+  {
+    // "Hết hàng" now means the model is no longer sold in Japan (admin-set), stock 0 = "Hàng order";
+    // Kiến Express Japan warehouse moved to Nagareyama (〒270-0145).
+    version: 34,
+    name: "discontinued-kien-nagareyama",
+    up: [
+      `UPDATE shipping_methods SET warehouse = REPLACE(REPLACE(warehouse, 'Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221)', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)'), 'Chiba-ken, Tomisato-shi, Nanae 880-34', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)') WHERE warehouse LIKE '%Tomisato%'`,
+      `UPDATE shipping_carriers SET note = REPLACE(REPLACE(note, 'Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221)', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)'), 'Chiba-ken, Tomisato-shi, Nanae 880-34', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)') WHERE note LIKE '%Tomisato%'`,
+    ],
   },
 ];
 

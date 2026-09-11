@@ -20,7 +20,7 @@ export interface QuickViewProduct {
   image: string;
   thumb: string;
   stock: number | null;
-  stockStatus: "instock" | "outofstock";
+  stockStatus: "instock" | "discontinued";
   excerpt: string;
   categories: string[];
 }
@@ -49,7 +49,7 @@ export function QuickViewButton({ product, className, iconOnly = false }: { prod
 
 function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClose: () => void }) {
   const [qty, setQty] = useState(1);
-  const out = product.stockStatus === "outofstock";
+  const out = product.stockStatus === "discontinued";
   const max = product.stock ?? 99;
 
   useEffect(() => {

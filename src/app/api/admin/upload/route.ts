@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { canAny } from "@/lib/auth";
+import { trimToFrame } from "@/lib/image-trim";
 import { extForMime, IMAGE_MIMES, MAX_UPLOAD_BYTES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,28 @@ export async function POST(req: NextRequest) {
   const ext = extForMime(image.type) || ".jpg";
   const month = new Date().toISOString().slice(0, 7);
   const base = uniqueName(slugifyFileName(label), "");
-  const saved = await saveUpload(`${folder}/${month}`, `${base}${ext}`, Buffer.from(await image.arrayBuffer()));
+  // product pictures: cut the white border so the object fills its frame evenly (cards use object-fit: contain)
+  const trimProducts = folder === "products" && image.type !== "image/gif";
+  let imageBuf: Buffer = Buffer.from(await image.arrayBuffer());
+  if (trimProducts) {
+    try {
+      imageBuf = (await trimToFrame(imageBuf, { square: false, margin: 0.03 })).buffer;
+    } catch {
+      /* keep the original */
+    }
+  }
+  const saved = await saveUpload(`${folder}/${month}`, `${base}${ext}`, imageBuf);
   let thumbUrl = saved.url;
   if (thumb instanceof File && IMAGE_MIMES.has(thumb.type) && thumb.size <= MAX_UPLOAD_BYTES) {
-    const t = await saveUpload(`${folder}/${month}`, `${base}-300x300${extForMime(thumb.type) || ".jpg"}`, Buffer.from(await thumb.arrayBuffer()));
+    let thumbBuf: Buffer = Buffer.from(await thumb.arrayBuffer());
+    if (trimProducts) {
+      try {
+        thumbBuf = (await trimToFrame(thumbBuf, { size: 300 })).buffer;
+      } catch {
+        /* keep the original */
+      }
+    }
+    const t = await saveUpload(`${folder}/${month}`, `${base}-300x300${extForMime(thumb.type) || ".jpg"}`, thumbBuf);
     thumbUrl = t.url;
   }
   return NextResponse.json({ image: saved.url, thumb: thumbUrl, size: image.size });

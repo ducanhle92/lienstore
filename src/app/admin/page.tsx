@@ -24,7 +24,7 @@ export default async function AdminDashboard({ searchParams }: DashboardProps) {
   const tiles = [
     { label: "Sản phẩm", value: stats.products, href: canP ? "/admin/products/" : "/admin/" },
     { label: "Đang bán", value: stats.published, href: canP ? "/admin/products/?status=publish" : "/admin/" },
-    { label: "Hết hàng", value: stats.outOfStock, href: canP ? "/admin/products/?stock=out" : "/admin/" },
+    { label: "Ngừng bán (hết hàng)", value: stats.outOfStock, href: canP ? "/admin/products/?stock=out" : "/admin/" },
     { label: "Đơn hàng", value: stats.orders, href: canO ? "/admin/orders/" : "/admin/" },
     { label: "Chờ xử lý", value: stats.pending, href: canO ? "/admin/orders/?status=pending" : "/admin/" },
     { label: "Doanh thu", value: formatPrice(stats.revenue), href: canO ? "/admin/orders/" : "/admin/" },

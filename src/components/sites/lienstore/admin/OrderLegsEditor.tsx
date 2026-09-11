@@ -2,7 +2,7 @@ import { requoteOrderAction } from "@/app/admin/shipping/carrier-actions";
 import { saveOrderLegAction } from "@/app/admin/shipping/order-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
-import { SHIPPING_LEGS, zoneFeeForWeight, type ShippingLeg } from "@/lib/shipping";
+import { quoteMethod, SHIPPING_LEGS, type ShippingLeg, type ShippingQuoteConfig, zoneFeeForWeight } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { Order, OrderLeg, ShippingMethod } from "@/types/shop";
 import { adminInput, btnSecondary } from "./ui";
@@ -17,16 +17,21 @@ interface Props {
   stacked?: boolean;
   /** Billable grams of the whole order (max(actual, volumetric) × safety factor per item); drives the ≈ fee hints. */
   weightG?: number;
+  /** Default import flow (Công thức giá › Tham số chi phí): pre-selects the method of legs the admin has not touched yet. */
+  quote?: ShippingQuoteConfig;
 }
 
 const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = { jp_domestic: "cube", jp_vn: "plane", vn_transfer: "building", vn_domestic: "truck" };
 const tiny = `${adminInput} !px-2 !py-1 !text-[12px]`;
 
 /** One editable cell per leg: method·zone select, fee, tracking, note. */
-export function OrderLegCell({ order, leg, current, methods, back, weightG }: { order: Props["order"]; leg: ShippingLeg; current: OrderLeg | undefined; methods: ShippingMethod[]; back: string; weightG?: number }) {
+export function OrderLegCell({ order, leg, current, methods, back, weightG, quote }: { order: Props["order"]; leg: ShippingLeg; current: OrderLeg | undefined; methods: ShippingMethod[]; back: string; weightG?: number; quote?: ShippingQuoteConfig }) {
   const fid = `ol-${order.id}-${leg}`;
   const options = methods.filter((m) => m.leg === leg);
-  const value = current?.methodId ? `m:${current.methodId}:${current.zoneId ?? "-"}` : "";
+  // legs never edited by the admin start on the default flow (Japan Post → Kiến Express → Viettel Post) for this order's weight
+  const defMethod = quote ? (leg === "jp_domestic" ? quote.jpDomestic : leg === "jp_vn" ? quote.jpVn : leg === "vn_transfer" ? quote.vnTransfer : null) : null;
+  const preset = !current && defMethod ? quoteMethod(defMethod, leg, weightG ?? 1000, order.subtotal, quote?.jpyRate ?? 175) : null;
+  const value = current?.methodId ? `m:${current.methodId}:${current.zoneId ?? "-"}` : preset ? `m:${preset.methodId}:${preset.zoneId}` : "";
   // VN domestic: every option shows the fee this order would cost (weight steps / per kg), so the admin can compare carriers
   const est = (m: ShippingMethod, z: ShippingMethod["zones"][number]) =>
     leg === "vn_domestic" && weightG && /đ|vnd/i.test(m.currency) ? ` ≈ ${formatAmount(z.freeOver !== null && order.subtotal >= z.freeOver ? 0 : zoneFeeForWeight(z, weightG))}đ` : "";
@@ -58,7 +63,7 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG }: { 
         )}
       </select>
       <div className="flex gap-1.5">
-        <input name="fee" defaultValue={current ? formatAmount(current.fee) : ""} inputMode="numeric" placeholder="Phí (trống = tự tính)" className={cn(tiny, "w-[120px]")} aria-label="Phí" />
+        <input name="fee" defaultValue={current ? formatAmount(current.fee) : ""} inputMode="numeric" placeholder={preset ? `≈ ${formatAmount(preset.fee)}đ` : "Phí (trống = tự tính)"} className={cn(tiny, "w-[120px]")} aria-label="Phí" />
         <input name="tracking" defaultValue={current?.tracking ?? ""} placeholder="Mã vận đơn" className={cn(tiny, "flex-1")} aria-label="Mã vận đơn" />
       </div>
       <div className="flex items-center gap-1.5">
@@ -73,7 +78,7 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG }: { 
           <input type="checkbox" name="applyToCustomer" defaultChecked className="h-3.5 w-3.5" /> Áp phí vào đơn khách (hiện: {order.delivery === "pickup" ? "nhận tại kho" : order.shippingLabel || "—"} · {formatAmount(order.shippingFee)}đ)
         </label>
       ) : null}
-      {current?.label ? <p className="m-0 text-[11px] text-lien-muted">Đang chọn: {current.label}</p> : null}
+      {current?.label ? <p className="m-0 text-[11px] text-lien-muted">Đang chọn: {current.label}</p> : preset ? <p className="m-0 text-[11px] text-lien-muted">Mặc định theo luồng nhập hàng — bấm ✓ để ghi vào đơn, hoặc đổi rồi lưu.</p> : null}
     </form>
   );
 }
@@ -92,7 +97,7 @@ export function RequoteButton({ orderId, back }: { orderId: string; back: string
 }
 
 /** The legs of one order, as stacked cards (order detail page). */
-export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) {
+export function OrderLegsEditor({ order, legs, methods, back, weightG, quote }: Props) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {SHIPPING_LEGS.map((l) => (
@@ -101,7 +106,7 @@ export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) 
             <Fa name={LEG_ICON[l.key]} className="mr-1 text-lien-blue" />
             {l.label}
           </p>
-          <OrderLegCell order={order} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back={back} weightG={weightG} />
+          <OrderLegCell order={order} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back={back} weightG={weightG} quote={quote} />
           {l.key === "vn_domestic" && order.delivery === "ship" ? <RequoteButton orderId={order.id} back={back} /> : null}
         </div>
       ))}

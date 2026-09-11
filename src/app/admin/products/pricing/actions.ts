@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getImportQuoteConfig, getPricingConfig, setPricingConfig, updateProductPricing } from "@/lib/db";
+import { getAllProducts, getCategories, getImportQuoteConfig, getPricingConfig, getShippingMethods, setPricingConfig, setQuoteDefaults, updateProductPricing } from "@/lib/db";
+import { IMPORT_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { MARGIN_RANGE } from "@/lib/pricing";
 import { refreshDcomRate, runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
 import { suggestPrice } from "@/lib/pricing";
@@ -19,11 +20,59 @@ export async function savePricingConfigAction(formData: FormData): Promise<void>
   if (!Number.isFinite(marginPct) || marginPct < MARGIN_RANGE.min || marginPct > MARGIN_RANGE.max) back("error", `Lãi % phải là số từ ${MARGIN_RANGE.min} đến ${MARGIN_RANGE.max}.`);
   const roundTo = Number.parseInt(text(formData, "roundTo"), 10);
   if (![1, 100, 500, 1000, 5000, 10000].includes(roundTo)) back("error", "Bước làm tròn không hợp lệ.");
+  const cur = await getPricingConfig();
+  await setPricingConfig({ ...cur, marginPct: Math.round(marginPct * 10) / 10, roundTo });
+  revalidatePath("/admin/products/", "layout");
+  back("saved", `Đã lưu công thức: giá vốn về VN × (1 + ${marginPct}%), làm tròn lên ${roundTo.toLocaleString("vi-VN")}đ.`);
+}
+
+/** Tham số chi phí vận chuyển: default carrier per import leg + the consolidated lot size. */
+export async function saveCostParamsAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
   const lotKg = Number.parseFloat(text(formData, "lotKg").replace(",", "."));
   if (!Number.isFinite(lotKg) || lotKg < 1 || lotKg > 100) back("error", "Cân lô gom hàng phải từ 1 đến 100 kg.");
-  await setPricingConfig({ marginPct: Math.round(marginPct * 10) / 10, roundTo, lotWeightG: Math.round(lotKg * 1000) });
+  const methods = await getShippingMethods(true);
+  const defaults: Partial<Record<ShippingLeg, number>> = {};
+  const names: string[] = [];
+  for (const leg of IMPORT_LEGS) {
+    const id = Number.parseInt(text(formData, `default_${leg}`), 10);
+    const m = methods.find((x) => x.id === id && x.leg === leg && x.active);
+    if (m) {
+      defaults[leg] = m.id;
+      names.push(m.name);
+    }
+  }
+  await setQuoteDefaults(defaults);
+  const cur = await getPricingConfig();
+  await setPricingConfig({ ...cur, lotWeightG: Math.round(lotKg * 1000) });
+  revalidatePath("/", "layout");
+  back("saved", `Đã lưu tham số chi phí: ${names.join(" → ") || "chưa chọn hãng"}; chia phí theo lô ${lotKg} kg.`);
+}
+
+/** Tỉ lệ lãi kỳ vọng theo danh mục: sub-category when given, else the whole category. */
+export async function saveCategoryMarginAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const slug = text(formData, "subcategory") || text(formData, "category");
+  const cats = await getCategories();
+  const cat = cats.find((c) => c.slug === slug);
+  if (!cat) return back("error", "Chọn danh mục.");
+  const pct = Number.parseFloat(text(formData, "pct").replace(",", "."));
+  if (!Number.isFinite(pct) || pct < MARGIN_RANGE.min || pct > MARGIN_RANGE.max) back("error", `Tỉ lệ lãi kỳ vọng phải là số từ ${MARGIN_RANGE.min} đến ${MARGIN_RANGE.max}.`);
+  const cur = await getPricingConfig();
+  await setPricingConfig({ ...cur, marginByCategory: { ...cur.marginByCategory, [slug]: Math.round(pct * 10) / 10 } });
   revalidatePath("/admin/products/", "layout");
-  back("saved", `Đã lưu công thức: giá vốn + ${marginPct}% + phí 3 chặng nhập hàng, làm tròn lên ${roundTo.toLocaleString("vi-VN")}đ; chia phí theo lô ${lotKg} kg.`);
+  back("saved", `Đã đặt tỉ lệ lãi kỳ vọng ${pct}% cho danh mục "${cat.name}".`);
+}
+
+export async function deleteCategoryMarginAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const slug = text(formData, "slug");
+  const cur = await getPricingConfig();
+  const next = { ...cur.marginByCategory };
+  delete next[slug];
+  await setPricingConfig({ ...cur, marginByCategory: next });
+  revalidatePath("/admin/products/", "layout");
+  back("saved", "Đã bỏ tỉ lệ riêng của danh mục — dùng lại mặc định.");
 }
 
 /**
@@ -38,7 +87,7 @@ export async function applySuggestedPricesAction(formData: FormData): Promise<vo
   let skippedSale = 0;
   for (const p of products) {
     if (only.size && !only.has(p.id)) continue;
-    const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing);
+    const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
     if (!s) continue;
     if (p.regularPrice !== null) {
       skippedSale++;

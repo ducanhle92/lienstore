@@ -36,7 +36,7 @@ export interface InventorySummary {
 }
 
 export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
-  if (p.stock === null) return p.stockStatus === "outofstock" ? "out" : "untracked";
+  if (p.stock === null) return p.stockStatus === "discontinued" ? "out" : "untracked";
   if (p.stock <= 0) return "out";
   if (p.stock <= minStock) return "low";
   return "ok";

@@ -31,7 +31,7 @@ export default async function AdminProducts({ searchParams }: Props) {
 
   const [all, categories, pricing, quote, rate] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate()]);
   // price formula per product: import legs shared per gram (same numbers as the CSV export and Công thức giá)
-  const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing);
+  const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
   const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
   const money = (v: number | null | undefined) => (v === null || v === undefined ? <span className="text-lien-muted">—</span> : formatPrice(v));
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
@@ -111,7 +111,7 @@ export default async function AdminProducts({ searchParams }: Props) {
           <select name="stock" defaultValue={stock} className={adminInput}>
             <option value="">Mọi tồn kho</option>
             <option value="in">Còn hàng</option>
-            <option value="out">Hết hàng</option>
+            <option value="out">Hết hàng (ngừng bán tại Nhật)</option>
           </select>
           <select name="fulfillment" defaultValue={fulfillment} className={adminInput}>
             <option value="">Mọi hình thức</option>
@@ -230,7 +230,7 @@ export default async function AdminProducts({ searchParams }: Props) {
                     )}
                   </td>
                   <td className={tdClass}>
-                    <ProductStatusBadge status={p.status} outOfStock={p.stockStatus === "outofstock"} />
+                    <ProductStatusBadge status={p.status} outOfStock={p.stockStatus === "discontinued"} />
                   </td>
                   <td className={`${tdClass} whitespace-nowrap text-[13px] text-lien-muted`}>{formatDate(p.updatedAt)}</td>
                   <td className={`${tdClass} whitespace-nowrap text-right`}>

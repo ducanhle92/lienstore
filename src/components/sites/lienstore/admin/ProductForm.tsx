@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
-import { type PricingConfig, suggestPrice } from "@/lib/pricing";
+import { effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct, ShopCategory } from "@/types/shop";
@@ -45,12 +45,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [weightText, setWeightText] = useState(String(product?.weightG ?? ""));
   const [dimsText, setDimsText] = useState(product?.dimsCm ?? "");
   const [confText, setConfText] = useState(product?.dimsConfidence ?? "");
+  const [catSlugs, setCatSlugs] = useState<string[]>(product?.categories ?? []);
+  const defaultMargin = pricing ? effectiveMarginPct(pricing, null, catSlugs) : 25;
   const margin = computeMargin(priceText, costText);
   const costNum = digits(costText);
   const suggestion =
     quote && pricing
       ? suggestPrice(
-          { costPrice: Number.isFinite(costNum) ? costNum : null, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null, marginPct: marginText.trim() === "" ? null : Number.parseFloat(marginText.replace(",", ".")) },
+          { costPrice: Number.isFinite(costNum) ? costNum : null, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null, marginPct: marginText.trim() === "" ? null : Number.parseFloat(marginText.replace(",", ".")), categories: catSlugs },
           quote,
           pricing,
         )
@@ -182,9 +184,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel} htmlFor="marginPct">
-                  Tỉ lệ lãi kỳ vọng riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng mặc định {pricing?.marginPct ?? 25}%)</span>
+                  Tỉ lệ lãi kỳ vọng riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng {defaultMargin}%{pricing && defaultMargin !== pricing.marginPct ? " theo danh mục" : " mặc định của shop"})</span>
                 </label>
-                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(pricing?.marginPct ?? 25)} className={cn(adminInput, "mb-4 !w-[140px]")} />
+                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(defaultMargin)} className={cn(adminInput, "mb-4 !w-[140px]")} />
                 <label className={adminLabel} htmlFor="supplierUrl">
                   Link nhà cung cấp (Amazon JP, trang hãng…)
                 </label>
@@ -261,10 +263,15 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? ""} className={cn(adminInput, fields.stock && "border-red-500")} />
                 <FieldError msg={fields.stock} />
               </div>
-              <label className="flex items-center gap-2 text-[14px]">
-                <input type="checkbox" name="out_of_stock" defaultChecked={product?.stockStatus === "outofstock"} className="h-4 w-4" />
-                Đánh dấu hết hàng
-              </label>
+              <div>
+                <label className={adminLabel} htmlFor="sale_status">
+                  Tình trạng bán
+                </label>
+                <select id="sale_status" name="sale_status" defaultValue={product?.stockStatus === "discontinued" ? "discontinued" : "instock"} className={adminInput}>
+                  <option value="instock">Còn bán — Có sẵn khi tồn kho &gt; 0, ngược lại là Hàng order</option>
+                  <option value="discontinued">Hết hàng — mẫu này không còn bán tại Nhật (khách không đặt được)</option>
+                </select>
+              </div>
               <div>
                 <label className={adminLabel} htmlFor="status">
                   Trạng thái
@@ -281,7 +288,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             <div className={cn("grid max-h-72 gap-1.5 overflow-y-auto pr-1", fields.categories && "rounded border border-red-500 p-2")}>
               {categories.map((c) => (
                 <label key={c.slug} className="flex items-start gap-2 text-[13px] leading-5">
-                  <input type="checkbox" name="categories" value={c.slug} defaultChecked={product?.categories.includes(c.slug)} className="mt-0.5 h-4 w-4" />
+                  <input type="checkbox" name="categories" value={c.slug} defaultChecked={product?.categories.includes(c.slug)} onChange={(e) => setCatSlugs((s) => (e.target.checked ? [...s, c.slug] : s.filter((x) => x !== c.slug)))} className="mt-0.5 h-4 w-4" />
                   <span>
                     {c.name} <span className="text-lien-muted">({c.count})</span>
                   </span>

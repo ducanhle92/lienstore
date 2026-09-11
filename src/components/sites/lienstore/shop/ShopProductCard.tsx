@@ -2,6 +2,7 @@ import Image from "next/image";
 import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { availabilityGroup, availabilityOf } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
@@ -62,7 +63,9 @@ export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
  * "Thêm Vào Giỏ" button over the image; 2-line title and price below. Renders an `<li>`.
  */
 export function ShopProductCard({ product, className }: { product: CatalogProduct; className?: string }) {
-  const out = product.stockStatus === "outofstock";
+  const avail = availabilityOf(product);
+  const out = avail === "discontinued";
+  const group = availabilityGroup(avail);
   const pct = discountPercent(product);
   const fresh = isNewProduct(product);
   const hot = product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
@@ -94,7 +97,13 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           {pct ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]">-{pct}%</span> : null}
           {hot && !out ? <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="bestseller" /></span> : null}
           {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="isNew" /></span> : null}
-          {out ? <span className="rounded bg-lien-muted px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="outOfStock" /></span> : null}
+          {out ? (
+            <span className="rounded bg-lien-muted px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-discontinued"><T k="outOfStock" /></span>
+          ) : group === "available" ? (
+            <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-available"><T k="availableNow" /></span>
+          ) : (
+            <span className="rounded bg-amber-500 px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-order"><T k="orderBadge" /></span>
+          )}
         </div>
         <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />

@@ -14,9 +14,13 @@ export interface PricingConfig {
   roundTo: number;
   /** Typical consolidated shipment (grams); every import leg is priced for this lot and shared out per gram. */
   lotWeightG: number;
+  /** Margin % per category slug (parent or child) — overrides `marginPct` for products in that category. */
+  marginByCategory: Record<string, number>;
+  /** Category slug → parent slug (filled from the catalogue when the config is loaded; not persisted). */
+  categoryParent: Record<string, string | null>;
 }
 
-export const DEFAULT_PRICING: PricingConfig = { marginPct: 25, roundTo: 1000, lotWeightG: 10000 };
+export const DEFAULT_PRICING: PricingConfig = { marginPct: 25, roundTo: 1000, lotWeightG: 10000, marginByCategory: {}, categoryParent: {} };
 export const MARGIN_RANGE = { min: 0, max: 100, suggestedMin: 20, suggestedMax: 32 };
 
 export function parsePricing(raw: string | null | undefined): PricingConfig {
@@ -26,10 +30,33 @@ export function parsePricing(raw: string | null | undefined): PricingConfig {
     const marginPct = typeof o.marginPct === "number" && Number.isFinite(o.marginPct) ? Math.min(MARGIN_RANGE.max, Math.max(MARGIN_RANGE.min, o.marginPct)) : DEFAULT_PRICING.marginPct;
     const roundTo = typeof o.roundTo === "number" && [1, 100, 500, 1000, 5000, 10000].includes(o.roundTo) ? o.roundTo : DEFAULT_PRICING.roundTo;
     const lotWeightG = typeof o.lotWeightG === "number" && Number.isFinite(o.lotWeightG) ? Math.min(100000, Math.max(1000, Math.round(o.lotWeightG))) : DEFAULT_PRICING.lotWeightG;
-    return { marginPct, roundTo, lotWeightG };
+    const marginByCategory: Record<string, number> = {};
+    if (o.marginByCategory && typeof o.marginByCategory === "object") {
+      for (const [slug, v] of Object.entries(o.marginByCategory)) if (typeof v === "number" && Number.isFinite(v) && v >= MARGIN_RANGE.min && v <= MARGIN_RANGE.max && slug) marginByCategory[slug] = v;
+    }
+    return { marginPct, roundTo, lotWeightG, marginByCategory, categoryParent: {} };
   } catch {
     return { ...DEFAULT_PRICING };
   }
+}
+
+/** What gets saved (the parent map is catalogue data, not a setting). */
+export function serializePricing(cfg: PricingConfig): string {
+  return JSON.stringify({ marginPct: cfg.marginPct, roundTo: cfg.roundTo, lotWeightG: cfg.lotWeightG, marginByCategory: cfg.marginByCategory });
+}
+
+/**
+ * Margin used for a product: its own override → a direct category with an override (sub-category) → the parent of one of
+ * its categories → the shop default.
+ */
+export function effectiveMarginPct(cfg: PricingConfig, productMargin: number | null | undefined, categories: string[]): number {
+  if (productMargin !== null && productMargin !== undefined && Number.isFinite(productMargin)) return productMargin;
+  for (const slug of categories) if (cfg.marginByCategory[slug] !== undefined) return cfg.marginByCategory[slug];
+  for (const slug of categories) {
+    const parent = cfg.categoryParent[slug];
+    if (parent && cfg.marginByCategory[parent] !== undefined) return cfg.marginByCategory[parent];
+  }
+  return cfg.marginPct;
 }
 
 export interface PriceInput {
@@ -37,8 +64,10 @@ export interface PriceInput {
   weightG: number | null;
   dimsCm: string | null;
   dimsConfidence: DimsConfidence | null;
-  /** Product-specific margin %; null = shop default. */
+  /** Product-specific margin %; null = category / shop default. */
   marginPct?: number | null;
+  /** Category slugs of the product (for the per-category margin). */
+  categories?: string[];
 }
 
 export interface PriceBreakdown {
@@ -89,7 +118,7 @@ export function suggestPrice(p: PriceInput, quote: ShippingQuoteConfig, pricing:
   const legs = quoteImportLegsProRata(quote, weightG, pricing.lotWeightG);
   const shipping = legs.reduce((s, l) => s + l.fee, 0);
   const landed = p.costPrice + shipping;
-  const marginPct = p.marginPct !== null && p.marginPct !== undefined && Number.isFinite(p.marginPct) ? p.marginPct : pricing.marginPct;
+  const marginPct = effectiveMarginPct(pricing, p.marginPct, p.categories ?? []);
   const raw = landed * (1 + marginPct / 100);
   const step = Math.max(1, pricing.roundTo);
   const suggested = Math.ceil(raw / step) * step;

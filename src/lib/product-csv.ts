@@ -78,7 +78,7 @@ export function productToCsvRow(p: CatalogProduct, rate: number, defaultMarginPc
     "Link nhà cung cấp": p.supplierUrl ?? "",
     "Số lượng tồn": p.stock ?? "",
     "Mức tồn tối thiểu": p.minStock ?? "",
-    "Tình trạng": p.stockStatus === "outofstock" ? "Hết hàng" : "Còn hàng",
+    "Tình trạng": p.stockStatus === "discontinued" ? "Ngừng bán tại Nhật" : "Còn bán",
     "Trạng thái": p.status === "publish" ? "Đang bán" : "Bản nháp",
     "Cân (g)": p.weightG ?? "",
     "Kích thước (cm)": p.dimsCm ?? "",
@@ -195,7 +195,7 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
     const v = num("Mức tồn tối thiểu");
     if (v !== undefined) patch.minStock = v;
   }
-  if (has("Tình trạng") && rec["Tình trạng"].trim()) patch.stockStatus = /hết|het|out/i.test(rec["Tình trạng"]) ? "outofstock" : "instock";
+  if (has("Tình trạng") && rec["Tình trạng"].trim()) patch.stockStatus = /ngừng|ngung|hết|het|discontinued|out/i.test(rec["Tình trạng"]) ? "discontinued" : "instock";
   if (has("Trạng thái") && rec["Trạng thái"].trim()) patch.status = /nháp|nhap|draft|ẩn/i.test(rec["Trạng thái"]) ? "draft" : "publish";
   if (has("Cân (g)")) {
     const v = num("Cân (g)");

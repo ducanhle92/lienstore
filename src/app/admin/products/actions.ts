@@ -94,7 +94,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     .map((s) => s.trim())
     .filter(Boolean);
   const status: CatalogProduct["status"] = get("status") === "draft" ? "draft" : "publish";
-  const outOfStock = formData.get("out_of_stock") === "on" || stock === 0;
+  const discontinued = get("sale_status") === "discontinued";
 
   if (Object.keys(fields).length > 0) return { error: "Vui lòng kiểm tra lại các trường được đánh dấu.", fields };
 
@@ -115,7 +115,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     currency: existing?.currency ?? "VNĐ",
     sku: get("sku") || null,
     stock,
-    stockStatus: outOfStock ? "outofstock" : "instock",
+    stockStatus: discontinued ? "discontinued" : "instock",
     fulfillment: get("fulfillment") === "stock" ? "stock" : "order",
     costJpy,
     costSource: costJpy ? (costJpy === existing?.costJpy ? existing.costSource : costUrl.includes("amazon") ? "amazon" : costUrl.includes("rakuten") ? "rakuten" : costUrl ? "official" : "manual") : "",
@@ -233,7 +233,6 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
     // an empty VND cost next to a ¥ cost means "derive it from the rate" (never wipes the cost); a changed ¥ also re-derives it
     if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy))) next.costPrice = Math.round(next.costJpy * rate);
     if (patch.costJpy && patch.costJpy !== existing.costJpy) next.costCheckedAt = new Date().toISOString();
-    if (patch.stock !== undefined && patch.stock === 0) next.stockStatus = "outofstock";
     const changed = (Object.keys(patch) as Array<keyof typeof patch>).some((k) => JSON.stringify(existing[k]) !== JSON.stringify(next[k])) || next.costPrice !== existing.costPrice;
     if (!changed) {
       unchanged++;

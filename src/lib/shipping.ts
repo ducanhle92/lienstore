@@ -166,10 +166,14 @@ export function zoneCapKg(name: string): number | null {
   return m ? Number.parseFloat(m[1].replace(",", ".")) : null;
 }
 
-/** Turn full shipping methods into the lean quote config: first active method per JP leg is the default. */
-export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricingMode, jpyRate: number): ShippingQuoteConfig {
+/**
+ * Turn full shipping methods into the lean quote config. Per leg the admin's default (Công thức giá › Tham số chi phí)
+ * wins when it is active; otherwise the first active method by position.
+ */
+export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricingMode, jpyRate: number, defaults: Partial<Record<ShippingLeg, number>> = {}): ShippingQuoteConfig {
   const pick = (leg: ShippingLeg): QuoteMethod | null => {
-    const m = methods.filter((x) => x.leg === leg && x.active && x.zones.some((z) => z.active)).sort((a, b) => a.position - b.position || a.id - b.id)[0];
+    const list = methods.filter((x) => x.leg === leg && x.active && x.zones.some((z) => z.active)).sort((a, b) => a.position - b.position || a.id - b.id);
+    const m = (defaults[leg] ? list.find((x) => x.id === defaults[leg]) : undefined) ?? list[0];
     if (!m) return null;
     return {
       id: m.id,
