@@ -193,7 +193,10 @@ const DICT = {
   // product page
   tabInfo: ["Thông tin sản phẩm", "商品情報"],
   tabShipping: ["Chi phí vận chuyển", "配送料"],
-  tabReviews: ["Đánh giá", "レビュー"],
+  tabReviews: ["Feedback khách hàng", "カスタマーレビュー"],
+  verifiedBuyer: ["Đã mua hàng", "購入済み"],
+  ratingsCount: ["đánh giá", "件の評価"],
+  outOf5: ["trên 5", "／5"],
   related: ["Có thể bạn quan tâm", "こちらもおすすめ"],
   status: ["Tình trạng", "在庫状況"],
   inStock: ["Còn hàng", "在庫あり"],

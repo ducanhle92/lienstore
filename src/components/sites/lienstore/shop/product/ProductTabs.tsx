@@ -82,20 +82,59 @@ export function ProductTabs({ name, productId, description, reviews, reviewer, s
         </div>
       ) : (
         <div role="tabpanel" id={`${base}-panel-reviews`} aria-labelledby={`${base}-tab-reviews`} className="woocommerce-Tabs-panel woocommerce-Tabs-panel--reviews panel entry-content mb-8">
-          <h2 className={H2}>Đánh giá</h2>
+          <h2 className={H2}>{t("tabReviews")}</h2>
           {reviews.length ? (
-            <ol className="m-0 mb-8 grid list-none gap-3 p-0">
-              {reviews.map((r) => (
-                <li key={r.id} className="rounded-md border border-lien-line bg-white px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <StarRating rating={r.rating} />
-                    <span className="text-[14px] font-semibold text-lien-heading">{maskReviewer(r.author)}</span>
-                    <span className="text-[12px] text-lien-muted">{formatDateTime(r.createdAt)}</span>
+            <>
+              {(() => {
+                const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+                const dist = [5, 4, 3, 2, 1].map((n) => ({ n, c: reviews.filter((r) => r.rating === n).length }));
+                return (
+                  <div className="mb-6 grid gap-6 rounded-md border border-lien-line bg-white p-4 sm:grid-cols-[220px_1fr]">
+                    <div>
+                      <div className="flex items-end gap-2">
+                        <span className="text-[40px] font-bold leading-none text-lien-heading">{avg.toFixed(1)}</span>
+                        <span className="pb-1 text-[14px] text-lien-muted">{t("outOf5")}</span>
+                      </div>
+                      <StarRating rating={Math.round(avg)} />
+                      <p className="m-0 mt-1 text-[13px] text-lien-muted">
+                        {reviews.length} {t("ratingsCount")}
+                      </p>
+                    </div>
+                    <ul className="m-0 list-none space-y-1.5 p-0">
+                      {dist.map(({ n, c }) => (
+                        <li key={n} className="flex items-center gap-3 text-[13px]">
+                          <span className="w-10 whitespace-nowrap text-lien-blue">{n} ★</span>
+                          <span className="h-3 flex-1 overflow-hidden rounded bg-lien-cream">
+                            <span className="block h-full rounded bg-lien-amber" style={{ width: `${(c / reviews.length) * 100}%` }} />
+                          </span>
+                          <span className="w-10 text-right text-lien-muted">{Math.round((c / reviews.length) * 100)}%</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <p className="m-0 mt-2 whitespace-pre-line text-[15px] leading-6 text-lien-text">{r.comment}</p>
-                </li>
-              ))}
-            </ol>
+                );
+              })()}
+              <ol className="m-0 mb-8 grid list-none gap-3 p-0">
+                {reviews.map((r) => (
+                  <li key={r.id} className="rounded-md border border-lien-line bg-white px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-lien-blue text-[12px] font-bold text-white">{(r.author.trim()[0] ?? "?").toUpperCase()}</span>
+                      <span className="text-[14px] font-semibold text-lien-heading">{maskReviewer(r.author)}</span>
+                      {r.verified ? (
+                        <span className="rounded-full bg-lien-blue-soft px-2 py-px text-[11px] font-semibold text-lien-blue">
+                          <Fa name="check-circle" /> {t("verifiedBuyer")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <StarRating rating={r.rating} />
+                      <span className="text-[12px] text-lien-muted">{formatDateTime(r.createdAt)}</span>
+                    </div>
+                    <p className="m-0 mt-2 whitespace-pre-line text-[15px] leading-6 text-lien-text">{r.comment}</p>
+                  </li>
+                ))}
+              </ol>
+            </>
           ) : (
             <p className="woocommerce-noreviews mb-4 text-[16px] leading-6 text-lien-text">{t("noReviews")}</p>
           )}

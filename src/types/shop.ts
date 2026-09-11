@@ -250,6 +250,8 @@ export interface ProductReview {
   rating: number;
   comment: string;
   status: "pending" | "approved" | "rejected";
+  /** The reviewer has a non-cancelled order containing this product. */
+  verified?: boolean;
   createdAt: string;
 }
 

@@ -12,6 +12,7 @@ import { getAllProducts } from "@/lib/db";
 import type { CatalogProduct } from "@/types/shop";
 import { structureDescription } from "@/lib/description";
 import { suggestSku } from "@/lib/sku";
+import { csvRowToPatch, parseCsv } from "@/lib/product-csv";
 import { updateProductSku } from "@/lib/db";
 
 export type ProductFormState = { error?: string; fields?: Record<string, string> } | null;
@@ -184,4 +185,64 @@ export async function generateSkusAction(): Promise<void> {
   }
   revalidatePath("/admin", "layout");
   redirect(`/admin/products/?saved=${encodeURIComponent(`sku:${n}`)}`);
+}
+
+/**
+ * Kho hàng › Sản phẩm › Nhập CSV: rows are matched by the ID column; only the columns present in the file are changed.
+ * A ¥ cost without a VND cost recomputes the VND cost with the current rate. Result goes back as a notice.
+ */
+export async function importProductsCsvAction(formData: FormData): Promise<void> {
+  if (!(await can("products"))) redirect("/admin/login/");
+  const file = formData.get("csv");
+  const fail = (msg: string): never => redirect(`/admin/products/?error=${encodeURIComponent(msg)}`);
+  if (!(file instanceof File) || file.size === 0) fail("Hãy chọn file CSV.");
+  const f = file as File;
+  if (f.size > 5 * 1024 * 1024) fail("File CSV tối đa 5 MB.");
+  const rows = parseCsv(Buffer.from(await f.arrayBuffer()).toString("utf8"));
+  if (rows.length < 2) fail("File CSV trống hoặc thiếu dòng tiêu đề.");
+  const header = rows[0].map((h) => h.trim());
+  const idCol = header.findIndex((h) => h.toUpperCase() === "ID");
+  if (idCol < 0) fail('Thiếu cột "ID" — xuất CSV từ trang này rồi sửa trên đó.');
+  const rate = await getJpyRate();
+  let updated = 0;
+  let unchanged = 0;
+  const errors: string[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const rec: Record<string, string> = {};
+    header.forEach((h, j) => (rec[h] = rows[i][j] ?? ""));
+    const id = Number.parseInt(rec.ID, 10);
+    if (!Number.isInteger(id)) {
+      errors.push(`Dòng ${i + 1}: ID "${rec.ID}" không hợp lệ`);
+      continue;
+    }
+    const existing = await getProductById(id);
+    if (!existing) {
+      errors.push(`Dòng ${i + 1}: không có sản phẩm #${id}`);
+      continue;
+    }
+    const { patch, errors: rowErrors } = csvRowToPatch(rec);
+    if (rowErrors.length) {
+      errors.push(`#${id}: ${rowErrors.join("; ")}`);
+      continue;
+    }
+    const next = { ...existing, ...patch } as CatalogProduct;
+    // an empty VND cost next to a ¥ cost means "derive it from the rate" (never wipes the cost); a changed ¥ also re-derives it
+    if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy))) next.costPrice = Math.round(next.costJpy * rate);
+    if (patch.costJpy && patch.costJpy !== existing.costJpy) next.costCheckedAt = new Date().toISOString();
+    if (patch.stock !== undefined && patch.stock === 0) next.stockStatus = "outofstock";
+    const changed = (Object.keys(patch) as Array<keyof typeof patch>).some((k) => JSON.stringify(existing[k]) !== JSON.stringify(next[k])) || next.costPrice !== existing.costPrice;
+    if (!changed) {
+      unchanged++;
+      continue;
+    }
+    try {
+      await saveProduct({ ...next, id });
+      updated++;
+    } catch (e) {
+      errors.push(`#${id}: ${e instanceof Error ? e.message : "không lưu được"}`);
+    }
+  }
+  revalidatePath("/", "layout");
+  const msg = `csv:${updated}:${unchanged}:${errors.length}:${errors.slice(0, 8).join(" | ").slice(0, 900)}`;
+  redirect(`/admin/products/?saved=${encodeURIComponent(msg)}`);
 }

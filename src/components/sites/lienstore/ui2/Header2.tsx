@@ -90,7 +90,7 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
   }, [open]);
 
   const tree = buildCategoryTree(categories);
-  const navItem = "inline-flex h-[44px] items-center gap-1 whitespace-nowrap rounded-md px-2 text-[13px] font-semibold uppercase tracking-[0.2px] text-white no-underline hover:bg-white/15 xl:px-3 xl:text-[14px]";
+  const navItem = "inline-flex h-[46px] items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[15px] font-bold uppercase tracking-[0.3px] text-white no-underline hover:bg-white/15 xl:px-3.5 xl:text-[16px]";
 
   return (
     <header className={cn("sticky top-0 z-[9000] bg-lien-header text-white transition-shadow", stuck && "shadow-[0_4px_16px_-8px_rgba(0,0,0,0.35)]")}>

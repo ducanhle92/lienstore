@@ -2009,8 +2009,14 @@ const rowToReview = (r: ReviewRow): ProductReview => ({
 
 /** Approved reviews of one product, newest first. */
 export async function getProductReviews(productId: number): Promise<ProductReview[]> {
-  const rows = getDb().prepare(`${REVIEW_SELECT} WHERE r.product_id = ? AND r.status = 'approved' ORDER BY r.created_at DESC`).all(productId) as unknown as ReviewRow[];
-  return rows.map(rowToReview);
+  const rows = getDb()
+    .prepare(
+      `SELECT r.*, p.name AS product_name, p.slug AS product_slug,
+              EXISTS(SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.customer_id = r.customer_id AND oi.product_id = r.product_id AND o.status <> 'cancelled') AS verified
+       FROM reviews r JOIN products p ON p.id = r.product_id WHERE r.product_id = ? AND r.status = 'approved' ORDER BY r.created_at DESC`,
+    )
+    .all(productId) as unknown as Array<ReviewRow & { product_name: string; product_slug: string; verified: number }>;
+  return rows.map((r) => ({ ...rowToReview(r), verified: r.verified === 1 }));
 }
 
 export async function hasPendingReview(productId: number, customerId: string): Promise<boolean> {

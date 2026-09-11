@@ -84,7 +84,7 @@ export default async function AdminReviews({ searchParams }: Props) {
   const error = first(sp.error);
   return (
     <>
-      <PageHeader title="Đánh giá sản phẩm" subtitle="Khách đăng nhập mới được viết đánh giá. Chỉ đánh giá đã duyệt mới hiện trên trang sản phẩm, với tên tài khoản che 3 ký tự sau." />
+      <PageHeader title="Feedback khách hàng" subtitle="Khách đăng nhập mới được viết feedback. Chỉ feedback đã duyệt mới hiện trên trang sản phẩm (kiểu Amazon: điểm trung bình, biểu đồ sao, nhãn Đã mua hàng), tên tài khoản che 3 ký tự sau." />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
       <Card title={`Chờ duyệt (${pending.length})`} className="mb-6">

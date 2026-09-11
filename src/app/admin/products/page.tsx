@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
-import { deleteProductAction, generateSkusAction } from "@/app/admin/products/actions";
+import { deleteProductAction, generateSkusAction, importProductsCsvAction } from "@/app/admin/products/actions";
+import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { filterProducts } from "@/lib/product-filter";
@@ -60,16 +60,33 @@ export default async function AdminProducts({ searchParams }: Props) {
                 </button>
               </form>
             ) : null}
-            <a href={`/admin/products/export/${csvQs ? `?${csvQs}` : ""}`} className={btnSecondary} title="Đúng các dòng đang lọc — để in / kiểm kho">
+            <a href={`/admin/products/export/${csvQs ? `?${csvQs}` : ""}`} className={btnSecondary} title="Mọi trường của sản phẩm (giá bán, giá vốn ¥ / VNĐ, tỉ giá, link…) cho các dòng đang lọc — sửa trong Excel rồi nhập lại">
               <Fa name="download" /> Xuất CSV ({items.length})
             </a>
+            <form action={importProductsCsvAction} className="flex items-center gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-2 py-1">
+              <FilePicker name="csv" accept=".csv,text/csv" label="Chọn CSV" className="!gap-1 [&_span]:hidden" />
+              <button type="submit" className={btnSecondary} title="Cập nhật sản phẩm theo cột ID từ file CSV đã xuất ở đây">
+                <Fa name="upload" /> Nhập CSV
+              </button>
+            </form>
             <Link href="/admin/products/new/" className={btnPrimary}>
               + Thêm sản phẩm
             </Link>
           </>
         }
       />
-      {saved.startsWith("sku:") ? (
+      {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
+      {saved.startsWith("csv:") ? (
+        (() => {
+          const [, up, same, nerr, ...rest] = saved.split(":");
+          const detail = rest.join(":");
+          return (
+            <Flash kind={Number(nerr) ? "warning" : "success"}>
+              Nhập CSV: cập nhật <strong>{up}</strong> sản phẩm, {same} không đổi{Number(nerr) ? `, ${nerr} dòng lỗi` : ""}.{detail ? <span className="mt-1 block text-[12px]">{detail}</span> : null}
+            </Flash>
+          );
+        })()
+      ) : saved.startsWith("sku:") ? (
         <Flash>
           Đã tạo SKU cho {saved.slice(4)} sản phẩm theo quy ước <code>THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP</code> (VD: LION-TM-2609-0173 = Lion · Trị mụn · nhập 09/2026 · sản phẩm #173). Sửa từng mã trong trang sản phẩm nếu cần.
         </Flash>
@@ -116,7 +133,6 @@ export default async function AdminProducts({ searchParams }: Props) {
               <tr>
                 <th className={thClass}>ID</th>
                 <th className={thClass}>SKU</th>
-                <th className={thClass} />
                 <th className={thClass}>Tên</th>
                 <th className={thClass}>Danh mục</th>
                 <th className={thClass} title="Giá khách thấy — đã gồm phí vận chuyển 3 chặng về kho shop">Giá bán VN</th>
@@ -134,7 +150,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={14} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -143,9 +159,6 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <tr key={p.id} className="hover:bg-[#fafafa]">
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>#{p.id}</td>
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[12px]`}>{p.sku ? p.sku : <span className="text-lien-muted">—</span>}</td>
-                  <td className={`${tdClass} w-16`}>
-                    {p.thumb ? <Image src={p.thumb} alt="" width={48} height={48} className="h-12 w-12 rounded border border-[#e5e7eb] object-cover" unoptimized /> : null}
-                  </td>
                   <td className={`${tdClass} min-w-[220px]`}>
                     <Link href={`/admin/products/${p.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                       {p.name}
