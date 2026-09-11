@@ -1,6 +1,6 @@
 {
   "name": "lienstore",
-  "version": "1.30.4",
+  "version": "1.30.5",
   "private": true,
   "description": "Clone any website into a clean, modern Next.js codebase using AI coding agents",
   "author": "JCodesMore",
