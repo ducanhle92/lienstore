@@ -1,0 +1,46 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:transparent;font-family:Poppins,sans-serif}
+  .logo{position:relative;width:800px;height:388px;overflow:hidden}
+  .logo.red{background:#D22B26}
+  .logo.white{background:#fff}
+  .circle{position:absolute;left:532px;top:42px;width:228px;height:228px;border-radius:50%}
+  .circle svg{position:absolute;left:96px;top:30px;width:104px;height:104px}
+  .t{position:absolute;font-weight:800;line-height:1;letter-spacing:-5px;white-space:nowrap}
+  .store{left:226px;top:66px;font-size:158px}
+  .lien{left:38px;top:186px;font-size:158px}
+  .red .t{color:#fff}
+  .white .t,.trans .t{color:#D22B26}
+  .transwhite .t{color:#fff}
+  .transwhite .circle{background:#F7A0B5}
+  .red .circle{background:#F7A0B5}
+  .white .circle,.trans .circle{background:#F5A9BC}
+  .icon{position:relative;width:512px;height:512px;overflow:hidden}
+  .icon.sq{background:#D22B26;border-radius:112px}
+  .icon.round{background:#F5A9BC;border-radius:50%}
+  .icon svg{position:absolute;left:96px;top:96px;width:320px;height:320px}
+  .og{position:relative;width:1200px;height:630px;background:#D22B26;overflow:hidden}
+  .og .logo{position:absolute;left:200px;top:121px;background:transparent}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <!-- five-petal sakura: petal drawn pointing up with a notched tip, rotated ×5 -->
+  <g id="sakura" fill="#fff">
+    <g id="petal"><path d="M0,-10 C-14,-30 -30,-58 -24,-84 C-20,-100 -8,-108 0,-100 C8,-108 20,-100 24,-84 C30,-58 14,-30 0,-10 Z" transform="translate(0,-8)"/><path d="M0,-108 L-9,-96 L0,-102 L9,-96 Z" fill="#D22B26" opacity="0"/></g>
+    <use href="#petal" transform="rotate(72)"/><use href="#petal" transform="rotate(144)"/><use href="#petal" transform="rotate(216)"/><use href="#petal" transform="rotate(288)"/>
+  </g>
+</defs></svg>
+<script>
+  const sakura = (fill) => `<svg viewBox="-120 -120 240 240"><g transform="translate(0,0)">${[0,72,144,216,288].map(a=>`<g transform="rotate(${a})"><path fill="${fill}" d="M0,-6 C-22,-22 -42,-50 -36,-80 C-32,-98 -17,-108 -6,-100 L0,-91 L6,-100 C17,-108 32,-98 36,-80 C42,-50 22,-22 0,-6 Z"/></g>`).join('')}</g></svg>`;
+  const kind = new URLSearchParams(location.search).get('k') || 'red';
+  const logo = (cls) => `<div class="logo ${cls}"><div class="circle">${sakura('#fff')}</div><div class="t store">Store</div><div class="t lien">Lienanh</div></div>`;
+  let html = '';
+  if (kind === 'red' || kind === 'white' || kind === 'trans' || kind === 'transwhite') html = logo(kind);
+  else if (kind === 'icon') html = `<div class="icon sq">${sakura('#fff')}</div>`;
+  else if (kind === 'round') html = `<div class="icon round">${sakura('#fff')}</div>`;
+  else if (kind === 'og') html = `<div class="og">${logo('trans red-text').replace('class="logo','class="logo og-logo')}</div>`;
+  document.body.innerHTML = html;
+  if (kind === 'og') { document.querySelectorAll('.og .t').forEach(e => e.style.color = '#fff'); document.querySelector('.og .circle').style.background = '#F7A0B5'; }
+</script>
+</body></html>
