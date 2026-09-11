@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { can } from "@/lib/auth";
-import { getAllProducts, getJpyRate, getPricingConfig } from "@/lib/db";
+import { getAllProducts, getImportQuoteConfig, getJpyRate, getPricingConfig } from "@/lib/db";
+import { suggestPrice } from "@/lib/pricing";
 import { productToCsvRow, toCsv } from "@/lib/product-csv";
 import { filterProducts } from "@/lib/product-filter";
 
@@ -10,8 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   if (!(await can("products"))) return new NextResponse("Unauthorized", { status: 401 });
   const sp = Object.fromEntries(req.nextUrl.searchParams.entries());
-  const [all, rate, pricing] = await Promise.all([getAllProducts(true), getJpyRate(), getPricingConfig()]);
-  const rows = filterProducts(all, sp).map((p) => productToCsvRow(p, rate, pricing.marginPct));
+  const [all, rate, pricing, quote] = await Promise.all([getAllProducts(true), getJpyRate(), getPricingConfig(), getImportQuoteConfig()]);
+  const rows = filterProducts(all, sp).map((p) => productToCsvRow(p, rate, pricing.marginPct, suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing)));
   return new NextResponse(toCsv(rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

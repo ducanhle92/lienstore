@@ -1,4 +1,5 @@
 import type { CatalogProduct } from "@/types/shop";
+import type { PriceBreakdown } from "./pricing";
 import { isDimsConfidence } from "./shipping";
 
 /**
@@ -14,11 +15,15 @@ export const CSV_COLUMNS = [
   "Danh mục (slug, cách nhau bằng ;)",
   "Hình thức",
   "Giá bán VN (VNĐ)",
-  "Giá gốc (VNĐ)",
-  "Giá bán NB (VNĐ)",
   "Giá vốn (¥)",
   "Tỉ giá (đ/¥)",
   "Giá vốn (VNĐ)",
+  "Giá bán NB (VNĐ)",
+  "Ship nội địa Nhật (VNĐ)",
+  "Ship Nhật → Việt Nam (VNĐ)",
+  "Ship kho ĐVVC → kho shop (VNĐ)",
+  "Tổng phí vận chuyển về kho VN (VNĐ)",
+  "Chi phí lên kệ website (VNĐ)",
   "Nguồn giá",
   "Link giá",
   "Link nhà cung cấp",
@@ -38,7 +43,12 @@ export type CsvColumn = (typeof CSV_COLUMNS)[number];
 const CONF_LABEL: Record<string, string> = { high: "Cao", medium: "Trung bình", low: "Thấp" };
 const CONF_KEY: Record<string, "high" | "medium" | "low"> = { cao: "high", "trung bình": "medium", "trung binh": "medium", thấp: "low", thap: "low", high: "high", medium: "medium", low: "low" };
 
-export function productToCsvRow(p: CatalogProduct, rate: number, marginPct: number): Record<CsvColumn, string | number> {
+/**
+ * One CSV record. `bd` = the price formula for this product (null when it has no cost): import legs shared per gram of the
+ * product, their total, and the final shelf price the customer sees (cost + margin + import legs, rounded).
+ */
+export function productToCsvRow(p: CatalogProduct, rate: number, marginPct: number, bd: PriceBreakdown | null = null): Record<CsvColumn, string | number> {
+  const leg = (k: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === k)?.fee ?? 0) : "");
   return {
     ID: p.id,
     SKU: p.sku ?? "",
@@ -48,11 +58,15 @@ export function productToCsvRow(p: CatalogProduct, rate: number, marginPct: numb
     "Danh mục (slug, cách nhau bằng ;)": p.categories.join(";"),
     "Hình thức": p.fulfillment === "stock" ? "Lưu kho" : "Order",
     "Giá bán VN (VNĐ)": p.price,
-    "Giá gốc (VNĐ)": p.regularPrice ?? "",
-    "Giá bán NB (VNĐ)": p.costPrice === null ? "" : Math.round((p.costPrice * (1 + marginPct / 100)) / 1000) * 1000,
     "Giá vốn (¥)": p.costJpy ?? "",
     "Tỉ giá (đ/¥)": rate,
     "Giá vốn (VNĐ)": p.costPrice ?? "",
+    "Giá bán NB (VNĐ)": p.costPrice === null ? "" : Math.round((p.costPrice * (1 + marginPct / 100)) / 1000) * 1000,
+    "Ship nội địa Nhật (VNĐ)": leg("jp_domestic"),
+    "Ship Nhật → Việt Nam (VNĐ)": leg("jp_vn"),
+    "Ship kho ĐVVC → kho shop (VNĐ)": leg("vn_transfer"),
+    "Tổng phí vận chuyển về kho VN (VNĐ)": bd ? bd.shipping : "",
+    "Chi phí lên kệ website (VNĐ)": bd ? bd.suggested : "",
     "Nguồn giá": p.costSource,
     "Link giá": p.costUrl,
     "Link nhà cung cấp": p.supplierUrl ?? "",
@@ -141,8 +155,8 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
     const v = num("Giá bán VN (VNĐ)");
     if (v !== undefined && v !== null) patch.price = v;
   }
-  if (has("Giá gốc (VNĐ)")) {
-    const v = num("Giá gốc (VNĐ)");
+  if (has("Giá gốc (VNĐ)" as CsvColumn)) {
+    const v = num("Giá gốc (VNĐ)" as CsvColumn);
     if (v !== undefined) patch.regularPrice = v;
   }
   if (has("Giá vốn (¥)")) {
