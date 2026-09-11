@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { deleteProductAction } from "@/app/admin/products/actions";
+import { deleteProductAction, generateSkusAction } from "@/app/admin/products/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
-import { adminInput, btnPrimary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCategories } from "@/lib/db";
@@ -52,12 +53,27 @@ export default async function AdminProducts({ searchParams }: Props) {
         title="Sản phẩm"
         subtitle={`${items.length} / ${all.length} sản phẩm · ${withCost.length} có giá vốn · vốn tồn kho ${formatPrice(stockValue)} · lợi nhuận tồn kho ${formatPrice(stockProfit)}${missingPrice ? ` · ${missingPrice} chưa có giá bán` : ""}`}
         actions={
-          <Link href="/admin/products/new/" className={btnPrimary}>
-            + Thêm sản phẩm
-          </Link>
+          <>
+            {all.filter((p) => !p.sku).length ? (
+              <form action={generateSkusAction}>
+                <button type="submit" className={btnSecondary} title="SKU = THƯƠNG-HIỆU – DANH-MỤC – THÁNG NHẬP (YYMM) – MÃ SP. VD: LION-TM-2609-0173">
+                  <Fa name="tags" /> Tạo SKU cho {all.filter((p) => !p.sku).length} sp chưa có
+                </button>
+              </form>
+            ) : null}
+            <Link href="/admin/products/new/" className={btnPrimary}>
+              + Thêm sản phẩm
+            </Link>
+          </>
         }
       />
-      {saved ? <Flash>Đã lưu sản phẩm #{saved}.</Flash> : null}
+      {saved.startsWith("sku:") ? (
+        <Flash>
+          Đã tạo SKU cho {saved.slice(4)} sản phẩm theo quy ước <code>THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP</code> (VD: LION-TM-2609-0173 = Lion · Trị mụn · nhập 09/2026 · sản phẩm #173). Sửa từng mã trong trang sản phẩm nếu cần.
+        </Flash>
+      ) : saved ? (
+        <Flash>Đã lưu sản phẩm #{saved}.</Flash>
+      ) : null}
       {deleted ? <Flash>Đã xoá sản phẩm.</Flash> : null}
 
       <Card>

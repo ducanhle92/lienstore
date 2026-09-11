@@ -33,6 +33,7 @@ import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
 import { applyShipPolicy, parseShipPolicy, policyFreeOver, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig, zoneFeeForWeight } from "./shipping";
 import { parsePricing, type PricingConfig } from "./pricing";
+import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
@@ -179,8 +180,11 @@ interface OrderRow {
 }
 
 interface OrderItemRow {
+  id: number;
   order_id: string;
   product_id: number;
+  purchase_status: string | null;
+  purchase_note: string | null;
   slug: string;
   name: string;
   price: number;
@@ -193,12 +197,12 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
   const db = getDb();
   const placeholders = rows.map(() => "?").join(",");
   const items = db
-    .prepare(`SELECT order_id, product_id, slug, name, price, image, quantity FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
+    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
     .all(...rows.map((r) => r.id)) as unknown as OrderItemRow[];
   const byOrder = new Map<string, CartItem[]>();
   for (const it of items) {
     const list = byOrder.get(it.order_id) ?? [];
-    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity });
+    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
     byOrder.set(it.order_id, list);
   }
   return rows.map((r) => ({
@@ -807,6 +811,16 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
   const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
   if (r.changes === 0) return false;
   db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
+  // every line of the order has at least reached the purchase status implied by the logistics stage (never lowered)
+  const minStatus = STAGE_TO_PURCHASE[stage];
+  if (minStatus) {
+    const lines = db.prepare("SELECT id, purchase_status FROM order_items WHERE order_id = ?").all(id) as unknown as Array<{ id: number; purchase_status: string | null }>;
+    const upd = db.prepare("UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id = ?");
+    for (const l of lines) {
+      const cur = isPurchaseStatus(l.purchase_status) ? l.purchase_status : "not_bought";
+      if (purchaseIndex(cur) < purchaseIndex(minStatus)) upd.run(minStatus, now, l.id);
+    }
+  }
   // arriving at the end also completes the order; anything before keeps it "processing"
   if (stage === "delivered") db.prepare("UPDATE orders SET status = 'completed' WHERE id = ? AND status <> 'cancelled'").run(id);
   else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(id);
@@ -2077,4 +2091,108 @@ function rememberAddress(db: DatabaseSync, customerId: string, name: string, pho
   const rows = db.prepare("SELECT id, address FROM customer_addresses WHERE customer_id = ?").all(customerId) as unknown as Array<{ id: number; address: string }>;
   if (rows.some((r) => normAddr(r.address) === normAddr(a))) return;
   db.prepare("INSERT INTO customer_addresses (customer_id, label, name, phone, address, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(customerId, `Địa chỉ ${rows.length + 1}`, name, phone, a, rows.length === 0 ? 1 : 0, new Date().toISOString());
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Purchase management (Kho hàng › Quản lý mua hàng)
+
+export interface PurchaseLine {
+  itemId: number;
+  orderId: string;
+  orderNumber: number;
+  orderStatus: OrderStatus;
+  orderCreatedAt: string;
+  customerName: string;
+  productId: number;
+  name: string;
+  quantity: number;
+  purchaseStatus: PurchaseStatus;
+  purchaseNote: string;
+  purchaseUpdatedAt: string | null;
+  sku: string | null;
+  thumb: string | null;
+  costPrice: number | null;
+  supplierUrl: string | null;
+}
+
+/** Every line of the open orders (pending / processing); `includeDone` adds completed orders. Cancelled orders never. */
+export async function getPurchaseLines(includeDone = false): Promise<PurchaseLine[]> {
+  const statuses = includeDone ? "('pending','processing','completed')" : "('pending','processing')";
+  const rows = getDb()
+    .prepare(
+      `SELECT oi.id, oi.order_id, o.number, o.status, o.created_at, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity,
+              oi.purchase_status, oi.purchase_note, oi.purchase_updated_at, p.sku, p.thumb, p.cost_price, p.supplier_url
+       FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id
+       WHERE o.status IN ${statuses} ORDER BY o.created_at DESC, oi.id`,
+    )
+    .all() as unknown as Array<{
+    id: number; order_id: string; number: number; status: OrderStatus; created_at: string; first_name: string; last_name: string; product_id: number; name: string; quantity: number;
+    purchase_status: string | null; purchase_note: string | null; purchase_updated_at: string | null; sku: string | null; thumb: string | null; cost_price: number | null; supplier_url: string | null;
+  }>;
+  return rows.map((r) => ({
+    itemId: r.id,
+    orderId: r.order_id,
+    orderNumber: r.number,
+    orderStatus: r.status,
+    orderCreatedAt: r.created_at,
+    customerName: `${r.last_name} ${r.first_name}`.trim(),
+    productId: r.product_id,
+    name: r.name,
+    quantity: r.quantity,
+    purchaseStatus: isPurchaseStatus(r.purchase_status) ? r.purchase_status : "not_bought",
+    purchaseNote: r.purchase_note ?? "",
+    purchaseUpdatedAt: r.purchase_updated_at,
+    sku: r.sku,
+    thumb: r.thumb,
+    costPrice: r.cost_price,
+    supplierUrl: r.supplier_url,
+  }));
+}
+
+/** Set the purchase status (and optionally the note) of order lines; returns the number of rows changed. */
+export async function setOrderItemsPurchase(itemIds: number[], status: PurchaseStatus, note?: string): Promise<number> {
+  if (itemIds.length === 0) return 0;
+  const db = getDb();
+  const now = new Date().toISOString();
+  const ph = itemIds.map(() => "?").join(",");
+  const r =
+    note === undefined
+      ? db.prepare(`UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id IN (${ph})`).run(status, now, ...itemIds)
+      : db.prepare(`UPDATE order_items SET purchase_status = ?, purchase_note = ?, purchase_updated_at = ? WHERE id IN (${ph})`).run(status, note, now, ...itemIds);
+  return Number(r.changes);
+}
+
+export interface PipelineUnits {
+  /** Bought in Japan or on the way (bought · NB→VN · về kho shop). */
+  inTransit: number;
+  /** Received at the shop warehouse, not yet handed to the customer. */
+  atShop: number;
+  /** inTransit + atShop — units the shop has paid for and still holds. */
+  pipeline: number;
+}
+
+/** Per product: units of non-cancelled orders that are bought but not yet delivered, split by where they are. */
+export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
+  const ph = PIPELINE_STATUSES.map(() => "?").join(",");
+  const rows = getDb()
+    .prepare(
+      `SELECT oi.product_id, oi.purchase_status, SUM(oi.quantity) AS n FROM order_items oi JOIN orders o ON o.id = oi.order_id
+       WHERE o.status <> 'cancelled' AND oi.purchase_status IN (${ph}) GROUP BY oi.product_id, oi.purchase_status`,
+    )
+    .all(...PIPELINE_STATUSES) as unknown as Array<{ product_id: number; purchase_status: string; n: number }>;
+  const out = new Map<number, PipelineUnits>();
+  for (const r of rows) {
+    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    if (r.purchase_status === "at_shop") u.atShop += r.n;
+    else u.inTransit += r.n;
+    u.pipeline = u.inTransit + u.atShop;
+    out.set(r.product_id, u);
+  }
+  return out;
+}
+
+/** Set the SKU of one product (bulk generator). */
+export async function updateProductSku(id: number, sku: string): Promise<boolean> {
+  const r = getDb().prepare("UPDATE products SET sku = ?, updated_at = ? WHERE id = ?").run(sku, new Date().toISOString(), id);
+  return r.changes > 0;
 }

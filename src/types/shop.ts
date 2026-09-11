@@ -1,3 +1,4 @@
+import type { PurchaseStatus } from "@/lib/purchase";
 // Shop / commerce types for the linconnn.io.vn clone.
 
 export type StockStatus = "instock" | "outofstock";
@@ -71,6 +72,10 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  /** Order lines only: row id + purchase / logistics status (see lib/purchase.ts). */
+  itemId?: number;
+  purchaseStatus?: PurchaseStatus;
+  purchaseNote?: string;
 }
 
 export type OrderStatus = "pending" | "processing" | "completed" | "cancelled";

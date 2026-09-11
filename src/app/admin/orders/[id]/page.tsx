@@ -11,6 +11,8 @@ import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerOverview, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, markOrderMessagesRead } from "@/lib/db";
+import { setPurchaseAction } from "@/app/admin/purchases/actions";
+import { PURCHASE_STAGES } from "@/lib/purchase";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
@@ -67,6 +69,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Đơn giá</th>
                   <th className={thClass}>SL</th>
+                  <th className={thClass}>Mua hàng</th>
                   <th className={`${thClass} text-right`}>Thành tiền</th>
                 </tr>
               </thead>
@@ -89,34 +92,52 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     </td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td>
                     <td className={tdClass}>{it.quantity}</td>
+                    <td className={tdClass}>
+                      {it.itemId ? (
+                        <form action={setPurchaseAction} className="flex items-center gap-1">
+                          <input type="hidden" name="itemId" value={it.itemId} />
+                          <input type="hidden" name="back" value={`/admin/orders/${order.id}/`} />
+                          <select name="status" defaultValue={it.purchaseStatus ?? "not_bought"} className="rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Trạng thái mua hàng">
+                            {PURCHASE_STAGES.map((s) => (
+                              <option key={s.key} value={s.key}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button type="submit" className="rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px] hover:border-lien-blue" title="Lưu">
+                            <Fa name="check-circle" />
+                          </button>
+                        </form>
+                      ) : null}
+                    </td>
                     <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                  <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                     Tạm tính
                   </td>
                   <td className={`${tdClass} text-right`}>{formatPrice(order.subtotal, order.currency)}</td>
                 </tr>
                 {order.discount > 0 ? (
                   <tr>
-                    <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                    <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                       Giảm giá {order.voucherCode ? <span className="font-normal text-lien-muted">({order.voucherCode})</span> : null}
                     </td>
                     <td className={`${tdClass} text-right text-lien-success`}>−{formatPrice(order.discount, order.currency)}</td>
                   </tr>
                 ) : null}
                 <tr>
-                  <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                  <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                     Giao hàng {order.shippingLabel ? <span className="font-normal text-lien-muted">({order.shippingLabel})</span> : null}
                     {order.shipFeePayment === "on_delivery" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">khách trả phí ship cho shipper · không nằm trong Tổng</span> : null}
                   </td>
                   <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? `${order.shipFeePayment === "on_delivery" ? "≈ " : ""}${formatPrice(order.shippingFee, order.currency)}` : "Miễn phí"}</td>
                 </tr>
                 <tr>
-                  <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
+                  <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                     Tổng
                   </td>
                   <td className={`${tdClass} text-right text-[16px] font-bold`}>{formatPrice(order.total, order.currency)}</td>

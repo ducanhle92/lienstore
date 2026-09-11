@@ -19,13 +19,16 @@ export async function GET() {
       l.product.sku ?? "",
       l.toBuy,
       l.demand,
+      l.toBuy + l.pipeline.pipeline,
+      l.pipeline.inTransit,
+      l.pipeline.atShop,
       l.demandOrders.map((o) => `#${o.number}x${o.quantity}`).join(" "),
       l.product.stock ?? "",
       l.product.costPrice ?? "",
       l.toBuy * (l.product.costPrice ?? 0),
       l.product.supplierUrl ?? "",
     ]);
-  const header = ["ID", "Tên sản phẩm", "SKU", "Cần mua", "Đơn mở cần", "Đơn hàng", "Tồn hiện tại", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua"];
+  const header = ["ID", "Tên sản phẩm", "SKU", "Cần mua", "Đơn mở cần", "Tổng hàng mua", "Đang về", "Tại kho shop", "Đơn hàng", "Tồn hiện tại", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua"];
   const csv = "﻿" + [header, ...rows].map((r) => r.map(esc).join(",")).join("\r\n");
   return new NextResponse(csv, {
     headers: {

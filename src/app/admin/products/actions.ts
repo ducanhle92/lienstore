@@ -10,6 +10,9 @@ import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
 import { getAllProducts } from "@/lib/db";
 import type { CatalogProduct } from "@/types/shop";
+import { structureDescription } from "@/lib/description";
+import { suggestSku } from "@/lib/sku";
+import { updateProductSku } from "@/lib/db";
 
 export type ProductFormState = { error?: string; fields?: Record<string, string> } | null;
 
@@ -147,4 +150,27 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
     revalidatePath("/", "layout");
   }
   redirect("/admin/products/?deleted=1");
+}
+
+/** Brand fact of a product ("Thương hiệu: DHC") when the description carries one. */
+export async function brandHintOf(p: Pick<CatalogProduct, "description" | "name">): Promise<string | null> {
+  try {
+    return structureDescription(p.description ?? "", p.name).facts.find((f) => f.label === "Thương hiệu")?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Kho hàng › Sản phẩm: give every product without a SKU one, following BRAND-CAT-YYMM-NNNN (see lib/sku.ts). */
+export async function generateSkusAction(): Promise<void> {
+  if (!(await can("products"))) redirect("/admin/login/");
+  const products = await getAllProducts(true);
+  let n = 0;
+  for (const p of products) {
+    if (p.sku && p.sku.trim()) continue;
+    const sku = suggestSku({ id: p.id, name: p.name, categories: p.categories, createdAt: p.createdAt, brand: await brandHintOf(p) });
+    if (await updateProductSku(p.id, sku)) n++;
+  }
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/products/?saved=${encodeURIComponent(`sku:${n}`)}`);
 }

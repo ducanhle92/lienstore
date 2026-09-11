@@ -647,6 +647,18 @@ export const MIGRATIONS: Migration[] = [
         SELECT id, 'Địa chỉ 1', TRIM(last_name || ' ' || first_name), phone, address, 1, updated_at FROM customers WHERE role = 'customer' AND TRIM(address) <> ''`,
     ],
   },
+  {
+    // Purchase / logistics status per order line (Kho hàng › Quản lý mua hàng). Existing lines start from the order's stage.
+    version: 29,
+    name: "order-item-purchase-status",
+    up: [
+      `ALTER TABLE order_items ADD COLUMN purchase_status TEXT NOT NULL DEFAULT 'not_bought'`,
+      `ALTER TABLE order_items ADD COLUMN purchase_note TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE order_items ADD COLUMN purchase_updated_at TEXT`,
+      `UPDATE order_items SET purchase_status = CASE (SELECT ship_stage FROM orders o WHERE o.id = order_items.order_id)
+          WHEN 'delivered' THEN 'delivered' WHEN 'delivering' THEN 'shipped_to_customer' WHEN 'vn_warehouse' THEN 'at_shop' WHEN 'in_transit' THEN 'shipped_jp_vn' ELSE 'not_bought' END`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

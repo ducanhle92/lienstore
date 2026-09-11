@@ -30,6 +30,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
       { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
       { href: "/admin/inventory/", label: "Tồn kho", icon: "archive", module: "inventory" },
+      { href: "/admin/purchases/", label: "Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
       { href: "/admin/products/pricing/", label: "Công thức giá", icon: "money", module: "products" },
     ],
   },

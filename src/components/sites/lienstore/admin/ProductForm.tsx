@@ -18,6 +18,8 @@ interface ProductFormProps {
   /** Import-leg methods + ¥ rate and margin % for the suggested selling price (Kho hàng › Công thức giá). */
   quote?: ShippingQuoteConfig;
   pricing?: PricingConfig;
+  /** SKU proposed by the convention (existing products only). */
+  skuSuggestion?: string;
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -34,10 +36,11 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion }: ProductFormProps) {
   const [state, action, pending] = useActionState<ProductFormState, FormData>(saveProductAction, null);
   const [priceText, setPriceText] = useState(String(product?.price ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
+  const [skuText, setSkuText] = useState(product?.sku ?? "");
   const [weightText, setWeightText] = useState(String(product?.weightG ?? ""));
   const [dimsText, setDimsText] = useState(product?.dimsCm ?? "");
   const [confText, setConfText] = useState(product?.dimsConfidence ?? "");
@@ -215,9 +218,14 @@ export function ProductForm({ product, categories, quote, pricing }: ProductForm
               </div>
               <div>
                 <label className={adminLabel} htmlFor="sku">
-                  Mã SKU
+                  Mã SKU <span className="font-normal text-lien-muted">(THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP)</span>
                 </label>
-                <input id="sku" name="sku" defaultValue={product?.sku ?? ""} className={adminInput} />
+                <input id="sku" name="sku" value={skuText} onChange={(e) => setSkuText(e.target.value.toUpperCase())} placeholder={skuSuggestion ?? "VD: LION-TM-2609-0173"} className={cn(adminInput, "font-mono uppercase")} />
+                {skuSuggestion && skuText !== skuSuggestion ? (
+                  <button type="button" onClick={() => setSkuText(skuSuggestion)} className="mt-1 text-[12px] text-lien-blue hover:underline">
+                    Dùng mã đề xuất {skuSuggestion}
+                  </button>
+                ) : null}
               </div>
               <div>
                 <label className={adminLabel} htmlFor="stock">

@@ -1,6 +1,6 @@
 import "server-only";
 import type { CatalogProduct } from "@/types/shop";
-import { getAllProducts, getOpenOrderDemand, type DemandLine } from "./db";
+import { getAllProducts, getOpenOrderDemand, getPipelineUnits, type DemandLine, type PipelineUnits } from "./db";
 
 /** Default reorder threshold when a product has no `minStock`. */
 export const DEFAULT_MIN_STOCK = Number.parseInt(process.env.LIEN_MIN_STOCK ?? "2", 10) || 2;
@@ -14,8 +14,11 @@ export interface InventoryLine {
   /** Units reserved by open orders. */
   demand: number;
   demandOrders: DemandLine["orders"];
-  /** Units to buy now: open-order demand not covered by stock, plus top-up to the minimum when tracked. */
+  /** Units to buy now: open-order demand not covered by stock or by units already bought, plus top-up to the minimum when tracked. */
   toBuy: number;
+  /** Units already bought for open orders: on the way from Japan / at the shop (see lib/purchase.ts). */
+  pipeline: PipelineUnits;
+  /** (stock + pipeline) × cost price — capital tied up in goods bought at Japan, in transit and in Vietnam. */
   stockValue: number;
 }
 
@@ -40,12 +43,14 @@ export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
 }
 
 export async function getInventory(): Promise<{ lines: InventoryLine[]; summary: InventorySummary }> {
-  const [products, demand] = await Promise.all([getAllProducts(true), getOpenOrderDemand()]);
+  const [products, demand, pipe] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits()]);
   const lines: InventoryLine[] = products.map((p) => {
     const minStock = p.minStock ?? DEFAULT_MIN_STOCK;
     const state = stockStateOf(p, minStock);
     const d = demand.get(p.id);
-    const need = d?.needed ?? 0;
+    const pipeline = pipe.get(p.id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    // open-order units still to source = demand minus what is already bought for those orders
+    const need = Math.max(0, (d?.needed ?? 0) - pipeline.pipeline);
     let toBuy = 0;
     if (p.stock === null) toBuy = need; // not tracked: every open order line has to be sourced
     else {
@@ -60,7 +65,8 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
       demand: need,
       demandOrders: d?.orders ?? [],
       toBuy,
-      stockValue: (p.stock ?? 0) * (p.costPrice ?? 0),
+      pipeline,
+      stockValue: ((p.stock ?? 0) + pipeline.pipeline) * (p.costPrice ?? 0),
     };
   });
   const summary: InventorySummary = {
@@ -70,7 +76,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     low: lines.filter((l) => l.state === "low").length,
     units: lines.reduce((s, l) => s + (l.product.stock ?? 0), 0),
     stockValue: lines.reduce((s, l) => s + l.stockValue, 0),
-    stockProfit: lines.reduce((s, l) => s + (l.product.stock ?? 0) * (l.product.costPrice !== null ? l.product.price - l.product.costPrice : 0), 0),
+    stockProfit: lines.reduce((s, l) => s + ((l.product.stock ?? 0) + l.pipeline.pipeline) * (l.product.costPrice !== null ? l.product.price - l.product.costPrice : 0), 0),
     toBuyLines: lines.filter((l) => l.toBuy > 0).length,
     toBuyUnits: lines.reduce((s, l) => s + l.toBuy, 0),
     toBuyCost: lines.reduce((s, l) => s + l.toBuy * (l.product.costPrice ?? 0), 0),

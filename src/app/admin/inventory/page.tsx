@@ -23,12 +23,18 @@ const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
   untracked: { label: "Không theo dõi", cls: "bg-gray-200 text-gray-700" },
 };
 
+type Track = "all" | "tracked" | "untracked";
+type Need = "all" | "order" | "restock";
+/** Legacy ?view= links (stat cards, bookmarks). */
 type View = "all" | "tracked" | "low" | "out" | "untracked" | "order";
 
 export default async function AdminInventory({ searchParams }: Props) {
   await requireAdmin("inventory");
   const sp = await searchParams;
-  const view = (first(sp.view) || "all") as View;
+  const view = (first(sp.view) || "") as View | "";
+  const track: Track = (["all", "tracked", "untracked"] as Track[]).includes(first(sp.track) as Track) ? (first(sp.track) as Track) : view === "tracked" || view === "low" || view === "out" ? "tracked" : view === "untracked" ? "untracked" : "all";
+  const stateFilter: StockState | "" = (["out", "low", "ok"] as StockState[]).includes(first(sp.state) as StockState) ? (first(sp.state) as StockState) : view === "low" || view === "out" ? view : "";
+  const need: Need = (["all", "order", "restock"] as Need[]).includes(first(sp.need) as Need) ? (first(sp.need) as Need) : view === "order" ? "order" : "all";
   const q = first(sp.q).trim().toLowerCase();
   const category = first(sp.category);
   const saved = first(sp.saved);
@@ -39,38 +45,35 @@ export default async function AdminInventory({ searchParams }: Props) {
   const filtered = lines
     .filter((l) => !q || `${l.product.name} ${l.product.slug} ${l.product.sku ?? ""}`.toLowerCase().includes(q))
     .filter((l) => !category || l.product.categories.includes(category))
-    .filter((l) => {
-      switch (view) {
-        case "tracked":
-          return l.product.stock !== null;
-        case "low":
-          return l.state === "low";
-        case "out":
-          return l.state === "out";
-        case "untracked":
-          return l.product.stock === null;
-        case "order":
-          return l.toBuy > 0;
-        default:
-          return true;
-      }
-    })
+    .filter((l) => (track === "tracked" ? l.product.stock !== null : track === "untracked" ? l.product.stock === null : true))
+    .filter((l) => !stateFilter || (track === "tracked" && l.state === stateFilter))
+    .filter((l) => (need === "order" ? l.demand > 0 && l.toBuy > 0 : need === "restock" ? l.toBuy > 0 && l.demand === 0 : true))
     .sort((a, b) => {
-      if (view === "order") return b.toBuy - a.toBuy || a.product.name.localeCompare(b.product.name, "vi");
+      if (need !== "all") return b.toBuy - a.toBuy || a.product.name.localeCompare(b.product.name, "vi");
       const rank: Record<StockState, number> = { out: 0, low: 1, ok: 2, untracked: 3 };
       return rank[a.state] - rank[b.state] || a.product.name.localeCompare(b.product.name, "vi");
     });
 
-  const tabs: Array<{ key: View; label: string; count: number }> = [
-    { key: "all", label: "Tất cả", count: lines.length },
-    { key: "tracked", label: "Theo dõi tồn", count: summary.tracked },
-    { key: "low", label: "Sắp hết", count: summary.low },
-    { key: "out", label: "Hết hàng", count: summary.out },
-    { key: "untracked", label: "Không theo dõi", count: summary.untracked },
-    { key: "order", label: "Cần đặt hàng", count: summary.toBuyLines },
-  ];
-  const hrefFor = (v: View) => `/admin/inventory/?view=${v}${q ? `&q=${encodeURIComponent(q)}` : ""}${category ? `&category=${category}` : ""}`;
-  const back = hrefFor(view);
+  const hrefWith = (over: Partial<{ track: Track; state: StockState | ""; need: Need }>) => {
+    const t = over.track ?? track;
+    const st = over.state !== undefined ? over.state : t === "tracked" ? stateFilter : "";
+    const n = over.need ?? need;
+    const qs = new URLSearchParams();
+    if (t !== "all") qs.set("track", t);
+    if (st) qs.set("state", st);
+    if (n !== "all") qs.set("need", n);
+    if (q) qs.set("q", q);
+    if (category) qs.set("category", category);
+    const str = qs.toString();
+    return `/admin/inventory/${str ? `?${str}` : ""}`;
+  };
+  const back = hrefWith({});
+  const tracked = lines.filter((l) => l.product.stock !== null);
+  const countState = (s: StockState) => tracked.filter((l) => l.state === s).length;
+  const radio = (active: boolean) => cn("inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[13px] no-underline", active ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]");
+  const dot = (active: boolean) => <span className={cn("h-3 w-3 rounded-full border-2", active ? "border-white bg-white" : "border-[#9ca3af]")} />;
+  // legacy Stat-card links
+  const hrefFor = (v: View) => (v === "order" ? hrefWith({ need: "order" }) : v === "untracked" ? hrefWith({ track: "untracked", state: "" }) : v === "low" || v === "out" ? hrefWith({ track: "tracked", state: v }) : hrefWith({ track: v === "all" ? "all" : "tracked", state: "" }));
 
   return (
     <>
@@ -93,22 +96,36 @@ export default async function AdminInventory({ searchParams }: Props) {
       </div>
 
       <Card>
-        <div className="mb-4 flex flex-wrap gap-2">
-          {tabs.map((t) => (
-            <Link
-              key={t.key}
-              href={hrefFor(t.key)}
-              className={cn(
-                "rounded-md border px-3 py-1.5 text-[13px] leading-5 no-underline",
-                view === t.key ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]",
-              )}
-            >
-              {t.label} <span className={cn("ml-1", view === t.key ? "text-white/80" : "text-lien-muted")}>({t.count})</span>
+        <div className="mb-4 space-y-2 rounded-md border border-[#e5e7eb] bg-[#fafafa] p-3 text-[13px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-[150px] font-semibold text-lien-heading">Trạng thái theo dõi:</span>
+            <Link href={hrefWith({ track: "all", state: "" })} className={radio(track === "all")}>{dot(track === "all")} Tất cả ({lines.length})</Link>
+            <Link href={hrefWith({ track: "tracked", state: "" })} className={radio(track === "tracked")}>{dot(track === "tracked")} Theo dõi tồn ({summary.tracked})</Link>
+            {track === "tracked" ? (
+              <span className="ml-1 flex flex-wrap gap-1.5 border-l border-[#d1d5db] pl-3">
+                {(["out", "low", "ok"] as StockState[]).map((s) => (
+                  <Link key={s} href={hrefWith({ state: stateFilter === s ? "" : s })} className={cn("rounded-full px-2.5 py-0.5 text-[12px] font-semibold no-underline", STATE_LABEL[s].cls, stateFilter === s ? "ring-2 ring-lien-blue" : "opacity-80 hover:opacity-100")}>
+                    {STATE_LABEL[s].label} ({countState(s)})
+                  </Link>
+                ))}
+              </span>
+            ) : null}
+            <Link href={hrefWith({ track: "untracked", state: "" })} className={radio(track === "untracked")}>{dot(track === "untracked")} Không theo dõi ({summary.untracked})</Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-[150px] font-semibold text-lien-heading">Cần mua:</span>
+            <Link href={hrefWith({ need: "all" })} className={radio(need === "all")}>{dot(need === "all")} Tất cả</Link>
+            <Link href={hrefWith({ need: "order" })} className={radio(need === "order")}>{dot(need === "order")} Đơn mở cần ({lines.filter((l) => l.demand > 0 && l.toBuy > 0).length})</Link>
+            <Link href={hrefWith({ need: "restock" })} className={radio(need === "restock")}>{dot(need === "restock")} Bổ sung tồn ({lines.filter((l) => l.toBuy > 0 && l.demand === 0).length})</Link>
+            <Link href="/admin/purchases/" className="ml-auto text-lien-blue hover:underline">
+              <Fa name="shopping-basket" /> Quản lý mua hàng →
             </Link>
-          ))}
+          </div>
         </div>
         <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_260px_auto]">
-          <input type="hidden" name="view" value={view} />
+          {track !== "all" ? <input type="hidden" name="track" value={track} /> : null}
+          {stateFilter ? <input type="hidden" name="state" value={stateFilter} /> : null}
+          {need !== "all" ? <input type="hidden" name="need" value={need} /> : null}
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, slug, SKU…" className={adminInput} />
           <select name="category" defaultValue={category} className={adminInput}>
             <option value="">Tất cả danh mục</option>
@@ -123,9 +140,9 @@ export default async function AdminInventory({ searchParams }: Props) {
           </button>
         </form>
 
-        {view === "order" ? (
+        {need !== "all" ? (
           <p className="mb-4 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-5 text-lien-text">
-            <strong>Cần đặt hàng</strong> = số lượng trong các đơn <em>Chờ xử lý / Đang xử lý</em> chưa được tồn kho bao phủ, cộng phần bù về mức tồn tối thiểu. Sản phẩm không theo dõi tồn được coi là mua theo từng đơn. Bấm link nhà cung cấp để mở trang mua (Amazon JP).
+            <strong>Cần mua</strong> = số lượng trong các đơn <em>Chờ xử lý / Đang xử lý</em> chưa được tồn kho và hàng đã mua (đang về / tại kho) bao phủ, cộng phần bù về mức tồn tối thiểu. Sản phẩm không theo dõi tồn được coi là mua theo từng đơn. Đánh dấu đã mua ở Quản lý mua hàng để dòng biến mất khỏi đây.
           </p>
         ) : null}
 
@@ -137,10 +154,11 @@ export default async function AdminInventory({ searchParams }: Props) {
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>Tình trạng</th>
                 <th className={thClass}>Tồn</th>
+                <th className={thClass} title="Đã mua tại Nhật / đang về / đã tới kho shop, chưa giao cho khách">Đang về · tại kho</th>
                 <th className={thClass}>Đơn mở cần</th>
                 <th className={thClass}>Cần mua</th>
                 <th className={thClass}>Giá vốn</th>
-                <th className={thClass}>Giá trị tồn</th>
+                <th className={thClass} title="(tồn + đang về/tại kho) × giá vốn">Giá trị tồn</th>
                 <th className={thClass}>Cập nhật tồn / mức tối thiểu</th>
                 <th className={thClass}>Mua ở</th>
               </tr>
@@ -148,7 +166,7 @@ export default async function AdminInventory({ searchParams }: Props) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={11} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -198,6 +216,17 @@ function Row({ line, catName, back }: { line: InventoryLine; catName: Record<str
       <td className={`${tdClass} whitespace-nowrap`}>
         {p.stock === null ? <span className="text-lien-muted">—</span> : <span className={cn("font-semibold", line.state === "out" && "text-red-700", line.state === "low" && "text-amber-700")}>{p.stock}</span>}
         <span className="ml-1 text-[12px] text-lien-muted">/ min {line.minStock}</span>
+      </td>
+      <td className={`${tdClass} whitespace-nowrap`}>
+        {line.pipeline.pipeline ? (
+          <span title={`${line.pipeline.inTransit} đang về · ${line.pipeline.atShop} tại kho shop`}>
+            <span className="font-semibold text-sky-800">{line.pipeline.inTransit}</span>
+            <span className="text-lien-muted"> / </span>
+            <span className="font-semibold text-green-800">{line.pipeline.atShop}</span>
+          </span>
+        ) : (
+          <span className="text-lien-muted">—</span>
+        )}
       </td>
       <td className={tdClass}>
         {line.demand > 0 ? (

@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { brandHintOf } from "@/app/admin/products/actions";
 import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
+import { suggestSku } from "@/lib/sku";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { getCategories, getImportQuoteConfig, getPricingConfig, getProductById } from "@/lib/db";
@@ -17,6 +19,7 @@ export default async function EditProduct({ params }: Props) {
   if (!Number.isInteger(numericId)) notFound();
   const [product, categories, quote, pricing] = await Promise.all([getProductById(numericId), getCategories(), getImportQuoteConfig(), getPricingConfig()]);
   if (!product) notFound();
+  const skuSuggestion = suggestSku({ id: product.id, name: product.name, categories: product.categories, createdAt: product.createdAt, brand: await brandHintOf(product) });
   return (
     <>
       <PageHeader
@@ -29,7 +32,7 @@ export default async function EditProduct({ params }: Props) {
           </a>
         }
       />
-      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} />
+      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} />
     </>
   );
 }
