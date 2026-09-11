@@ -68,9 +68,20 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
         <tr>
           <th className={cn(shopTdClass, "font-bold")} scope="row">
             Giao hàng{order.shippingFee > 0 && order.shippingLabel ? ` (${vnLegLabel(order.shippingLabel)})` : ""}:
+            {order.shipFeePayment === "on_delivery" && order.shippingFee > 0 ? <span className="block text-[12px] font-normal text-lien-muted"><T k="shipOnDeliveryLine" /></span> : null}
           </th>
           <td className={shopTdClass}>
-            {order.shippingFee > 0 ? <Price value={order.shippingFee} currency={order.currency} /> : <span>{vnLegLabel(order.shippingLabel) || "Nhận tại kho"} · miễn phí</span>}
+            {order.shippingFee > 0 ? (
+              order.shipFeePayment === "on_delivery" ? (
+                <span className="text-lien-muted">
+                  ≈ <Price value={order.shippingFee} currency={order.currency} /> <span className="text-[12px]"><T k="notInTotal" /></span>
+                </span>
+              ) : (
+                <Price value={order.shippingFee} currency={order.currency} />
+              )
+            ) : (
+              <span>{vnLegLabel(order.shippingLabel) || "Nhận tại kho"} · miễn phí</span>
+            )}
           </td>
         </tr>
         <tr>

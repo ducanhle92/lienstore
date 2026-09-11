@@ -38,6 +38,8 @@ interface Props {
   weightG?: number | null;
   dimsCm?: string | null;
   dimsConfidence?: DimsConfidence | null;
+  /** Show the safety-factor / billable-weight explanation (back office only). */
+  admin?: boolean;
 }
 
 const th = "border border-lien-line bg-lien-footer2 px-3 py-2.5 text-center text-[13px] font-bold text-lien-heading";
@@ -80,7 +82,7 @@ function Chip({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
  * Shipping fee tables grouped by leg (JP domestic → JP→VN → VN domestic). One table per method: columns = zones /
  * weight tiers, rows = base fee, optional surcharge, areas, delivery time (+ an estimate row when the product weight is known).
  */
-export async function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null, dimsConfidence = null }: Props) {
+export async function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null, dimsConfidence = null, admin = false }: Props) {
   const lang = await getLang();
   const known = weightG !== null || dimsCm !== null;
   const chargeable = known ? billableProductWeightG(weightG, dimsCm, dimsConfidence) : null;
@@ -94,7 +96,7 @@ export async function ShippingTable({ methods, notes, compact = false, weightG =
 
   return (
     <div className="space-y-10">
-      {chargeable ? (
+      {chargeable && admin ? (
         <p className="m-0 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-5 text-lien-text">
           <Fa name="cube" className="mr-1 text-lien-blue" />
           {showNumbers ? (

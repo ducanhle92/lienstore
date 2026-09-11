@@ -23,6 +23,11 @@ services:
       NODE_ENV: production
       LIEN_DB_PATH: /app/data/lienstore.db
       LIEN_SEED_SYNC: update        # seed updates products, but a product edited in THIS admin after the seed export keeps the server version
+      # GHN Production (live shipping quotes at checkout) — fill in and remove the '#':
+      # GHN_TOKEN: ""
+      # GHN_SHOP_ID: ""
+      # GHN_PICKUP_DISTRICT_ID: "1748"
+      # GHN_PICKUP_WARD_CODE: "282201"
       NEXT_PUBLIC_SITE_URL: https://linconnn.io.vn
       ADMIN_USER: admin
       ADMIN_PASSWORD: CHANGE_ME_STRONG_PASSWORD

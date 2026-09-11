@@ -111,8 +111,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 <tr>
                   <td colSpan={4} className={`${tdClass} text-right font-semibold`}>
                     Giao hàng {order.shippingLabel ? <span className="font-normal text-lien-muted">({order.shippingLabel})</span> : null}
+                    {order.shipFeePayment === "on_delivery" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">khách trả phí ship cho shipper · không nằm trong Tổng</span> : null}
                   </td>
-                  <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? formatPrice(order.shippingFee, order.currency) : "Miễn phí"}</td>
+                  <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? `${order.shipFeePayment === "on_delivery" ? "≈ " : ""}${formatPrice(order.shippingFee, order.currency)}` : "Miễn phí"}</td>
                 </tr>
                 <tr>
                   <td colSpan={4} className={`${tdClass} text-right font-semibold`}>

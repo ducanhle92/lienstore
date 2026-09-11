@@ -550,6 +550,20 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE shipping_carriers SET website = 'https://vnpost.vn/vi/ca-nhan/chuyen-phat/chuyen-phat-trong-nuoc' WHERE id = 10 AND website = 'https://www.vnpost.vn'`,
     ],
   },
+  {
+    // Shipping-fee payment: prepaid with the order, or paid to the courier on delivery (not every carrier allows it —
+    // Viettel Post locks the option for 0đ COD orders). GHN quotes live from its Production API when configured.
+    version: 24,
+    name: "ship-fee-payment-and-live-ghn",
+    up: [
+      `ALTER TABLE shipping_methods ADD COLUMN cod_ship_fee INTEGER NOT NULL DEFAULT 1`,
+      `ALTER TABLE shipping_methods ADD COLUMN live_quote TEXT NOT NULL DEFAULT ''`,
+      `UPDATE shipping_methods SET cod_ship_fee = 0 WHERE id = 2 AND leg = 'vn_domestic'`,
+      `UPDATE shipping_methods SET live_quote = 'ghn' WHERE name = 'Giao Hàng Nhanh (GHN)'`,
+      `ALTER TABLE orders ADD COLUMN ship_fee_payment TEXT NOT NULL DEFAULT 'prepaid'`,
+      `ALTER TABLE orders ADD COLUMN ship_quote_json TEXT`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

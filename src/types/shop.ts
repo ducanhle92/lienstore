@@ -111,6 +111,8 @@ export interface Customer {
   updatedAt: string;
 }
 
+export type ShipFeePayment = "prepaid" | "on_delivery";
+
 export interface Order {
   id: string;
   number: number;
@@ -133,6 +135,10 @@ export interface Order {
   /** Voucher discount taken off the subtotal (0 when none). */
   discount: number;
   voucherCode: string;
+  /** "prepaid": the fee is part of `total`; "on_delivery": paid to the courier, not included in `total`. */
+  shipFeePayment: ShipFeePayment;
+  /** Snapshot of a live carrier quote (JSON) when one was used. */
+  shipQuote: string | null;
   /** Logistics progress shown to the customer (see SHIP_STAGES). */
   shipStage: "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
   /** When each stage was reached (only filled for single-order loads). */
@@ -331,6 +337,10 @@ export interface ShippingMethod {
   warehouse: string;
   /** Delivered to the customer's door (else pick-up at warehouse/point). */
   homeDelivery: boolean;
+  /** The customer may pay the shipping fee to the courier on delivery (COD of the fee). */
+  codShipFee: boolean;
+  /** "ghn" = fee quoted live from the carrier API at checkout instead of the zone table. */
+  liveQuote: "" | "ghn";
   /** Method-specific notes, one per line. */
   notes: string;
   zones: ShippingZone[];

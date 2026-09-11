@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import type { CheckoutState } from "@/components/sites/lienstore/shop/cart/checkout-types";
 import { getCurrentCustomer, startCustomerSession } from "@/lib/customer-auth";
-import { createCustomer, createOrder, findCustomerByEmail } from "@/lib/db";
-import type { CartItem, Order, PaymentMethod } from "@/types/shop";
+import { createCustomer, createOrder, findCustomerByEmail, getShippingMethods } from "@/lib/db";
+import { ghnConfigured } from "@/lib/ghn";
+import type { CartItem, Order, PaymentMethod, ShipFeePayment } from "@/types/shop";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -42,7 +43,15 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const note = get("note").slice(0, 1000);
   const delivery = get("delivery") === "pickup" ? "pickup" : "ship";
   const zoneRaw = get("shipping_zone");
-  const shippingZoneId = zoneRaw ? Number.parseInt(zoneRaw, 10) : null;
+  let shippingZoneId = zoneRaw ? Number.parseInt(zoneRaw, 10) : null;
+  const methodIdRaw = Number.parseInt(get("shipping_method"), 10);
+  const method = delivery === "ship" && Number.isInteger(methodIdRaw) ? (await getShippingMethods()).find((m) => m.id === methodIdRaw && m.leg === "vn_domestic") : undefined;
+  const liveGhn = !!method && method.liveQuote === "ghn" && ghnConfigured();
+  const ghnDistrictId = Number.parseInt(get("ghn_district_id"), 10);
+  const ghnWardCode = get("ghn_ward_code");
+  const ghn = liveGhn && Number.isInteger(ghnDistrictId) && ghnDistrictId > 0 && ghnWardCode ? { districtId: ghnDistrictId, wardCode: ghnWardCode, provinceName: get("ghn_province_name"), districtName: get("ghn_district_name"), wardName: get("ghn_ward_name") } : null;
+  if (liveGhn) shippingZoneId = null;
+  const shipFeePayment: ShipFeePayment = delivery === "ship" && get("ship_fee_payment") === "on_delivery" && (method ? method.codShipFee : true) ? "on_delivery" : "prepaid";
 
   if (!firstName) fields.first_name = "Tên là trường bắt buộc.";
   if (!lastName) fields.last_name = "Họ là trường bắt buộc.";
@@ -51,7 +60,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   if (!phone) fields.phone = "Số điện thoại là trường bắt buộc.";
   else if (digits.length !== 10) fields.phone = "Số điện thoại phải gồm 10 chữ số.";
   if (email && !EMAIL_RE.test(email)) fields.email = "Địa chỉ email không hợp lệ.";
-  if (delivery === "ship" && (!shippingZoneId || !Number.isInteger(shippingZoneId))) fields.shipping_zone = "Vui lòng chọn khu vực giao hàng.";
+  if (delivery === "ship" && liveGhn && !ghn) fields.shipping_zone = "Vui lòng chọn Tỉnh/Thành, Quận/Huyện và Phường/Xã để GHN tính phí.";
+  if (delivery === "ship" && !liveGhn && (!shippingZoneId || !Number.isInteger(shippingZoneId))) fields.shipping_zone = "Vui lòng chọn khu vực giao hàng.";
 
   let items: CartItem[];
   try {
@@ -90,6 +100,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
       delivery,
       shippingZoneId: delivery === "ship" ? shippingZoneId : null,
       voucherCode: get("voucher_code"),
+      shipFeePayment,
+      ghn,
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không thể tạo đơn hàng. Vui lòng thử lại." };

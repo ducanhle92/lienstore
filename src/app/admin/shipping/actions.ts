@@ -57,6 +57,7 @@ export async function saveMethodAction(formData: FormData): Promise<void> {
     leg,
     carrierId,
     includesBothEnds: formData.get("includesBothEnds") === "on",
+    codShipFee: formData.get("codShipFee") === "on",
     warehouse: text(formData, "warehouse"),
     homeDelivery: formData.get("homeDelivery") === "on",
     notes: text(formData, "notes"),

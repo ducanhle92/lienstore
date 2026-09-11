@@ -163,7 +163,10 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
           </div>
           <div className="flex flex-wrap items-end gap-4 md:col-span-3">
             <label className="mb-2 inline-flex items-center gap-2 text-[14px]">
-              <input type="checkbox" name="includesBothEnds" defaultChecked={m.includesBothEnds} className="h-4 w-4" /> Giá đã gồm 2 đầu (ship nội địa Nhật + Việt)
+              <input type="checkbox" name="includesBothEnds" defaultChecked={m.includesBothEnds} className="h-4 w-4" /> Lấy hàng tại kho & giao đến địa chỉ (giá gồm 2 đầu)
+            </label>
+            <label className="inline-flex items-center gap-2 pb-2.5 text-[14px]" title="Tắt với hãng khoá tính năng khách trả ship khi đơn COD 0đ (Viettel Post)">
+              <input type="checkbox" name="codShipFee" defaultChecked={m.codShipFee} className="h-4 w-4" /> Khách được trả phí ship cho shipper khi nhận
             </label>
             <label className="mb-2 inline-flex items-center gap-2 text-[14px]">
               <input type="checkbox" name="homeDelivery" defaultChecked={m.homeDelivery} className="h-4 w-4" /> Giao tận nhà
@@ -489,7 +492,7 @@ export default async function AdminShipping({ searchParams }: Props) {
             </Card>
           </div>
           <Card title="Xem trước — đúng như tab “Chi phí vận chuyển” trên trang sản phẩm và trang /van-chuyen/">
-            <ShippingTable methods={visible} notes={notes} />
+            <ShippingTable methods={visible} notes={notes} admin />
             <p className="mt-3 text-[12px] text-lien-muted">Chỉ phương thức và cột đang bật &quot;Hiển thị&quot; mới xuất hiện. Sửa nội dung ở tab từng chặng.</p>
           </Card>
         </div>

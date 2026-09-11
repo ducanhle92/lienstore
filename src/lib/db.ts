@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
+  BlogPost,
   CartItem,
   CatalogProduct,
   Customer,
@@ -8,24 +9,25 @@ import type {
   OrderCustomer,
   OrderFile,
   OrderFileKind,
+  OrderLeg,
+  OrderMessage,
   OrderStatus,
   PaymentMethod,
   ProductQuery,
   ProductQueryResult,
   ProductReview,
-  ShopCategory,
-  OrderLeg,
-  OrderMessage,
-  Voucher,
+  ShipFeePayment,
   ShippingCarrier,
   ShippingMethod,
   ShippingZone,
+  ShopCategory,
   StaticPage,
-  BlogPost,
   UserRole,
+  Voucher,
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
+import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
 import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
@@ -165,6 +167,8 @@ interface OrderRow {
   discount: number | null;
   voucher_code: string | null;
   ship_stage: string | null;
+  ship_fee_payment: string | null;
+  ship_quote_json: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -208,6 +212,8 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     delivery: r.delivery === "pickup" ? "pickup" : "ship",
     prepaidRequired: (r.prepaid_required ?? 0) === 1,
     discount: r.discount ?? 0,
+    shipFeePayment: r.ship_fee_payment === "on_delivery" ? "on_delivery" : "prepaid",
+    shipQuote: r.ship_quote_json ?? null,
     voucherCode: r.voucher_code ?? "",
     shipStage: isShipStage(r.ship_stage) ? r.ship_stage : "ordered",
     stageLog: [],
@@ -542,10 +548,40 @@ export interface CreateOrderInput {
   shippingZoneId?: number | null;
   /** Discount code typed at checkout; validated again here. */
   voucherCode?: string;
+  /** Who pays the domestic delivery fee: with the order (default) or to the courier on delivery. */
+  shipFeePayment?: ShipFeePayment;
+  /** GHN 3-level address when the customer chose the live-quoted GHN option. */
+  ghn?: { districtId: number; wardCode: string; provinceName: string; districtName: string; wardName: string } | null;
+}
+
+/** Billable weight, parcel size and subtotal of a set of cart lines, from the catalogue (never from the browser). */
+function parcelOf(db: DatabaseSync, lines: Array<{ productId: number; quantity: number }>): { weightG: number; dims: ReturnType<typeof packageDims>; subtotal: number } {
+  let weightG = 0;
+  let subtotal = 0;
+  const parcel: Array<{ dims: string | null; quantity: number }> = [];
+  for (const it of lines) {
+    const row = db.prepare("SELECT price, weight_g, dims_cm, dims_confidence FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as { price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null } | undefined;
+    if (!row) continue;
+    const qty = Math.max(1, Math.floor(it.quantity));
+    weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
+    subtotal += row.price * qty;
+    parcel.push({ dims: row.dims_cm, quantity: qty });
+  }
+  return { weightG: Math.max(1, weightG), dims: packageDims(parcel), subtotal };
+}
+
+/** Live GHN quote for a cart (checkout preview and order creation share this). */
+export async function quoteCartGhn(lines: Array<{ productId: number; quantity: number }>, to: { districtId: number; wardCode: string }, cod: boolean): Promise<{ quote: GhnQuote; weightG: number; dims: ReturnType<typeof packageDims> }> {
+  const { weightG, dims, subtotal } = parcelOf(getDb(), lines);
+  const quote = await quoteGhn({ toDistrictId: to.districtId, toWardCode: to.wardCode, weight: weightG, length: dims.length, width: dims.width, height: dims.height, insuranceValue: 0, codValue: cod ? subtotal : 0 });
+  return { quote, weightG, dims };
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const db = getDb();
+  // The live carrier quote is fetched before the transaction (network); it is re-quoted here, never trusted from the browser.
+  const live = input.delivery !== "pickup" && input.ghn ? await quoteCartGhn(input.items, input.ghn, input.paymentMethod === "cod") : null;
+  const ghnMethod = live ? (db.prepare("SELECT id, name FROM shipping_methods WHERE live_quote = 'ghn' AND active = 1 ORDER BY position LIMIT 1").get() as { id: number; name: string } | undefined) : undefined;
   return withTransaction(db, () => {
     const now = new Date().toISOString();
     // Re-price items from the catalogue so the client cannot tamper with prices.
@@ -571,7 +607,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const delivery: "ship" | "pickup" = input.delivery === "pickup" ? "pickup" : "ship";
     let shippingFee = 0;
     let shippingLabel = "Nhận tại kho";
-    if (delivery === "ship") {
+    if (delivery === "ship" && live && input.ghn) {
+      shippingFee = live.quote.fee.total;
+      shippingLabel = `${ghnMethod?.name ?? "Giao Hàng Nhanh (GHN)"} · ${live.quote.service.name} · ${[input.ghn.wardName, input.ghn.districtName, input.ghn.provinceName].filter(Boolean).join(", ")}`;
+    } else if (delivery === "ship") {
       const zone = input.shippingZoneId
         ? (db
             .prepare(
@@ -611,13 +650,19 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const vnLabel = shippingLabel;
     shippingFee = vnFee + jpFee;
     if (jpLegs.length) shippingLabel = [...jpLegs.map((l) => l.label), vnLabel].filter(Boolean).join(" + ");
-    const total = Math.max(0, subtotal - discount) + shippingFee;
+    // Fee paid to the courier on delivery stays out of the amount the shop collects.
+    const shipFeePayment: ShipFeePayment = delivery === "ship" && input.shipFeePayment === "on_delivery" ? "on_delivery" : "prepaid";
+    const total = Math.max(0, subtotal - discount) + (shipFeePayment === "prepaid" ? shippingFee : 0);
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
     const id = randomUUID();
-    const c = input.customer;
+    const c = { ...input.customer };
+    if (input.ghn) {
+      const tail = [input.ghn.wardName, input.ghn.districtName, input.ghn.provinceName].filter(Boolean).join(", ");
+      if (tail && !c.address.toLowerCase().includes(input.ghn.districtName.toLowerCase())) c.address = `${c.address}, ${tail}`;
+    }
     db.prepare(`INSERT INTO orders (id, number, customer_id, status, payment_method, first_name, last_name, address, phone, email, note,
-      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code, ship_fee_payment, ship_quote_json) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
       number,
       input.customerId ?? null,
@@ -638,6 +683,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       prepaidRequired ? 1 : 0,
       discount,
       voucherCode,
+      shipFeePayment,
+      live ? JSON.stringify({ ...live.quote, weightG: live.weightG, dims: live.dims, to: input.ghn }) : null,
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -652,7 +699,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
     for (const l of jpLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `Báo giá khi đặt: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
-    else if (vnLabel) insLeg.run(id, "vn_domestic", null, input.shippingZoneId ?? null, vnLabel, vnFee, "", now);
+    else if (live) insLeg.run(id, "vn_domestic", ghnMethod?.id ?? null, null, vnLabel, vnFee, `Báo giá GHN ${live.quote.service.name} lúc đặt · kiện ${live.weightG} g ${live.dims.length}×${live.dims.width}×${live.dims.height} cm${shipFeePayment === "on_delivery" ? " · khách trả phí cho shipper" : ""}`, now);
+    else if (vnLabel) insLeg.run(id, "vn_domestic", null, input.shippingZoneId ?? null, vnLabel, vnFee, shipFeePayment === "on_delivery" ? "Khách trả phí ship cho shipper khi nhận" : "", now);
     // The account's saved contact details follow the latest checkout, so "Địa chỉ" in my-account matches the order;
     // an ID-only account also adopts the email typed at checkout when no other account owns it.
     if (input.customerId) {
@@ -674,6 +722,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       updatedAt: now,
       status: "pending",
       paymentMethod: input.paymentMethod,
+      shipFeePayment,
+      shipQuote: live ? JSON.stringify(live.quote) : null,
       customer: c,
       items,
       subtotal,
@@ -1513,6 +1563,8 @@ interface ShippingMethodRow {
   warehouse: string | null;
   home_delivery: number | null;
   notes: string | null;
+  cod_ship_fee: number | null;
+  live_quote: string | null;
 }
 
 interface ShippingCarrierRow {
@@ -1590,6 +1642,8 @@ function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMetho
     includesBothEnds: (m.includes_both_ends ?? 0) === 1,
     warehouse: m.warehouse ?? "",
     homeDelivery: (m.home_delivery ?? 1) === 1,
+    codShipFee: (m.cod_ship_fee ?? 1) === 1,
+    liveQuote: m.live_quote === "ghn" ? "ghn" : "",
     notes: m.notes ?? "",
     zones: zones.filter((z) => z.method_id === m.id).map(rowToZone),
   }));
@@ -1643,21 +1697,23 @@ export interface ShippingMethodInput {
   warehouse: string;
   homeDelivery: boolean;
   notes: string;
+  codShipFee?: boolean;
 }
 
 export async function saveShippingMethod(input: ShippingMethodInput): Promise<number> {
   const db = getDb();
+  const codShip = input.codShipFee === false ? 0 : 1;
   if (input.id) {
     db.prepare(
-      "UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ?, leg = ?, carrier_id = ?, includes_both_ends = ?, warehouse = ?, home_delivery = ?, notes = ? WHERE id = ?",
-    ).run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, input.id);
+      "UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ?, leg = ?, carrier_id = ?, includes_both_ends = ?, warehouse = ?, home_delivery = ?, notes = ?, cod_ship_fee = ? WHERE id = ?",
+    ).run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip, input.id);
     return input.id;
   }
   const r = db
     .prepare(
-      "INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, cod_ship_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes);
+    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip);
   return Number(r.lastInsertRowid);
 }
 
