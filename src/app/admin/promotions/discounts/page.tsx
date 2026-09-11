@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { clearSaleAction, setSaleAction } from "@/app/admin/promotions/actions";
-import { adminInput, adminLabel, btnDanger, btnPrimary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts } from "@/lib/db";
-import { formatPrice } from "@/lib/format";
+import { formatAmount, formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,9 @@ export default async function AdminDiscounts({ searchParams }: Props) {
   const products = await getAllProducts(true);
   const onSale = products.filter((p) => p.regularPrice !== null && p.regularPrice > p.price).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const pct = (p: (typeof onSale)[number]) => (p.regularPrice ? Math.round(100 - (p.price / p.regularPrice) * 100) : 0);
+  // ?edit=<id> pre-fills the form with that product's current prices
+  const editId = Number.parseInt(first(sp.edit), 10);
+  const editing = Number.isInteger(editId) ? products.find((p) => p.id === editId) : undefined;
 
   return (
     <>
@@ -28,11 +31,11 @@ export default async function AdminDiscounts({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
-      <Card title="Thêm / sửa giảm giá" className="mb-6">
-        <form action={setSaleAction} className="grid gap-3 md:grid-cols-[1fr_150px_150px_110px_auto] md:items-end">
+      <Card title={editing ? `Sửa giảm giá: ${editing.name}` : "Thêm / sửa giảm giá"} className="mb-6" actions={editing ? <Link href="/admin/promotions/discounts/" className="text-[13px] text-lien-muted hover:text-lien-blue">Huỷ sửa</Link> : undefined}>
+        <form id="sale-form" action={setSaleAction} className="grid gap-3 md:grid-cols-[1fr_150px_150px_110px_auto] md:items-end">
           <div>
             <label className={adminLabel}>Sản phẩm *</label>
-            <select name="productId" required className={adminInput} defaultValue="">
+            <select name="productId" required className={adminInput} defaultValue={editing ? String(editing.id) : ""} key={editing?.id ?? "new"}>
               <option value="" disabled>
                 — Chọn sản phẩm —
               </option>
@@ -45,18 +48,18 @@ export default async function AdminDiscounts({ searchParams }: Props) {
           </div>
           <div>
             <label className={adminLabel}>Giá gốc (đ)</label>
-            <input name="regularPrice" inputMode="numeric" placeholder="giữ giá hiện tại" className={adminInput} />
+            <input name="regularPrice" inputMode="numeric" placeholder="giữ giá hiện tại" defaultValue={editing?.regularPrice ? formatAmount(editing.regularPrice) : ""} key={`r-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
             <label className={adminLabel}>Giá khuyến mãi (đ)</label>
-            <input name="price" inputMode="numeric" placeholder="VD 199.000" className={adminInput} />
+            <input name="price" inputMode="numeric" placeholder="VD 199.000" defaultValue={editing ? formatAmount(editing.price) : ""} key={`p-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
             <label className={adminLabel}>hoặc giảm %</label>
             <input name="percent" inputMode="numeric" placeholder="VD 20" className={adminInput} />
           </div>
           <button type="submit" className={btnPrimary}>
-            <Fa name="tag" /> Áp dụng
+            <Fa name="tag" /> {editing ? "Lưu giảm giá" : "Áp dụng"}
           </button>
         </form>
         <p className="mt-2 text-[12px] text-lien-muted">Để trống giá gốc thì lấy giá đang bán làm giá gốc. Nhập giá khuyến mãi hoặc % giảm (một trong hai). Sửa chi tiết hơn trong Kho hàng › Sản phẩm.</p>
@@ -97,7 +100,10 @@ export default async function AdminDiscounts({ searchParams }: Props) {
                     <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white">-{pct(p)}%</span>
                   </td>
                   <td className={tdClass}>{p.stock === null ? "—" : p.stock}</td>
-                  <td className={`${tdClass} text-right`}>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>
+                    <Link href={`/admin/promotions/discounts/?edit=${p.id}#sale-form`} className={`${btnSecondary} mr-1 !px-2.5 !py-1.5 !text-[13px]`} title="Sửa giá khuyến mãi">
+                      <Fa name="pencil" /> Sửa
+                    </Link>
                     <form action={clearSaleAction} className="inline">
                       <input type="hidden" name="productId" value={p.id} />
                       <button type="submit" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px]`} title="Bỏ giảm giá">

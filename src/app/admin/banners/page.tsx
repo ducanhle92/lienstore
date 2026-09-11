@@ -2,6 +2,7 @@ import Image from "next/image";
 import { deleteBannerAction, moveBannerAction, saveBannerAction } from "@/app/admin/banners/actions";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getBanners } from "@/lib/db";
@@ -21,7 +22,7 @@ function BannerForm({ b }: { b?: Banner }) {
       <input type="hidden" name="position" value={b?.position ?? 999} />
       <div className="md:col-span-2">
         <label className={adminLabel}>Ảnh banner {b ? "(chọn file mới để thay)" : "*"}</label>
-        <input type="file" name="file" accept="image/*" className="block w-full text-[13px]" />
+        <FilePicker name="file" accept="image/*" label={b ? "Chọn ảnh mới từ máy" : "Chọn ảnh từ máy"} />
         <input name="image" defaultValue={b?.image ?? ""} placeholder="…hoặc dán đường dẫn ảnh (/sites/... hoặc https://…)" className={`${adminInput} mt-1 font-mono text-[12px]`} />
         <p className="m-0 mt-1 text-[12px] text-lien-muted">Kích thước khuyến nghị 1920×520 px, JPG/WebP dưới 500 KB để tải nhanh; PNG cũng được.</p>
       </div>
