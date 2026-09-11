@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { OPEN_ACCOUNT_EVENT } from "@/components/sites/lienstore/shared/open-account";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
@@ -53,6 +54,13 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
   const [accountFor, setAccountFor] = useState<string | null>(null);
   const account = accountFor === customerKey;
   const setAccount = (v: boolean) => setAccountFor(v ? customerKey : null);
+  useEffect(() => {
+    const open = () => setAccountFor(customerKey);
+    window.addEventListener(OPEN_ACCOUNT_EVENT, open);
+    if (new URLSearchParams(window.location.search).get("login") === "1") open();
+    return () => window.removeEventListener(OPEN_ACCOUNT_EVENT, open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const cartCount = hydrated ? items.reduce((s, i) => s + i.quantity, 0) : 0;
   const wishCount = hydrated ? wishlist.length : 0;
   const [open, setOpen] = useState<null | "cat" | "support" | "news">(null);

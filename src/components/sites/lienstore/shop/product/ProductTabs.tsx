@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useId, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { submitReviewAction, type ReviewFormState } from "@/app/product/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { openAccountDrawer } from "@/components/sites/lienstore/shared/open-account";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { StarRating } from "@/components/sites/lienstore/shop/StarRating";
 import { formatDateTime } from "@/lib/format";
@@ -122,9 +122,9 @@ function ReviewForm({ name, productId, reviewer }: { name: string; productId: nu
       <p className="rounded-md border border-lien-line bg-white px-4 py-3 text-[15px] leading-6 text-lien-text">
         <Fa name="user" className="mr-2 text-lien-blue" />
         {t("reviewLogin")}{" "}
-        <Link href="/my-account/" className="font-semibold text-lien-blue hover:underline">
+        <button type="button" onClick={() => openAccountDrawer("login")} className="font-semibold text-lien-blue hover:underline">
           {t("login")}
-        </Link>
+        </button>
       </p>
     );
   }

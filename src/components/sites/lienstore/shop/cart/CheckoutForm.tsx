@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { placeOrder } from "@/app/checkout/actions";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
@@ -8,6 +8,8 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
 import { BANK } from "@/lib/payment";
+import { detectRegion, zoneForRegion } from "@/lib/vn-regions";
+import { openAccountDrawer } from "@/components/sites/lienstore/shared/open-account";
 import { billableKg, quoteJpLegs, type ShippingQuoteConfig, zoneFeeForWeight } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CheckoutState } from "./checkout-types";
@@ -74,9 +76,11 @@ interface FieldProps {
   half?: boolean;
   defaultValue?: string;
   required?: boolean;
+  value?: string;
+  onChange?: (v: string) => void;
 }
 
-function Field({ name, label, type = "text", placeholder, autoComplete, error, half, defaultValue, required = true }: FieldProps) {
+function Field({ name, label, type = "text", placeholder, autoComplete, error, half, defaultValue, required = true, value, onChange }: FieldProps) {
   const id = `billing_${name}`;
   return (
     <p className={cn("form-row mb-1.5 p-[3px]", half ? "w-full sm:w-[47%]" : "w-full")}>
@@ -90,7 +94,7 @@ function Field({ name, label, type = "text", placeholder, autoComplete, error, h
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        defaultValue={defaultValue}
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : { defaultValue })}
         aria-invalid={error ? true : undefined}
         className={cn(wooInputClass, error && "border-[#b81c23]")}
       />
@@ -124,11 +128,13 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   const { t } = useLang();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
   const carriers = methods.length ? methods : zones.length ? [{ id: 0, name: "", carrier: null, codShipFee: true, live: false, zones }] : [];
-  const [delivery, setDelivery] = useState<"ship" | "pickup">(carriers.length ? "ship" : "pickup");
-  const [methodId, setMethodId] = useState<number>(carriers[0]?.id ?? 0);
-  const method = carriers.find((m) => m.id === methodId) ?? carriers[0] ?? null;
+  const [delivery, setDelivery] = useState<"ship" | "pickup">("pickup");
+  const [methodId, setMethodId] = useState<number>(0);
+  const method = carriers.find((m) => m.id === methodId) ?? null;
   const methodZones = method?.zones ?? [];
-  const [zoneId, setZoneId] = useState<number | "">(methodZones[0]?.id ?? "");
+  const [address, setAddress] = useState(defaults.address ?? "");
+  // the fee region comes from the address the customer typed — no region picker
+  const detected = detectRegion(address);
   const [feePayment, setFeePayment] = useState<"prepaid" | "on_delivery">("prepaid");
   // GHN live quote: 3-level address → server quote (weight & parcel recomputed on the server)
   const [provinces, setProvinces] = useState<GhnOption[]>([]);
@@ -147,12 +153,10 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   const [voucherMsg, setVoucherMsg] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const preorder = useMemo(() => items.filter((it) => preorderIds.includes(it.productId)), [items, preorderIds]);
-  const mustPrepay = preorder.length > 0;
-  const [paymentChoice, setPaymentChoice] = useState<"bacs" | "cod">("bacs");
-  const payment: "bacs" | "cod" = mustPrepay ? "bacs" : paymentChoice;
+  // every order is paid up front by bank transfer (QR + account shown on the order page after "Đặt hàng")
+  const payment = "bacs" as const;
 
-  const zone = methodZones.find((z) => z.id === zoneId) ?? null;
+  const zone = method && !method.live && methodZones.length ? (detected ? zoneForRegion(methodZones, detected.region) : undefined) ?? methodZones.find((z) => /nam/i.test(z.label)) ?? methodZones[methodZones.length - 1] : null;
   const liveMethod = !!method?.live && delivery === "ship";
   const canCodShip = delivery === "ship" && !!method?.codShipFee;
   const effectiveFeePayment: "prepaid" | "on_delivery" = canCodShip && feePayment === "on_delivery" ? "on_delivery" : "prepaid";
@@ -185,7 +189,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
     fetchJson<{ quote: { fee: { total: number; shipping: number; cod: number; pickupRemoteArea: number; deliveryRemoteArea: number }; service: { name: string } } }>("/api/shipping/ghn/quote/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ toDistrictId: districtId, toWardCode: wardCode, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })), cod: payment === "cod" }),
+      body: JSON.stringify({ toDistrictId: districtId, toWardCode: wardCode, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })), cod: (payment as string) === "cod" }),
     })
       .then((r) => {
         if (seq !== quoteSeq.current) return;
@@ -214,8 +218,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   const surcharge = delivery === "pickup" || liveMethod || !zone ? 0 : zoneSurcharge(zone);
   const shipSupport = delivery === "ship" && !liveMethod && zone && zone.freeOver && subtotal >= zone.freeOver ? carrierFee + surcharge : 0;
   const vnFee = Math.max(0, carrierFee + surcharge - shipSupport);
-  const productSaving = items.reduce((s, it) => s + Math.max(0, (regularPrices[it.productId] ?? it.price) - it.price) * it.quantity, 0);
-  const shipDetail = delivery === "pickup" ? t("pickupZero") : liveMethod ? `Giao Hàng Nhanh${ghnQuote ? ` · ${ghnQuote.service}` : ""}` : zone ? `${method?.carrier ?? method?.name ?? ""} · ${zone.label} · ≈ ${formatAmount(totalWeightG || 1000)} g` : "";
+  const shipDetail = delivery === "pickup" ? t("pickupZero") : liveMethod ? `Giao Hàng Nhanh${ghnQuote ? ` · ${ghnQuote.service}` : ""}` : zone ? `${method?.carrier ?? method?.name ?? ""} · ≈ ${formatAmount(totalWeightG || 1000)} g` : "";
   const jpLegs = quote ? quoteJpLegs(quote, totalWeightG || 1000, subtotal) : [];
   const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
   const shippingFee = (effectiveFeePayment === "on_delivery" ? 0 : vnFee) + jpFee;
@@ -267,9 +270,9 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
       {!loggedIn ? (
         <WooNotice kind="info">
           {t("haveAccountQ")}{" "}
-          <Link href="/my-account/" className="text-lien-muted underline hover:text-lien-blue">
+          <button type="button" onClick={() => openAccountDrawer("login")} className="text-lien-muted underline hover:text-lien-blue">
             {t("clickToLogin")}
-          </Link>
+          </button>
         </WooNotice>
       ) : null}
 
@@ -290,6 +293,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
         <input type="hidden" name="items" value={JSON.stringify(items)} readOnly />
         <input type="hidden" name="delivery" value={delivery} readOnly />
         <input type="hidden" name="shipping_method" value={method?.id ?? ""} readOnly />
+        <input type="hidden" name="shipping_zone" value={zone?.id ?? ""} readOnly />
         <input type="hidden" name="ship_fee_payment" value={effectiveFeePayment} readOnly />
         <input type="hidden" name="ghn_district_id" value={liveMethod && districtId ? String(districtId) : ""} readOnly />
         <input type="hidden" name="ghn_ward_code" value={liveMethod ? wardCode : ""} readOnly />
@@ -308,7 +312,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                 <Field name="last_name" label={t("lastNameShort")} autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
                 <Field name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={defaults.phone} />
                 <Field name="email" label={t("emailOptionalLabel")} type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
-                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} defaultValue={defaults.address} />
+                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} value={address} onChange={setAddress} />
               </div>
             </div>
             {!loggedIn ? (
@@ -348,24 +352,23 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                 <input type="radio" name="delivery_choice" checked={delivery === "ship"} onChange={() => setDelivery("ship")} disabled={carriers.length === 0} className="mt-1 h-4 w-4" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-lien-heading">{t("homeDelivery")}</span>
-                  {carriers.length === 0 ? (
-                    <span className="block text-[13px] text-lien-muted">Chưa cấu hình khu vực giao hàng.</span>
-                  ) : (
-                    <>
-                      {carriers.length > 1 ? (
+                  {carriers.length === 0 ? <span className="block text-[13px] text-lien-muted">Chưa cấu hình đơn vị giao hàng.</span> : null}
+                  {delivery === "ship" && carriers.length ? (
+                    !address.trim() ? (
+                      <span className="mt-1 block text-[13px] text-lien-muted">{t("enterAddressFirst")}</span>
+                    ) : (
+                      <>
                         <label className="mt-2 block text-[12px] font-semibold text-lien-muted">
                           {t("carrierLabel")}
                           <select
                             value={method?.id ?? ""}
                             onChange={(e) => {
-                              const next = carriers.find((m) => m.id === Number(e.target.value));
                               setMethodId(Number(e.target.value));
-                              setZoneId(next?.zones[0]?.id ?? "");
                               setGhnQuote(null);
                             }}
-                            disabled={delivery !== "ship"}
-                            className={cn(wooInputClass, "mt-1 !h-auto !py-2 text-[14px] font-normal")}
+                            className={cn(wooInputClass, "mt-1 !h-auto !py-2 text-[14px] font-normal", fields.shipping_zone && "border-[#b81c23]")}
                           >
+                            <option value="">{t("chooseCarrier")}</option>
                             {carriers.map((m) => (
                               <option key={m.id} value={m.id}>
                                 {m.name}
@@ -375,76 +378,64 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                             ))}
                           </select>
                         </label>
-                      ) : null}
-                      {liveMethod ? (
-                        <span className="mt-2 grid gap-2 sm:grid-cols-3">
-                          <select value={provinceId} onChange={(e) => setProvinceId(e.target.value ? Number(e.target.value) : "")} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnProvince")}>
-                            <option value="">{t("ghnProvince")}</option>
-                            {provinces.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name}
-                              </option>
-                            ))}
-                          </select>
-                          <select value={districtId} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")} disabled={!provinceId} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnDistrict")}>
-                            <option value="">{t("ghnDistrict")}</option>
-                            {districts.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </select>
-                          <select value={wardCode} onChange={(e) => setWardCode(e.target.value)} disabled={!districtId} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnWard")}>
-                            <option value="">{t("ghnWard")}</option>
-                            {wards.map((w) => (
-                              <option key={w.code} value={w.code}>
-                                {w.name}
-                              </option>
-                            ))}
-                          </select>
-                          <span className="text-[12px] text-lien-muted sm:col-span-3">
-                            {ghnState === "loading" ? (
-                              <span className="text-lien-blue">{t("ghnQuoting")}</span>
-                            ) : ghnQuote ? (
-                              <span>
-                                <strong className="text-lien-heading">Giao Hàng Nhanh — {ghnQuote.service}</strong> · {formatAmount(ghnQuote.total)}đ
-                                {ghnQuote.remote ? ` (gồm phụ phí vùng xa ${formatAmount(ghnQuote.remote)}đ)` : ""}
-                                {ghnQuote.cod ? ` (gồm phí thu hộ ${formatAmount(ghnQuote.cod)}đ)` : ""}. {t("ghnEstimateNote")}
-                              </span>
-                            ) : ghnState === "error" ? (
-                              <span className="text-[#b81c23]">
-                                {ghnError}{" "}
-                                <button type="button" onClick={requestQuote} className="underline">
-                                  {t("ghnRetry")}
-                                </button>
-                              </span>
-                            ) : (
-                              t("ghnPickAddress")
-                            )}
+                        {liveMethod ? (
+                          <span className="mt-2 grid gap-2 sm:grid-cols-3">
+                            <select value={provinceId} onChange={(e) => setProvinceId(e.target.value ? Number(e.target.value) : "")} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnProvince")}>
+                              <option value="">{t("ghnProvince")}</option>
+                              {provinces.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <select value={districtId} onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : "")} disabled={!provinceId} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnDistrict")}>
+                              <option value="">{t("ghnDistrict")}</option>
+                              {districts.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                            <select value={wardCode} onChange={(e) => setWardCode(e.target.value)} disabled={!districtId} className={cn(wooInputClass, "!h-auto !py-2 text-[14px]")} aria-label={t("ghnWard")}>
+                              <option value="">{t("ghnWard")}</option>
+                              {wards.map((w) => (
+                                <option key={w.code} value={w.code}>
+                                  {w.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="text-[12px] text-lien-muted sm:col-span-3">
+                              {ghnState === "loading" ? (
+                                <span className="text-lien-blue">{t("ghnQuoting")}</span>
+                              ) : ghnQuote ? (
+                                <span>
+                                  <strong className="text-lien-heading">Giao Hàng Nhanh — {ghnQuote.service}</strong> · {formatAmount(ghnQuote.total)}đ
+                                  {ghnQuote.remote ? ` (gồm phụ phí vùng xa ${formatAmount(ghnQuote.remote)}đ)` : ""}. {t("ghnEstimateNote")}
+                                </span>
+                              ) : ghnState === "error" ? (
+                                <span className="text-[#b81c23]">
+                                  {ghnError}{" "}
+                                  <button type="button" onClick={requestQuote} className="underline">
+                                    {t("ghnRetry")}
+                                  </button>
+                                </span>
+                              ) : (
+                                t("ghnPickAddress")
+                              )}
+                            </span>
                           </span>
-                        </span>
-                      ) : (
-                        <>
-                          <select name="shipping_zone" value={zoneId} onChange={(e) => setZoneId(Number(e.target.value))} disabled={delivery !== "ship"} className={cn(wooInputClass, "mt-2 !h-auto !py-2 text-[14px]", fields.shipping_zone && "border-[#b81c23]")} aria-label={t("regionLabel")}>
-                            {methodZones.map((z) => (
-                              <option key={z.id} value={z.id}>
-                                {z.label} — {formatAmount(zoneBase(z))}đ{/kg/i.test(z.unit) ? ` (${kg} kg)` : z.stepG ? ` (≈ ${formatAmount(totalWeightG || 1000)} g)` : ""}
-                                {z.freeOver ? ` (miễn phí từ ${formatAmount(z.freeOver)}đ)` : ""}
-                                {z.eta ? ` · ${z.eta}` : ""}
-                              </option>
-                            ))}
-                          </select>
-                          {zone?.areas ? <span className="mt-1 block text-[12px] text-lien-muted">{zone.areas}</span> : null}
-                        </>
-                      )}
-                      {fields.shipping_zone ? <span className="mt-1 block text-[14px] leading-5 text-[#b81c23]">{fields.shipping_zone}</span> : null}
-                    </>
-                  )}
+                        ) : method && !detected ? (
+                          <span className="mt-1 block text-[12px] text-lien-muted">{t("regionNotDetected")}</span>
+                        ) : null}
+                        {fields.shipping_zone ? <span className="mt-1 block text-[14px] leading-5 text-[#b81c23]">{fields.shipping_zone}</span> : null}
+                      </>
+                    )
+                  ) : null}
                 </span>
               </label>
             </div>
 
-            {delivery === "ship" && carriers.length ? (
+            {delivery === "ship" && method ? (
               <fieldset className="mt-3 rounded-md border border-lien-line bg-white p-3">
                 <legend className="px-1 text-[13px] font-semibold text-lien-heading">{t("shipFeePayment")}</legend>
                 <label className="flex cursor-pointer items-start gap-2 py-1 text-[14px] leading-5">
@@ -497,6 +488,11 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                   <td className={shopTdClass}>
                     {it.name} <strong className="product-quantity whitespace-nowrap">× {it.quantity}</strong>
                     {preorderIds.includes(it.productId) ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">{t("preorderTag")}</span> : null}
+                    {regularPrices[it.productId] && regularPrices[it.productId] > it.price ? (
+                      <span className="block text-[12px] text-lien-success">
+                        {t("saleLine")} −{Math.round(100 - (it.price / regularPrices[it.productId]) * 100)}% · {t("regularPriceWord")} {formatAmount(regularPrices[it.productId])}đ → {formatAmount(it.price)}đ (−{formatAmount((regularPrices[it.productId] - it.price) * it.quantity)}đ)
+                      </span>
+                    ) : null}
                   </td>
                   <td className={shopTdClass}>
                     <Price value={it.price * it.quantity} />
@@ -538,14 +534,6 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                   <td className={shopTdClass}>{l.fee === 0 ? t("free") : <Price value={l.fee} />}</td>
                 </tr>
               ))}
-              {productSaving > 0 ? (
-                <tr className="saving">
-                  <th className={cn(shopTdClass, "font-normal text-lien-muted")} scope="row">
-                    {t("productSaving")}
-                  </th>
-                  <td className={cn(shopTdClass, "text-lien-success")}>−<Price value={productSaving} /></td>
-                </tr>
-              ) : null}
               <tr className="shipping">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   {perOrder ? t("vnLeg") : t("shipping")}
@@ -589,6 +577,32 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                   </td>
                 </tr>
               ) : null}
+              <tr className="voucher-row">
+                <td colSpan={2} className={cn(shopTdClass, "!py-3")}>
+                  <label htmlFor="voucher_input" className="mb-1.5 block text-[13px] font-semibold text-lien-heading">
+                    <Fa name="gift" className="mr-1 text-lien-blue" /> {t("voucherLabel")}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="voucher_input"
+                      value={voucherInput}
+                      onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void applyVoucher();
+                        }
+                      }}
+                      placeholder={t("enterCode")}
+                      className={cn(wooInputClass, "!mb-0 !h-10 flex-1 uppercase")}
+                    />
+                    <button type="button" onClick={() => void applyVoucher()} disabled={checking || !voucherInput.trim()} className={cn(wooButtonClass, "!py-2 whitespace-nowrap disabled:opacity-60")}>
+                      {checking ? t("checking") : t("apply")}
+                    </button>
+                  </div>
+                  {voucherMsg ? <p className={cn("m-0 mt-1.5 text-[13px]", voucher ? "text-lien-success" : "text-[#b81c23]")}>{voucherMsg}</p> : null}
+                </td>
+              </tr>
               <tr className="order-total">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   {t("total")}
@@ -600,76 +614,20 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
             </tfoot>
           </table>
 
-          <div className="mb-6 rounded-md border border-dashed border-lien-line bg-white p-4">
-            <label htmlFor="voucher_input" className="mb-2 block text-[14px] font-semibold text-lien-heading">
-              <Fa name="gift" className="mr-1 text-lien-blue" /> {t("voucherLabel")}
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="voucher_input"
-                value={voucherInput}
-                onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void applyVoucher();
-                  }
-                }}
-                placeholder={t("enterCode")}
-                className={cn(wooInputClass, "!mb-0 flex-1 uppercase")}
-              />
-              <button type="button" onClick={() => void applyVoucher()} disabled={checking || !voucherInput.trim()} className={cn(wooButtonClass, "whitespace-nowrap disabled:opacity-60")}>
-                {checking ? t("checking") : t("apply")}
-              </button>
-            </div>
-            {voucherMsg ? <p className={cn("m-0 mt-2 text-[13px]", voucher ? "text-lien-success" : "text-[#b81c23]")}>{voucherMsg}</p> : null}
-          </div>
-
-          {mustPrepay ? (
-            <WooNotice kind="info">
-              Đơn có <strong>{preorder.length} sản phẩm hàng order</strong> (đặt mua từ Nhật theo yêu cầu) nên cần <strong>thanh toán trước 100%</strong> bằng chuyển khoản. Không áp dụng thanh toán khi nhận hàng.
-            </WooNotice>
-          ) : null}
-
-          <div id="payment" className="woocommerce-checkout-payment rounded-[5px] bg-lien-blue-soft">
-            <ul className="wc_payment_methods payment_methods methods m-0 list-none border-b border-[#d3ced2] p-4 text-left">
-              <li className="wc_payment_method leading-8">
-                <input id="payment_method_bacs" type="radio" checked={payment === "bacs"} onChange={() => setPaymentChoice("bacs")} className="mr-4 inline-block h-[13px] w-[13px] align-middle" />
-                <label htmlFor="payment_method_bacs" className="mb-2 inline text-[16px] leading-8 text-lien-input-text">
-                  {t("bankTransfer")} {mustPrepay ? <span className="text-[13px] text-lien-muted">(thanh toán trước 100%)</span> : null}
-                </label>
-                {payment === "bacs" ? (
-                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14px] leading-[22px] text-[#515151]">
-                    <p className="m-0">
-                      <Fa name="credit-card" className="mr-1 text-lien-blue" /> Sau khi bấm <strong>Đặt hàng</strong>, trang đơn hàng sẽ hiện mã QR và số tài khoản {BANK.bank} để chuyển khoản; nội dung chuyển khoản được tạo tự động theo mã đơn. Khi LienStore xác nhận đã nhận tiền, trang đơn hàng báo &ldquo;Thanh toán thành công&rdquo;.
-                    </p>
-                  </div>
-                ) : null}
-              </li>
-              <li className={cn("wc_payment_method leading-8", mustPrepay && "opacity-50")}>
-                <input id="payment_method_cod" type="radio" checked={payment === "cod"} disabled={mustPrepay} onChange={() => setPaymentChoice("cod")} className="mr-4 inline-block h-[13px] w-[13px] align-middle" />
-                <label htmlFor="payment_method_cod" className="mb-2 inline text-[16px] leading-8 text-lien-input-text">
-                  {t("cod")} {mustPrepay ? <span className="text-[13px] text-lien-muted">(không áp dụng cho hàng order)</span> : null}
-                </label>
-                {payment === "cod" ? (
-                  <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14px] leading-[22px] text-[#515151]">
-                    <p className="m-0">Trả tiền mặt khi nhận hàng{delivery === "pickup" ? " tại kho" : ""}.</p>
-                  </div>
-                ) : null}
-              </li>
-            </ul>
-            <div className="form-row place-order mb-1.5 flow-root p-4">
-              <p className="mb-4 text-[14px] leading-6">
-                Thông tin của bạn chỉ dùng để xử lý đơn hàng và hỗ trợ mua hàng, theo{" "}
-                <Link href="/privacy-policy/" className="text-lien-muted hover:text-lien-blue">
-                  chính sách riêng tư
-                </Link>
-                .
-              </p>
-              <button type="submit" disabled={pending} className={cn(wooButtonClass, "float-right font-arial")} id="place_order">
-                {pending ? t("processing") : t("placeOrder")}
-              </button>
-            </div>
+          <div className="place-order mt-4 rounded-[5px] bg-lien-blue-soft p-4">
+            <button type="submit" disabled={pending} className={cn(wooButtonClass, "w-full !py-3 !text-[15px] font-arial")} id="place_order">
+              {pending ? t("processing") : t("placeOrder")}
+            </button>
+            <p className="m-0 mt-3 text-[13px] leading-5 text-lien-text">
+              <Fa name="credit-card" className="mr-1 text-lien-blue" /> {t("payAfterOrderNote").replace("{0}", BANK.bank)}
+            </p>
+            <p className="m-0 mt-2 text-[12px] leading-5 text-lien-muted">
+              Thông tin của bạn chỉ dùng để xử lý đơn hàng và hỗ trợ mua hàng, theo{" "}
+              <Link href="/privacy-policy/" className="text-lien-muted hover:text-lien-blue">
+                chính sách riêng tư
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </form>

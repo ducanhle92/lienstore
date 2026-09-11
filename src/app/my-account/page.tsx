@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { customerLogout, customerSendMessageAction } from "@/app/my-account/actions";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { AccountDetailsForm, LoginRegisterForms } from "@/components/sites/lienstore/shop/cart/AccountForms";
@@ -39,6 +40,8 @@ interface Props {
 export default async function MyAccount({ searchParams }: Props) {
   const lang = await getLang();
   const customer = await getCurrentCustomer();
+  // Signing in happens in the header drawer everywhere; this page only has content for signed-in customers.
+  if (!customer) redirect("/?login=1");
   const sp = await searchParams;
   const tabRaw = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
   const tab: Tab = TABS.some((x) => x.key === tabRaw) ? (tabRaw as Tab) : "dashboard";
