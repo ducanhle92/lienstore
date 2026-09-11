@@ -14,7 +14,7 @@ export const CSV_COLUMNS = [
   "Đường dẫn (slug)",
   "Danh mục (slug, cách nhau bằng ;)",
   "Hình thức",
-  "Giá bán VN (VNĐ)",
+  "Giá thực tế trên website (VNĐ)",
   "Giá vốn (¥)",
   "Tỉ giá JPY/VND",
   "Giá vốn (VNĐ)",
@@ -23,9 +23,10 @@ export const CSV_COLUMNS = [
   "Ship kho ĐVVC → kho shop (VNĐ)",
   "Tổng phí vận chuyển về kho VN (VNĐ)",
   "Giá vốn khi về tới VN (VNĐ)",
-  "Lãi (%)",
-  "Giá bán trên website (VNĐ)",
-  "Lợi nhuận (VNĐ)",
+  "Tỉ lệ lãi kỳ vọng (%)",
+  "Giá kỳ vọng bán ra trên website (VNĐ)",
+  "Lợi nhuận kỳ vọng (VNĐ)",
+  "Lãi/lỗ thực tế (VNĐ)",
   "Nguồn giá",
   "Link giá",
   "Link nhà cung cấp",
@@ -59,7 +60,7 @@ export function productToCsvRow(p: CatalogProduct, rate: number, defaultMarginPc
     "Đường dẫn (slug)": p.slug,
     "Danh mục (slug, cách nhau bằng ;)": p.categories.join(";"),
     "Hình thức": p.fulfillment === "stock" ? "Lưu kho" : "Order",
-    "Giá bán VN (VNĐ)": p.price,
+    "Giá thực tế trên website (VNĐ)": p.price,
     "Giá vốn (¥)": p.costJpy ?? "",
     "Tỉ giá JPY/VND": rate,
     "Giá vốn (VNĐ)": p.costPrice ?? "",
@@ -68,9 +69,10 @@ export function productToCsvRow(p: CatalogProduct, rate: number, defaultMarginPc
     "Ship kho ĐVVC → kho shop (VNĐ)": leg("vn_transfer"),
     "Tổng phí vận chuyển về kho VN (VNĐ)": bd ? bd.shipping : "",
     "Giá vốn khi về tới VN (VNĐ)": bd ? bd.landed : "",
-    "Lãi (%)": p.marginPct ?? defaultMarginPct,
-    "Giá bán trên website (VNĐ)": bd ? bd.suggested : "",
-    "Lợi nhuận (VNĐ)": bd ? bd.margin : "",
+    "Tỉ lệ lãi kỳ vọng (%)": p.marginPct ?? defaultMarginPct,
+    "Giá kỳ vọng bán ra trên website (VNĐ)": bd ? bd.suggested : "",
+    "Lợi nhuận kỳ vọng (VNĐ)": bd ? bd.margin : "",
+    "Lãi/lỗ thực tế (VNĐ)": bd && p.price > 0 ? p.price - bd.landed : "",
     "Nguồn giá": p.costSource,
     "Link giá": p.costUrl,
     "Link nhà cung cấp": p.supplierUrl ?? "",
@@ -141,6 +143,9 @@ export type CsvPatch = Partial<Pick<CatalogProduct, "sku" | "name" | "nameJa" | 
 export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; errors: string[] } {
   const patch: CsvPatch = {};
   const errors: string[] = [];
+  // older exports used these headers; map them onto the current names so old files still import
+  const ALIAS: Record<string, CsvColumn> = { "Giá bán VN (VNĐ)": "Giá thực tế trên website (VNĐ)", "Lãi (%)": "Tỉ lệ lãi kỳ vọng (%)" };
+  for (const [oldName, cur] of Object.entries(ALIAS)) if (oldName in rec && !(cur in rec)) rec[cur] = rec[oldName];
   const has = (c: CsvColumn) => Object.prototype.hasOwnProperty.call(rec, c);
   const num = (c: CsvColumn, min = 0) => {
     const v = intOrNull(rec[c]);
@@ -155,8 +160,8 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
     const v = rec["Hình thức"].trim().toLowerCase();
     if (v) patch.fulfillment = v.startsWith("lưu") || v.startsWith("luu") || v === "stock" ? "stock" : "order";
   }
-  if (has("Giá bán VN (VNĐ)")) {
-    const v = num("Giá bán VN (VNĐ)");
+  if (has("Giá thực tế trên website (VNĐ)")) {
+    const v = num("Giá thực tế trên website (VNĐ)");
     if (v !== undefined && v !== null) patch.price = v;
   }
   if (has("Giá gốc (VNĐ)" as CsvColumn)) {
@@ -171,12 +176,12 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
     const v = num("Giá vốn (VNĐ)");
     if (v !== undefined) patch.costPrice = v;
   }
-  if (has("Lãi (%)")) {
-    const raw = rec["Lãi (%)"].trim().replace(",", ".");
+  if (has("Tỉ lệ lãi kỳ vọng (%)")) {
+    const raw = rec["Tỉ lệ lãi kỳ vọng (%)"].trim().replace(",", ".");
     if (raw === "") patch.marginPct = null;
     else {
       const v = Number.parseFloat(raw);
-      if (!Number.isFinite(v) || v < 0 || v > 100) errors.push(`Lãi (%): "${rec["Lãi (%)"]}" không hợp lệ (0–100)`);
+      if (!Number.isFinite(v) || v < 0 || v > 100) errors.push(`Tỉ lệ lãi kỳ vọng (%): "${rec["Tỉ lệ lãi kỳ vọng (%)"]}" không hợp lệ (0–100)`);
       else patch.marginPct = v;
     }
   }

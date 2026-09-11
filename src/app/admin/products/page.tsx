@@ -131,7 +131,7 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>SKU</th>
                 <th className={thClass}>Tên</th>
                 <th className={thClass}>Danh mục</th>
-                <th className={thClass} title="Giá khách đang thấy trên web">Giá bán VN</th>
+                <th className={thClass} title="Giá khách đang thấy trên web">Giá thực tế trên website</th>
                 <th className={thClass}>Giá vốn (¥)</th>
                 <th className={`${thClass} whitespace-nowrap`} title="Giá vốn (VNĐ) = giá vốn (¥) × tỉ giá này">Tỉ giá JPY/VND</th>
                 <th className={thClass}>Giá vốn (VNĐ)</th>
@@ -140,9 +140,10 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>Ship kho ĐVVC → kho shop</th>
                 <th className={thClass}>Tổng phí về kho VN</th>
                 <th className={thClass} title="Giá vốn (VNĐ) + tổng phí vận chuyển về kho VN">Giá vốn khi về tới VN</th>
-                <th className={thClass} title="Mặc định của Công thức giá, hoặc lãi riêng đặt trong trang sản phẩm">Lãi %</th>
-                <th className={thClass} title="Giá vốn về VN × (1 + lãi %), làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Giá bán trên website</th>
-                <th className={thClass} title="Giá bán trên website − giá vốn về tới VN">Lợi nhuận</th>
+                <th className={thClass} title="Mặc định của Công thức giá, hoặc lãi riêng đặt trong trang sản phẩm">Tỉ lệ lãi kỳ vọng</th>
+                <th className={thClass} title="Giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng), làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Giá kỳ vọng bán ra trên website</th>
+                <th className={thClass} title="Giá kỳ vọng − giá vốn về tới VN">Lợi nhuận kỳ vọng</th>
+                <th className={thClass} title="Giá thực tế trên website − giá vốn về tới VN">Lãi/lỗ thực tế</th>
                 <th className={thClass}>Hình thức · tồn</th>
                 <th className={thClass}>Cân / KT</th>
                 <th className={thClass}>Trạng thái</th>
@@ -153,7 +154,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={21} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={22} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -207,6 +208,9 @@ export default async function AdminProducts({ searchParams }: Props) {
                           ) : (
                             <span className="text-lien-muted">—</span>
                           )}
+                        </td>
+                        <td className={`${tdClass} whitespace-nowrap font-semibold`}>
+                          {bd && p.price > 0 ? <span className={p.price - bd.landed >= 0 ? "text-green-700" : "text-red-600"}>{p.price - bd.landed < 0 ? "−" : ""}{formatPrice(Math.abs(p.price - bd.landed))}</span> : <span className="text-lien-muted">—</span>}
                         </td>
                       </>
                     );

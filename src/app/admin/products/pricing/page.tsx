@@ -34,7 +34,7 @@ export default async function AdminPricing({ searchParams }: Props) {
   const rows = products
     .map((p) => ({ p, s: suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing) }))
     .filter((r): r is { p: (typeof products)[number]; s: NonNullable<ReturnType<typeof suggestPrice>> } => r.s !== null)
-    .sort((a, b) => Math.abs(b.s.suggested - b.p.price) - Math.abs(a.s.suggested - a.p.price));
+    .sort((a, b) => Math.abs(b.s.suggested - b.p.price) - Math.abs(a.s.suggested - a.p.price)); // biggest gap between expected and actual first
   const applicable = rows.filter((r) => r.p.regularPrice === null && r.s.suggested !== r.p.price);
   const noCost = products.length - rows.length;
 
@@ -42,7 +42,7 @@ export default async function AdminPricing({ searchParams }: Props) {
     <>
       <PageHeader
         title="Công thức giá bán"
-        subtitle="Giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Giá bán trên website = giá vốn về VN × (1 + lãi %). Lợi nhuận = giá bán − giá vốn về VN. Khách chỉ trả thêm phí giao nội địa Việt Nam."
+        subtitle="Giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Giá kỳ vọng bán ra trên website = giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng). Lợi nhuận kỳ vọng = giá kỳ vọng − giá vốn về VN; lãi/lỗ thực tế = giá thực tế trên website − giá vốn về VN. Khách chỉ trả thêm phí giao nội địa Việt Nam."
         back={{ href: "/admin/products/", label: "Sản phẩm" }}
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
@@ -101,7 +101,7 @@ export default async function AdminPricing({ searchParams }: Props) {
           <form action={savePricingConfigAction} className="grid gap-4 sm:grid-cols-[150px_170px_170px_auto] sm:items-end">
             <div>
               <label className={adminLabel} htmlFor="marginPct">
-                Lãi mặc định (% trên giá vốn về VN)
+                Tỉ lệ lãi kỳ vọng mặc định (% trên giá vốn về VN)
               </label>
               <input id="marginPct" name="marginPct" inputMode="decimal" defaultValue={pricing.marginPct} className={adminInput} />
               <p className="mt-1 text-[12px] text-lien-muted">
@@ -162,7 +162,7 @@ export default async function AdminPricing({ searchParams }: Props) {
 
       <Card
         className="mt-6"
-        title={`Giá đề xuất theo công thức (${rows.length} sản phẩm có giá vốn${noCost ? ` · ${noCost} sản phẩm chưa nhập giá vốn` : ""})`}
+        title={`Giá kỳ vọng theo công thức (${rows.length} sản phẩm có giá vốn${noCost ? ` · ${noCost} sản phẩm chưa nhập giá vốn` : ""})`}
         actions={
           applicable.length ? (
             <form action={applySuggestedPricesAction}>
@@ -171,7 +171,7 @@ export default async function AdminPricing({ searchParams }: Props) {
               </ConfirmSubmit>
             </form>
           ) : (
-            <span className="text-[13px] text-lien-muted">Giá bán hiện tại đã khớp công thức.</span>
+            <span className="text-[13px] text-lien-muted">Giá thực tế trên website đã khớp giá kỳ vọng.</span>
           )
         }
       >
@@ -184,11 +184,11 @@ export default async function AdminPricing({ searchParams }: Props) {
                 <th className={thClass}>Giá vốn</th>
                 <th className={thClass}>Ship 3 chặng</th>
                 <th className={thClass}>Giá vốn về tới VN</th>
-                <th className={thClass}>Lãi %</th>
-                <th className={thClass}>Giá bán trên website</th>
-                <th className={thClass}>Lợi nhuận</th>
-                <th className={thClass}>Giá hiện tại</th>
-                <th className={thClass}>Chênh</th>
+                <th className={thClass}>Tỉ lệ lãi kỳ vọng</th>
+                <th className={thClass}>Giá kỳ vọng bán ra trên website</th>
+                <th className={thClass}>Lợi nhuận kỳ vọng</th>
+                <th className={thClass}>Giá thực tế trên website</th>
+                <th className={thClass} title="Giá thực tế trên website − giá vốn về tới VN">Lãi/lỗ thực tế</th>
               </tr>
             </thead>
             <tbody>
@@ -200,7 +200,7 @@ export default async function AdminPricing({ searchParams }: Props) {
                 </tr>
               ) : null}
               {rows.map(({ p, s }) => {
-                const diff = s.suggested - p.price;
+                const real = p.price > 0 ? p.price - s.landed : null;
                 return (
                   <tr key={p.id} className="hover:bg-[#fafafa]">
                     <td className={tdClass}>
@@ -222,7 +222,7 @@ export default async function AdminPricing({ searchParams }: Props) {
                     <td className={`${tdClass} whitespace-nowrap font-semibold text-lien-heading`}>{formatPrice(s.suggested)}</td>
                     <td className={`${tdClass} whitespace-nowrap text-green-700`}>{formatPrice(s.margin)}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(p.price)}</td>
-                    <td className={cn(tdClass, "whitespace-nowrap", diff > 0 ? "text-red-600" : diff < 0 ? "text-green-700" : "text-lien-muted")}>{diff === 0 ? "—" : `${diff > 0 ? "+" : "−"}${formatAmount(Math.abs(diff))}đ`}</td>
+                    <td className={cn(tdClass, "whitespace-nowrap font-semibold", real === null ? "text-lien-muted" : real >= 0 ? "text-green-700" : "text-red-600")}>{real === null ? "chưa có giá" : `${real < 0 ? "−" : ""}${formatAmount(Math.abs(real))}đ`}</td>
                   </tr>
                 );
               })}

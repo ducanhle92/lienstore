@@ -164,7 +164,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 {suggestion ? (
                   <div className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-2.5 text-[12px] leading-5 text-lien-text">
                     <p className="m-0 font-semibold text-lien-heading">
-                      Giá đề xuất: {suggestion.suggested.toLocaleString("vi-VN")}đ{" "}
+                      Giá kỳ vọng bán ra trên website: {suggestion.suggested.toLocaleString("vi-VN")}đ{" "}
                       {digits(priceText) !== suggestion.suggested ? (
                         <button type="button" onClick={() => setPriceText(String(suggestion.suggested))} className="ml-1 rounded bg-lien-blue px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-lien-blue-hover">
                           Dùng giá này
@@ -175,14 +175,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     </p>
                     <p className="m-0 text-lien-muted">
                       Giá vốn về tới VN {suggestion.landed.toLocaleString("vi-VN")} = vốn {suggestion.cost.toLocaleString("vi-VN")} + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí
-                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}) · × (1 + {suggestion.marginPct}%) → lợi nhuận {suggestion.margin.toLocaleString("vi-VN")}đ.
+                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}) · × (1 + {suggestion.marginPct}%) → lợi nhuận kỳ vọng {suggestion.margin.toLocaleString("vi-VN")}đ.
                     </p>
                   </div>
                 ) : null}
               </div>
               <div>
                 <label className={adminLabel} htmlFor="marginPct">
-                  Lãi riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng mặc định {pricing?.marginPct ?? 25}%)</span>
+                  Tỉ lệ lãi kỳ vọng riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng mặc định {pricing?.marginPct ?? 25}%)</span>
                 </label>
                 <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(pricing?.marginPct ?? 25)} className={cn(adminInput, "mb-4 !w-[140px]")} />
                 <label className={adminLabel} htmlFor="supplierUrl">
