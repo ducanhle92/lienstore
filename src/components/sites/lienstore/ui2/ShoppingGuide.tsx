@@ -16,8 +16,8 @@ export const GUIDE_STEPS: Step[] = [
   { icon: "shopping-cart", vi: "Chọn sản phẩm hoặc gửi link cần mua hộ", ja: "商品を選ぶ／購入代行のリンクを送る", detailVi: "Tìm theo danh mục, tìm kiếm hoặc bấm “Thêm vào giỏ”. Chưa có món cần? Gửi link Amazon / ảnh qua Zalo, LienStore báo giá trong ngày.", detailJa: "カテゴリーや検索から商品を選び「カートに入れる」。取り扱いのない商品はAmazonのリンクや写真をZaloで送ってください。当日中にお見積りします。" },
   { icon: "file-text-o", vi: "Xác nhận thông tin đặt hàng", ja: "ご注文内容の確認", detailVi: "Điền tên, số điện thoại, địa chỉ hoặc chọn nhận tại kho Thanh Hóa. Phí vận chuyển được tính tự động theo cân nặng đơn.", detailJa: "お名前・電話番号・住所を入力、またはタインホア倉庫での受け取りを選択。送料は注文の重量から自動計算されます。" },
   { icon: "credit-card", vi: "Chọn hình thức thanh toán", ja: "お支払い方法を選ぶ", detailVi: "Chuyển khoản BIDV theo mã QR có sẵn nội dung “LIENSTORE + mã đơn”, hoặc thanh toán khi nhận hàng. Hàng order cần thanh toán trước 100%.", detailJa: "注文番号入りQRコードでBIDVへ銀行振込、または代金引換。お取り寄せ商品は全額前払いです。" },
-  { icon: "plane", vi: "Theo dõi đơn & nhận bill mua hàng tại Nhật", ja: "注文の追跡と日本での購入レシート", detailVi: "Trang đơn hàng hiện tiến độ 7 bước (mua tại Nhật → kho Nhật → về Việt Nam → kho VN → giao). Bill mua tại Nhật được đính kèm; có thể chat với shop ngay trong đơn.", detailJa: "注文ページで7段階の進捗を確認（日本で購入→日本倉庫→輸送→ベトナム倉庫→配達）。購入レシートを添付、注文内でショップとチャットできます。" },
-  { icon: "truck", vi: "Nhận hàng", ja: "商品のお受け取り", detailVi: "Giao tận nhà qua Viettel Post / Bưu điện hoặc tự tới kho. Kiểm tra hàng khi nhận; đổi trả nếu không đúng mô tả.", detailJa: "Viettel Post／郵便でご自宅へ配送、または倉庫でお受け取り。受け取り時にご確認ください。説明と異なる場合は返品・交換します。" },
+  { icon: "plane", vi: "Theo dõi đơn hàng dễ dàng", ja: "注文状況をかんたんに確認", detailVi: "Trang đơn hàng hiện tiến độ từng bước (đã đặt → đã thanh toán → đang vận chuyển → về kho Việt Nam → đang giao → đã nhận). Tra cứu bill đơn hàng mọi lúc và chat với shop ngay trong đơn.", detailJa: "注文ページで進捗を段階ごとに確認（注文→入金確認→輸送中→ベトナム倉庫→配達中→受取完了）。購入レシートはいつでも確認でき、注文内でショップとチャットできます。" },
+  { icon: "truck", vi: "Nhận hàng tại nhà", ja: "ご自宅でお受け取り", detailVi: "Giao tận nhà qua Viettel Post / Bưu điện hoặc tự tới kho. Kiểm tra hàng khi nhận; đổi trả nếu không đúng mô tả.", detailJa: "Viettel Post／郵便でご自宅へ配送、または倉庫でお受け取り。受け取り時にご確認ください。説明と異なる場合は返品・交換します。" },
 ];
 
 const TONE = ["bg-lien-blue", "bg-lien-sale", "bg-lien-blue", "bg-lien-sale", "bg-lien-blue"];
@@ -58,8 +58,8 @@ export function ShoppingGuideBlock({ lang }: { lang: Lang }) {
         <h2 className="m-0 mb-4 text-[26px] font-bold leading-8 text-lien-heading sm:text-[30px]">{ja ? "お買い物ガイド" : "Hướng dẫn mua hàng"}</h2>
         <p className="m-0 mb-3 text-[15px] leading-7 text-lien-text">
           {ja
-            ? "LienStoreは日本国内の商品を日本で直接購入し、購入レシートを添付してベトナムへお届けするショップです。会員登録なしでも注文でき、銀行振込（QRコード）または代金引換でお支払いいただけます。"
-            : "LienStore mua hàng trực tiếp tại Nhật, đính kèm bill cho từng đơn và gửi về Việt Nam. Bạn có thể đặt hàng không cần tài khoản, thanh toán chuyển khoản theo mã QR hoặc trả tiền khi nhận hàng."}
+            ? "日本国内の商品を直接購入してベトナムへお届け。購入レシートはいつでも確認でき、注文状況もかんたんに追跡、お支払いも銀行振込（QR）または代金引換から選べます。"
+            : "Hàng nội địa Nhật mua trực tiếp và gửi về Việt Nam. Tra cứu bill đơn hàng mọi lúc, theo dõi đơn hàng dễ dàng, thanh toán linh hoạt bằng chuyển khoản QR hoặc trả tiền khi nhận hàng."}
         </p>
         <p className="m-0 mb-6 text-[15px] leading-7 text-lien-text">
           {ja ? "オンライン購入が初めての方も、次の5つのステップで安心してご利用いただけます。" : "Ngay cả khi chưa quen mua hàng online, bạn vẫn hoàn toàn yên tâm với 5 bước đơn giản sau đây:"}

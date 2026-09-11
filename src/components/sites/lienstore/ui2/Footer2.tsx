@@ -107,10 +107,6 @@ export function Footer2({ logo, contact, categories, accountLinks, supportLinks,
               </li>
             ))}
           </ul>
-          <div className="mt-5 rounded-md border border-lien-line bg-white p-3 text-[13px] leading-5 text-lien-muted">
-            <Fa name="shield" className="mr-1 text-lien-blue" />
-            {t(lang, "fBillNote1")} <strong className="text-lien-text">{t(lang, "fBillNote2")}</strong> {t(lang, "fBillNote3")}
-          </div>
         </div>
       </div>
       <div className="border-t border-lien-line">

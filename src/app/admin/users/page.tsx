@@ -64,6 +64,7 @@ export default async function AdminUsers({ searchParams }: Props) {
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={thClass}>Mã KH</th>
                   <th className={thClass}>Tài khoản</th>
                   <th className={thClass}>Liên hệ</th>
                   <th className={thClass}>Vai trò / quyền</th>
@@ -76,12 +77,12 @@ export default async function AdminUsers({ searchParams }: Props) {
                   const name = `${u.lastName} ${u.firstName}`.trim();
                   return (
                     <tr key={u.id} className={cn(!u.active && "opacity-60")}>
+                      <td className={cn(tdClass, "whitespace-nowrap font-mono text-[14px] font-semibold text-lien-heading")}>{u.customerNo ?? "—"}</td>
                       <td className={tdClass}>
                         <Link href={`/admin/users/${u.id}/`} className="font-semibold text-lien-blue hover:underline">
                           {u.username || showEmail(u.email) || "(không có ID)"}
                         </Link>
                         <div className="text-[12px] text-lien-muted">{name || "—"}{showEmail(u.email) && u.username ? ` · ${showEmail(u.email)}` : ""}</div>
-                        {u.customerNo ? <div className="text-[12px] font-semibold text-lien-heading">Mã KH: {u.customerNo}</div> : null}
                         <div className="font-mono text-[11px] text-[#9ca3af]">{u.id}</div>
                         {!u.active ? <span className="mt-1 inline-block rounded-full bg-gray-200 px-2 text-[11px] text-gray-700">Đã khoá</span> : null}
                       </td>
@@ -106,7 +107,7 @@ export default async function AdminUsers({ searchParams }: Props) {
                 })}
                 {users.length === 0 ? (
                   <tr>
-                    <td className={tdClass} colSpan={5}>
+                    <td className={tdClass} colSpan={6}>
                       Không có tài khoản nào khớp.
                     </td>
                   </tr>
