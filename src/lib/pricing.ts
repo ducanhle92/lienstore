@@ -1,7 +1,9 @@
 /**
  * Selling-price formula (Admin › Kho hàng › Công thức giá):
- *   giá bán = giá vốn × (1 + lãi %) + phí vận chuyển 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop),
- * rounded up to the nearest step. Pure module shared by the admin pages and the product form.
+ *   giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí vận chuyển 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop)
+ *   giá bán trên website = giá vốn về tới VN × (1 + lãi %), rounded up to the nearest step
+ *   lợi nhuận = giá bán trên website − giá vốn về tới VN
+ * The margin is the shop default (25 %) unless the product carries its own. Pure module shared by admin pages and the form.
  */
 import { billableProductWeightG, type DimsConfidence, type LegQuote, type QuoteMethod, quoteMethod, type ShippingLeg, type ShippingQuoteConfig } from "./shipping";
 
@@ -35,13 +37,18 @@ export interface PriceInput {
   weightG: number | null;
   dimsCm: string | null;
   dimsConfidence: DimsConfidence | null;
+  /** Product-specific margin %; null = shop default. */
+  marginPct?: number | null;
 }
 
 export interface PriceBreakdown {
   cost: number;
+  /** Margin actually used (product override or shop default). */
   marginPct: number;
-  /** Profit in VND (cost × margin %). */
+  /** Profit in VND = suggested − landed. */
   margin: number;
+  /** Cost once the goods sit in the Vietnam warehouse: cost + import legs. */
+  landed: number;
   /** Billable grams used for the shipping legs (max(actual, volumetric) × safety factor). */
   weightG: number;
   legs: LegQuote[];
@@ -81,8 +88,10 @@ export function suggestPrice(p: PriceInput, quote: ShippingQuoteConfig, pricing:
   const weightG = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);
   const legs = quoteImportLegsProRata(quote, weightG, pricing.lotWeightG);
   const shipping = legs.reduce((s, l) => s + l.fee, 0);
-  const margin = Math.round((p.costPrice * pricing.marginPct) / 100);
-  const raw = p.costPrice + margin + shipping;
+  const landed = p.costPrice + shipping;
+  const marginPct = p.marginPct !== null && p.marginPct !== undefined && Number.isFinite(p.marginPct) ? p.marginPct : pricing.marginPct;
+  const raw = landed * (1 + marginPct / 100);
   const step = Math.max(1, pricing.roundTo);
-  return { cost: p.costPrice, marginPct: pricing.marginPct, margin, weightG, legs, shipping, raw, suggested: Math.ceil(raw / step) * step };
+  const suggested = Math.ceil(raw / step) * step;
+  return { cost: p.costPrice, marginPct, margin: suggested - landed, landed, weightG, legs, shipping, raw, suggested };
 }

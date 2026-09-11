@@ -57,6 +57,9 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (costRaw && costPrice === null) fields.costPrice = "Giá vốn không hợp lệ.";
   if (costJpy && (costPrice === null || (existing?.costJpy !== costJpy))) costPrice = Math.round(costJpy * (await getJpyRate()));
 
+  const marginRaw = get("marginPct").replace(",", ".");
+  const marginPct = marginRaw === "" ? null : Number.parseFloat(marginRaw);
+  if (marginRaw !== "" && (marginPct === null || !Number.isFinite(marginPct) || marginPct < 0 || marginPct > 100)) fields.marginPct = "Lãi riêng phải là số % từ 0 đến 100.";
   const supplierUrl = get("supplierUrl");
   if (supplierUrl && !/^https?:\/\//i.test(supplierUrl)) fields.supplierUrl = "Link nhà cung cấp phải bắt đầu bằng http(s)://";
   const minRaw = get("minStock");
@@ -117,6 +120,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     costJpy,
     costSource: costJpy ? (costJpy === existing?.costJpy ? existing.costSource : costUrl.includes("amazon") ? "amazon" : costUrl.includes("rakuten") ? "rakuten" : costUrl ? "official" : "manual") : "",
     costUrl,
+    marginPct,
     costCheckedAt: costJpy ? (costJpy === existing?.costJpy ? existing.costCheckedAt : new Date().toISOString()) : null,
     categories,
     tags,

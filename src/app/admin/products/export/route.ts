@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!(await can("products"))) return new NextResponse("Unauthorized", { status: 401 });
   const sp = Object.fromEntries(req.nextUrl.searchParams.entries());
   const [all, rate, pricing, quote] = await Promise.all([getAllProducts(true), getJpyRate(), getPricingConfig(), getImportQuoteConfig()]);
-  const rows = filterProducts(all, sp).map((p) => productToCsvRow(p, rate, pricing.marginPct, suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing)));
+  const rows = filterProducts(all, sp).map((p) => productToCsvRow(p, rate, pricing.marginPct, suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing)));
   return new NextResponse(toCsv(rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

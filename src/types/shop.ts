@@ -20,6 +20,8 @@ export interface CatalogProduct {
   costSource: string;
   costUrl: string;
   costCheckedAt: string | null;
+  /** Margin % for this product; null = shop default (Kho hàng › Công thức giá). */
+  marginPct: number | null;
   /** Where to buy it (Amazon JP / brand page) — admin only, used by the purchase list. */
   supplierUrl: string | null;
   /** Reorder threshold for tracked stock; null = store default. */

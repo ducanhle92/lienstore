@@ -16,14 +16,16 @@ export const CSV_COLUMNS = [
   "Hình thức",
   "Giá bán VN (VNĐ)",
   "Giá vốn (¥)",
-  "Tỉ giá (đ/¥)",
+  "Tỉ giá JPY/VND",
   "Giá vốn (VNĐ)",
-  "Giá bán NB (VNĐ)",
   "Ship nội địa Nhật (VNĐ)",
   "Ship Nhật → Việt Nam (VNĐ)",
   "Ship kho ĐVVC → kho shop (VNĐ)",
   "Tổng phí vận chuyển về kho VN (VNĐ)",
-  "Chi phí lên kệ website (VNĐ)",
+  "Giá vốn khi về tới VN (VNĐ)",
+  "Lãi (%)",
+  "Giá bán trên website (VNĐ)",
+  "Lợi nhuận (VNĐ)",
   "Nguồn giá",
   "Link giá",
   "Link nhà cung cấp",
@@ -47,7 +49,7 @@ const CONF_KEY: Record<string, "high" | "medium" | "low"> = { cao: "high", "trun
  * One CSV record. `bd` = the price formula for this product (null when it has no cost): import legs shared per gram of the
  * product, their total, and the final shelf price the customer sees (cost + margin + import legs, rounded).
  */
-export function productToCsvRow(p: CatalogProduct, rate: number, marginPct: number, bd: PriceBreakdown | null = null): Record<CsvColumn, string | number> {
+export function productToCsvRow(p: CatalogProduct, rate: number, defaultMarginPct: number, bd: PriceBreakdown | null = null): Record<CsvColumn, string | number> {
   const leg = (k: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === k)?.fee ?? 0) : "");
   return {
     ID: p.id,
@@ -59,14 +61,16 @@ export function productToCsvRow(p: CatalogProduct, rate: number, marginPct: numb
     "Hình thức": p.fulfillment === "stock" ? "Lưu kho" : "Order",
     "Giá bán VN (VNĐ)": p.price,
     "Giá vốn (¥)": p.costJpy ?? "",
-    "Tỉ giá (đ/¥)": rate,
+    "Tỉ giá JPY/VND": rate,
     "Giá vốn (VNĐ)": p.costPrice ?? "",
-    "Giá bán NB (VNĐ)": p.costPrice === null ? "" : Math.round((p.costPrice * (1 + marginPct / 100)) / 1000) * 1000,
     "Ship nội địa Nhật (VNĐ)": leg("jp_domestic"),
     "Ship Nhật → Việt Nam (VNĐ)": leg("jp_vn"),
     "Ship kho ĐVVC → kho shop (VNĐ)": leg("vn_transfer"),
     "Tổng phí vận chuyển về kho VN (VNĐ)": bd ? bd.shipping : "",
-    "Chi phí lên kệ website (VNĐ)": bd ? bd.suggested : "",
+    "Giá vốn khi về tới VN (VNĐ)": bd ? bd.landed : "",
+    "Lãi (%)": p.marginPct ?? defaultMarginPct,
+    "Giá bán trên website (VNĐ)": bd ? bd.suggested : "",
+    "Lợi nhuận (VNĐ)": bd ? bd.margin : "",
     "Nguồn giá": p.costSource,
     "Link giá": p.costUrl,
     "Link nhà cung cấp": p.supplierUrl ?? "",
@@ -131,7 +135,7 @@ const intOrNull = (v: string): number | null | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-export type CsvPatch = Partial<Pick<CatalogProduct, "sku" | "name" | "nameJa" | "categories" | "fulfillment" | "price" | "regularPrice" | "costJpy" | "costPrice" | "costUrl" | "supplierUrl" | "stock" | "minStock" | "stockStatus" | "status" | "weightG" | "dimsCm" | "dimsConfidence" | "tags">>;
+export type CsvPatch = Partial<Pick<CatalogProduct, "sku" | "name" | "nameJa" | "categories" | "fulfillment" | "price" | "regularPrice" | "costJpy" | "costPrice" | "costUrl" | "supplierUrl" | "stock" | "minStock" | "stockStatus" | "status" | "weightG" | "dimsCm" | "dimsConfidence" | "tags" | "marginPct">>;
 
 /** Turn one CSV record (header → value) into a patch; only columns present in the file are touched. */
 export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; errors: string[] } {
@@ -166,6 +170,15 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
   if (has("Giá vốn (VNĐ)")) {
     const v = num("Giá vốn (VNĐ)");
     if (v !== undefined) patch.costPrice = v;
+  }
+  if (has("Lãi (%)")) {
+    const raw = rec["Lãi (%)"].trim().replace(",", ".");
+    if (raw === "") patch.marginPct = null;
+    else {
+      const v = Number.parseFloat(raw);
+      if (!Number.isFinite(v) || v < 0 || v > 100) errors.push(`Lãi (%): "${rec["Lãi (%)"]}" không hợp lệ (0–100)`);
+      else patch.marginPct = v;
+    }
   }
   if (has("Link giá")) patch.costUrl = rec["Link giá"].trim();
   if (has("Link nhà cung cấp")) patch.supplierUrl = rec["Link nhà cung cấp"].trim() || null;

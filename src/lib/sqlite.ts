@@ -720,6 +720,12 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE posts ADD COLUMN updated_at TEXT`,
     ],
   },
+  {
+    // Per-product margin (%) overriding the shop default of Công thức giá.
+    version: 33,
+    name: "product-margin",
+    up: [`ALTER TABLE products ADD COLUMN margin_pct REAL`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

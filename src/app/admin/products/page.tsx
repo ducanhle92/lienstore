@@ -12,13 +12,6 @@ import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPri
 import { suggestPrice } from "@/lib/pricing";
 import { formatDate, formatPrice } from "@/lib/format";
 
-/** Profit per unit and margin % when both prices are known. */
-function profitOf(p: { price: number; costPrice: number | null }): { amount: number; pct: number } | null {
-  if (p.costPrice === null || p.price <= 0) return null;
-  const amount = p.price - p.costPrice;
-  return { amount, pct: Math.round((amount / p.price) * 1000) / 10 };
-}
-
 export const dynamic = "force-dynamic";
 
 interface Props {
@@ -37,9 +30,8 @@ export default async function AdminProducts({ searchParams }: Props) {
   const deleted = first(sp.deleted);
 
   const [all, categories, pricing, quote, rate] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate()]);
-  const jpPrice = (cost: number | null) => (cost === null ? null : Math.round((cost * (1 + pricing.marginPct / 100)) / 1000) * 1000);
   // price formula per product: import legs shared per gram (same numbers as the CSV export and Công thức giá)
-  const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing);
+  const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing);
   const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
   const money = (v: number | null | undefined) => (v === null || v === undefined ? <span className="text-lien-muted">—</span> : formatPrice(v));
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
@@ -141,15 +133,16 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>Danh mục</th>
                 <th className={thClass} title="Giá khách đang thấy trên web">Giá bán VN</th>
                 <th className={thClass}>Giá vốn (¥)</th>
-                <th className={`${thClass} whitespace-nowrap`} title="Tỉ giá đang dùng (Kho hàng › Công thức giá)">Tỉ giá (đ/¥)</th>
+                <th className={`${thClass} whitespace-nowrap`} title="Giá vốn (VNĐ) = giá vốn (¥) × tỉ giá này">Tỉ giá JPY/VND</th>
                 <th className={thClass}>Giá vốn (VNĐ)</th>
-                <th className={thClass} title={`Giá vốn + ${pricing.marginPct}% lợi nhuận, chưa gồm vận chuyển`}>Giá bán NB</th>
                 <th className={thClass} title="Chia theo gram sản phẩm trong lô gom, luồng mặc định">Ship nội địa Nhật</th>
                 <th className={thClass}>Ship Nhật → VN</th>
                 <th className={thClass}>Ship kho ĐVVC → kho shop</th>
                 <th className={thClass}>Tổng phí về kho VN</th>
-                <th className={thClass} title="Giá vốn + lãi + tổng phí, làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Chi phí lên kệ website</th>
-                <th className={thClass}>Lợi nhuận</th>
+                <th className={thClass} title="Giá vốn (VNĐ) + tổng phí vận chuyển về kho VN">Giá vốn khi về tới VN</th>
+                <th className={thClass} title="Mặc định của Công thức giá, hoặc lãi riêng đặt trong trang sản phẩm">Lãi %</th>
+                <th className={thClass} title="Giá vốn về VN × (1 + lãi %), làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Giá bán trên website</th>
+                <th className={thClass} title="Giá bán trên website − giá vốn về tới VN">Lợi nhuận</th>
                 <th className={thClass}>Hình thức · tồn</th>
                 <th className={thClass}>Cân / KT</th>
                 <th className={thClass}>Trạng thái</th>
@@ -160,7 +153,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={20} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={21} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -182,7 +175,6 @@ export default async function AdminProducts({ searchParams }: Props) {
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[13px]`} title={p.costUrl || undefined}>{p.costJpy === null ? <span className="text-lien-muted">—</span> : <>¥{p.costJpy.toLocaleString("ja-JP")}<span className="ml-1 text-[10px] text-lien-muted">{p.costSource}</span></>}</td>
                   <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costJpy === null ? "—" : rate}</td>
                   <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costPrice === null ? "—" : formatPrice(p.costPrice, p.currency)}</td>
-                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{jpPrice(p.costPrice) === null ? "—" : formatPrice(jpPrice(p.costPrice) as number, p.currency)}</td>
                   {(() => {
                     const bd = breakdown(p);
                     const shelf = bd?.suggested ?? null;
@@ -193,24 +185,32 @@ export default async function AdminProducts({ searchParams }: Props) {
                         <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{money(legFee(bd, "jp_vn"))}</td>
                         <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{money(legFee(bd, "vn_transfer"))}</td>
                         <td className={`${tdClass} whitespace-nowrap`}>{money(bd?.shipping)}</td>
-                        <td className={`${tdClass} whitespace-nowrap font-semibold`} title={diff === null ? undefined : diff === 0 ? "Bằng giá bán hiện tại" : `${diff > 0 ? "+" : "−"}${formatPrice(Math.abs(diff))} so với giá bán VN hiện tại`}>
+                        <td className={`${tdClass} whitespace-nowrap font-semibold`}>{money(bd?.landed)}</td>
+                        <td className={`${tdClass} whitespace-nowrap`}>
+                          {bd ? (
+                            <>
+                              {bd.marginPct}%{p.marginPct !== null ? <span className="ml-1 rounded bg-lien-blue-soft px-1 text-[10px] text-lien-blue">riêng</span> : null}
+                            </>
+                          ) : (
+                            <span className="text-lien-muted">—</span>
+                          )}
+                        </td>
+                        <td className={`${tdClass} whitespace-nowrap font-semibold`} title={diff === null ? undefined : diff === 0 ? "Bằng giá bán VN hiện tại" : `${diff > 0 ? "+" : "−"}${formatPrice(Math.abs(diff))} so với giá bán VN hiện tại`}>
                           {shelf === null ? <span className="text-lien-muted">—</span> : <span className={diff === null || diff === 0 ? "text-lien-heading" : diff > 0 ? "text-red-700" : "text-green-700"}>{formatPrice(shelf)}</span>}
+                        </td>
+                        <td className={`${tdClass} whitespace-nowrap`}>
+                          {bd ? (
+                            <span className="text-green-700">
+                              {formatPrice(bd.margin)}
+                              <span className="ml-1 text-[12px] text-lien-muted">({Math.round((bd.margin / bd.suggested) * 1000) / 10}% giá bán)</span>
+                            </span>
+                          ) : (
+                            <span className="text-lien-muted">—</span>
+                          )}
                         </td>
                       </>
                     );
                   })()}
-                  <td className={`${tdClass} whitespace-nowrap`}>
-                    {(() => {
-                      const pr = profitOf(p);
-                      if (!pr) return <span className="text-lien-muted">—</span>;
-                      return (
-                        <span className={pr.amount >= 0 ? "text-green-700" : "text-red-600"}>
-                          {formatPrice(pr.amount, p.currency)}
-                          <span className="ml-1 text-[12px] text-lien-muted">({pr.pct}%)</span>
-                        </span>
-                      );
-                    })()}
-                  </td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     <span className={p.fulfillment === "stock" ? "rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800" : "rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"}>{p.fulfillment === "stock" ? "Lưu kho" : "Order"}</span>
                     <span className="ml-1.5 text-[13px]">{p.stock === null ? <span className="text-lien-muted">—</span> : p.stock}</span>

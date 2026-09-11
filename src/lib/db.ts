@@ -75,6 +75,7 @@ interface ProductRow {
   cost_source: string | null;
   cost_url: string | null;
   cost_checked_at: string | null;
+  margin_pct: number | null;
   tags: string;
   images: string;
   thumb: string;
@@ -114,6 +115,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     costSource: r.cost_source ?? "",
     costUrl: r.cost_url ?? "",
     costCheckedAt: r.cost_checked_at ?? null,
+    marginPct: r.margin_pct ?? null,
     supplierUrl: r.supplier_url ?? null,
     minStock: r.min_stock ?? null,
     weightG: r.weight_g ?? null,
@@ -393,7 +395,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
-        cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?,
+        cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, margin_pct = ?,
         tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?, name_ja = ?, short_description_ja = ?, description_ja = ?
         WHERE id = ?`).run(
         input.slug,
@@ -412,6 +414,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.costSource ?? "",
         input.costUrl ?? "",
         input.costCheckedAt ?? null,
+        input.marginPct ?? null,
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,
@@ -433,9 +436,9 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
-      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, tags, images, thumb,
+      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct, tags, images, thumb,
         short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
@@ -452,6 +455,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.costSource ?? "",
         input.costUrl ?? "",
         input.costCheckedAt ?? null,
+        input.marginPct ?? null,
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,

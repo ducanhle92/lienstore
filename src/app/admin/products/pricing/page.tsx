@@ -32,7 +32,7 @@ export default async function AdminPricing({ searchParams }: Props) {
     { leg: "vn_transfer", method: quote.vnTransfer, href: "/admin/shipping/?leg=vn_transfer" },
   ];
   const rows = products
-    .map((p) => ({ p, s: suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing) }))
+    .map((p) => ({ p, s: suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing) }))
     .filter((r): r is { p: (typeof products)[number]; s: NonNullable<ReturnType<typeof suggestPrice>> } => r.s !== null)
     .sort((a, b) => Math.abs(b.s.suggested - b.p.price) - Math.abs(a.s.suggested - a.p.price));
   const applicable = rows.filter((r) => r.p.regularPrice === null && r.s.suggested !== r.p.price);
@@ -42,7 +42,7 @@ export default async function AdminPricing({ searchParams }: Props) {
     <>
       <PageHeader
         title="Công thức giá bán"
-        subtitle="Giá bán = giá vốn + lãi % + phí vận chuyển 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Khách chỉ trả thêm phí giao nội địa Việt Nam."
+        subtitle="Giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Giá bán trên website = giá vốn về VN × (1 + lãi %). Lợi nhuận = giá bán − giá vốn về VN. Khách chỉ trả thêm phí giao nội địa Việt Nam."
         back={{ href: "/admin/products/", label: "Sản phẩm" }}
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
@@ -101,11 +101,11 @@ export default async function AdminPricing({ searchParams }: Props) {
           <form action={savePricingConfigAction} className="grid gap-4 sm:grid-cols-[150px_170px_170px_auto] sm:items-end">
             <div>
               <label className={adminLabel} htmlFor="marginPct">
-                Lãi (% trên giá vốn)
+                Lãi mặc định (% trên giá vốn về VN)
               </label>
               <input id="marginPct" name="marginPct" inputMode="decimal" defaultValue={pricing.marginPct} className={adminInput} />
               <p className="mt-1 text-[12px] text-lien-muted">
-                Khuyến nghị {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%.
+                Khuyến nghị {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%; từng sản phẩm có thể đặt lãi riêng trong trang sản phẩm.
               </p>
             </div>
             <div>
@@ -182,9 +182,11 @@ export default async function AdminPricing({ searchParams }: Props) {
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>Giá ¥</th>
                 <th className={thClass}>Giá vốn</th>
-                <th className={thClass}>Lãi {pricing.marginPct}%</th>
                 <th className={thClass}>Ship 3 chặng</th>
-                <th className={thClass}>Giá đề xuất</th>
+                <th className={thClass}>Giá vốn về tới VN</th>
+                <th className={thClass}>Lãi %</th>
+                <th className={thClass}>Giá bán trên website</th>
+                <th className={thClass}>Lợi nhuận</th>
                 <th className={thClass}>Giá hiện tại</th>
                 <th className={thClass}>Chênh</th>
               </tr>
@@ -192,7 +194,7 @@ export default async function AdminPricing({ searchParams }: Props) {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có sản phẩm nào nhập giá vốn.
                   </td>
                 </tr>
@@ -209,12 +211,16 @@ export default async function AdminPricing({ searchParams }: Props) {
                     </td>
                     <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>{p.costJpy ? `¥${p.costJpy.toLocaleString("ja-JP")}` : "—"}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(s.cost)}</td>
-                    <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(s.margin)}</td>
                     <td className={`${tdClass} whitespace-nowrap`} title={s.legs.map((l) => `${LEG_LABEL[l.leg]}: ${formatAmount(l.fee)}đ (${l.label})`).join("\n") || "Chưa có phương thức"}>
                       {formatPrice(s.shipping)}
                       <span className="block text-[11px] text-lien-muted">{formatAmount(s.weightG)} g tính phí</span>
                     </td>
+                    <td className={`${tdClass} whitespace-nowrap font-semibold`}>{formatPrice(s.landed)}</td>
+                    <td className={`${tdClass} whitespace-nowrap`}>
+                      {s.marginPct}%{p.marginPct !== null ? <span className="ml-1 rounded bg-lien-blue-soft px-1 text-[10px] text-lien-blue">riêng</span> : null}
+                    </td>
                     <td className={`${tdClass} whitespace-nowrap font-semibold text-lien-heading`}>{formatPrice(s.suggested)}</td>
+                    <td className={`${tdClass} whitespace-nowrap text-green-700`}>{formatPrice(s.margin)}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(p.price)}</td>
                     <td className={cn(tdClass, "whitespace-nowrap", diff > 0 ? "text-red-600" : diff < 0 ? "text-green-700" : "text-lien-muted")}>{diff === 0 ? "—" : `${diff > 0 ? "+" : "−"}${formatAmount(Math.abs(diff))}đ`}</td>
                   </tr>

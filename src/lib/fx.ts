@@ -134,8 +134,8 @@ export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise
     const { loadShippingMethodsForQuote } = await import("./db");
     const quote = buildQuoteConfig(loadShippingMethodsForQuote(db), "per_order", rate);
     const rows = db
-      .prepare("SELECT id, price, regular_price, cost_price, weight_g, dims_cm, dims_confidence FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND cost_price IS NOT NULL")
-      .all() as unknown as Array<{ id: number; price: number; regular_price: number | null; cost_price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
+      .prepare("SELECT id, price, regular_price, cost_price, weight_g, dims_cm, dims_confidence, margin_pct FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND cost_price IS NOT NULL")
+      .all() as unknown as Array<{ id: number; price: number; regular_price: number | null; cost_price: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; margin_pct: number | null }>;
     const upd = db.prepare("UPDATE products SET price = ?, updated_at = ? WHERE id = ?");
     for (const p of rows) {
       if (p.regular_price !== null) {
@@ -143,7 +143,7 @@ export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise
         continue;
       }
       const conf = p.dims_confidence === "high" || p.dims_confidence === "medium" || p.dims_confidence === "low" ? p.dims_confidence : null;
-      const s = suggestPrice({ costPrice: p.cost_price, weightG: p.weight_g, dimsCm: p.dims_cm, dimsConfidence: conf }, quote, pricing);
+      const s = suggestPrice({ costPrice: p.cost_price, weightG: p.weight_g, dimsCm: p.dims_cm, dimsConfidence: conf, marginPct: p.margin_pct }, quote, pricing);
       if (s && s.suggested !== p.price) {
         upd.run(s.suggested, now, p.id);
         pricesUpdated++;

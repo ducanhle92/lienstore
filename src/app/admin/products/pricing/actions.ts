@@ -38,7 +38,7 @@ export async function applySuggestedPricesAction(formData: FormData): Promise<vo
   let skippedSale = 0;
   for (const p of products) {
     if (only.size && !only.has(p.id)) continue;
-    const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing);
+    const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct }, quote, pricing);
     if (!s) continue;
     if (p.regularPrice !== null) {
       skippedSale++;

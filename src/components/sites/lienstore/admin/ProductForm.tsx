@@ -41,6 +41,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [priceText, setPriceText] = useState(String(product?.price ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
   const [skuText, setSkuText] = useState(product?.sku ?? "");
+  const [marginText, setMarginText] = useState(product?.marginPct === null || product?.marginPct === undefined ? "" : String(product.marginPct));
   const [weightText, setWeightText] = useState(String(product?.weightG ?? ""));
   const [dimsText, setDimsText] = useState(product?.dimsCm ?? "");
   const [confText, setConfText] = useState(product?.dimsConfidence ?? "");
@@ -49,7 +50,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const suggestion =
     quote && pricing
       ? suggestPrice(
-          { costPrice: Number.isFinite(costNum) ? costNum : null, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null },
+          { costPrice: Number.isFinite(costNum) ? costNum : null, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null, marginPct: marginText.trim() === "" ? null : Number.parseFloat(marginText.replace(",", ".")) },
           quote,
           pricing,
         )
@@ -173,13 +174,17 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                       )}
                     </p>
                     <p className="m-0 text-lien-muted">
-                      = vốn {suggestion.cost.toLocaleString("vi-VN")} + lãi {suggestion.marginPct}% ({suggestion.margin.toLocaleString("vi-VN")}) + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí)
-                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}. Sửa lãi % ở Kho hàng › Công thức giá.
+                      Giá vốn về tới VN {suggestion.landed.toLocaleString("vi-VN")} = vốn {suggestion.cost.toLocaleString("vi-VN")} + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí
+                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}) · × (1 + {suggestion.marginPct}%) → lợi nhuận {suggestion.margin.toLocaleString("vi-VN")}đ.
                     </p>
                   </div>
                 ) : null}
               </div>
               <div>
+                <label className={adminLabel} htmlFor="marginPct">
+                  Lãi riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng mặc định {pricing?.marginPct ?? 25}%)</span>
+                </label>
+                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(pricing?.marginPct ?? 25)} className={cn(adminInput, "mb-4 !w-[140px]")} />
                 <label className={adminLabel} htmlFor="supplierUrl">
                   Link nhà cung cấp (Amazon JP, trang hãng…)
                 </label>
