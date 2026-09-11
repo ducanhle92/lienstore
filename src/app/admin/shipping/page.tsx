@@ -455,11 +455,13 @@ export default async function AdminShipping({ searchParams }: Props) {
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
 
-      <h2 className="mb-4 text-[18px] font-bold text-lien-heading">
-        <Fa name={tab === "display" ? "eye" : tab ? LEG_ICON[tab] : "list"} className="mr-2 text-lien-blue" />
-        {tab === "display" ? "Hiển thị cho khách" : tab ? SHIPPING_LEGS.find((l) => l.key === tab)?.label : "Đơn hàng · 4 chặng"}
-        <span className="ml-2 text-[13px] font-normal text-lien-muted">(chuyển sheet ở menu Vận chuyển bên trái)</span>
-      </h2>
+      {tab === "" || tab === "display" ? (
+        <h2 className="mb-4 text-[18px] font-bold text-lien-heading">
+          <Fa name={tab === "display" ? "eye" : "list"} className="mr-2 text-lien-blue" />
+          {tab === "display" ? "Hiển thị cho khách" : "Đơn hàng · 4 chặng"}
+          <span className="ml-2 text-[13px] font-normal text-lien-muted">(chuyển sheet ở menu Vận chuyển bên trái)</span>
+        </h2>
+      ) : null}
 
       {tab === "display" ? (
         <div className="space-y-6">
