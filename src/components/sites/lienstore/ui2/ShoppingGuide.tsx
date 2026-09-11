@@ -26,7 +26,7 @@ const TONE = ["bg-lien-blue", "bg-lien-sale", "bg-lien-blue", "bg-lien-sale", "b
 export function GuideSteps({ lang, className }: { lang: Lang; className?: string }) {
   const ja = lang === "ja";
   return (
-    <div className={cn("rounded-2xl bg-[radial-gradient(circle_at_20%_10%,#eef6e6,transparent_60%),radial-gradient(circle_at_90%_90%,#fff1e6,transparent_55%)] p-5 sm:p-7", className)}>
+    <div className={cn("rounded-2xl bg-[radial-gradient(circle_at_20%_10%,#fdecee,transparent_60%),radial-gradient(circle_at_90%_90%,#fff1e6,transparent_55%)] p-5 sm:p-7", className)}>
       <div className="mb-5 text-center">
         <span className="inline-block -rotate-1 rounded-lg bg-lien-sale px-4 py-1.5 text-[24px] font-black uppercase tracking-wide text-white shadow-[0_6px_0_#c93d00] sm:text-[30px]">{ja ? "5ステップでお買い物" : "5 bước mua hàng"}</span>
         <span className="mt-2 block text-[14px] font-bold uppercase tracking-[0.2em] text-lien-blue sm:text-[16px]">{ja ? "かんたん・スピーディー" : "nhanh chóng & tiện lợi"}</span>

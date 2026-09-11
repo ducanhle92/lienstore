@@ -18,7 +18,7 @@ interface Props {
   weightG?: number;
 }
 
-const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck"> = { jp_domestic: "cube", jp_vn: "plane", vn_domestic: "truck" };
+const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = { jp_domestic: "cube", jp_vn: "plane", vn_transfer: "building", vn_domestic: "truck" };
 const tiny = `${adminInput} !px-2 !py-1 !text-[12px]`;
 
 /** One editable cell per leg: method·zone select, fee, tracking, note. */
@@ -77,7 +77,7 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG }: { 
   );
 }
 
-/** Three legs of one order, as stacked cards (order detail page). */
+/** The legs of one order, as stacked cards (order detail page). */
 export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) {
   return (
     <div className="grid gap-4 md:grid-cols-3">

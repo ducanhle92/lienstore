@@ -18,7 +18,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
   const kind = first(sp.kind);
   const all = await getCustomerOverview();
   const items = all
-    .filter((c) => !q || `${c.name} ${c.email} ${c.phone}`.toLowerCase().includes(q))
+    .filter((c) => !q || `${c.customerNo ?? ""} ${c.name} ${c.email} ${c.phone}`.toLowerCase().includes(q))
     .filter((c) => !kind || (kind === "registered" ? c.registered : !c.registered));
   const registered = all.filter((c) => c.registered).length;
   const revenue = all.reduce((s, c) => s + c.totalSpent, 0);
@@ -28,7 +28,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
       <PageHeader title="Khách hàng" subtitle={`${all.length} khách · ${registered} có tài khoản · ${all.length - registered} khách vãng lai · tổng chi tiêu ${formatPrice(revenue)}`} />
       <Card>
         <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_200px_auto]">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, email, điện thoại…" className={adminInput} />
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo mã KH, tên, email, điện thoại…" className={adminInput} />
           <select name="kind" defaultValue={kind} className={adminInput}>
             <option value="">Tất cả</option>
             <option value="registered">Có tài khoản</option>
@@ -42,6 +42,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={thClass}>Mã KH</th>
                 <th className={thClass}>Khách hàng</th>
                 <th className={thClass}>Liên hệ</th>
                 <th className={thClass}>Loại</th>
@@ -54,18 +55,18 @@ export default async function AdminCustomers({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có khách hàng nào.
                   </td>
                 </tr>
               ) : null}
               {items.map((c) => (
                 <tr key={c.key} className="hover:bg-[#fafafa]">
+                  <td className={`${tdClass} whitespace-nowrap font-mono text-[14px] font-semibold text-lien-heading`}>{c.customerNo ?? <span className="font-sans text-[12px] font-normal text-lien-muted">—</span>}</td>
                   <td className={tdClass}>
                     <Link href={`/admin/customers/${encodeURIComponent(c.key)}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                       {c.name || c.email || c.phone || "Khách"}
                     </Link>
-                    {c.customerNo ? <div className="text-[12px] font-semibold text-lien-heading">Mã KH: {c.customerNo}</div> : null}
                     {c.address ? <div className="max-w-[260px] truncate text-[12px] text-lien-muted">{c.address}</div> : null}
                   </td>
                   <td className={`${tdClass} text-[13px]`}>

@@ -26,6 +26,8 @@ export interface HeaderLink {
 
 interface Header2Props {
   logo: { src: string; width: number; height: number; alt: string };
+  /** Tagline under the logo ("Chuyên hàng Nhật nội địa"); empty hides it. */
+  slogan?: string;
   categories: HeaderCategory[];
   supportLinks: HeaderLink[];
   newsLinks: HeaderLink[];
@@ -46,7 +48,7 @@ function Badge({ n }: { n: number }) {
  * Main header (sesofoods-style): logo · inline menu with "Danh mục" mega dropdown · pill search · account/wishlist/cart.
  * Collapses to a hamburger + drawer below 992px. Becomes compact and sticky after scrolling.
  */
-export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, newsHref, customer = null }: Header2Props) {
+export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks, aboutHref, newsHref, customer = null }: Header2Props) {
   const { t } = useLang();
   const { items, wishlist, hydrated, openDrawer } = useCart();
   // The drawer remembers who it was opened for, so it closes by itself once login/register/logout changes the customer.
@@ -93,8 +95,9 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
           <Fa name="bars" />
         </button>
 
-        <Link href="/" className="shrink-0" aria-label="LienStore">
-          <Image src={logo.src.replace("lienstore-logo-horizontal.svg", "lienstore-logo-horizontal-dark.svg")} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[150px] transition-[width] sm:w-[190px]", stuck && "sm:w-[160px]")} />
+        <Link href="/" className="flex shrink-0 flex-col items-center no-underline" aria-label={logo.alt}>
+          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[104px] transition-[width] sm:w-[124px]", stuck && "sm:w-[104px]")} />
+          {slogan ? <span className={cn("mt-0.5 whitespace-nowrap text-[10px] font-semibold leading-3 tracking-wide text-white/95 sm:text-[11px]", stuck && "sm:hidden")}>{slogan}</span> : null}
         </Link>
 
         <nav aria-label="Menu chính" className="hidden items-center lg:flex">
@@ -158,6 +161,10 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
               </div>
             ) : null}
           </div>
+          <Link href="/shop/?onsale=1" aria-label="Hot sale" className="mx-1.5 inline-flex flex-col items-center rounded-md bg-[#ffd93b] px-2 py-0.5 text-[11px] font-black uppercase leading-[1.05] text-[#c1121f] no-underline shadow-[0_2px_0_#c99a00] hover:bg-[#ffe066]">
+            <span>Hot</span>
+            <span>Sale</span>
+          </Link>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "bg-white/15")} aria-expanded={open === "support"}>
               {t("support")}

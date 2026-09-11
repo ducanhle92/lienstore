@@ -306,7 +306,7 @@ export interface Voucher {
 /** Shipping arrangement of one order for one leg (internal logistics + cost tracking). */
 export interface OrderLeg {
   orderId: string;
-  leg: "jp_domestic" | "jp_vn" | "vn_domestic";
+  leg: "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic";
   methodId: number | null;
   zoneId: number | null;
   label: string;
@@ -323,8 +323,8 @@ export interface ShippingCarrier {
   website: string;
   note: string;
   position: number;
-  /** Legs this carrier serves (jp_domestic / jp_vn / vn_domestic). */
-  legs: Array<"jp_domestic" | "jp_vn" | "vn_domestic">;
+  /** Legs this carrier serves (jp_domestic / jp_vn / vn_transfer / vn_domestic). */
+  legs: Array<"jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic">;
 }
 
 /** A shipping method (one fee table) within a leg: JP domestic, JP→VN or VN domestic. */
@@ -337,8 +337,8 @@ export interface ShippingMethod {
   currency: string;
   position: number;
   active: boolean;
-  /** "jp_domestic" | "jp_vn" | "vn_domestic" */
-  leg: "jp_domestic" | "jp_vn" | "vn_domestic";
+  /** "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic" */
+  leg: "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic";
   carrierId: number | null;
   carrierName: string | null;
   /** Carrier's official price-check page, linked from the storefront tables. */

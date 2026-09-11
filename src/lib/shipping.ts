@@ -1,18 +1,19 @@
 /** Shipping legs, labels and fee estimation (pure; used by server and client components). */
 import type { ShippingMethod, ShippingZone } from "@/types/shop";
 
-export type ShippingLeg = "jp_domestic" | "jp_vn" | "vn_domestic";
+export type ShippingLeg = "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic";
 
 export const SHIPPING_LEGS: Array<{ key: ShippingLeg; label: string; description: string }> = [
   { key: "jp_domestic", label: "Ship nội địa Nhật", description: "Từ nơi mua (cửa hàng, Amazon) tới kho gom hàng tại Nhật." },
   { key: "jp_vn", label: "Ship Nhật → Việt Nam", description: "Từ kho Nhật về kho Việt Nam (đường bay / đường biển / EMS / xách tay)." },
+  { key: "vn_transfer", label: "Kho ĐVVC → kho shop", description: "Từ kho đơn vị vận chuyển tại Việt Nam (Hà Nội) về kho LienStore Thanh Hóa. Mặc định Kiến Express, admin chọn hãng khác nếu muốn." },
   { key: "vn_domestic", label: "Ship nội địa Việt Nam", description: "Từ kho Việt Nam giao tới tận nhà khách." },
 ];
 
 export const LEG_LABEL: Record<ShippingLeg, string> = Object.fromEntries(SHIPPING_LEGS.map((l) => [l.key, l.label])) as Record<ShippingLeg, string>;
 
 export function isShippingLeg(v: unknown): v is ShippingLeg {
-  return v === "jp_domestic" || v === "jp_vn" || v === "vn_domestic";
+  return v === "jp_domestic" || v === "jp_vn" || v === "vn_transfer" || v === "vn_domestic";
 }
 
 /** Zones whose unit is per kilogram ("/kg", "đ/kg"…). */
@@ -112,7 +113,10 @@ export function billableProductWeightG(weightG: number | null, dims: string | nu
 // ---------------------------------------------------------------------------------------------------------------------
 // Checkout quote for the Japan-side legs (the VN-domestic leg is the zone the customer picks)
 
-/** "per_order" = customer pays all three legs on top of the product prices; "included" = only VN delivery (prices cover the rest). */
+/** Legs that bring goods from the seller in Japan to the shop warehouse in Thanh Hóa — the cost built into the selling price. */
+export const IMPORT_LEGS: ShippingLeg[] = ["jp_domestic", "jp_vn", "vn_transfer"];
+
+/** "per_order" = customer pays all import legs on top of the product prices; "included" = only VN delivery (prices cover the rest). */
 export type ShippingPricingMode = "per_order" | "included";
 
 export interface QuoteZone {
@@ -141,6 +145,8 @@ export interface ShippingQuoteConfig {
   jpyRate: number;
   jpDomestic: QuoteMethod | null;
   jpVn: QuoteMethod | null;
+  /** Carrier warehouse (Hà Nội) → shop warehouse (Thanh Hóa). */
+  vnTransfer: QuoteMethod | null;
 }
 export interface LegQuote {
   leg: ShippingLeg;
@@ -173,7 +179,7 @@ export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricin
       zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, baseG: z.baseG, stepG: z.stepG, stepFee: z.stepFee, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
     };
   };
-  return { mode, jpyRate, jpDomestic: pick("jp_domestic"), jpVn: pick("jp_vn") };
+  return { mode, jpyRate, jpDomestic: pick("jp_domestic"), jpVn: pick("jp_vn"), vnTransfer: pick("vn_transfer") };
 }
 
 /** Fee of one method for a billable weight: tiered zone by weight cap, else per-kg × kg, else flat first zone. */
@@ -198,19 +204,26 @@ export function quoteMethod(m: QuoteMethod, leg: ShippingLeg, weightG: number, s
   };
 }
 
-/** JP-side legs for an order (empty in "included" mode). */
-export function quoteJpLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal: number): LegQuote[] {
-  if (cfg.mode !== "per_order") return [];
+/** Import legs (JP domestic → JP→VN → carrier warehouse → shop) for a billable weight, whatever the pricing mode. */
+export function quoteImportLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal: number): LegQuote[] {
   const out: LegQuote[] = [];
-  if (cfg.jpDomestic) {
-    const q = quoteMethod(cfg.jpDomestic, "jp_domestic", weightG, subtotal, cfg.jpyRate);
-    if (q) out.push(q);
-  }
-  if (cfg.jpVn) {
-    const q = quoteMethod(cfg.jpVn, "jp_vn", weightG, subtotal, cfg.jpyRate);
+  const pairs: Array<[QuoteMethod | null, ShippingLeg]> = [
+    [cfg.jpDomestic, "jp_domestic"],
+    [cfg.jpVn, "jp_vn"],
+    [cfg.vnTransfer, "vn_transfer"],
+  ];
+  for (const [m, leg] of pairs) {
+    if (!m) continue;
+    const q = quoteMethod(m, leg, weightG, subtotal, cfg.jpyRate);
     if (q) out.push(q);
   }
   return out;
+}
+
+/** Import legs the customer pays at checkout (empty in "included" mode — the selling price already covers them). */
+export function quoteJpLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal: number): LegQuote[] {
+  if (cfg.mode !== "per_order") return [];
+  return quoteImportLegs(cfg, weightG, subtotal);
 }
 
 /** Where an order is on its way (shown to the customer as a progress bar, set by the admin step by step). */

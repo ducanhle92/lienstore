@@ -525,7 +525,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
               {jpLegs.map((l) => (
                 <tr key={l.leg} className="shipping">
                   <th className={cn(shopTdClass, "font-bold")} scope="row">
-                    {l.leg === "jp_domestic" ? t("jpDomesticLeg") : t("jpVnLeg")}
+                    {l.leg === "jp_domestic" ? t("jpDomesticLeg") : l.leg === "vn_transfer" ? t("leg_vn_transfer") : t("jpVnLeg")}
                     <span className="block text-[12px] font-normal text-lien-muted">
                       {l.label}
                       {/¥/.test(l.currency) ? ` · ${formatAmount(l.feeRaw)}¥` : ""}

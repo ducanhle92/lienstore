@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getProductById } from "@/lib/db";
+import { getCategories, getImportQuoteConfig, getPricingConfig, getProductById } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function EditProduct({ params }: Props) {
   const { id } = await params;
   const numericId = Number.parseInt(id, 10);
   if (!Number.isInteger(numericId)) notFound();
-  const [product, categories] = await Promise.all([getProductById(numericId), getCategories()]);
+  const [product, categories, quote, pricing] = await Promise.all([getProductById(numericId), getCategories(), getImportQuoteConfig(), getPricingConfig()]);
   if (!product) notFound();
   return (
     <>
@@ -29,7 +29,7 @@ export default async function EditProduct({ params }: Props) {
           </a>
         }
       />
-      <ProductForm product={product} categories={categories} />
+      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} />
     </>
   );
 }

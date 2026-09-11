@@ -126,7 +126,7 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
                 aria-selected={i === page}
                 aria-label={`Trang ${i + 1}`}
                 onClick={() => go(i)}
-                className={cn("h-1.5 rounded-full transition-all", i === page ? "w-6 bg-lien-success" : "w-1.5 bg-[#d1d5db] hover:bg-lien-muted")}
+                className={cn("h-1.5 rounded-full transition-all", i === page ? "w-6 bg-lien-blue" : "w-1.5 bg-[#d1d5db] hover:bg-lien-muted")}
               />
             ))}
           </div>

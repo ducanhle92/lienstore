@@ -585,6 +585,23 @@ export const MIGRATIONS: Migration[] = [
       `INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) SELECT '/sites/lienstore/root-8a5edab2/images/kids-1280x520-2d52b6.png', '/product/thuoc-tri-cam-sot-cho-be-paburon-dang-goi/', 'Taisho Pabron Kids', 3, 1, '2026-09-11T07:00:00.000Z', '2026-09-11T07:00:00.000Z' WHERE (SELECT COUNT(*) FROM banners) = 3`,
     ],
   },
+  {
+    // Fourth shipping leg: carrier warehouse in Vietnam (Hà Nội) → shop warehouse in Thanh Hóa. Kiến Express by default;
+    // Viettel Post / VNPost may also serve it. Tariff is a placeholder for the admin to replace with the carrier's quote.
+    version: 26,
+    name: "vn-transfer-leg",
+    up: [
+      `UPDATE shipping_carriers SET legs = legs || ',vn_transfer' WHERE (id = 1 OR name LIKE 'Viettel%' OR name LIKE 'Bưu điện%') AND legs NOT LIKE '%vn_transfer%'`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes)
+        SELECT 'Kiến Express: Hà Nội → kho Thanh Hóa', 'Chuyển tiếp lô hàng từ kho Kiến Express (Hà Nội) về kho LienStore tại Hoằng Hóa, Thanh Hóa. Tính theo cân nặng cả lô.', '', 'đ', 30, 1, 'vn_transfer', 1, 0,
+               'Từ: kho Kiến Express, Hà Nội · Đến: kho LienStore, Hoằng Hóa, Thanh Hóa', 1,
+               'Phí tham khảo 12.000đ/kg — cập nhật theo báo giá thực tế của Kiến Express\nChia đều cho từng sản phẩm theo cân tính phí khi tính giá bán'
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE leg = 'vn_transfer')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active)
+        SELECT m.id, 'Hà Nội → Thanh Hóa', 12000, '/kg', NULL, NULL, NULL, 'Kho Kiến Express Hà Nội → kho LienStore Thanh Hóa', '1–2 ngày', 1, 1
+        FROM shipping_methods m WHERE m.leg = 'vn_transfer' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = m.id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

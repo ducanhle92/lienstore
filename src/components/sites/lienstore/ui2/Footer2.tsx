@@ -9,6 +9,7 @@ import type { HeaderCategory, HeaderLink } from "./Header2";
 
 interface Footer2Props {
   logo: { src: string; width: number; height: number };
+  shopName?: string;
   contact: ContactInfo;
   categories: HeaderCategory[];
   accountLinks: HeaderLink[];
@@ -21,18 +22,18 @@ const colTitle = "mb-4 text-[14px] font-bold uppercase tracking-[0.5px] text-lie
 const colLink = "block py-1 text-[14px] leading-6 text-lien-text no-underline hover:text-lien-blue";
 
 /** Light-grey 5-column footer: store info · account · support · main categories · connect. */
-export function Footer2({ logo, contact, categories, accountLinks, supportLinks, copyright, lang = "vi" }: Footer2Props) {
+export function Footer2({ logo, shopName = "LienStore", contact, categories, accountLinks, supportLinks, copyright, lang = "vi" }: Footer2Props) {
   const topCats = buildCategoryTree(categories).map((n) => ({ ...n.category, count: n.total })).slice(0, 8);
   return (
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">
-          <Image src={logo.src} alt="LienStore" width={logo.width} height={logo.height} unoptimized className="mb-4 h-auto w-[170px]" />
+          <Image src={logo.src} alt={shopName} width={logo.width} height={logo.height} unoptimized className="mb-4 h-auto w-[150px]" />
           <ul className="m-0 list-none space-y-2 p-0 text-[14px] leading-6">
             <li className="flex gap-2">
               <Fa name="map-marker" className="mt-1.5 w-4 text-center text-lien-muted" />
               <span>
-                <strong>LienStore</strong> · {t(lang, "fTagline")}
+                <strong>{shopName}</strong> · {t(lang, "fTagline")}
                 <br />
                 {lang === "ja" && contact.addressJa ? contact.addressJa : contact.address}
               </span>

@@ -46,7 +46,7 @@ function CopyButton({ code }: { code: string }) {
 const day = (iso: string) => new Date(iso).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
 
 /**
- * "Ưu đãi độc quyền website" banner in the site green: a header band, then one ticket per voucher — green stub with
+ * "Ưu đãi độc quyền website" banner in the brand colour: a header band, then one ticket per voucher — coloured stub with
  * the discount, condition + code + expiry, and a copy button.
  */
 export function VoucherStrip({ vouchers, className }: { vouchers: StripVoucher[]; className?: string }) {
@@ -54,7 +54,7 @@ export function VoucherStrip({ vouchers, className }: { vouchers: StripVoucher[]
   if (!vouchers.length) return null;
   return (
     <section aria-label={t("homeVouchers")} className={cn("my-8 overflow-hidden rounded-xl border border-lien-blue/30 bg-lien-blue-soft/50", className)}>
-      <div className="flex items-center gap-3 bg-gradient-to-r from-lien-blue to-[#5fae12] px-4 py-2.5 text-white">
+      <div className="flex items-center gap-3 bg-gradient-to-r from-lien-blue to-lien-blue-hover px-4 py-2.5 text-white">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-[15px]">
           <Fa name="gift" />
         </span>

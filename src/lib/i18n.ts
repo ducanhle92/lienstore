@@ -336,6 +336,7 @@ const DICT = {
   noShippingInfo: ["Chưa có thông tin vận chuyển. Vui lòng liên hệ Zalo 0964 839 769 để được báo phí.", "配送情報はまだありません。Zalo 0964 839 769 までお問い合わせください。"],
   leg_jp_domestic: ["Ship nội địa Nhật", "日本国内配送"],
   leg_jp_vn: ["Ship Nhật → Việt Nam", "日本→ベトナム配送"],
+  leg_vn_transfer: ["Ship kho ĐVVC → kho shop", "運送会社倉庫→当店倉庫"],
   leg_vn_domestic: ["Ship nội địa Việt Nam", "ベトナム国内配送"],
   reviewFirst: ["Hãy là người đầu tiên nhận xét", "最初のレビューを書きましょう"],
   reviewNotes: ["Email của bạn sẽ không được hiển thị công khai. Các trường bắt buộc được đánh dấu", "メールアドレスは公開されません。必須項目は"],

@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
+import { type PricingConfig, suggestPrice } from "@/lib/pricing";
+import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct, ShopCategory } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
@@ -13,6 +15,9 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 interface ProductFormProps {
   product?: CatalogProduct;
   categories: ShopCategory[];
+  /** Import-leg methods + ¥ rate and margin % for the suggested selling price (Kho hàng › Công thức giá). */
+  quote?: ShippingQuoteConfig;
+  pricing?: PricingConfig;
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -29,11 +34,23 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing }: ProductFormProps) {
   const [state, action, pending] = useActionState<ProductFormState, FormData>(saveProductAction, null);
   const [priceText, setPriceText] = useState(String(product?.price ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
+  const [weightText, setWeightText] = useState(String(product?.weightG ?? ""));
+  const [dimsText, setDimsText] = useState(product?.dimsCm ?? "");
+  const [confText, setConfText] = useState(product?.dimsConfidence ?? "");
   const margin = computeMargin(priceText, costText);
+  const costNum = digits(costText);
+  const suggestion =
+    quote && pricing
+      ? suggestPrice(
+          { costPrice: Number.isFinite(costNum) ? costNum : null, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null },
+          quote,
+          pricing,
+        )
+      : null;
   const fields = state?.fields ?? {};
 
   return (
@@ -127,6 +144,24 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                     Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
                   </p>
                 ) : null}
+                {suggestion ? (
+                  <div className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-2.5 text-[12px] leading-5 text-lien-text">
+                    <p className="m-0 font-semibold text-lien-heading">
+                      Giá đề xuất: {suggestion.suggested.toLocaleString("vi-VN")}đ{" "}
+                      {digits(priceText) !== suggestion.suggested ? (
+                        <button type="button" onClick={() => setPriceText(String(suggestion.suggested))} className="ml-1 rounded bg-lien-blue px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-lien-blue-hover">
+                          Dùng giá này
+                        </button>
+                      ) : (
+                        <span className="ml-1 text-green-700">✓ đang dùng</span>
+                      )}
+                    </p>
+                    <p className="m-0 text-lien-muted">
+                      = vốn {suggestion.cost.toLocaleString("vi-VN")} + lãi {suggestion.marginPct}% ({suggestion.margin.toLocaleString("vi-VN")}) + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí)
+                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}. Sửa lãi % ở Kho hàng › Công thức giá.
+                    </p>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <label className={adminLabel} htmlFor="supplierUrl">
@@ -147,21 +182,21 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                   <label className={adminLabel} htmlFor="weightG">
                     Khối lượng (gram)
                   </label>
-                  <input id="weightG" name="weightG" inputMode="numeric" defaultValue={product?.weightG ?? ""} placeholder="VD: 350" className={cn(adminInput, fields.weightG && "border-red-500")} />
+                  <input id="weightG" name="weightG" inputMode="numeric" value={weightText} onChange={(e) => setWeightText(e.target.value)} placeholder="VD: 350" className={cn(adminInput, fields.weightG && "border-red-500")} />
                   <FieldError msg={fields.weightG} />
                 </div>
                 <div>
                   <label className={adminLabel} htmlFor="dimsCm">
                     Kích thước (cm, D x R x C)
                   </label>
-                  <input id="dimsCm" name="dimsCm" defaultValue={product?.dimsCm ?? ""} placeholder="VD: 12x8x5" className={cn(adminInput, fields.dimsCm && "border-red-500")} />
+                  <input id="dimsCm" name="dimsCm" value={dimsText} onChange={(e) => setDimsText(e.target.value)} placeholder="VD: 12x8x5" className={cn(adminInput, fields.dimsCm && "border-red-500")} />
                   <FieldError msg={fields.dimsCm} />
                 </div>
                 <div>
                   <label className={adminLabel} htmlFor="dimsConfidence">
                     Độ tin cậy kích thước / khối lượng
                   </label>
-                  <select id="dimsConfidence" name="dimsConfidence" defaultValue={product?.dimsConfidence ?? ""} className={adminInput}>
+                  <select id="dimsConfidence" name="dimsConfidence" value={confText} onChange={(e) => setConfText(e.target.value)} className={adminInput}>
                     <option value="">Chưa đánh giá (tính như Thấp ×2)</option>
                     <option value="high">Cao — nguồn bán hàng / cân thật (×1,2)</option>
                     <option value="medium">Trung bình — suy luận tương đương (×1,5)</option>

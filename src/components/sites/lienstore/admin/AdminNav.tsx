@@ -30,6 +30,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
       { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
       { href: "/admin/inventory/", label: "Tồn kho", icon: "archive", module: "inventory" },
+      { href: "/admin/products/pricing/", label: "Công thức giá", icon: "money", module: "products" },
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
@@ -44,6 +45,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/promotions/shipping-policy/", label: "Chính sách vận chuyển", icon: "truck", module: "promotions" },
       { href: "/admin/reviews/", label: "Đánh giá", icon: "star", module: "reviews" },
       { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
+      { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
     ],
   },
   {
@@ -52,9 +54,10 @@ const NAV: NavGroup[] = [
     icon: "truck",
     module: "shipping",
     children: [
-      { href: "/admin/shipping/", label: "Đơn hàng · 3 chặng", icon: "list", module: "shipping" },
+      { href: "/admin/shipping/", label: "Đơn hàng · 4 chặng", icon: "list", module: "shipping" },
       { href: "/admin/shipping/?leg=jp_domestic", label: "Nội địa Nhật", icon: "cube", module: "shipping" },
       { href: "/admin/shipping/?leg=jp_vn", label: "Nhật → Việt Nam", icon: "plane", module: "shipping" },
+      { href: "/admin/shipping/?leg=vn_transfer", label: "Kho ĐVVC → kho shop", icon: "building", module: "shipping" },
       { href: "/admin/shipping/?leg=vn_domestic", label: "Nội địa Việt Nam", icon: "truck", module: "shipping" },
       { href: "/admin/shipping/?leg=display", label: "Hiển thị cho khách", icon: "eye", module: "shipping" },
     ],
@@ -67,13 +70,15 @@ interface AdminNavProps {
   permissions: string[];
   userLabel: string;
   role: "admin" | "staff";
+  /** Brand name from Admin › Giao diện & Logo. */
+  shopName?: string;
 }
 
 const rowBase = "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] leading-5 no-underline whitespace-nowrap";
 const rowIdle = "text-white/80 hover:bg-white/10 hover:text-white";
 const rowActive = "bg-lien-blue text-white";
 
-export function AdminNav({ permissions, userLabel, role }: AdminNavProps) {
+export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" }: AdminNavProps) {
   const pathname = usePathname();
   const search = useSearchParams();
   const allowed = (l: NavLeaf) => !l.module || permissions.includes(l.module);
@@ -101,7 +106,7 @@ export function AdminNav({ permissions, userLabel, role }: AdminNavProps) {
     <aside className="flex w-full flex-col bg-lien-footer text-white md:min-h-screen md:w-60">
       <div className="border-b border-white/10 px-5 py-4">
         <Link href="/admin/" className="block font-oswald text-[22px] leading-7 text-white no-underline">
-          LienStore <span className="text-white/60">· Quản trị</span>
+          {shopName} <span className="text-white/60">· Quản trị</span>
         </Link>
       </div>
       <nav className="flex flex-row gap-1 overflow-x-auto px-2 py-2 md:flex-col md:py-4" aria-label="Quản trị">

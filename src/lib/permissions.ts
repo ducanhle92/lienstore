@@ -23,6 +23,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   { key: "promotions", label: "Khuyến mãi", href: "/admin/promotions/discounts/", description: "Giảm giá sản phẩm, voucher" },
   { key: "reviews", label: "Đánh giá", href: "/admin/reviews/", description: "Duyệt đánh giá của khách trước khi hiển thị" },
   { key: "banners", label: "Banner trang chủ", href: "/admin/banners/", description: "Ảnh và link của dải banner đầu trang chủ" },
+  { key: "theme", label: "Giao diện & Logo", href: "/admin/theme/", description: "Logo, slogan, bảng màu của web và web app" },
   { key: "inventory", label: "Kho hàng", href: "/admin/inventory/", description: "Tồn kho, danh sách cần đặt" },
   { key: "shipping", label: "Vận chuyển", href: "/admin/shipping/", description: "Bảng phí vận chuyển" },
   { key: "users", label: "Người dùng", href: "/admin/users/", description: "Tài khoản, vai trò, quyền (chỉ admin)" },

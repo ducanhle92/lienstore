@@ -3,12 +3,13 @@ import { CartDrawer } from "@/components/sites/lienstore/shop/CartDrawer";
 import { FacebookChat } from "@/components/sites/lienstore/shop/FacebookChat";
 import { SalesPopup } from "@/components/sites/lienstore/shop/SalesPopup";
 import { FloatingWidgets } from "@/components/sites/lienstore/root-8a5edab2/FloatingWidgets";
-import { branding, contact, footerCopyright } from "@/components/sites/lienstore/root-8a5edab2/data";
+import { contact, footerCopyright } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { Footer2 } from "@/components/sites/lienstore/ui2/Footer2";
 import { Header2, type HeaderCategory, type HeaderLink } from "@/components/sites/lienstore/ui2/Header2";
 import { TopBar2 } from "@/components/sites/lienstore/ui2/TopBar2";
-import { displayEmail, getAllProducts, getCategories } from "@/lib/db";
+import { displayEmail, getAllProducts, getCategories, getSiteTheme } from "@/lib/db";
+import { LOGO_RATIO } from "@/lib/theme";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { getLang } from "@/lib/lang-server";
 import { LangProvider } from "@/components/sites/lienstore/shared/LangProvider";
@@ -57,16 +58,17 @@ export async function getHeaderCategories(lang: Lang = "vi"): Promise<HeaderCate
 /** Header + footer + floating widgets shared by every storefront page (sesofoods-style UI v2). */
 export async function SiteChrome({ children }: { children: ReactNode }) {
   const lang = await getLang();
-  const [categories, me] = await Promise.all([getHeaderCategories(lang), getCurrentCustomer()]);
-  const logo = { src: branding.logo, width: branding.logoWidth, height: branding.logoHeight, alt: branding.siteTitle };
+  const [categories, me, theme] = await Promise.all([getHeaderCategories(lang), getCurrentCustomer(), getSiteTheme()]);
+  const logo = { src: theme.logoHeader, width: LOGO_RATIO.width, height: LOGO_RATIO.height, alt: theme.shopName };
+  const footerLogo = { ...logo, src: theme.logoLight };
   const customer = me ? { firstName: me.firstName, lastName: me.lastName, username: me.username, email: displayEmail(me.email) } : null;
   return (
     <LangProvider lang={lang}>
     <div id="page" className="relative flex min-h-screen flex-col">
       <TopBar2 contact={contact} lang={lang} loggedIn={!!customer} />
-      <Header2 logo={logo} categories={categories} supportLinks={pickLang(SUPPORT, lang)} newsLinks={pickLang(NEWS, lang)} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" customer={customer} />
+      <Header2 logo={logo} slogan={theme.slogan} categories={categories} supportLinks={pickLang(SUPPORT, lang)} newsLinks={pickLang(NEWS, lang)} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" customer={customer} />
       <div className="flex-1">{children}</div>
-      <Footer2 logo={logo} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} copyright={footerCopyright} lang={lang} />
+      <Footer2 logo={footerLogo} shopName={theme.shopName} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} copyright={footerCopyright} lang={lang} />
       <CartDrawer />
       <SalesPopup />
       <FloatingWidgets contact={contact} />

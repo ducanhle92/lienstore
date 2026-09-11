@@ -121,7 +121,7 @@ export async function ShippingTable({ methods, notes, compact = false, weightG =
       {legs.map((leg) => (
         <section key={leg.key} aria-labelledby={`leg-${leg.key}`}>
           <h3 id={`leg-${leg.key}`} className={compact ? "m-0 mb-3 text-[16px] font-bold uppercase tracking-[0.3px] text-lien-heading" : "m-0 mb-3 text-[20px] font-bold uppercase tracking-[0.3px] text-lien-heading"}>
-            <Fa name={leg.key === "vn_domestic" ? "truck" : leg.key === "jp_vn" ? "plane" : "cube"} className="mr-2 text-lien-blue" />
+            <Fa name={leg.key === "vn_domestic" ? "truck" : leg.key === "vn_transfer" ? "building" : leg.key === "jp_vn" ? "plane" : "cube"} className="mr-2 text-lien-blue" />
             {t(lang, `leg_${leg.key}` as I18nKey)}
           </h3>
           <div className="space-y-6">

@@ -24,7 +24,7 @@ const amt = (n: number | null) => (n === null ? "" : formatAmount(n));
 
 const cell = "border-b border-[#f0f0f0] px-2 py-2 align-top";
 const small = `${adminInput} !px-2 !py-1.5 !text-[13px]`;
-const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck"> = { jp_domestic: "cube", jp_vn: "plane", vn_domestic: "truck" };
+const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = { jp_domestic: "cube", jp_vn: "plane", vn_transfer: "building", vn_domestic: "truck" };
 
 /** Carriers serving a leg (a carrier may serve several). */
 const carriersFor = (carriers: ShippingCarrier[], leg: ShippingLeg) => carriers.filter((c) => c.legs.includes(leg));
@@ -231,7 +231,7 @@ function AddMethodCard({ leg, carriers, position, tab }: { leg: ShippingLeg | nu
         <input type="hidden" name="backTab" value={tab} />
         <div>
           <label className={adminLabel}>Tên phương thức *</label>
-          <input name="name" required placeholder={leg === "jp_domestic" ? "VD: Yamato tới kho Chiba, Gom tại nhà" : leg === "vn_domestic" ? "VD: Viettel Post, Bưu điện" : "VD: EMS Kiến Express, Xách tay, Đường biển"} className={adminInput} />
+          <input name="name" required placeholder={leg === "jp_domestic" ? "VD: Yamato tới kho Chiba, Gom tại nhà" : leg === "vn_domestic" ? "VD: Viettel Post, Bưu điện" : leg === "vn_transfer" ? "VD: Kiến Express Hà Nội → kho Thanh Hóa" : "VD: EMS Kiến Express, Xách tay, Đường biển"} className={adminInput} />
         </div>
         <div>
           <label className={adminLabel}>Chặng *</label>
@@ -422,7 +422,7 @@ export default async function AdminShipping({ searchParams }: Props) {
     <>
       <PageHeader
         title="Vận chuyển"
-        subtitle="Ba chặng: nội địa Nhật → Nhật–Việt → nội địa Việt Nam. Mỗi phương thức là một bảng; mỗi cột là một khu vực hoặc bậc cân nặng."
+        subtitle="Bốn chặng: nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop → giao nội địa Việt Nam. Mỗi phương thức là một bảng; mỗi cột là một khu vực hoặc bậc cân nặng."
         actions={
           <a href="/van-chuyen/" target="_blank" rel="noreferrer" className={btnSecondary}>
             <Fa name="external-link" /> Xem trang vận chuyển
@@ -458,7 +458,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                   <label className="flex items-start gap-2 text-[14px]">
                     <input type="radio" name="mode" value="per_order" defaultChecked={pricingMode === "per_order"} className="mt-1 h-4 w-4" />
                     <span>
-                      <strong>Tính riêng 3 chặng theo đơn</strong> — khách trả ship nội địa Nhật + Nhật → Việt Nam + giao nội địa Việt Nam, theo cân tính phí của đơn (đã nhân hệ số an toàn). Chọn &quot;Nhận tại kho&quot; thì bỏ chặng nội địa Việt Nam.
+                      <strong>Tính riêng các chặng theo đơn</strong> — khách trả ship nội địa Nhật + Nhật → Việt Nam + kho ĐVVC về kho shop + giao nội địa Việt Nam, theo cân tính phí của đơn (đã nhân hệ số an toàn). Chọn &quot;Nhận tại kho&quot; thì bỏ chặng nội địa Việt Nam.
                     </span>
                   </label>
                   <label className="flex items-start gap-2 text-[14px]">
@@ -478,7 +478,7 @@ export default async function AdminShipping({ searchParams }: Props) {
               </form>
               <p className="mt-3 text-[12px] leading-5 text-lien-muted">
                 Phương thức dùng để báo giá = phương thức <strong>đang bật, đứng đầu</strong> mỗi chặng (kéo vị trí trong tab chặng): nội địa Nhật →{" "}
-                <strong>{quoteCfg.jpDomestic ? quoteCfg.jpDomestic.name : "chưa có"}</strong>, Nhật → Việt Nam → <strong>{quoteCfg.jpVn ? quoteCfg.jpVn.name : "chưa có"}</strong>. Cột chọn theo mốc cân (&quot;≤ 5 kg&quot;, &quot;Size 80 (≤5 kg)&quot;) hoặc nhân theo /kg; giá ¥ đổi sang đ theo tỷ giá trên.
+                <strong>{quoteCfg.jpDomestic ? quoteCfg.jpDomestic.name : "chưa có"}</strong>, Nhật → Việt Nam → <strong>{quoteCfg.jpVn ? quoteCfg.jpVn.name : "chưa có"}</strong>, kho ĐVVC → kho shop → <strong>{quoteCfg.vnTransfer ? quoteCfg.vnTransfer.name : "chưa có"}</strong>. Cột chọn theo mốc cân (&quot;≤ 5 kg&quot;, &quot;Size 80 (≤5 kg)&quot;) hoặc nhân theo /kg; giá ¥ đổi sang đ theo tỷ giá trên.
               </p>
             </Card>
           </div>

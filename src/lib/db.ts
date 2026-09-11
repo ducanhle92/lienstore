@@ -30,7 +30,9 @@ import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
 import { applyShipPolicy, parseShipPolicy, policyFreeOver, type ShipPolicy } from "./ship-policy";
-import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
+import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig, zoneFeeForWeight } from "./shipping";
+import { parsePricing, type PricingConfig } from "./pricing";
+import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -905,7 +907,7 @@ interface OrderLegRow {
 }
 const rowToOrderLeg = (r: OrderLegRow): OrderLeg => ({
   orderId: r.order_id,
-  leg: r.leg === "jp_domestic" || r.leg === "vn_domestic" ? r.leg : "jp_vn",
+  leg: isShippingLeg(r.leg) ? r.leg : "jp_vn",
   methodId: r.method_id,
   zoneId: r.zone_id,
   label: r.label,
@@ -1583,7 +1585,7 @@ interface ShippingCarrierRow {
   legs: string | null;
 }
 
-const LEG_KEYS = ["jp_domestic", "jp_vn", "vn_domestic"] as const;
+const LEG_KEYS = ["jp_domestic", "jp_vn", "vn_transfer", "vn_domestic"] as const;
 type LegKey = (typeof LEG_KEYS)[number];
 const parseLegs = (v: string | null): LegKey[] => (v ?? "").split(",").map((x) => x.trim()).filter((x): x is LegKey => (LEG_KEYS as readonly string[]).includes(x));
 interface ShippingZoneRow {
@@ -1643,7 +1645,7 @@ function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMetho
     currency: m.currency,
     position: m.position,
     active: m.active === 1,
-    leg: m.leg === "jp_domestic" || m.leg === "vn_domestic" ? m.leg : "jp_vn",
+    leg: isShippingLeg(m.leg) ? m.leg : "jp_vn",
     carrierId: m.carrier_id ?? null,
     carrierName: m.carrier_name ?? null,
     carrierWebsite: m.carrier_website || null,
@@ -1761,6 +1763,31 @@ export async function getShipPolicy(): Promise<ShipPolicy> {
 
 export async function setShipPolicy(policy: ShipPolicy): Promise<void> {
   setSetting(getDb(), "ship_policy", JSON.stringify(policy));
+}
+
+/** Storefront look & feel (Admin › Sales › Giao diện & Logo). */
+export async function getSiteTheme(): Promise<SiteTheme> {
+  return parseTheme(getSetting(getDb(), "site_theme"));
+}
+
+export async function setSiteTheme(theme: SiteTheme): Promise<void> {
+  setSetting(getDb(), "site_theme", JSON.stringify(theme));
+}
+
+/** Selling-price formula parameters (Admin › Kho hàng › Công thức giá). */
+export async function getPricingConfig(): Promise<PricingConfig> {
+  return parsePricing(getSetting(getDb(), "pricing_config"));
+}
+
+export async function setPricingConfig(cfg: PricingConfig): Promise<void> {
+  setSetting(getDb(), "pricing_config", JSON.stringify(cfg));
+}
+
+/** Active methods of the import legs + current ¥ rate, for the selling-price formula (independent of the checkout pricing mode). */
+export async function getImportQuoteConfig(): Promise<ShippingQuoteConfig> {
+  const db = getDb();
+  const rate = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
+  return buildQuoteConfig(loadShippingMethods(db, true), "per_order", Number.isFinite(rate) && rate > 0 ? rate : 175);
 }
 
 /** Free-text notes shown under the shipping tables (one per line in admin). */
