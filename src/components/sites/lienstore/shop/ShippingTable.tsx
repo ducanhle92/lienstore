@@ -1,3 +1,5 @@
+import type { ShipPolicy } from "@/lib/ship-policy";
+import { ShipPolicyCard } from "./ShipPolicyCard";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import { formatAmount } from "@/lib/format";
@@ -40,6 +42,8 @@ interface Props {
   dimsConfidence?: DimsConfidence | null;
   /** Show the safety-factor / billable-weight explanation (back office only). */
   admin?: boolean;
+  /** Shop free-shipping policy card shown above the tables (only renders when enabled). */
+  policy?: ShipPolicy;
 }
 
 const th = "border border-lien-line bg-lien-footer2 px-3 py-2.5 text-center text-[13px] font-bold text-lien-heading";
@@ -82,7 +86,7 @@ function Chip({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
  * Shipping fee tables grouped by leg (JP domestic → JP→VN → VN domestic). One table per method: columns = zones /
  * weight tiers, rows = base fee, optional surcharge, areas, delivery time (+ an estimate row when the product weight is known).
  */
-export async function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null, dimsConfidence = null, admin = false }: Props) {
+export async function ShippingTable({ methods, notes, compact = false, weightG = null, dimsCm = null, dimsConfidence = null, admin = false, policy }: Props) {
   const lang = await getLang();
   const known = weightG !== null || dimsCm !== null;
   const chargeable = known ? billableProductWeightG(weightG, dimsCm, dimsConfidence) : null;
@@ -111,6 +115,8 @@ export async function ShippingTable({ methods, notes, compact = false, weightG =
           {t(lang, "estColumns1")} <strong>{billableKg(chargeable)} kg</strong> {t(lang, "estColumns2")} {formatAmount(chargeable)} g{lang === "ja" ? "" : ","} {t(lang, "estColumns3")}
         </p>
       ) : null}
+
+      {policy ? <ShipPolicyCard policy={policy} /> : null}
 
       {legs.map((leg) => (
         <section key={leg.key} aria-labelledby={`leg-${leg.key}`}>

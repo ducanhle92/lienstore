@@ -29,6 +29,7 @@ import type {
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
+import { applyShipPolicy, parseShipPolicy, policyFreeOver, type ShipPolicy } from "./ship-policy";
 import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
@@ -628,7 +629,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       if (zone) {
         // carrier tariff by billable weight + surcharge for liquids / bulky items; the shop covers it above free_over
         const base = zoneFeeForWeight({ fee: zone.fee, unit: zone.unit, baseG: zone.base_g, stepG: zone.step_g, stepFee: zone.step_fee }, weightG || 1000) + (special && zone.extra_fee ? zone.extra_fee : 0);
-        shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : base;
+        const freeOver = policyFreeOver(parseShipPolicy(getSetting(db, "ship_policy")), zone.name);
+        shippingFee = freeOver !== null && subtotal >= freeOver ? 0 : base;
         shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
       } else {
         shippingLabel = "Giao tận nhà (phí báo sau)";
@@ -1631,7 +1633,9 @@ function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMetho
     .prepare(`SELECT m.*, c.name AS carrier_name, c.website AS carrier_website FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)
     .all() as unknown as ShippingMethodRow[];
   const zones = db.prepare(`SELECT * FROM shipping_zones ${where} ORDER BY position, id`).all() as unknown as ShippingZoneRow[];
-  return methods.map((m) => ({
+  // the free-shipping threshold of Vietnam zones comes from the shop policy, never from the zone row
+  const policy = parseShipPolicy(getSetting(db, "ship_policy"));
+  return applyShipPolicy(methods.map((m): ShippingMethod => ({
     id: m.id,
     name: m.name,
     description: m.description,
@@ -1650,7 +1654,7 @@ function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMetho
     liveQuote: m.live_quote === "ghn" ? "ghn" : "",
     notes: m.notes ?? "",
     zones: zones.filter((z) => z.method_id === m.id).map(rowToZone),
-  }));
+  })), policy);
 }
 
 export async function getShippingCarriers(): Promise<ShippingCarrier[]> {
@@ -1748,6 +1752,15 @@ export async function saveShippingZone(input: ShippingZoneInput): Promise<number
 
 export async function deleteShippingZone(id: number): Promise<boolean> {
   return Number(getDb().prepare("DELETE FROM shipping_zones WHERE id = ?").run(id).changes) > 0;
+}
+
+/** Shop free-shipping policy (Sales › Chính sách vận chuyển); off unless the owner switched it on. */
+export async function getShipPolicy(): Promise<ShipPolicy> {
+  return parseShipPolicy(getSetting(getDb(), "ship_policy"));
+}
+
+export async function setShipPolicy(policy: ShipPolicy): Promise<void> {
+  setSetting(getDb(), "ship_policy", JSON.stringify(policy));
 }
 
 /** Free-text notes shown under the shipping tables (one per line in admin). */

@@ -4,7 +4,9 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { describeShipPolicy } from "@/lib/ship-policy";
+import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
@@ -67,9 +69,7 @@ function ZoneRow({ zone, methodId, currency, tab }: { zone: ShippingZone | null;
           <input name="stepG" form={id} type="number" defaultValue={zone?.stepG ?? ""} placeholder="g" className={`${small} w-[64px]`} aria-label="Gram mỗi nấc" />
         </div>
       </td>
-      <td className={cell}>
-        <input name="freeOver" form={id} defaultValue={amt(zone?.freeOver ?? null)} inputMode="numeric" placeholder="—" className={`${small} w-[110px]`} aria-label="Miễn phí trên" />
-      </td>
+
       <td className={cell}>
         <div className="flex items-center gap-1">
           <input name="extraFee" form={id} defaultValue={amt(zone?.extraFee ?? null)} inputMode="numeric" placeholder="—" className={`${small} w-[100px]`} aria-label="Phụ phí" />
@@ -197,7 +197,7 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
                 <th className="px-2 py-2">Tên cột</th>
                 <th className="px-2 py-2">Phí · đơn vị</th>
                 <th className="px-2 py-2">Nấc cân (g đầu + đ / g)</th>
-                <th className="px-2 py-2">Shop hỗ trợ từ</th>
+
                 <th className="px-2 py-2">{m.extraLabel || "Phụ phí"} · miễn trên</th>
                 <th className="px-2 py-2">Khu vực / điều kiện</th>
                 <th className="px-2 py-2">Thời gian</th>
@@ -413,6 +413,7 @@ export default async function AdminShipping({ searchParams }: Props) {
   const legMap = await getOrderLegs(orders.map((o) => o.id));
   const weightMap = new Map(await Promise.all(orders.map(async (o) => [o.id, await getOrderChargeableWeightG(o.id)] as const)));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
+  const policy = await getShipPolicy();
   const tabParam = first(sp.leg);
   const tab: ShippingLeg | "display" | "" = tabParam === "display" ? "display" : isShippingLeg(tabParam) ? tabParam : "";
   const tabBtn = (active: boolean) => cn("rounded-md border px-3 py-1.5 text-[13px] no-underline", active ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]");
@@ -491,8 +492,25 @@ export default async function AdminShipping({ searchParams }: Props) {
               </form>
             </Card>
           </div>
+          <Card title="Chính sách hỗ trợ phí vận chuyển (Sales › Chính sách vận chuyển)">
+            {policy.enabled ? (
+              <p className="m-0 mb-3 text-[13px] text-lien-success">
+                <Fa name="check-circle" /> Đang bật: {describeShipPolicy(policy)}.
+              </p>
+            ) : (
+              <p className="m-0 mb-3 text-[13px] text-lien-muted">Đang tắt — khách không thấy dòng &quot;Miễn phí trên…&quot; và trả đủ phí theo hãng.</p>
+            )}
+            <ShipPolicyCard policy={policy} />
+            <p className="mt-3 text-[12px] text-lien-muted">
+              Bật / tắt và đổi mức tại{" "}
+              <Link href="/admin/promotions/shipping-policy/" className="text-lien-blue hover:underline">
+                Sales › Chính sách vận chuyển
+              </Link>
+              .
+            </p>
+          </Card>
           <Card title="Xem trước — đúng như tab “Chi phí vận chuyển” trên trang sản phẩm và trang /van-chuyen/">
-            <ShippingTable methods={visible} notes={notes} admin />
+            <ShippingTable methods={visible} notes={notes} admin policy={policy} />
             <p className="mt-3 text-[12px] text-lien-muted">Chỉ phương thức và cột đang bật &quot;Hiển thị&quot; mới xuất hiện. Sửa nội dung ở tab từng chặng.</p>
           </Card>
         </div>

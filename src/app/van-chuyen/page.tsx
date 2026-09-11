@@ -4,7 +4,7 @@ import { getLang } from "@/lib/lang-server";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { FullWidthShell, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
-import { getShippingMethods, getShippingNotes } from "@/lib/db";
+import { getShipPolicy, getShippingMethods, getShippingNotes } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +15,13 @@ export const metadata: Metadata = {
 
 export default async function ShippingPage() {
   const lang = await getLang();
-  const [methods, notes] = await Promise.all([getShippingMethods(), getShippingNotes()]);
+  const [methods, notes, policy] = await Promise.all([getShippingMethods(), getShippingNotes(), getShipPolicy()]);
   return (
     <SiteChrome>
       <PageBand title={t(lang, "shippingTitle")} crumbs={[{ label: t(lang, "shippingTitle") }]} description={t(lang, "shippingDesc")} />
       <FullWidthShell>
         <div className="mx-auto max-w-[1000px]">
-          <ShippingTable methods={methods.filter((m) => m.leg === "vn_domestic")} notes={notes} />
+          <ShippingTable methods={methods.filter((m) => m.leg === "vn_domestic")} notes={notes} policy={policy} />
         </div>
       </FullWidthShell>
     </SiteChrome>

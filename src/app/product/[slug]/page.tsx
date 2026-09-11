@@ -11,7 +11,7 @@ import { ProductTabs } from "@/components/sites/lienstore/shop/product/ProductTa
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShippingMethods } from "@/lib/db";
+import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShipPolicy, getShippingMethods } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
@@ -57,7 +57,7 @@ export default async function ProductPage({ params }: PageProps) {
   const lang = await getLang();
   const product = localizeProduct(raw, lang);
 
-  const [cats, relatedRaw, reviews, me, allMethods] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer(), getShippingMethods()]);
+  const [cats, relatedRaw, reviews, me, allMethods, shipPolicy] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer(), getShippingMethods(), getShipPolicy()]);
   // customers compare Vietnam delivery options only — the Japan legs are already included in the price
   const vnMethods = allMethods.filter((m) => m.leg === "vn_domestic");
   const reviewer = me ? me.username || [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email.split("@")[0] : null;
@@ -103,7 +103,7 @@ export default async function ProductPage({ params }: PageProps) {
             description={product.description}
             reviews={reviews}
             reviewer={reviewer}
-            shipping={vnMethods.length ? <ShippingTable methods={vnMethods} notes={[]} compact weightG={product.weightG} dimsCm={product.dimsCm} dimsConfidence={product.dimsConfidence} /> : undefined}
+            shipping={vnMethods.length ? <ShippingTable methods={vnMethods} notes={[]} compact weightG={product.weightG} dimsCm={product.dimsCm} dimsConfidence={product.dimsConfidence} policy={shipPolicy} /> : undefined}
           />
         </div>
 

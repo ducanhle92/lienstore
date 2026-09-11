@@ -46,16 +46,24 @@ export function detectRegion(address: string): { region: VnRegion; place: string
   return best ? { region: best.region, place: best.place } : null;
 }
 
+const ZONE_RULES: Record<VnRegion, RegExp> = {
+  thanh_hoa: /thanh hoa|noi tinh/,
+  north: /mien bac|bac\b/,
+  central: /mien trung|trung\b|tay nguyen/,
+  south: /mien nam|nam\b/,
+};
+
+/** Region a carrier zone belongs to, from its display name ("Miền Bắc", "Thanh Hóa"…); null for non-regional zones. */
+export function regionOfZoneName(name: string): VnRegion | null {
+  const key = fold(name);
+  for (const r of ["thanh_hoa", "north", "central", "south"] as VnRegion[]) if (ZONE_RULES[r].test(key)) return r;
+  return null;
+}
+
 /** Zone (by its display name) that serves a region. */
 export function zoneForRegion<Z extends { label?: string; name?: string }>(zones: Z[], region: VnRegion): Z | undefined {
   const nameOf = (z: Z) => fold((z.label ?? z.name ?? "") as string);
-  const rules: Record<VnRegion, RegExp> = {
-    thanh_hoa: /thanh hoa|noi tinh/,
-    north: /mien bac|bac\b/,
-    central: /mien trung|trung\b|tay nguyen/,
-    south: /mien nam|nam\b/,
-  };
-  return zones.find((z) => rules[region].test(nameOf(z)));
+  return zones.find((z) => ZONE_RULES[region].test(nameOf(z)));
 }
 
 export const REGION_LABEL: Record<VnRegion, string> = { thanh_hoa: "Thanh Hóa", north: "Miền Bắc", central: "Miền Trung", south: "Miền Nam" };

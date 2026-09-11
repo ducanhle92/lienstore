@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, getProductById, resolveCustomerRefs, saveVoucher, updateProductPricing } from "@/lib/db";
+import { deleteVoucher, getProductById, resolveCustomerRefs, saveVoucher, setShipPolicy, updateProductPricing } from "@/lib/db";
+import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
@@ -91,4 +92,26 @@ export async function deleteVoucherAction(formData: FormData): Promise<void> {
   if (Number.isInteger(id)) await deleteVoucher(id);
   revalidatePath("/admin", "layout");
   back(VOUCHERS, "saved", "Đã xoá voucher.");
+}
+
+const POLICY = "/admin/promotions/shipping-policy/";
+
+/** Sales › Chính sách vận chuyển: on/off switch, texts and the per-region order value for free domestic delivery. */
+export async function saveShipPolicyAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const amount = (k: string): number | null => {
+    const v = text(formData, k);
+    if (!v) return null;
+    const n = parseAmount(v);
+    return n > 0 ? n : null;
+  };
+  const policy: ShipPolicy = {
+    enabled: formData.get("enabled") === "on",
+    title: text(formData, "title") || "Hỗ trợ phí vận chuyển",
+    text: text(formData, "text"),
+    thresholds: { thanh_hoa: amount("t_thanh_hoa"), north: amount("t_north"), central: amount("t_central"), south: amount("t_south") },
+  };
+  await setShipPolicy(policy);
+  revalidatePath("/", "layout");
+  redirect(`${POLICY}?saved=${encodeURIComponent(policy.enabled ? "Đã lưu — chính sách đang hiển thị và áp dụng cho khách." : "Đã lưu — chính sách đang tắt.")}`);
 }
