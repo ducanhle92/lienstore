@@ -250,7 +250,7 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
       {drawer ? (
         <div className="fixed inset-0 z-[9500] lg:hidden" role="dialog" aria-modal="true">
           <button type="button" aria-label="Đóng menu" onClick={() => setDrawer(false)} className="absolute inset-0 bg-black/40" />
-          <div className="absolute top-0 left-0 flex h-full w-[86%] max-w-[360px] flex-col bg-white shadow-2xl">
+          <div className="absolute top-0 left-0 flex h-full w-[55%] min-w-[240px] max-w-[340px] flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-lien-line px-4 py-3">
               <span className="text-[15px] font-semibold uppercase text-lien-heading">{t("menu")}</span>
               <button type="button" onClick={() => setDrawer(false)} aria-label={t("close")} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-lien-cream">

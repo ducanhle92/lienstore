@@ -100,7 +100,7 @@ export function SalesPopup() {
       role="status"
       aria-live="polite"
       className={cn(
-        "fixed bottom-4 left-4 z-[9000] flex w-[calc(100vw-2rem)] max-w-[350px] items-center gap-3 rounded-lg border border-lien-line bg-white p-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35)] transition-all duration-500",
+        "fixed bottom-4 left-4 z-[9000] hidden w-[calc(100vw-2rem)] max-w-[350px] items-center md:flex gap-3 rounded-lg border border-lien-line bg-white p-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35)] transition-all duration-500",
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
       )}
     >
