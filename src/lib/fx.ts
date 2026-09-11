@@ -47,7 +47,7 @@ export function readFx(db: DatabaseSync = getDb()): FxState {
     marketUpdatedAt: getSetting(db, "fx_market_updated_at"),
     marketSource: getSetting(db, "fx_market_source") ?? "",
     effective,
-    autoSell: (getSetting(db, "pricing_auto_sell") ?? "1") === "1",
+    autoSell: (getSetting(db, "pricing_auto_sell") ?? "0") === "1",
     lastRunAt: getSetting(db, "pricing_last_run_at"),
     lastRunSummary: getSetting(db, "pricing_last_run_summary") ?? "",
   };
