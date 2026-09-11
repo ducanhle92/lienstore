@@ -159,24 +159,24 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   };
   useEffect(() => {
     if (!liveMethod || provinces.length) return;
-    fetchJson<{ data: GhnOption[] }>("/api/shipping/ghn/provinces").then((r) => setProvinces(r.data)).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
+    fetchJson<{ data: GhnOption[] }>("/api/shipping/ghn/provinces/").then((r) => setProvinces(r.data)).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
   }, [liveMethod, provinces.length]);
   useEffect(() => {
     setDistricts([]); setWards([]); setDistrictId(""); setWardCode(""); setGhnQuote(null);
     if (!provinceId) return;
-    fetchJson<{ data: GhnOption[] }>(`/api/shipping/ghn/districts?provinceId=${provinceId}`).then((r) => setDistricts(r.data.filter((d) => d.supportType === undefined || d.supportType >= 2))).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
+    fetchJson<{ data: GhnOption[] }>(`/api/shipping/ghn/districts/?provinceId=${provinceId}`).then((r) => setDistricts(r.data.filter((d) => d.supportType === undefined || d.supportType >= 2))).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
   }, [provinceId]);
   useEffect(() => {
     setWards([]); setWardCode(""); setGhnQuote(null);
     if (!districtId) return;
-    fetchJson<{ data: GhnOption[] }>(`/api/shipping/ghn/wards?districtId=${districtId}`).then((r) => setWards(r.data.filter((w) => w.supportType === undefined || w.supportType >= 2))).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
+    fetchJson<{ data: GhnOption[] }>(`/api/shipping/ghn/wards/?districtId=${districtId}`).then((r) => setWards(r.data.filter((w) => w.supportType === undefined || w.supportType >= 2))).catch((e: Error) => { setGhnState("error"); setGhnError(e.message); });
   }, [districtId]);
   const itemsKey = JSON.stringify(items.map((it) => [it.productId, it.quantity]));
   const requestQuote = () => {
     if (!liveMethod || !districtId || !wardCode || items.length === 0) return;
     const seq = ++quoteSeq.current;
     setGhnState("loading"); setGhnError(null);
-    fetchJson<{ quote: { fee: { total: number; shipping: number; cod: number; pickupRemoteArea: number; deliveryRemoteArea: number }; service: { name: string } } }>("/api/shipping/ghn/quote", {
+    fetchJson<{ quote: { fee: { total: number; shipping: number; cod: number; pickupRemoteArea: number; deliveryRemoteArea: number }; service: { name: string } } }>("/api/shipping/ghn/quote/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ toDistrictId: districtId, toWardCode: wardCode, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity })), cod: payment === "cod" }),
