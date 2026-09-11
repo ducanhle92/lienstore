@@ -1,11 +1,12 @@
 "use server";
 
+import { isCostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
 import { isDimsConfidence } from "@/lib/shipping";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getJpyRate, getProductById, saveProduct, slugExists } from "@/lib/db";
+import { deleteProduct, getJpyRate, getProductById, replaceCostSources, saveProduct, slugExists } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
 import { getAllProducts } from "@/lib/db";
@@ -47,11 +48,25 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const regularPrice = regularRaw ? parseIntField(regularRaw) : null;
   if (regularRaw && regularPrice === null) fields.regularPrice = "Giá gốc không hợp lệ.";
 
-  const costJpyRaw = get("costJpy");
-  const costJpy = costJpyRaw ? parseIntField(costJpyRaw) : null;
-  if (costJpyRaw && (costJpy === null || costJpy <= 0)) fields.costJpy = "Giá ¥ phải là số nguyên > 0.";
-  const costUrl = get("costUrl");
-  if (costUrl && !/^https?:\/\//i.test(costUrl)) fields.costJpy = "Link giá phải bắt đầu bằng http(s)://";
+  // ¥ quotes per purchase source (cs_* repeated); the primary row feeds cost_jpy / cost_source / cost_url
+  const csSources = formData.getAll("cs_source").map(String);
+  const csPrices = formData.getAll("cs_price").map(String);
+  const csUrls = formData.getAll("cs_url").map(String);
+  const primaryRaw = Number.parseInt(get("cs_primary"), 10);
+  const costRows: Array<{ source: string; priceJpy: number; url: string; primary: boolean }> = [];
+  for (let i = 0; i < csSources.length; i++) {
+    const priceRaw = (csPrices[i] ?? "").trim();
+    const url = (csUrls[i] ?? "").trim();
+    if (!priceRaw && !url) continue;
+    const priceJpy = parseIntField(priceRaw);
+    if (priceJpy === null || priceJpy <= 0) fields.costJpy = "Giá ¥ của mỗi nguồn phải là số nguyên > 0.";
+    else if (url && !/^https?:\/\//i.test(url)) fields.costJpy = "Link giá phải bắt đầu bằng http(s)://";
+    else costRows.push({ source: isCostSourceKind(csSources[i]) ? csSources[i] : sourceFromUrl(url), priceJpy, url, primary: i === primaryRaw });
+  }
+  const primaryRow = costRows.find((r) => r.primary) ?? costRows[0];
+  const costJpy = primaryRow?.priceJpy ?? null;
+  const costUrl = primaryRow?.url ?? "";
+  const costSourceSel = primaryRow?.source ?? "";
   const costRaw = get("costPrice");
   let costPrice = costRaw ? parseIntField(costRaw) : null;
   if (costRaw && costPrice === null) fields.costPrice = "Giá vốn không hợp lệ.";
@@ -118,7 +133,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     stockStatus: discontinued ? "discontinued" : "instock",
     fulfillment: get("fulfillment") === "stock" ? "stock" : "order",
     costJpy,
-    costSource: costJpy ? (costJpy === existing?.costJpy ? existing.costSource : costUrl.includes("amazon") ? "amazon" : costUrl.includes("rakuten") ? "rakuten" : costUrl ? "official" : "manual") : "",
+    costSource: costJpy ? costSourceSel || "manual" : "",
     costUrl,
     marginPct,
     costCheckedAt: costJpy ? (costJpy === existing?.costJpy ? existing.costCheckedAt : new Date().toISOString()) : null,
@@ -137,6 +152,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     status,
   });
 
+  await replaceCostSources(saved.id, costRows.map(({ source, priceJpy, url }) => ({ source, priceJpy, url })));
   if (existing) await cleanupRemovedUploads(existing.images, saved.images, saved.id);
   revalidatePath("/", "layout");
   redirect(`/admin/products/?saved=${saved.id}`);

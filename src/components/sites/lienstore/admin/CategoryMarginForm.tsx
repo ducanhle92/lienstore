@@ -44,6 +44,7 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
             required
           >
             <option value="">— Chọn danh mục —</option>
+            <option value="__all__">Tất cả sản phẩm (mặc định của shop)</option>
             {parents.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.name}
@@ -55,8 +56,8 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
           <label className={adminLabel} htmlFor="cm-child">
             Danh mục con <span className="font-normal text-lien-muted">(để trống = cả danh mục)</span>
           </label>
-          <select id="cm-child" name="subcategory" value={child} onChange={(e) => setChild(e.target.value)} disabled={!parent || children.length === 0} className={adminInput}>
-            <option value="">{parent && children.length === 0 ? "— Không có danh mục con —" : "— Cả danh mục —"}</option>
+          <select id="cm-child" name="subcategory" value={child} onChange={(e) => setChild(e.target.value)} disabled={!parent || parent === "__all__" || children.length === 0} className={adminInput}>
+            <option value="">{parent === "__all__" ? "— Áp cho mọi danh mục —" : parent && children.length === 0 ? "— Không có danh mục con —" : "— Cả danh mục —"}</option>
             {children.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.name}
@@ -68,13 +69,13 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
           <label className={adminLabel} htmlFor="cm-pct">
             Tỉ lệ lãi kỳ vọng (%)
           </label>
-          <input id="cm-pct" name="pct" inputMode="decimal" defaultValue={target && overrides[target] !== undefined ? overrides[target] : ""} key={target} placeholder={String(defaultPct)} className={adminInput} required />
+          <input id="cm-pct" name="pct" inputMode="decimal" defaultValue={target === "__all__" ? defaultPct : target && overrides[target] !== undefined ? overrides[target] : ""} key={target} placeholder={String(defaultPct)} className={adminInput} required />
         </div>
         <button type="submit" disabled={!parent} className={`${btnPrimary} disabled:opacity-50`}>
           <Fa name="check" /> Lưu
         </button>
       </form>
-      {rows.length ? (
+      {rows.length || true ? (
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
@@ -85,6 +86,12 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
             </tr>
           </thead>
           <tbody>
+            <tr data-testid="cm-row-all">
+              <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">Tất cả sản phẩm</td>
+              <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-lien-muted">mặc định của shop</td>
+              <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right font-semibold" data-testid="cm-default-pct">{defaultPct}%</td>
+              <td className="border-b border-[#f3f4f6] px-2 py-1.5" />
+            </tr>
             {rows.map((r) => (
               <tr key={r.slug} data-testid={`cm-row-${r.slug}`}>
                 <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">{r.cat?.parentSlug ? nameOf(r.cat.parentSlug) : nameOf(r.slug)}</td>
@@ -102,9 +109,7 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
             ))}
           </tbody>
         </table>
-      ) : (
-        <p className="m-0 text-[13px] text-lien-muted">Chưa đặt tỉ lệ riêng cho danh mục nào — mọi sản phẩm dùng mặc định {defaultPct}% (trừ sản phẩm có tỉ lệ riêng).</p>
-      )}
+      ) : null}
       <p className="m-0 text-[12px] leading-5 text-lien-muted">Thứ tự áp dụng: tỉ lệ riêng của sản phẩm → danh mục con → danh mục cha → mặc định của shop.</p>
     </div>
   );

@@ -4,14 +4,15 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode, listShipmentBatches } from "@/lib/db";
+import { BATCH_FORM_ID, BatchShipmentCard } from "@/components/sites/lienstore/admin/BatchShipmentCard";
 import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
-import { isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
+import { describeMethodFormula, isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { ShippingCarrier, ShippingMethod, ShippingZone } from "@/types/shop";
 
@@ -26,6 +27,13 @@ const amt = (n: number | null) => (n === null ? "" : formatAmount(n));
 const cell = "border-b border-[#f0f0f0] px-2 py-2 align-top";
 const small = `${adminInput} !px-2 !py-1.5 !text-[13px]`;
 const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = { jp_domestic: "cube", jp_vn: "plane", vn_transfer: "building", vn_domestic: "truck" };
+/** What can be connected per leg (kết quả điều tra API, 09/2026). */
+const LEG_API_NOTE: Record<ShippingLeg, string> = {
+  jp_domestic: "Kết nối API: Japan Post (ゆうパック), Yamato, Sagawa không có API công khai tính cước cho khách lẻ (Yamato B2/Sagawa e飛伝 cần hợp đồng doanh nghiệp) → tính theo công thức biểu phí cỡ kiện (size = D+R+C) như bảng dưới; hoặc gom nhiều đơn thành một kiện lớn (Gom lô) để giảm phí.",
+  jp_vn: "Kết nối API: Kiến Express không có API — cước theo bảng /kg do Kiến báo. Giảm phí bằng cách gom đủ lô (Gom lô ở sheet Đơn hàng) vì cước tính theo tổng cân của chuyến.",
+  vn_transfer: "Kết nối API: Viettel Post có Open API đối tác (đặt VTP_TOKEN trên máy chủ là dùng được ngay, không cần sửa code); SPX chỉ cấp API cho tài khoản được ủy quyền → hiện dùng biểu phí công khai. Bảng dưới là công thức đang dùng.",
+  vn_domestic: "Kết nối API: GHN (đặt GHN_TOKEN + GHN_SHOP_ID), Viettel Post (VTP_TOKEN); VNPost và SPX theo biểu phí công khai (phiên bản hóa). Cước cho khách được báo theo địa chỉ, không dùng bảng vùng bên dưới để thu tiền.",
+};
 
 /** Carriers serving a leg (a carrier may serve several). */
 const carriersFor = (carriers: ShippingCarrier[], leg: ShippingLeg) => carriers.filter((c) => c.legs.includes(leg));
@@ -125,6 +133,18 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
           </form>
         }
       >
+        {m.description ? <p className="m-0 mb-2 text-[13px] text-lien-muted">{m.description}</p> : null}
+        <ul className="m-0 mb-3 list-disc space-y-0.5 pl-5 text-[13px] leading-5 text-lien-text" data-testid="method-formula">
+          {describeMethodFormula(m).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        {m.warehouse ? <p className="m-0 mb-3 text-[12px] leading-5 text-lien-muted"><Fa name="map-marker" className="mr-1 text-lien-blue" />{m.warehouse}</p> : null}
+        <details className="rounded-md border border-[#e5e7eb]">
+        <summary className="cursor-pointer select-none px-4 py-2 text-[13px] font-semibold text-lien-blue">
+          <Fa name="cog" className="mr-1" /> Sửa phương thức & công thức (bảng cột)
+        </summary>
+        <div className="border-t border-[#e5e7eb] p-4">
         <form id={fid} action={saveMethodAction} className="mb-5 grid gap-3 md:grid-cols-3">
           <input type="hidden" name="id" value={m.id} />
           <input type="hidden" name="backTab" value={tab} />
@@ -215,6 +235,8 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
           </table>
         </div>
         <p className="mt-2 text-[12px] text-lien-muted">Đơn vị &quot;/kg&quot; → phí nhân với số kg (làm tròn lên) của sản phẩm để ước tính ngay trên trang sản phẩm; để trống = phí cho cả đơn.</p>
+        </div>
+        </details>
       </Card>
     </div>
   );
@@ -412,12 +434,12 @@ export default async function AdminShipping({ searchParams }: Props) {
   const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate, quoteDefaults);
   const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
   const legMap = await getOrderLegs(orders.map((o) => o.id));
+  const batches = await listShipmentBatches(20);
   const weightMap = new Map(await Promise.all(orders.map(async (o) => [o.id, await getOrderChargeableWeightG(o.id)] as const)));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
   const policy = await getShipPolicy();
   const tabParam = first(sp.leg);
   const tab: ShippingLeg | "display" | "" = tabParam === "display" ? "display" : isShippingLeg(tabParam) ? tabParam : "";
-  const tabBtn = (active: boolean) => cn("rounded-md border px-3 py-1.5 text-[13px] no-underline", active ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]");
 
   return (
     <>
@@ -433,22 +455,11 @@ export default async function AdminShipping({ searchParams }: Props) {
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Link href="/admin/shipping/" className={tabBtn(tab === "")}>
-          <Fa name="list" className="mr-1" />
-          Đơn hàng
-        </Link>
-        {SHIPPING_LEGS.map((l) => (
-          <Link key={l.key} href={`/admin/shipping/?leg=${l.key}`} className={tabBtn(tab === l.key)}>
-            <Fa name={LEG_ICON[l.key]} className="mr-1" />
-            {l.label} <span className={tab === l.key ? "text-white/80" : "text-lien-muted"}>({methods.filter((m) => m.leg === l.key).length})</span>
-          </Link>
-        ))}
-        <Link href="/admin/shipping/?leg=display" className={tabBtn(tab === "display")}>
-          <Fa name="eye" className="mr-1" />
-          Hiển thị cho khách
-        </Link>
-      </div>
+      <h2 className="mb-4 text-[18px] font-bold text-lien-heading">
+        <Fa name={tab === "display" ? "eye" : tab ? LEG_ICON[tab] : "list"} className="mr-2 text-lien-blue" />
+        {tab === "display" ? "Hiển thị cho khách" : tab ? SHIPPING_LEGS.find((l) => l.key === tab)?.label : "Đơn hàng · 4 chặng"}
+        <span className="ml-2 text-[13px] font-normal text-lien-muted">(chuyển sheet ở menu Vận chuyển bên trái)</span>
+      </h2>
 
       {tab === "display" ? (
         <div className="space-y-6">
@@ -516,7 +527,9 @@ export default async function AdminShipping({ searchParams }: Props) {
           </Card>
         </div>
       ) : !tab ? (
-        <Card title={`Đơn hàng & vận chuyển theo 3 chặng (${orders.length} đơn gần nhất, trừ đơn đã huỷ)`}>
+        <>
+        <BatchShipmentCard methods={methods} batches={batches} defaultMethodIds={{ jp_domestic: quoteCfg.jpDomestic?.id, jp_vn: quoteCfg.jpVn?.id, vn_transfer: quoteCfg.vnTransfer?.id }} />
+        <Card title={`Đơn hàng & vận chuyển theo 4 chặng (${orders.length} đơn gần nhất, trừ đơn đã huỷ)`}>
           <p className="mb-4 text-[13px] text-lien-muted">
             Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.
           </p>
@@ -524,6 +537,7 @@ export default async function AdminShipping({ searchParams }: Props) {
             <table className="w-full border-collapse text-left text-[13px]">
               <thead>
                 <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
+                  <th className="px-2 py-2" title="Tick để gom lô">Lô</th>
                   <th className="px-2 py-2">Đơn</th>
                   {SHIPPING_LEGS.map((l) => (
                     <th key={l.key} className="px-2 py-2">
@@ -538,6 +552,9 @@ export default async function AdminShipping({ searchParams }: Props) {
                   const legs = legMap.get(o.id) ?? [];
                   return (
                     <tr key={o.id} id={`order-${o.id}`} className="align-top odd:bg-white even:bg-[#fafafa]">
+                      <td className="border-b border-[#f0f0f0] px-2 py-3">
+                        {o.delivery !== "pickup" || true ? <input type="checkbox" name="batch_orders" value={o.id} form={BATCH_FORM_ID} className="mt-1 h-4 w-4" aria-label={`Gom đơn #${o.number}`} data-testid={`batch-pick-${o.number}`} /> : null}
+                      </td>
                       <td className="border-b border-[#f0f0f0] px-2 py-3">
                         <Link href={`/admin/orders/${o.id}/`} className="font-semibold text-lien-blue hover:underline">
                           #{o.number}
@@ -560,7 +577,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                 })}
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-2 py-6 text-center text-lien-muted">
+                    <td colSpan={6} className="px-2 py-6 text-center text-lien-muted">
                       Chưa có đơn hàng.
                     </td>
                   </tr>
@@ -569,6 +586,7 @@ export default async function AdminShipping({ searchParams }: Props) {
             </table>
           </div>
         </Card>
+        </>
       ) : (
         <div className="space-y-10">
           {SHIPPING_LEGS.filter((l) => l.key === tab).map((leg) => {
@@ -581,6 +599,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                     {leg.label} <span className="text-[14px] font-normal text-lien-muted">({list.length} phương thức)</span>
                   </h2>
                   <p className="text-[13px] text-lien-muted">{leg.description}</p>
+                  <p className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[12px] leading-5 text-lien-text">{LEG_API_NOTE[leg.key]}</p>
                 </div>
                 {leg.key === "vn_domestic" ? <CarrierStatusPanel /> : null}
                 {list.map((m) => (

@@ -174,16 +174,33 @@ export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricin
   const pick = (leg: ShippingLeg): QuoteMethod | null => {
     const list = methods.filter((x) => x.leg === leg && x.active && x.zones.some((z) => z.active)).sort((a, b) => a.position - b.position || a.id - b.id);
     const m = (defaults[leg] ? list.find((x) => x.id === defaults[leg]) : undefined) ?? list[0];
-    if (!m) return null;
-    return {
-      id: m.id,
-      name: m.name,
-      carrierName: m.carrierName ?? null,
-      currency: m.currency,
-      zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, baseG: z.baseG, stepG: z.stepG, stepFee: z.stepFee, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
-    };
+    return m ? toQuoteMethod(m) : null;
   };
   return { mode, jpyRate, jpDomestic: pick("jp_domestic"), jpVn: pick("jp_vn"), vnTransfer: pick("vn_transfer") };
+}
+
+/** Lean quote view of a method (active zones only). */
+export function toQuoteMethod(m: ShippingMethod): QuoteMethod {
+  return {
+    id: m.id,
+    name: m.name,
+    carrierName: m.carrierName ?? null,
+    currency: m.currency,
+    zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, baseG: z.baseG, stepG: z.stepG, stepFee: z.stepFee, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
+  };
+}
+
+/** Human formula of a method's active columns, for the admin leg sheets ("Size 60: 810¥ · ≤ 2 kg", "1 kg đầu 22.000đ, +2.500đ/500 g"). */
+export function describeMethodFormula(m: ShippingMethod): string[] {
+  const zones = m.zones.filter((z) => z.active);
+  if (!zones.length) return ["Chưa có cột giá — báo giá riêng khi có đơn."];
+  return zones.map((z) => {
+    const base = `${z.name}: ${z.fee.toLocaleString("vi-VN")}${m.currency}${z.unit}`;
+    const tier = isTiered(z) ? ` — ${(z.baseG as number).toLocaleString("vi-VN")} g đầu, +${(z.stepFee as number).toLocaleString("vi-VN")}${m.currency} mỗi ${(z.stepG as number).toLocaleString("vi-VN")} g tiếp theo` : isPerKg(z) ? " — nhân số kg (làm tròn lên)" : "";
+    const extra = z.extraFee !== null ? ` · ${m.extraLabel || "phụ phí"} +${z.extraFee.toLocaleString("vi-VN")}${m.currency}` : "";
+    const eta = z.eta ? ` · ${z.eta}` : "";
+    return base + tier + extra + eta;
+  });
 }
 
 /** Fee of one method for a billable weight: tiered zone by weight cap, else per-kg × kg, else flat first zone. */

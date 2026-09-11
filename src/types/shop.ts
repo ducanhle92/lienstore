@@ -342,6 +342,36 @@ export interface Voucher {
 }
 
 /** Shipping arrangement of one order for one leg (internal logistics + cost tracking). */
+/** One Japanese price quote of a product from one purchase source (Amazon, Rakuten, brand shop…). */
+export interface CostSource {
+  id: number;
+  productId: number;
+  source: string;
+  priceJpy: number;
+  url: string;
+  note: string;
+  checkedAt: string | null;
+}
+
+/** Several orders shipped together on one import leg; the lot fee is shared per gram. */
+export interface ShipmentBatch {
+  id: number;
+  leg: "jp_domestic" | "jp_vn" | "vn_transfer";
+  methodId: number | null;
+  zoneId: number | null;
+  label: string;
+  totalWeightG: number;
+  fee: number;
+  feeRaw: number;
+  currency: string;
+  tracking: string;
+  orderIds: string[];
+  orderNumbers: number[];
+  /** Sum of the per-order fees minus the lot fee (VND). */
+  savings: number;
+  createdAt: string;
+}
+
 export interface OrderLeg {
   orderId: string;
   leg: "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic";

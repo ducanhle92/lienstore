@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { applySuggestedPricesAction, refreshDcomAction, runPricingNowAction, saveCostParamsAction, saveFxAction, savePricingConfigAction } from "@/app/admin/products/pricing/actions";
 import { CategoryMarginForm } from "@/components/sites/lienstore/admin/CategoryMarginForm";
+import { PurchaseSourceCard } from "@/components/sites/lienstore/admin/PurchaseSourceCard";
 import { readFx } from "@/lib/fx";
 import { formatDateTime } from "@/lib/format";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
@@ -10,7 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCategories, getImportQuoteConfig, getPricingConfig, getQuoteDefaults, getShippingMethods } from "@/lib/db";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { MARGIN_RANGE, suggestPrice } from "@/lib/pricing";
-import { IMPORT_LEGS, LEG_LABEL, type QuoteMethod } from "@/lib/shipping";
+import { IMPORT_LEGS, LEG_LABEL } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +28,6 @@ export default async function AdminPricing({ searchParams }: Props) {
   const [products, quote, pricing, categories, methods, quoteDefaults] = await Promise.all([getAllProducts(true), getImportQuoteConfig(), getPricingConfig(), getCategories(), getShippingMethods(true), getQuoteDefaults()]);
   const fx = readFx();
   const withJpy = products.filter((p) => p.costJpy).length;
-  const legMethods: Array<{ leg: (typeof IMPORT_LEGS)[number]; method: QuoteMethod | null; href: string }> = [
-    { leg: "jp_domestic", method: quote.jpDomestic, href: "/admin/shipping/?leg=jp_domestic" },
-    { leg: "jp_vn", method: quote.jpVn, href: "/admin/shipping/?leg=jp_vn" },
-    { leg: "vn_transfer", method: quote.vnTransfer, href: "/admin/shipping/?leg=vn_transfer" },
-  ];
   const rows = products
     .map((p) => ({ p, s: suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing) }))
     .filter((r): r is { p: (typeof products)[number]; s: NonNullable<ReturnType<typeof suggestPrice>> } => r.s !== null)
@@ -116,43 +112,9 @@ export default async function AdminPricing({ searchParams }: Props) {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <Card title="Tham số">
-          <form action={savePricingConfigAction} className="grid gap-4 sm:grid-cols-[200px_170px_auto] sm:items-end">
-            <div>
-              <label className={adminLabel} htmlFor="marginPct">
-                Tỉ lệ lãi kỳ vọng mặc định (% trên giá vốn về VN)
-              </label>
-              <input id="marginPct" name="marginPct" inputMode="decimal" defaultValue={pricing.marginPct} className={adminInput} />
-              <p className="mt-1 text-[12px] text-lien-muted">
-                Khuyến nghị {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%; từng sản phẩm có thể đặt lãi riêng trong trang sản phẩm.
-              </p>
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor="roundTo">
-                Làm tròn lên
-              </label>
-              <select id="roundTo" name="roundTo" defaultValue={pricing.roundTo} className={adminInput}>
-                {[1, 100, 500, 1000, 5000, 10000].map((n) => (
-                  <option key={n} value={n}>
-                    {n === 1 ? "Không làm tròn" : `${formatAmount(n)}đ`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" className={cn(btnPrimary, "sm:mb-6")}>
-              <Fa name="check" /> Lưu
-            </button>
-          </form>
-          <div className="mt-5 border-t border-[#e5e7eb] pt-4">
-            <h3 className="m-0 mb-1 text-[14px] font-bold text-lien-heading">Tỉ lệ lãi kỳ vọng theo danh mục</h3>
-            <p className="m-0 mb-3 text-[12px] leading-5 text-lien-muted">Đặt tỉ lệ riêng cho từng danh mục / danh mục con (hàng lãi thấp hoặc lãi cao); sản phẩm không có tỉ lệ riêng sẽ theo danh mục của nó.</p>
-            <CategoryMarginForm categories={categories.map((c) => ({ slug: c.slug, name: c.name, parentSlug: c.parentSlug }))} overrides={pricing.marginByCategory} defaultPct={pricing.marginPct} />
-          </div>
-        </Card>
-
-        <Card title="Tham số chi phí vận chuyển (3 chặng nhập hàng)">
-          <form action={saveCostParamsAction} className="grid gap-4">
+      <Card className="mb-6" title="Tham số chi phí vận chuyển (3 chặng nhập hàng)">
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <form action={saveCostParamsAction} className="grid gap-4 sm:grid-cols-2">
             {IMPORT_LEGS.map((leg) => {
               const list = methods.filter((m) => m.leg === leg && m.active);
               const current = leg === "jp_domestic" ? quote.jpDomestic?.id : leg === "jp_vn" ? quote.jpVn?.id : quote.vnTransfer?.id;
@@ -170,6 +132,11 @@ export default async function AdminPricing({ searchParams }: Props) {
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1 text-[12px] text-lien-muted">
+                    <Link href={`/admin/shipping/?leg=${leg}`} className="text-lien-blue hover:underline">
+                      Sửa công thức / bảng giá của chặng này
+                    </Link>
+                  </p>
                 </div>
               );
             })}
@@ -178,40 +145,48 @@ export default async function AdminPricing({ searchParams }: Props) {
                 Cân lô gom hàng (kg)
               </label>
               <input id="lotKg" name="lotKg" inputMode="decimal" defaultValue={pricing.lotWeightG / 1000} className={cn(adminInput, "!w-[160px]")} />
-              <p className="mt-1 text-[12px] text-lien-muted">Số kg gom đủ trong một lô rồi đóng gửi; lô càng lớn thì phí chia cho mỗi món càng nhỏ.</p>
+              <p className="mt-1 text-[12px] text-lien-muted">Số kg gom đủ trong một lô rồi đóng gửi; lô càng lớn thì phí chia cho mỗi món càng nhỏ. Gom đơn thật ở Vận chuyển › Đơn hàng · 4 chặng.</p>
             </div>
-            <button type="submit" className={cn(btnPrimary, "justify-self-start")}>
-              <Fa name="check" /> Lưu tham số chi phí
-            </button>
+            <div className="sm:col-span-2">
+              <button type="submit" className={btnPrimary}>
+                <Fa name="check" /> Lưu tham số chi phí
+              </button>
+            </div>
           </form>
-          <p className="mt-4 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-6 text-lien-text">
-            <strong>Luồng nhập hàng mặc định:</strong> nhà tại Funabashi (〒273-0005) → <em>bưu điện Nhật</em> → kho Kiến Express Nhật (〒270-0145 千葉県流山市名都借 827-3 1F, Nagareyama, Chiba) → <em>Kiến Express</em> → kho Kiến Hà Nội (OV3.15 XP5 KĐT Xuân Phương Viglacera, Nam Từ Liêm) → <em>Viettel Post</em> → kho LienStore Thanh Hóa. Luồng này được điền sẵn cho từng đơn trong Vận chuyển › Đơn hàng · 4 chặng và các tab ①②③; admin đổi ở đó khi cần.
-          </p>
-          <p className="mt-4 text-[13px] leading-6 text-lien-text">
-            Phí vận chuyển mỗi sản phẩm tính theo <strong>cân tính phí</strong> (lớn hơn giữa cân thực và cân quy đổi kích thước, nhân hệ số an toàn theo độ tin cậy) với đơn vị vận chuyển mặc định ở trên của từng chặng. Mỗi chặng được tính cho cả lô {formatAmount(pricing.lotWeightG / 1000)} kg (đúng cách hàng thực sự đi: một kiện tới Kiến, một chuyến Kiến, một kiện Viettel về Thanh Hóa) rồi chia theo số gram của sản phẩm — không làm tròn lên 1 kg cho từng món. Giá ¥ đổi sang đ theo tỉ giá 1¥ = {formatAmount(quote.jpyRate)}đ (
-            <Link href="/admin/shipping/?leg=display" className="text-lien-blue hover:underline">
-              sửa ở Vận chuyển › Hiển thị cho khách
-            </Link>
-            ).
-          </p>
-        </Card>
+          <div className="rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-4 text-[13px] leading-6 text-lien-text">
+            <p className="m-0">
+              <strong>Luồng nhập hàng mặc định:</strong> nhà tại Funabashi (〒273-0005) → <em>bưu điện Nhật</em> → kho Kiến Express Nhật (〒270-0145 千葉県流山市名都借 827-3 1F, Nagareyama, Chiba) → <em>Kiến Express</em> → kho Kiến Hà Nội (OV3.15 XP5 KĐT Xuân Phương Viglacera, Nam Từ Liêm) → <em>Viettel Post</em> → kho LienStore Thanh Hóa. Luồng này được điền sẵn cho từng đơn; admin đổi ở Vận chuyển khi cần.
+            </p>
+            <p className="m-0 mt-2 text-lien-muted">
+              Phí mỗi sản phẩm = cân tính phí (max cân thực / cân quy đổi × hệ số an toàn) × biểu phí của đơn vị mặc định, tính cho cả lô {formatAmount(pricing.lotWeightG / 1000)} kg rồi chia theo gram — không làm tròn lên 1 kg cho từng món. Giá ¥ đổi sang đ theo 1¥ = {formatAmount(quote.jpyRate)}đ.
+            </p>
+          </div>
+        </div>
+      </Card>
 
-        <Card title="3 chặng đang dùng để tính giá">
-          <ul className="m-0 list-none space-y-2 p-0 text-[13px]">
-            {legMethods.map((l) => (
-              <li key={l.leg} className="flex items-start justify-between gap-3 rounded-md border border-[#e5e7eb] px-3 py-2">
-                <span>
-                  <span className="block font-semibold text-lien-heading">{LEG_LABEL[l.leg]}</span>
-                  <span className={l.method ? "text-lien-text" : "text-red-600"}>{l.method ? `${l.method.name}${l.method.carrierName && !l.method.name.includes(l.method.carrierName) ? ` (${l.method.carrierName})` : ""}` : "Chưa có phương thức đang bật — chặng này tính 0đ"}</span>
-                </span>
-                <Link href={l.href} className="shrink-0 text-lien-blue hover:underline">
-                  Sửa
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
+      <PurchaseSourceCard />
+
+      <Card className="mb-6" title="Tham số tỉ lệ lãi kỳ vọng">
+        <CategoryMarginForm categories={categories.map((c) => ({ slug: c.slug, name: c.name, parentSlug: c.parentSlug }))} overrides={pricing.marginByCategory} defaultPct={pricing.marginPct} />
+        <form action={savePricingConfigAction} className="mt-5 flex flex-wrap items-end gap-3 border-t border-[#e5e7eb] pt-4">
+          <div>
+            <label className={adminLabel} htmlFor="roundTo">
+              Làm tròn lên
+            </label>
+            <select id="roundTo" name="roundTo" defaultValue={pricing.roundTo} className={cn(adminInput, "!mb-0 !w-[180px]")}>
+              {[1, 100, 500, 1000, 5000, 10000].map((n) => (
+                <option key={n} value={n}>
+                  {n === 1 ? "Không làm tròn" : `${formatAmount(n)}đ`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className={btnPrimary}>
+            <Fa name="check" /> Lưu
+          </button>
+          <p className="m-0 text-[12px] leading-5 text-lien-muted">Giá kỳ vọng = giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng), làm tròn lên bước này. Khuyến nghị lãi {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%.</p>
+        </form>
+      </Card>
 
       <Card
         className="mt-6"

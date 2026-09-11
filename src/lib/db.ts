@@ -4,7 +4,7 @@ import type {
   CustomerAddress,
   Banner,
   BlogPost,
-  CartItem,
+  CartItem, CostSource, ShipmentBatch,
   CatalogProduct,
   Customer,
   Order,
@@ -34,6 +34,7 @@ import { findQuote } from "./carriers";
 import { CARRIER_NAME, usableForCheckoutTotal, type ShippingQuote } from "./carriers/types";
 import { quoteCart } from "./ship-quote";
 import { coarseRegionOf } from "./vn-address";
+import { cheapestQuote } from "./cost-sources";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, serializePricing, type PricingConfig } from "./pricing";
@@ -2340,4 +2341,160 @@ export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
 export async function updateProductSku(id: number, sku: string): Promise<boolean> {
   const r = getDb().prepare("UPDATE products SET sku = ?, updated_at = ? WHERE id = ?").run(sku, new Date().toISOString(), id);
   return r.changes > 0;
+}
+
+
+// ---------- Cost sources (giá vốn ¥ theo nguồn mua) ----------
+
+interface CostSourceRow {
+  id: number;
+  product_id: number;
+  source: string;
+  price_jpy: number;
+  url: string;
+  note: string;
+  checked_at: string | null;
+}
+const rowToCostSource = (r: CostSourceRow): CostSource => ({ id: r.id, productId: r.product_id, source: r.source, priceJpy: r.price_jpy, url: r.url ?? "", note: r.note ?? "", checkedAt: r.checked_at });
+
+export async function listCostSources(productId: number): Promise<CostSource[]> {
+  return (getDb().prepare("SELECT * FROM product_cost_sources WHERE product_id = ? ORDER BY price_jpy, id").all(productId) as unknown as CostSourceRow[]).map(rowToCostSource);
+}
+
+/** Replace every quote of a product (the form sends the full list each save). */
+export async function replaceCostSources(productId: number, rows: Array<{ source: string; priceJpy: number; url: string; note?: string }>): Promise<void> {
+  const db = getDb();
+  withTransaction(db, () => {
+    db.prepare("DELETE FROM product_cost_sources WHERE product_id = ?").run(productId);
+    const ins = db.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    const now = new Date().toISOString();
+    for (const r of rows) ins.run(productId, r.source || "manual", Math.round(r.priceJpy), r.url ?? "", r.note ?? "", now, now);
+  });
+}
+
+export async function getPurchaseSourceDefault(): Promise<string> {
+  return getSetting(getDb(), "purchase_source_default") || "amazon";
+}
+export async function setPurchaseSourceDefault(v: string): Promise<void> {
+  setSetting(getDb(), "purchase_source_default", v);
+}
+
+/** How many products could buy cheaper than their current primary source, and by how much (¥). */
+export async function purchaseSourceStats(preferred: string): Promise<{ withPrice: number; multi: number; notCheapest: number; savingsJpy: number }> {
+  const db = getDb();
+  const products = db.prepare("SELECT id, cost_jpy FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number }>;
+  const rows = db.prepare("SELECT * FROM product_cost_sources").all() as unknown as CostSourceRow[];
+  const byProduct = new Map<number, CostSource[]>();
+  for (const r of rows) byProduct.set(r.product_id, [...(byProduct.get(r.product_id) ?? []), rowToCostSource(r)]);
+  let multi = 0;
+  let notCheapest = 0;
+  let savingsJpy = 0;
+  for (const p of products) {
+    const list = byProduct.get(p.id) ?? [];
+    if (list.length >= 2) multi++;
+    const best = cheapestQuote(list, preferred);
+    if (best && best.priceJpy < p.cost_jpy) {
+      notCheapest++;
+      savingsJpy += p.cost_jpy - best.priceJpy;
+    }
+  }
+  return { withPrice: products.length, multi, notCheapest, savingsJpy };
+}
+
+/** Switch every product to its cheapest quote; VND cost follows the rate. */
+export async function optimizeCostSources(rate: number, preferred: string): Promise<{ checked: number; changed: number; savingsJpy: number }> {
+  const db = getDb();
+  const products = db.prepare("SELECT id, cost_jpy FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number }>;
+  const rows = db.prepare("SELECT * FROM product_cost_sources").all() as unknown as CostSourceRow[];
+  const byProduct = new Map<number, CostSource[]>();
+  for (const r of rows) byProduct.set(r.product_id, [...(byProduct.get(r.product_id) ?? []), rowToCostSource(r)]);
+  const upd = db.prepare("UPDATE products SET cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, cost_price = CAST(ROUND(? * ?) AS INTEGER), updated_at = ? WHERE id = ?");
+  let changed = 0;
+  let savingsJpy = 0;
+  const now = new Date().toISOString();
+  withTransaction(db, () => {
+    for (const p of products) {
+      const best = cheapestQuote(byProduct.get(p.id) ?? [], preferred);
+      if (!best || best.priceJpy >= p.cost_jpy) continue;
+      upd.run(best.priceJpy, best.source, best.url, now, best.priceJpy, rate, now, p.id);
+      savingsJpy += p.cost_jpy - best.priceJpy;
+      changed++;
+    }
+  });
+  return { checked: products.length, changed, savingsJpy };
+}
+
+// ---------- Consolidated import shipments (lô) ----------
+
+interface BatchRow {
+  id: number;
+  leg: string;
+  method_id: number | null;
+  zone_id: number | null;
+  label: string;
+  total_weight_g: number;
+  fee: number;
+  fee_raw: number;
+  currency: string;
+  tracking: string;
+  order_ids: string;
+  savings: number;
+  created_at: string;
+}
+
+function rowToBatch(db: DatabaseSync, r: BatchRow): ShipmentBatch {
+  const orderIds = (JSON.parse(r.order_ids) as string[]).filter((x) => typeof x === "string");
+  const numbers = orderIds.length ? (db.prepare(`SELECT id, number FROM orders WHERE id IN (${orderIds.map(() => "?").join(",")})`).all(...orderIds) as unknown as Array<{ id: string; number: number }>) : [];
+  const numOf = new Map(numbers.map((n) => [n.id, n.number]));
+  return {
+    id: r.id,
+    leg: r.leg as ShipmentBatch["leg"],
+    methodId: r.method_id,
+    zoneId: r.zone_id,
+    label: r.label,
+    totalWeightG: r.total_weight_g,
+    fee: r.fee,
+    feeRaw: r.fee_raw,
+    currency: r.currency,
+    tracking: r.tracking,
+    orderIds,
+    orderNumbers: orderIds.map((id) => numOf.get(id) ?? 0),
+    savings: r.savings,
+    createdAt: r.created_at,
+  };
+}
+
+export async function createShipmentBatch(input: Omit<ShipmentBatch, "id" | "createdAt" | "orderNumbers">): Promise<ShipmentBatch> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const res = db
+    .prepare("INSERT INTO shipment_batches (leg, method_id, zone_id, label, total_weight_g, fee, fee_raw, currency, tracking, order_ids, savings, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(input.leg, input.methodId, input.zoneId, input.label, input.totalWeightG, input.fee, input.feeRaw, input.currency, input.tracking, JSON.stringify(input.orderIds), input.savings, now);
+  const row = db.prepare("SELECT * FROM shipment_batches WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as BatchRow;
+  return rowToBatch(db, row);
+}
+
+export async function listShipmentBatches(limit = 20): Promise<ShipmentBatch[]> {
+  const db = getDb();
+  return (db.prepare("SELECT * FROM shipment_batches ORDER BY id DESC LIMIT ?").all(limit) as unknown as BatchRow[]).map((r) => rowToBatch(db, r));
+}
+
+/** Tracking of a batch → the same leg of every order in it. */
+export async function setBatchTracking(id: number, tracking: string): Promise<ShipmentBatch | null> {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM shipment_batches WHERE id = ?").get(id) as unknown as BatchRow | undefined;
+  if (!row) return null;
+  const now = new Date().toISOString();
+  db.prepare("UPDATE shipment_batches SET tracking = ? WHERE id = ?").run(tracking, id);
+  const b = rowToBatch(db, { ...row, tracking });
+  const upd = db.prepare("UPDATE order_legs SET tracking = ?, updated_at = ? WHERE order_id = ? AND leg = ?");
+  for (const oid of b.orderIds) upd.run(tracking, now, oid, b.leg);
+  return b;
+}
+
+export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
+  if (!ids.length) return [];
+  const all = await getOrders();
+  const set = new Set(ids);
+  return all.filter((o) => set.has(o.id));
 }

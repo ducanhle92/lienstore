@@ -4,9 +4,11 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
 import { effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
+import { costSourceLabel, sourceFromUrl } from "@/lib/cost-sources";
+import { CostSourcesEditor } from "./CostSourcesEditor";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
-import type { CatalogProduct, ShopCategory } from "@/types/shop";
+import type { CatalogProduct, CostSource, ShopCategory } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { ProductImageManager } from "./ProductImageManager";
@@ -15,6 +17,10 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 interface ProductFormProps {
   product?: CatalogProduct;
   categories: ShopCategory[];
+  /** Japanese price quotes per purchase source (existing products). */
+  costSources?: CostSource[];
+  /** Preferred purchase source (Công thức giá › Nguồn mua hàng). */
+  defaultSource?: string;
   /** Import-leg methods + ¥ rate and margin % for the suggested selling price (Kho hàng › Công thức giá). */
   quote?: ShippingQuoteConfig;
   pricing?: PricingConfig;
@@ -36,7 +42,10 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon" }: ProductFormProps) {
+  // rows of the ¥ editor: saved sources, or the legacy single price of the product
+  const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl }] : [];
+  const costPrimary = Math.max(0, costDrafts.findIndex((c) => product?.costJpy !== null && product?.costJpy !== undefined && Number(c.priceJpy) === product.costJpy && (!product.costSource || c.source === product.costSource)));
   const [state, action, pending] = useActionState<ProductFormState, FormData>(saveProductAction, null);
   const [priceText, setPriceText] = useState(String(product?.price ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
@@ -140,16 +149,16 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <FieldError msg={fields.regularPrice} />
               </div>
               <div>
-                <label className={adminLabel} htmlFor="costJpy">
-                  Giá vốn (円 — giá tại Nhật)
-                </label>
-                <div className="flex gap-2">
-                  <input id="costJpy" name="costJpy" inputMode="numeric" defaultValue={product?.costJpy ?? ""} placeholder="VD: 1980" className={cn(adminInput, "!w-[140px]", fields.costJpy && "border-red-500")} />
-                  <input name="costUrl" type="url" defaultValue={product?.costUrl ?? ""} placeholder="Link giá (Amazon / Rakuten / hãng)" className={adminInput} />
-                </div>
-                <FieldError msg={fields.costJpy} />
+                <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>
+                <CostSourcesEditor
+                  initial={costDrafts}
+                  primaryIndex={costPrimary}
+                  defaultSource={defaultSource}
+                  error={fields.costJpy}
+                />
                 <p className="mt-1 text-[12px] leading-4 text-lien-muted">
-                  Có giá ¥ thì giá vốn VNĐ bên dưới được tính lại mỗi đêm theo tỉ giá (Kho hàng › Công thức giá).{product?.costSource ? ` Nguồn: ${product.costSource}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
+                  Nhập giá ở từng nguồn (Amazon, Rakuten, web hãng…); nút tròn chọn giá dùng làm giá vốn. Giá vốn VNĐ bên dưới tính lại mỗi đêm theo tỉ giá (Kho hàng › Công thức giá); nút &quot;Tối ưu&quot; ở đó tự chuyển sang nguồn rẻ nhất.
+                  {product?.costSource ? ` Nguồn hiện tại: ${costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
                 </p>
               </div>
               <div>

@@ -736,6 +736,42 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE shipping_carriers SET note = REPLACE(REPLACE(note, 'Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221)', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)'), 'Chiba-ken, Tomisato-shi, Nanae 880-34', '〒270-0145 千葉県流山市名都借 827-3 1F (Chiba-ken, Nagareyama-shi, Nazukari)') WHERE note LIKE '%Tomisato%'`,
     ],
   },
+  {
+    // Several ¥ purchase sources per product (Amazon / Rakuten / brand…) + consolidated import shipments ("lô").
+    version: 35,
+    name: "cost-sources-batches",
+    up: [
+      `CREATE TABLE IF NOT EXISTS product_cost_sources (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        source     TEXT NOT NULL DEFAULT 'manual',
+        price_jpy  INTEGER NOT NULL,
+        url        TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        checked_at TEXT,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_pcs_product ON product_cost_sources(product_id)`,
+      `INSERT INTO product_cost_sources (product_id, source, price_jpy, url, checked_at, created_at)
+        SELECT id, CASE WHEN cost_source = '' OR cost_source IS NULL THEN 'manual' ELSE cost_source END, cost_jpy, COALESCE(cost_url, ''), cost_checked_at, strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0`,
+      `CREATE TABLE IF NOT EXISTS shipment_batches (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        leg            TEXT NOT NULL,
+        method_id      INTEGER,
+        zone_id        INTEGER,
+        label          TEXT NOT NULL DEFAULT '',
+        total_weight_g INTEGER NOT NULL,
+        fee            INTEGER NOT NULL,
+        fee_raw        REAL NOT NULL,
+        currency       TEXT NOT NULL DEFAULT 'đ',
+        tracking       TEXT NOT NULL DEFAULT '',
+        order_ids      TEXT NOT NULL,
+        savings        INTEGER NOT NULL DEFAULT 0,
+        created_at     TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

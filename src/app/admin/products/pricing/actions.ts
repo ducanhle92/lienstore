@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories, getImportQuoteConfig, getPricingConfig, getShippingMethods, setPricingConfig, setQuoteDefaults, updateProductPricing } from "@/lib/db";
+import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, getPurchaseSourceDefault, getShippingMethods, optimizeCostSources, setPricingConfig, setPurchaseSourceDefault, setQuoteDefaults, updateProductPricing } from "@/lib/db";
+import { COST_SOURCE_LABEL, isCostSourceKind } from "@/lib/cost-sources";
 import { IMPORT_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { MARGIN_RANGE } from "@/lib/pricing";
 import { refreshDcomRate, runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
@@ -13,17 +14,34 @@ const PAGE = "/admin/products/pricing/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (key: "saved" | "error", msg: string): never => redirect(`${PAGE}?${key}=${encodeURIComponent(msg)}`);
 
-/** Margin % and rounding step of the selling-price formula. */
+/** Rounding step of the selling-price formula (the margins are saved by saveCategoryMarginAction). */
 export async function savePricingConfigAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
-  const marginPct = Number.parseFloat(text(formData, "marginPct").replace(",", "."));
-  if (!Number.isFinite(marginPct) || marginPct < MARGIN_RANGE.min || marginPct > MARGIN_RANGE.max) back("error", `Lãi % phải là số từ ${MARGIN_RANGE.min} đến ${MARGIN_RANGE.max}.`);
   const roundTo = Number.parseInt(text(formData, "roundTo"), 10);
   if (![1, 100, 500, 1000, 5000, 10000].includes(roundTo)) back("error", "Bước làm tròn không hợp lệ.");
   const cur = await getPricingConfig();
-  await setPricingConfig({ ...cur, marginPct: Math.round(marginPct * 10) / 10, roundTo });
+  await setPricingConfig({ ...cur, roundTo });
   revalidatePath("/admin/products/", "layout");
-  back("saved", `Đã lưu công thức: giá vốn về VN × (1 + ${marginPct}%), làm tròn lên ${roundTo.toLocaleString("vi-VN")}đ.`);
+  back("saved", `Đã lưu: giá kỳ vọng làm tròn lên ${roundTo === 1 ? "không làm tròn" : `${roundTo.toLocaleString("vi-VN")}đ`}.`);
+}
+
+/** Nguồn mua hàng: preferred source. */
+export async function savePurchaseSourceAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const v = text(formData, "source");
+  if (!isCostSourceKind(v)) back("error", "Nguồn mua không hợp lệ.");
+  await setPurchaseSourceDefault(v);
+  revalidatePath("/admin", "layout");
+  back("saved", `Đã đặt nguồn mua mặc định: ${COST_SOURCE_LABEL[v as keyof typeof COST_SOURCE_LABEL]}.`);
+}
+
+/** "Tối ưu giá vốn theo nguồn rẻ nhất" — every product switches to its cheapest ¥ quote; VND cost follows the rate. */
+export async function optimizeCostSourcesAction(): Promise<void> {
+  await requireAdmin("products");
+  const [rate, preferred] = await Promise.all([getJpyRate(), getPurchaseSourceDefault()]);
+  const r = await optimizeCostSources(rate, preferred);
+  revalidatePath("/", "layout");
+  back("saved", `Đã tối ưu: ${r.changed}/${r.checked} sản phẩm chuyển sang nguồn rẻ hơn, tiết kiệm ${r.savingsJpy.toLocaleString("vi-VN")}¥ ≈ ${Math.round(r.savingsJpy * rate).toLocaleString("vi-VN")}đ giá vốn.`);
 }
 
 /** Tham số chi phí vận chuyển: default carrier per import leg + the consolidated lot size. */
@@ -53,12 +71,17 @@ export async function saveCostParamsAction(formData: FormData): Promise<void> {
 export async function saveCategoryMarginAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
   const slug = text(formData, "subcategory") || text(formData, "category");
-  const cats = await getCategories();
-  const cat = cats.find((c) => c.slug === slug);
-  if (!cat) return back("error", "Chọn danh mục.");
   const pct = Number.parseFloat(text(formData, "pct").replace(",", "."));
   if (!Number.isFinite(pct) || pct < MARGIN_RANGE.min || pct > MARGIN_RANGE.max) back("error", `Tỉ lệ lãi kỳ vọng phải là số từ ${MARGIN_RANGE.min} đến ${MARGIN_RANGE.max}.`);
   const cur = await getPricingConfig();
+  if (slug === "__all__") {
+    await setPricingConfig({ ...cur, marginPct: Math.round(pct * 10) / 10 });
+    revalidatePath("/admin/products/", "layout");
+    return back("saved", `Đã đặt tỉ lệ lãi kỳ vọng mặc định ${pct}% cho tất cả sản phẩm (danh mục / sản phẩm có tỉ lệ riêng vẫn giữ).`);
+  }
+  const cats = await getCategories();
+  const cat = cats.find((c) => c.slug === slug);
+  if (!cat) return back("error", "Chọn danh mục.");
   await setPricingConfig({ ...cur, marginByCategory: { ...cur.marginByCategory, [slug]: Math.round(pct * 10) / 10 } });
   revalidatePath("/admin/products/", "layout");
   back("saved", `Đã đặt tỉ lệ lãi kỳ vọng ${pct}% cho danh mục "${cat.name}".`);
