@@ -21,7 +21,16 @@ interface NavGroup extends NavLeaf {
 }
 
 const NAV: NavGroup[] = [
-  { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
+  {
+    href: "/admin/",
+    label: "Tổng quan",
+    icon: "tachometer",
+    children: [
+      { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
+      { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
+      { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
+    ],
+  },
   {
     href: "/admin/products/",
     label: "Kho hàng",
@@ -45,8 +54,6 @@ const NAV: NavGroup[] = [
       { href: "/admin/promotions/vouchers/", label: "Voucher", icon: "gift", module: "promotions" },
       { href: "/admin/promotions/shipping-policy/", label: "Chính sách vận chuyển", icon: "truck", module: "promotions" },
       { href: "/admin/reviews/", label: "Đánh giá", icon: "star", module: "reviews" },
-      { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
-      { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
     ],
   },
   {

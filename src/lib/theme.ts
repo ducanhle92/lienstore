@@ -39,7 +39,7 @@ export const THEME_COLOR_LABELS: Record<ThemeColorKey, string> = {
 export const THEME_PRESETS: Record<"red" | "green", { label: string; colors: ThemeColors }> = {
   red: {
     label: "Đỏ – trắng – hồng (logo Store Lienanh)",
-    colors: { primary: "#d22b26", primaryHover: "#b01f1b", soft: "#fdecee", accent: "#f5a9bc", header: "#d22b26", footer: "#7f1512", topbar: "#6a100e", price: "#b01f1b" },
+    colors: { primary: "#d3322a", primaryHover: "#b3251f", soft: "#fdecee", accent: "#f6a2b6", header: "#d3322a", footer: "#7f1512", topbar: "#6a100e", price: "#b3251f" },
   },
   green: {
     label: "Xanh lá (giao diện cũ)",
@@ -60,8 +60,8 @@ export const DEFAULT_THEME: SiteTheme = {
   colors: { ...THEME_PRESETS.red.colors },
 };
 
-/** Logo artwork is 800×360 (Store Lienanh); the header scales it by width. */
-export const LOGO_RATIO = { width: 800, height: 360 };
+/** Logo artwork is 800×388 (owner's "Store Lienanh" files, see scripts/brand/original); the header scales it by width. */
+export const LOGO_RATIO = { width: 800, height: 388 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -83,10 +83,14 @@ export function parseTheme(raw: string | null | undefined): SiteTheme {
   if (!raw) return { ...DEFAULT_THEME, colors: { ...DEFAULT_THEME.colors } };
   try {
     const o = JSON.parse(raw) as Partial<SiteTheme> & { colors?: Partial<ThemeColors> };
-    const colors: ThemeColors = { ...DEFAULT_THEME.colors };
-    for (const k of Object.keys(colors) as ThemeColorKey[]) {
-      const v = o.colors?.[k];
-      if (isHexColor(v)) colors[k] = v.toLowerCase();
+    const preset: SiteTheme["preset"] = o.preset === "green" || o.preset === "custom" || o.preset === "red" ? o.preset : "custom";
+    // a saved preset follows the preset's current colours (so brand tweaks reach every deployment); only "custom" keeps stored values
+    const colors: ThemeColors = preset === "custom" ? { ...DEFAULT_THEME.colors } : { ...THEME_PRESETS[preset].colors };
+    if (preset === "custom") {
+      for (const k of Object.keys(colors) as ThemeColorKey[]) {
+        const v = o.colors?.[k];
+        if (isHexColor(v)) colors[k] = v.toLowerCase();
+      }
     }
     return {
       shopName: typeof o.shopName === "string" && o.shopName.trim() ? o.shopName.trim().slice(0, 60) : DEFAULT_THEME.shopName,
@@ -95,7 +99,7 @@ export function parseTheme(raw: string | null | undefined): SiteTheme {
       logoLight: isPath(o.logoLight) ? o.logoLight : DEFAULT_THEME.logoLight,
       icon: isPath(o.icon) ? o.icon : DEFAULT_THEME.icon,
       ogImage: isPath(o.ogImage) ? o.ogImage : DEFAULT_THEME.ogImage,
-      preset: o.preset === "green" || o.preset === "custom" || o.preset === "red" ? o.preset : "custom",
+      preset,
       colors,
     };
   } catch {

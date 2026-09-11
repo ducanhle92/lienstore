@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Store Lienanh — web assets</title>
+<style>
+body{margin:0;background:#F6F7F9;font:14px/1.5 Inter,system-ui,sans-serif;color:#14151A;padding:32px}
+h1{font-size:20px;margin:0 0 4px}p.sub{margin:0 0 28px;color:#6B7280}
+section{background:#fff;border:1px solid #E5E7EB;border-radius:16px;padding:22px;margin-bottom:18px}
+h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;margin:0 0 16px}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end}
+.cell{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.cap{font:11px ui-monospace,Menlo,monospace;color:#6B7280}
+.chk{background:linear-gradient(45deg,#eee 25%,transparent 25%),linear-gradient(-45deg,#eee 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eee 75%),linear-gradient(-45deg,transparent 75%,#eee 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+pre{background:#14151A;color:#F6F7F9;padding:16px;border-radius:10px;overflow:auto;font:12px/1.6 ui-monospace,Menlo,monospace;margin:0}
+</style></head><body>
+<h1>Store Lienanh — bộ file cho web &amp; web app</h1>
+<p class="sub">Cắt trực tiếp từ 2 file gốc của bạn, không thiết kế lại.</p>
+
+<section><h2>Logo ngang</h2><div class="row">
+<div class="cell"><img src="logo-light-400.png" width="300"><span class="cap">logo-light-1600 / 800 / 400.png — nền trắng</span></div>
+<div class="cell"><img src="logo-dark-400.png" width="300"><span class="cap">logo-dark-1600 / 800 / 400.png — nền đỏ</span></div>
+<div class="cell chk"><img src="logo-transparent-400.png" width="300"><span class="cap">logo-transparent-1600 / 800 / 400.png — nền trong suốt</span></div>
+</div></section>
+
+<section><h2>Icon ứng dụng &amp; favicon</h2><div class="row">
+<div class="cell"><img src="icon-512.png" width="96"><span class="cap">icon-512.png</span></div>
+<div class="cell"><img src="icon-192.png" width="64"><span class="cap">icon-192.png</span></div>
+<div class="cell"><img src="icon-180.png" width="48"><span class="cap">icon-180.png (apple-touch)</span></div>
+<div class="cell"><img src="icon-48.png" width="48"><span class="cap">icon-48.png</span></div>
+<div class="cell"><img src="icon-32.png" width="32"><span class="cap">icon-32.png</span></div>
+<div class="cell"><img src="icon-16.png" width="16"><span class="cap">icon-16.png</span></div>
+<div class="cell chk"><img src="icon-round-192.png" width="64"><span class="cap">icon-round-512 / 192.png</span></div>
+</div></section>
+
+<section><h2>Ảnh chia sẻ mạng xã hội</h2><div class="row">
+<div class="cell"><img src="og-image-1200x630.png" width="420"><span class="cap">og-image-1200x630.png</span></div>
+</div></section>
+
+<section><h2>Cách nhúng</h2>
+<pre>&lt;link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png"&gt;
+&lt;link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png"&gt;
+&lt;link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png"&gt;
+&lt;link rel="manifest" href="/site.webmanifest"&gt;
+&lt;meta property="og:image" content="/og-image-1200x630.png"&gt;
+
+&lt;!-- logo trên header --&gt;
+&lt;img src="/logo-transparent-800.png" alt="Store Lienanh" width="200" height="96"&gt;</pre>
+</section>
+</body></html>

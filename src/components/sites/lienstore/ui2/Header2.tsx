@@ -219,7 +219,12 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
             title={customer ? `${customer.lastName} ${customer.firstName}`.trim() || customer.username : t("login")}
             className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white hover:bg-white/15")}
           >
-            <Fa name={customer ? "user-circle" : "user"} />
+            {customer?.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- customer upload served from /api/files
+              <img src={customer.avatar} alt="" className="h-8 w-8 rounded-full border-2 border-white/80 object-cover" />
+            ) : (
+              <Fa name={customer ? "user-circle" : "user"} />
+            )}
             {customer ? <span className="absolute right-1 bottom-1 h-2.5 w-2.5 rounded-full border-2 border-lien-header bg-lien-amber" aria-hidden="true" /> : null}
           </button>
           <Link href="/wishlist/" aria-label={t("wishlist")} className="relative flex h-10 w-10 items-center justify-center rounded-full text-[20px] text-white no-underline hover:bg-white/15">

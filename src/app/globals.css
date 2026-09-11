@@ -358,28 +358,28 @@
   --radius: 0.25rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #191919;
-  --sidebar-primary: #d22b26;
+  --sidebar-primary: #d3322a;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #fdecee;
   --sidebar-accent-foreground: #191919;
   --sidebar-border: #fdecee;
-  --sidebar-ring: #f5a9bc;
+  --sidebar-ring: #f6a2b6;
 
   /* lienstore specific values */
   --lien-page: #ffffff;
   /* Defaults = "Đỏ – trắng – hồng" preset (Store Lienanh logo). The root layout overrides these from Admin › Giao diện & Logo. */
-  --lien-header: #d22b26; /* red header bar */
-  --lien-blue: #d22b26; /* brand red, primary actions (token name kept for compatibility) */
-  --lien-blue-hover: #b01f1b; /* darker red for hover */
+  --lien-header: #d3322a; /* red header bar */
+  --lien-blue: #d3322a; /* brand red, primary actions (token name kept for compatibility) */
+  --lien-blue-hover: #b3251f; /* darker red for hover */
   --lien-blue-soft: #fdecee; /* pink-tinted backgrounds (tabs, pagination, payment box) */
-  --lien-blue-ring: #f5a9bc; /* sakura pink hover ring */
+  --lien-blue-ring: #f6a2b6; /* sakura pink hover ring */
   --lien-cream: #f5f5f5; /* header / utility bar tint (neutral light grey, iHerb-like) */
   --lien-footer2: #f7f7f7; /* light footer / tiles */
   --lien-sale: #ff4e00; /* discount badge */
   --lien-sale-text: #ec0101; /* sale price */
   --lien-amber: #ffb83a; /* register CTA */
   --lien-info: #1878b9; /* "New" label */
-  --lien-price: #b01f1b; /* regular price (deep red) */
+  --lien-price: #b3251f; /* regular price (deep red) */
   --lien-success: #228b22;
   --lien-text: #222222;
   --lien-muted: #6b7280;
@@ -394,7 +394,7 @@
   --lien-hr: #fdecee;
   --lien-hr-border: #ededed;
   --lien-price-track: #fdecee;
-  --lien-price-progress: #d22b26;
+  --lien-price-progress: #d3322a;
   --lien-facebook: #3b5998; /* rgb(59,89,152) */
   --lien-heart: #e82016; /* rgb(232,32,22) */
   --lien-card-shadow: #dddddd;
@@ -404,7 +404,7 @@
   --lien-toggle: #1a1a1a; /* mobile Menu button */
   --lien-header-border: #e5e5e5;
   --lien-search-icon: #d9d9d9;
-  --lien-footer-hover: #f5a9bc; /* sakura pink accent on dark */
+  --lien-footer-hover: #f6a2b6; /* sakura pink accent on dark */
 }
 
 .dark {
