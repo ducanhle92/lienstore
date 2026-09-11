@@ -8,6 +8,8 @@ interface ProductGalleryProps {
   images: string[];
   alt: string;
   className?: string;
+  /** Shop logo stamped bottom-right on every picture (deters copying); the stored files stay clean. */
+  watermark?: string | null;
 }
 
 const ZOOM = 2.25; // 547px image → 900px source, like WP Image Zoom's "window" mode
@@ -19,7 +21,7 @@ const WINDOW = { w: 400, h: 360 };
  * width below 768px. A single image renders alone; several images add a 4-column thumbnail row.
  * Hovering the main image shows a lens and a zoom window to the right (WP Image Zoooom plugin).
  */
-export function ProductGallery({ images, alt, className }: ProductGalleryProps) {
+export function ProductGallery({ images, alt, className, watermark = null }: ProductGalleryProps) {
   const [index, setIndex] = useState(0);
   const [lens, setLens] = useState<{ x: number; y: number; w: number; h: number; size: number } | null>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -63,6 +65,10 @@ export function ProductGallery({ images, alt, className }: ProductGalleryProps) 
               />
             ))}
           </a>
+          {watermark ? (
+            // eslint-disable-next-line @next/next/no-img-element -- theme logo, plain img keeps the overlay light
+            <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-5 bottom-5 z-[5] w-[22%] max-w-[120px] select-none opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />
+          ) : null}
           {lens ? (
             <>
               <div className="zoomTint pointer-events-none absolute inset-0 bg-black/10" aria-hidden="true" />
@@ -101,7 +107,13 @@ export function ProductGallery({ images, alt, className }: ProductGalleryProps) 
                       active ? "border-lien-blue" : "border-transparent hover:border-lien-blue/50",
                     )}
                   >
-                    <Image src={src} alt="" width={100} height={100} className="block h-full w-full object-contain" />
+                    <span className="relative block h-full w-full">
+                      <Image src={src} alt="" width={100} height={100} className="block h-full w-full object-contain" />
+                      {watermark ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- theme logo overlay
+                        <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-1 bottom-1 w-[34%] select-none opacity-80" />
+                      ) : null}
+                    </span>
                   </button>
                 </li>
               );

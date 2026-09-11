@@ -228,8 +228,17 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 ) : null}
               </div>
               <div>
+                <label className={adminLabel} htmlFor="fulfillment">
+                  Hình thức
+                </label>
+                <select id="fulfillment" name="fulfillment" defaultValue={product?.fulfillment ?? (product?.stock !== null && product?.stock !== undefined ? "stock" : "order")} className={adminInput}>
+                  <option value="stock">Lưu kho — có sẵn tại kho Việt Nam</option>
+                  <option value="order">Order — mua tại Nhật khi có đơn (khách thanh toán trước)</option>
+                </select>
+              </div>
+              <div>
                 <label className={adminLabel} htmlFor="stock">
-                  Tồn kho (để trống = không theo dõi)
+                  Trạng thái tồn kho — số lượng <span className="font-normal text-lien-muted">(để trống = không theo dõi)</span>
                 </label>
                 <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? ""} className={cn(adminInput, fields.stock && "border-red-500")} />
                 <FieldError msg={fields.stock} />

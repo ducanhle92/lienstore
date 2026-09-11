@@ -31,7 +31,7 @@ export default async function Checkout() {
     .filter((m) => m.live || m.zones.length > 0);
   const zones: CheckoutZone[] = vnMethods.flatMap((m) => m.zones);
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
-  const preorderIds = products.filter((p) => p.stock === null || p.stock <= 0).map((p) => p.id);
+  const preorderIds = products.filter((p) => p.fulfillment === "order" || p.stock === null || p.stock <= 0).map((p) => p.id);
   // Billable grams per product: max(actual, volumetric) × safety factor by confidence (500 g × 2 when unknown).
   const weights: Record<number, number> = {};
   for (const p of products) weights[p.id] = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);

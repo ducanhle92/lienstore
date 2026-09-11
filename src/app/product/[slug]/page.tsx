@@ -11,7 +11,7 @@ import { ProductTabs } from "@/components/sites/lienstore/shop/product/ProductTa
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShipPolicy, getShippingMethods } from "@/lib/db";
+import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShipPolicy, getShippingMethods, getSiteTheme } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
@@ -89,7 +89,7 @@ export default async function ProductPage({ params }: PageProps) {
       <main id="main" className="mx-auto max-w-[1300px] px-4 py-6">
         <ProductPageNotice product={toCartProduct(product)} />
         <div id={`product-${product.id}`} className="product type-product grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
-          <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" />
+          <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" watermark={(await getSiteTheme()).logoLight} />
           <ProductInfo2 product={product} categoryNames={categoryNames}>
             <ProductMeta product={product} categoryNames={categoryNames} />
             <ProductShare name={product.name} slug={product.slug} />

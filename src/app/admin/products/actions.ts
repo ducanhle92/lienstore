@@ -106,6 +106,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     sku: get("sku") || null,
     stock,
     stockStatus: outOfStock ? "outofstock" : "instock",
+    fulfillment: get("fulfillment") === "stock" ? "stock" : "order",
     categories,
     tags,
     images: images.length ? images : [thumb],

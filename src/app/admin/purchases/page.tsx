@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
+import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -175,7 +176,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
               </button>
               <span className="text-lien-muted">Mua trên web tự chuyển sang &quot;Đã mua&quot;? Chưa — admin đánh dấu tay sau khi đặt xong tại Nhật.</span>
             </div>
-            <div className="overflow-x-auto">
+            <ResizableTable id="purchases">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -202,7 +203,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ResizableTable>
           </form>
         )}
         {view !== "product"

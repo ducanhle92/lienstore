@@ -659,6 +659,15 @@ export const MIGRATIONS: Migration[] = [
           WHEN 'delivered' THEN 'delivered' WHEN 'delivering' THEN 'shipped_to_customer' WHEN 'vn_warehouse' THEN 'at_shop' WHEN 'in_transit' THEN 'shipped_jp_vn' ELSE 'not_bought' END`,
     ],
   },
+  {
+    // How a product is sold: kept in stock in Vietnam ("stock") or bought in Japan per order ("order").
+    version: 30,
+    name: "product-fulfillment",
+    up: [
+      `ALTER TABLE products ADD COLUMN fulfillment TEXT NOT NULL DEFAULT 'order'`,
+      `UPDATE products SET fulfillment = CASE WHEN stock IS NOT NULL THEN 'stock' ELSE 'order' END`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

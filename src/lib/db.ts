@@ -70,6 +70,7 @@ interface ProductRow {
   sku: string | null;
   stock: number | null;
   stock_status: "instock" | "outofstock";
+  fulfillment: string | null;
   tags: string;
   images: string;
   thumb: string;
@@ -118,6 +119,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     sku: r.sku,
     stock: r.stock,
     stockStatus: r.stock_status,
+    fulfillment: r.fulfillment === "stock" ? "stock" : "order",
     categories: parseArr(r.categories),
     tags: parseArr(r.tags),
     images: parseArr(r.images),
@@ -382,7 +384,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
     if (id) {
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
-      db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?,
+      db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
         tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?, name_ja = ?, short_description_ja = ?, description_ja = ?
         WHERE id = ?`).run(
         input.slug,
@@ -396,6 +398,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.sku,
         input.stock,
         input.stockStatus,
+        input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,
@@ -417,9 +420,9 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
-      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, tags, images, thumb,
+      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, tags, images, thumb,
         short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
@@ -431,6 +434,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.sku,
         input.stock,
         input.stockStatus,
+        input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,

@@ -2,6 +2,8 @@ import type { PurchaseStatus } from "@/lib/purchase";
 // Shop / commerce types for the linconnn.io.vn clone.
 
 export type StockStatus = "instock" | "outofstock";
+/** "stock" = kept at the Vietnam warehouse · "order" = bought in Japan when ordered (prepaid). */
+export type Fulfillment = "stock" | "order";
 
 export interface CatalogProduct {
   id: number;
@@ -33,6 +35,7 @@ export interface CatalogProduct {
   /** Units in stock; null = not tracked. */
   stock: number | null;
   stockStatus: StockStatus;
+  fulfillment: Fulfillment;
   /** Category slugs. */
   categories: string[];
   tags: string[];
