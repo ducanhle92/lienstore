@@ -16,7 +16,7 @@ export function isShippingLeg(v: unknown): v is ShippingLeg {
 }
 
 /** Zones whose unit is per kilogram ("/kg", "đ/kg"…). */
-export function isPerKg(zone: ShippingZone): boolean {
+export function isPerKg(zone: Pick<ShippingZone, "unit">): boolean {
   return /kg/i.test(zone.unit);
 }
 
@@ -25,11 +25,26 @@ export function billableKg(weightG: number): number {
   return Math.max(1, Math.ceil(weightG / 1000));
 }
 
-/** Estimated fee of one zone for a product weight (null when the zone is not weight-based). */
+/** Zone priced as "first N g, then X per started M g" (the way Vietnamese carriers publish their tariffs). */
+export function isTiered(zone: Pick<ShippingZone, "baseG" | "stepG" | "stepFee">): boolean {
+  return zone.baseG !== null && zone.stepG !== null && zone.stepFee !== null && zone.stepG > 0;
+}
+
+/** Fee of a zone for a billable weight: weight steps, per-kg, or flat per order. */
+export function zoneFeeForWeight(zone: Pick<ShippingZone, "fee" | "unit" | "baseG" | "stepG" | "stepFee">, weightG: number): number {
+  if (isTiered(zone)) {
+    const extra = Math.max(0, weightG - (zone.baseG as number));
+    return zone.fee + Math.ceil(extra / (zone.stepG as number)) * (zone.stepFee as number);
+  }
+  if (isPerKg(zone)) return zone.fee * billableKg(weightG);
+  return zone.fee;
+}
+
+/** Estimated fee of one zone for a product weight (null when the zone is a flat per-order price). */
 export function estimateZoneFee(zone: ShippingZone, weightG: number | null): number | null {
   if (weightG === null || weightG <= 0) return null;
-  if (!isPerKg(zone)) return null;
-  return zone.fee * billableKg(weightG);
+  if (!isTiered(zone) && !isPerKg(zone)) return null;
+  return zoneFeeForWeight(zone, weightG);
 }
 
 /** Cheapest weight-based estimate across a method's active zones. */
@@ -99,6 +114,9 @@ export interface QuoteZone {
   name: string;
   fee: number;
   unit: string;
+  baseG: number | null;
+  stepG: number | null;
+  stepFee: number | null;
   freeOver: number | null;
   /** Upper weight bound parsed from the name ("≤ 5 kg", "Size 80 (≤5 kg)"), null when the zone is not weight-tiered. */
   capKg: number | null;
@@ -146,7 +164,7 @@ export function buildQuoteConfig(methods: ShippingMethod[], mode: ShippingPricin
       name: m.name,
       carrierName: m.carrierName ?? null,
       currency: m.currency,
-      zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
+      zones: m.zones.filter((z) => z.active).map((z) => ({ id: z.id, name: z.name, fee: z.fee, unit: z.unit, baseG: z.baseG, stepG: z.stepG, stepFee: z.stepFee, freeOver: z.freeOver, capKg: zoneCapKg(z.name) })),
     };
   };
   return { mode, jpyRate, jpDomestic: pick("jp_domestic"), jpVn: pick("jp_vn") };
@@ -159,9 +177,8 @@ export function quoteMethod(m: QuoteMethod, leg: ShippingLeg, weightG: number, s
   const tiered = m.zones.filter((z) => z.capKg !== null).sort((a, b) => (a.capKg ?? 0) - (b.capKg ?? 0));
   let zone = tiered.find((z) => (z.capKg ?? 0) >= weightG / 1000) ?? (tiered.length ? tiered[tiered.length - 1] : m.zones[0]);
   if (!tiered.length) zone = m.zones.find((z) => /kg/i.test(z.unit)) ?? m.zones[0];
-  const perKg = /kg/i.test(zone.unit);
   const isJpy = /¥|jpy|yen/i.test(m.currency);
-  let raw = zone.fee * (perKg ? kg : 1);
+  let raw = isTiered(zone) ? zoneFeeForWeight(zone, weightG) : zone.fee * (/kg/i.test(zone.unit) ? kg : 1);
   if (!isJpy && zone.freeOver !== null && subtotal >= zone.freeOver) raw = 0;
   const fee = isJpy ? Math.round(raw * jpyRate) : raw;
   return {

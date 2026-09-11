@@ -4,7 +4,7 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getJpyRate, getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
+import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode } from "@/lib/db";
 import { buildQuoteConfig } from "@/lib/shipping";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
@@ -56,6 +56,15 @@ function ZoneRow({ zone, methodId, currency, tab }: { zone: ShippingZone | null;
           <input name="fee" form={id} defaultValue={zone ? formatAmount(zone.fee) : ""} inputMode="numeric" placeholder="0" className={`${small} w-[110px]`} aria-label="Phí" />
           <span className="text-[12px] text-lien-muted">{currency}</span>
           <input name="unit" form={id} defaultValue={zone?.unit ?? ""} placeholder="/kg" className={`${small} w-16`} aria-label="Đơn vị" title="Để trống = phí cho cả đơn; /kg = theo từng kg (dùng để ước tính theo khối lượng sản phẩm)" />
+        </div>
+      </td>
+      <td className={cell}>
+        <div className="flex items-center gap-1" title="Cách tính của hãng: phí trên áp cho N g đầu, mỗi M g tiếp theo cộng thêm X đ. Để trống cả ba = phí cố định (hoặc /kg nếu đơn vị là /kg).">
+          <input name="baseG" form={id} type="number" defaultValue={zone?.baseG ?? ""} placeholder="g đầu" className={`${small} w-[70px]`} aria-label="Gram đầu" />
+          <span className="text-[11px] text-lien-muted">+</span>
+          <input name="stepFee" form={id} defaultValue={amt(zone?.stepFee ?? null)} inputMode="numeric" placeholder="đ" className={`${small} w-[80px]`} aria-label="Phí mỗi nấc" />
+          <span className="text-[11px] text-lien-muted">/</span>
+          <input name="stepG" form={id} type="number" defaultValue={zone?.stepG ?? ""} placeholder="g" className={`${small} w-[64px]`} aria-label="Gram mỗi nấc" />
         </div>
       </td>
       <td className={cell}>
@@ -184,7 +193,8 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
                 <th className="px-2 py-2">#</th>
                 <th className="px-2 py-2">Tên cột</th>
                 <th className="px-2 py-2">Phí · đơn vị</th>
-                <th className="px-2 py-2">Miễn phí trên</th>
+                <th className="px-2 py-2">Nấc cân (g đầu + đ / g)</th>
+                <th className="px-2 py-2">Shop hỗ trợ từ</th>
                 <th className="px-2 py-2">{m.extraLabel || "Phụ phí"} · miễn trên</th>
                 <th className="px-2 py-2">Khu vực / điều kiện</th>
                 <th className="px-2 py-2">Thời gian</th>
@@ -398,6 +408,7 @@ export default async function AdminShipping({ searchParams }: Props) {
   const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate);
   const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
   const legMap = await getOrderLegs(orders.map((o) => o.id));
+  const weightMap = new Map(await Promise.all(orders.map(async (o) => [o.id, await getOrderChargeableWeightG(o.id)] as const)));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
   const tabParam = first(sp.leg);
   const tab: ShippingLeg | "display" | "" = tabParam === "display" ? "display" : isShippingLeg(tabParam) ? tabParam : "";
@@ -519,7 +530,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                       </td>
                       {SHIPPING_LEGS.map((l) => (
                         <td key={l.key} className="border-b border-[#f0f0f0] px-2 py-3">
-                          <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" />
+                          <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" weightG={weightMap.get(o.id)} />
                         </td>
                       ))}
                     </tr>

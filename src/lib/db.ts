@@ -26,7 +26,7 @@ import type {
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
-import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode } from "./shipping";
+import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -575,18 +575,17 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       const zone = input.shippingZoneId
         ? (db
             .prepare(
-              `SELECT z.name, z.fee, z.unit, z.free_over, m.name AS method, c.name AS carrier FROM shipping_zones z
+              `SELECT z.name, z.fee, z.unit, z.free_over, z.base_g, z.step_g, z.step_fee, m.name AS method, c.name AS carrier FROM shipping_zones z
                JOIN shipping_methods m ON m.id = z.method_id LEFT JOIN shipping_carriers c ON c.id = m.carrier_id
                WHERE z.id = ? AND z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'`,
             )
-            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; method: string; carrier: string | null } | undefined)
+            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; base_g: number | null; step_g: number | null; step_fee: number | null; method: string; carrier: string | null } | undefined)
         : undefined;
       const anyZone = db.prepare("SELECT 1 FROM shipping_zones z JOIN shipping_methods m ON m.id = z.method_id WHERE z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'").get();
       if (!zone && anyZone) throw new Error("Vui lòng chọn khu vực giao hàng.");
       if (zone) {
-        const perKg = /kg/i.test(zone.unit);
-        const kg = billableKg(weightG || 1000);
-        shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : zone.fee * (perKg ? kg : 1);
+        const base = zoneFeeForWeight({ fee: zone.fee, unit: zone.unit, baseG: zone.base_g, stepG: zone.step_g, stepFee: zone.step_fee }, weightG || 1000);
+        shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : base;
         shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
       } else {
         shippingLabel = "Giao tận nhà (phí báo sau)";
@@ -1509,6 +1508,7 @@ interface ShippingMethodRow {
   leg: string | null;
   carrier_id: number | null;
   carrier_name: string | null;
+  carrier_website: string | null;
   includes_both_ends: number | null;
   warehouse: string | null;
   home_delivery: number | null;
@@ -1541,6 +1541,9 @@ interface ShippingZoneRow {
   eta: string;
   position: number;
   active: number;
+  base_g: number | null;
+  step_g: number | null;
+  step_fee: number | null;
 }
 
 const rowToZone = (r: ShippingZoneRow): ShippingZone => ({
@@ -1549,6 +1552,9 @@ const rowToZone = (r: ShippingZoneRow): ShippingZone => ({
   name: r.name,
   fee: r.fee,
   unit: r.unit,
+  baseG: r.base_g ?? null,
+  stepG: r.step_g ?? null,
+  stepFee: r.step_fee ?? null,
   freeOver: r.free_over,
   extraFee: r.extra_fee,
   extraFreeOver: r.extra_free_over,
@@ -1566,7 +1572,7 @@ export async function getShippingMethods(activeOnly = true): Promise<ShippingMet
 function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMethod[] {
   const where = activeOnly ? "WHERE active = 1" : "";
   const methods = db
-    .prepare(`SELECT m.*, c.name AS carrier_name FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)
+    .prepare(`SELECT m.*, c.name AS carrier_name, c.website AS carrier_website FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id ${where.replace("active", "m.active")} ORDER BY m.position, m.id`)
     .all() as unknown as ShippingMethodRow[];
   const zones = db.prepare(`SELECT * FROM shipping_zones ${where} ORDER BY position, id`).all() as unknown as ShippingZoneRow[];
   return methods.map((m) => ({
@@ -1580,6 +1586,7 @@ function loadShippingMethods(db: DatabaseSync, activeOnly = true): ShippingMetho
     leg: m.leg === "jp_domestic" || m.leg === "vn_domestic" ? m.leg : "jp_vn",
     carrierId: m.carrier_id ?? null,
     carrierName: m.carrier_name ?? null,
+    carrierWebsite: m.carrier_website || null,
     includesBothEnds: (m.includes_both_ends ?? 0) === 1,
     warehouse: m.warehouse ?? "",
     homeDelivery: (m.home_delivery ?? 1) === 1,
@@ -1664,16 +1671,16 @@ export type ShippingZoneInput = Omit<ShippingZone, "id"> & { id?: number };
 
 export async function saveShippingZone(input: ShippingZoneInput): Promise<number> {
   const db = getDb();
-  const args = [input.name, input.fee, input.unit, input.freeOver, input.extraFee, input.extraFreeOver, input.areas, input.eta, input.position, input.active ? 1 : 0];
+  const args = [input.name, input.fee, input.unit, input.freeOver, input.extraFee, input.extraFreeOver, input.areas, input.eta, input.position, input.active ? 1 : 0, input.baseG, input.stepG, input.stepFee];
   if (input.id) {
     db.prepare(
-      "UPDATE shipping_zones SET name = ?, fee = ?, unit = ?, free_over = ?, extra_fee = ?, extra_free_over = ?, areas = ?, eta = ?, position = ?, active = ? WHERE id = ?",
+      "UPDATE shipping_zones SET name = ?, fee = ?, unit = ?, free_over = ?, extra_fee = ?, extra_free_over = ?, areas = ?, eta = ?, position = ?, active = ?, base_g = ?, step_g = ?, step_fee = ? WHERE id = ?",
     ).run(...args, input.id);
     return input.id;
   }
   const r = db
     .prepare(
-      "INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .run(input.methodId, ...args);
   return Number(r.lastInsertRowid);

@@ -1,7 +1,7 @@
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import { formatAmount } from "@/lib/format";
-import { billableKg, billableProductWeightG, estimateZoneFee, safetyFactor, SHIPPING_LEGS, volumetricWeightG, type DimsConfidence } from "@/lib/shipping";
+import { SHIPPING_LEGS, billableKg, billableProductWeightG, estimateZoneFee, isTiered, safetyFactor, type DimsConfidence, volumetricWeightG } from "@/lib/shipping";
 import type { ShippingMethod } from "@/types/shop";
 import { t, type I18nKey, type Lang } from "@/lib/i18n";
 
@@ -43,7 +43,7 @@ interface Props {
 const th = "border border-lien-line bg-lien-footer2 px-3 py-2.5 text-center text-[13px] font-bold text-lien-heading";
 const td = "border border-lien-line px-3 py-2.5 text-center text-[13px] leading-5 text-lien-text";
 
-function Fee({ amount, unit, currency, freeOver, plus }: { amount: number; unit: string; currency: string; freeOver: number | null; plus?: boolean }) {
+function Fee({ amount, unit, currency, freeOver, plus, tier }: { amount: number; unit: string; currency: string; freeOver: number | null; plus?: boolean; tier?: { baseG: number; stepG: number; stepFee: number } | null }) {
   return (
     <>
       <span className="font-semibold text-lien-heading">
@@ -52,6 +52,12 @@ function Fee({ amount, unit, currency, freeOver, plus }: { amount: number; unit:
         {currency}
         {unit}
       </span>
+      {tier ? (
+        <span className="block text-[12px] text-lien-muted">
+          ≤ {formatAmount(tier.baseG)} g · +{formatAmount(tier.stepFee)}
+          {currency}/{formatAmount(tier.stepG)} g
+        </span>
+      ) : null}
       {freeOver ? (
         <span className="block text-[12px] text-lien-sale-text">
           <T k="freeOverPrefix" /> {formatAmount(freeOver)}
@@ -147,6 +153,11 @@ function MethodTable({ m, hTitle, chargeable, lang }: { m: ShippingMethod; hTitl
         {m.carrierName ? <span className="rounded-full bg-lien-heading px-2.5 py-0.5 text-[11px] font-semibold text-white">{m.carrierName}</span> : null}
         <Chip ok={m.includesBothEnds} yes={t(lang, "bothEndsYes")} no={t(lang, "bothEndsNo")} />
         <Chip ok={m.homeDelivery} yes={t(lang, "homeYes")} no={t(lang, "homeNo")} />
+        {m.carrierWebsite ? (
+          <a href={m.carrierWebsite} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-lien-blue no-underline hover:underline">
+            <Fa name="external-link" /> {t(lang, "officialRates")}
+          </a>
+        ) : null}
       </div>
       {m.description ? <p className="m-0 mb-2 text-[13px] leading-5 text-lien-muted">{jaText(m.description, lang)}</p> : null}
       {m.warehouse ? (
@@ -173,7 +184,7 @@ function MethodTable({ m, hTitle, chargeable, lang }: { m: ShippingMethod; hTitl
                 <th className={`${th} text-left`}>{t(lang, "colFee")}</th>
                 {zones.map((z) => (
                   <td key={z.id} className={td}>
-                    <Fee amount={z.fee} unit={z.unit} currency={m.currency} freeOver={z.freeOver} />
+                    <Fee amount={z.fee} unit={z.unit} currency={m.currency} freeOver={z.freeOver} tier={isTiered(z) ? { baseG: z.baseG as number, stepG: z.stepG as number, stepFee: z.stepFee as number } : null} />
                   </td>
                 ))}
               </tr>

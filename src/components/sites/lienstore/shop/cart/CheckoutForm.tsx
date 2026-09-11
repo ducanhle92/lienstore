@@ -8,7 +8,7 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
 import { BANK } from "@/lib/payment";
-import { billableKg, quoteJpLegs, type ShippingQuoteConfig } from "@/lib/shipping";
+import { billableKg, quoteJpLegs, type ShippingQuoteConfig, zoneFeeForWeight } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CheckoutState } from "./checkout-types";
 import { Price, Required, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass, wooInputClass } from "./WooUi";
@@ -27,6 +27,9 @@ export interface CheckoutZone {
   label: string;
   fee: number;
   unit: string;
+  baseG: number | null;
+  stepG: number | null;
+  stepFee: number | null;
   freeOver: number | null;
   eta: string;
   areas: string;
@@ -101,7 +104,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
   const zone = zones.find((z) => z.id === zoneId) ?? null;
   const totalWeightG = items.reduce((s, it) => s + (weights[it.productId] ?? 1000) * it.quantity, 0);
   const kg = billableKg(totalWeightG || 1000);
-  const zoneBase = (z: CheckoutZone) => z.fee * (/kg/i.test(z.unit) ? kg : 1);
+  const zoneBase = (z: CheckoutZone) => zoneFeeForWeight(z, totalWeightG || 1000);
   const vnFee = delivery === "pickup" || !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
   const jpLegs = quote ? quoteJpLegs(quote, totalWeightG || 1000, subtotal) : [];
   const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
@@ -235,7 +238,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, pickupAdd
                       <select name="shipping_zone" value={zoneId} onChange={(e) => setZoneId(Number(e.target.value))} disabled={delivery !== "ship"} className={cn(wooInputClass, "mt-2 !h-auto !py-2 text-[14px]", fields.shipping_zone && "border-[#b81c23]")}>
                         {zones.map((z) => (
                           <option key={z.id} value={z.id}>
-                            {z.label} — {formatAmount(zoneBase(z))}đ{/kg/i.test(z.unit) ? ` (${kg} kg)` : ""}
+                            {z.label} — {formatAmount(zoneBase(z))}đ{/kg/i.test(z.unit) ? ` (${kg} kg)` : z.stepG ? ` (≈ ${formatAmount(totalWeightG || 1000)} g)` : ""}
                             {z.freeOver ? ` (miễn phí từ ${formatAmount(z.freeOver)}đ)` : ""}
                             {z.eta ? ` · ${z.eta}` : ""}
                           </option>

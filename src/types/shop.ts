@@ -231,6 +231,10 @@ export interface ShippingZone {
   fee: number;
   /** Fee unit suffix shown after the amount, e.g. "/kg" (empty = per order). */
   unit: string;
+  /** Weight-step pricing: `fee` covers the first `baseG` grams, then `stepFee` per started `stepG` grams (all three set). */
+  baseG: number | null;
+  stepG: number | null;
+  stepFee: number | null;
   /** Order value from which the base fee is waived; null = never. */
   freeOver: number | null;
   /** Surcharge (see ShippingMethod.extraLabel); null = not applicable. */
@@ -319,6 +323,8 @@ export interface ShippingMethod {
   leg: "jp_domestic" | "jp_vn" | "vn_domestic";
   carrierId: number | null;
   carrierName: string | null;
+  /** Carrier's official price-check page, linked from the storefront tables. */
+  carrierWebsite: string | null;
   /** Price already covers domestic legs on both ends. */
   includesBothEnds: boolean;
   /** Warehouse / pick-up and drop-off locations, free text shown to customers. */

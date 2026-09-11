@@ -10,7 +10,7 @@ import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit"
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerOverview, getOrderById, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, markOrderMessagesRead } from "@/lib/db";
+import { getCustomerOverview, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, markOrderMessagesRead } from "@/lib/db";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
@@ -28,7 +28,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
   await requireAdmin("orders");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [order, files, overview, legMap, shippingMethods, messages] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id)]);
+  const [order, files, overview, legMap, shippingMethods, messages, orderWeightG] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id)]);
   if (!order) notFound();
   await markOrderMessagesRead(order.id, "admin");
   const curStage = stageIndex(order.shipStage);
@@ -125,7 +125,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           </Card>
 
         <Card title="Vận chuyển đơn này (3 chặng)">
-          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} />
+          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} />
           <p className="mt-3 text-[12px] text-lien-muted">Chọn phương thức · cột cho từng chặng; để trống phí thì tự tính theo cột và khối lượng đơn. Chặng nội địa Việt Nam có thể áp lại phí vào tổng tiền khách trả.</p>
         </Card>
 

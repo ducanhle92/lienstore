@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
 import { getOrderById, getOrderChargeableWeightG, getShippingMethods, saveOrderLeg, updateOrderShipping } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
-import { billableKg, isPerKg, isShippingLeg } from "@/lib/shipping";
+import { isShippingLeg, zoneFeeForWeight } from "@/lib/shipping";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -41,8 +41,7 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
       const zone = zoneId ? method.zones.find((z) => z.id === zoneId) : undefined;
       label = `${method.name}${zone ? ` · ${zone.name}` : ""}${method.carrierName ? ` (${method.carrierName})` : ""}`;
       if (fee === null && zone) {
-        const kg = billableKg(await getOrderChargeableWeightG(orderId));
-        const base = zone.fee * (isPerKg(zone) ? kg : 1);
+        const base = zoneFeeForWeight(zone, await getOrderChargeableWeightG(orderId));
         fee = zone.freeOver !== null && order.subtotal >= zone.freeOver ? 0 : base;
       }
     }

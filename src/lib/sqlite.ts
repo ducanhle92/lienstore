@@ -520,6 +520,36 @@ export const MIGRATIONS: Migration[] = [
         VALUES ('${code}', '${kind}', ${value}, ${min}, NULL, NULL, '2026-09-30T16:59:59.000Z', NULL, 1, 'Voucher mẫu — sửa hoặc xoá trong Sales › Voucher', 1, '2026-09-11T04:00:00.000Z', '2026-09-11T04:00:00.000Z')`;
     }),
   },
+  {
+    // Vietnam domestic carriers priced the way the carriers do: a fee for the first weight step (500 g) plus a fee per
+    // extra step, per region from Hoằng Hóa (Thanh Hóa). Estimates from the public price lists checked 11/09/2026
+    // (docs: doi-chieu-van-chuyen-hoang-hoa.md); the owner adjusts them in Vận chuyển › Nội địa Việt Nam.
+    version: 23,
+    name: "vn-domestic-weight-tiers",
+    up: [
+      `ALTER TABLE shipping_zones ADD COLUMN base_g INTEGER`,
+      `ALTER TABLE shipping_zones ADD COLUMN step_g INTEGER`,
+      `ALTER TABLE shipping_zones ADD COLUMN step_fee INTEGER`,
+      `UPDATE shipping_methods SET name = 'Viettel Post · Chuyển phát tiêu chuẩn', description = 'Viettel Post lấy hàng tại kho Hoằng Hóa và giao đến địa chỉ nhận. Cước ước tính theo vùng và cân nặng (mỗi nấc 500 g); cước chính thức được tính khi tạo đơn.', includes_both_ends = 1, home_delivery = 1, warehouse = 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa', notes = 'Đơn tạo trước 16:00 được lấy trong ngày. Thời gian là dự kiến theo tuyến.' WHERE id = 2 AND leg = 'vn_domestic'`,
+      `UPDATE shipping_methods SET name = 'Bưu điện Việt Nam (VNPost) · Chuyển phát tiêu chuẩn', description = 'Shop gửi tại bưu điện Hoằng Hóa, VNPost giao đến địa chỉ nhận — phù hợp vùng xa. Cước chính theo vùng cho nấc 500 g, đã cộng VAT và phụ phí vùng xã; chưa gồm phụ phí xăng dầu.', includes_both_ends = 0, home_delivery = 1, warehouse = 'Bưu điện Hoằng Hóa, Thanh Hóa', notes = 'Thu hộ (COD) miễn phí đến 3.000.000đ.' WHERE id = 10 AND leg = 'vn_domestic'`,
+      `UPDATE shipping_zones SET fee = 17000, unit = '', base_g = 500, step_g = 500, step_fee = 3000, eta = '1–2 ngày', areas = 'Nội tỉnh Thanh Hóa: TP Thanh Hóa, Hoằng Hóa, Sầm Sơn và các huyện' WHERE id = 3`,
+      `UPDATE shipping_zones SET fee = 25000, unit = '', base_g = 500, step_g = 500, step_fee = 4000, eta = '2–3 ngày', areas = 'Miền Bắc: Hà Nội, Hải Phòng, Nam Định, Ninh Bình, Nghệ An, Thái Bình, Hưng Yên, Bắc Ninh, Quảng Ninh…' WHERE id = 4`,
+      `UPDATE shipping_zones SET fee = 30000, unit = '', base_g = 500, step_g = 500, step_fee = 5000, eta = '2–3 ngày', areas = 'Miền Trung & Tây Nguyên: Hà Tĩnh, Quảng Bình, Huế, Đà Nẵng, Quảng Nam, Bình Định, Khánh Hòa, Đắk Lắk…' WHERE id = 5`,
+      `UPDATE shipping_zones SET fee = 35000, unit = '', base_g = 500, step_g = 500, step_fee = 5500, eta = '3 ngày', areas = 'Miền Nam: TP Hồ Chí Minh, Bình Dương, Đồng Nai, Long An, Cần Thơ và Đồng bằng sông Cửu Long' WHERE id = 6`,
+      `UPDATE shipping_zones SET fee = 14000, unit = '', base_g = 500, step_g = 500, step_fee = 3000, eta = '2–3 ngày', areas = 'Nội tỉnh Thanh Hóa (vùng cước nội tỉnh 1)' WHERE id = 27`,
+      `UPDATE shipping_zones SET fee = 18000, unit = '', base_g = 500, step_g = 500, step_fee = 3500, eta = '3–4 ngày', areas = 'Miền Bắc (nội vùng)' WHERE id = 28`,
+      `UPDATE shipping_zones SET fee = 20000, unit = '', base_g = 500, step_g = 500, step_fee = 4000, eta = '3–5 ngày', areas = 'Miền Trung & Tây Nguyên (cận vùng)' WHERE id = 29`,
+      `UPDATE shipping_zones SET fee = 22000, unit = '', base_g = 500, step_g = 500, step_fee = 4500, eta = '4–5 ngày', areas = 'Miền Nam (cách vùng)' WHERE id = 30`,
+      `INSERT INTO shipping_carriers (name, phone, website, note, position, legs) SELECT 'Giao Hàng Nhanh (GHN)', '1900 636677', 'https://ghn.vn/pages/bang-gia-moi-sieu-tiet-kiem', 'Bưu cục Phố Trung Sơn, Hoằng Hóa (08:00–18:00). Lấy hàng tận nơi không phụ phí. Phụ phí xăng dầu 10%, COD 5.500đ/giao dịch.', 12, 'vn_domestic' WHERE NOT EXISTS (SELECT 1 FROM shipping_carriers WHERE name = 'Giao Hàng Nhanh (GHN)')`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes) SELECT 'Giao Hàng Nhanh (GHN)', 'Shipper GHN lấy hàng tại kho Hoằng Hóa và giao tận nhà. Giá cơ sở công khai của GHN theo tuyến, mỗi nấc 500 g, đã cộng phụ phí xăng dầu 10%.', '', 'đ', 21, 1, 'vn_domestic', (SELECT id FROM shipping_carriers WHERE name = 'Giao Hàng Nhanh (GHN)'), 1, 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa', 1, 'Phí thu hộ 5.500đ/giao dịch nếu COD; khai giá hàng trên 1.000.000đ thu 0,5%.' WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE name = 'Giao Hàng Nhanh (GHN)')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee) SELECT id, 'Thanh Hóa', 32000, '', 500000, NULL, NULL, 'Nội tỉnh Thanh Hóa (giá GHN 0–3 kg ngoại thành + xăng dầu 10%)', '1 ngày', 1, 1, 3000, 500, 2500 FROM shipping_methods WHERE name = 'Giao Hàng Nhanh (GHN)' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Thanh Hóa')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee) SELECT id, 'Miền Bắc', 37000, '', 1000000, NULL, NULL, 'Nội vùng miền Bắc (0–0,5 kg 34.000đ + xăng dầu 10%)', '1–2 ngày', 2, 1, 500, 500, 5500 FROM shipping_methods WHERE name = 'Giao Hàng Nhanh (GHN)' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Bắc')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee) SELECT id, 'Miền Trung', 43000, '', 1000000, NULL, NULL, 'Liên vùng đặc biệt: miền Trung & Tây Nguyên', '2–3 ngày', 3, 1, 500, 500, 5500 FROM shipping_methods WHERE name = 'Giao Hàng Nhanh (GHN)' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Trung')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee) SELECT id, 'Miền Nam', 43000, '', 1000000, NULL, NULL, 'Liên vùng: miền Nam', '2–3 ngày', 4, 1, 500, 500, 5500 FROM shipping_methods WHERE name = 'Giao Hàng Nhanh (GHN)' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Nam')`,
+      `UPDATE shipping_carriers SET website = 'https://viettelpost.com.vn/tra-cuoc-va-thoi-gian-van-chuyen/' WHERE id = 4 AND website = 'https://viettelpost.com.vn'`,
+      `UPDATE shipping_carriers SET website = 'https://vnpost.vn/vi/ca-nhan/chuyen-phat/chuyen-phat-trong-nuoc' WHERE id = 10 AND website = 'https://www.vnpost.vn'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

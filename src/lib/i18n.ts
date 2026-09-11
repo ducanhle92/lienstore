@@ -285,8 +285,9 @@ const DICT = {
   stage_delivered: ["Đã nhận hàng", "受取完了"],
   // shipping table
   shipNotes: ["Lưu ý về vận chuyển", "配送に関する注意"],
-  bothEndsYes: ["Giá đã gồm 2 đầu", "両端の国内送料込み"],
-  bothEndsNo: ["Chưa gồm ship nội địa 2 đầu", "両端の国内送料別"],
+  bothEndsYes: ["Lấy hàng tại kho, giao đến địa chỉ", "倉庫集荷・住所配達"],
+  officialRates: ["Tra cước chính thức", "公式料金を確認"],
+  bothEndsNo: ["Shop gửi tại bưu cục, giao đến địa chỉ", "郵便局持込・住所配達"],
   homeYes: ["Giao tận nhà", "自宅配送"],
   homeNo: ["Nhận tại kho / điểm giao", "倉庫・受取所渡し"],
   colInfo: ["Thông tin", "項目"],

@@ -1,7 +1,7 @@
 import { saveOrderLegAction } from "@/app/admin/shipping/order-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount } from "@/lib/format";
-import { SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
+import { SHIPPING_LEGS, zoneFeeForWeight, type ShippingLeg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { Order, OrderLeg, ShippingMethod } from "@/types/shop";
 import { adminInput, btnSecondary } from "./ui";
@@ -14,16 +14,21 @@ interface Props {
   back: string;
   /** Render as three stacked cards (order page) instead of table cells. */
   stacked?: boolean;
+  /** Billable grams of the whole order (max(actual, volumetric) × safety factor per item); drives the ≈ fee hints. */
+  weightG?: number;
 }
 
 const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck"> = { jp_domestic: "cube", jp_vn: "plane", vn_domestic: "truck" };
 const tiny = `${adminInput} !px-2 !py-1 !text-[12px]`;
 
 /** One editable cell per leg: method·zone select, fee, tracking, note. */
-export function OrderLegCell({ order, leg, current, methods, back }: { order: Props["order"]; leg: ShippingLeg; current: OrderLeg | undefined; methods: ShippingMethod[]; back: string }) {
+export function OrderLegCell({ order, leg, current, methods, back, weightG }: { order: Props["order"]; leg: ShippingLeg; current: OrderLeg | undefined; methods: ShippingMethod[]; back: string; weightG?: number }) {
   const fid = `ol-${order.id}-${leg}`;
   const options = methods.filter((m) => m.leg === leg);
   const value = current?.methodId ? `m:${current.methodId}:${current.zoneId ?? "-"}` : "";
+  // VN domestic: every option shows the fee this order would cost (weight steps / per kg), so the admin can compare carriers
+  const est = (m: ShippingMethod, z: ShippingMethod["zones"][number]) =>
+    leg === "vn_domestic" && weightG && /đ|vnd/i.test(m.currency) ? ` ≈ ${formatAmount(z.freeOver !== null && order.subtotal >= z.freeOver ? 0 : zoneFeeForWeight(z, weightG))}đ` : "";
   return (
     <form id={fid} action={saveOrderLegAction} className="min-w-[230px] space-y-1.5">
       <input type="hidden" name="orderId" value={order.id} />
@@ -39,6 +44,7 @@ export function OrderLegCell({ order, leg, current, methods, back }: { order: Pr
                   {z.name} — {formatAmount(z.fee)}
                   {m.currency}
                   {z.unit}
+                  {est(m, z)}
                 </option>
               ))}
             </optgroup>
@@ -60,6 +66,7 @@ export function OrderLegCell({ order, leg, current, methods, back }: { order: Pr
           <Fa name="check" />
         </button>
       </div>
+      {leg === "vn_domestic" && weightG ? <p className="m-0 text-[11px] text-lien-muted">Cân tính phí của đơn: {formatAmount(weightG)} g (đã nhân hệ số an toàn theo độ tin cậy kích thước)</p> : null}
       {leg === "vn_domestic" ? (
         <label className="flex items-center gap-1.5 text-[11px] text-lien-muted">
           <input type="checkbox" name="applyToCustomer" defaultChecked className="h-3.5 w-3.5" /> Áp phí vào đơn khách (hiện: {order.delivery === "pickup" ? "nhận tại kho" : order.shippingLabel || "—"} · {formatAmount(order.shippingFee)}đ)
@@ -71,7 +78,7 @@ export function OrderLegCell({ order, leg, current, methods, back }: { order: Pr
 }
 
 /** Three legs of one order, as stacked cards (order detail page). */
-export function OrderLegsEditor({ order, legs, methods, back }: Props) {
+export function OrderLegsEditor({ order, legs, methods, back, weightG }: Props) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {SHIPPING_LEGS.map((l) => (
@@ -80,7 +87,7 @@ export function OrderLegsEditor({ order, legs, methods, back }: Props) {
             <Fa name={LEG_ICON[l.key]} className="mr-1 text-lien-blue" />
             {l.label}
           </p>
-          <OrderLegCell order={order} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back={back} />
+          <OrderLegCell order={order} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back={back} weightG={weightG} />
         </div>
       ))}
     </div>

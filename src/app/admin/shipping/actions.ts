@@ -90,6 +90,9 @@ export async function saveZoneAction(formData: FormData): Promise<void> {
     eta: text(formData, "eta"),
     position: int(formData, "position", 0),
     active: formData.get("active") === "on",
+    baseG: text(formData, "baseG") ? int(formData, "baseG", 0) || null : null,
+    stepG: text(formData, "stepG") ? int(formData, "stepG", 0) || null : null,
+    stepFee: amountOrNull(formData, "stepFee"),
   });
   done(idRaw ? `Đã lưu cột "${name}".` : `Đã thêm cột "${name}".`, `#method-${methodId}`, text(formData, "backTab"));
 }

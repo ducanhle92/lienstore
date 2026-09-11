@@ -21,7 +21,7 @@ export default async function Checkout() {
     .flatMap((m) =>
       m.zones
         .filter((z) => z.active)
-        .map((z) => ({ id: z.id, label: `${z.name}${m.carrierName ? ` · ${m.carrierName}` : ""}`, fee: z.fee, unit: z.unit, freeOver: z.freeOver, eta: z.eta, areas: z.areas })),
+        .map((z) => ({ id: z.id, label: `${z.name}${m.carrierName ? ` · ${m.carrierName}` : ""}`, fee: z.fee, unit: z.unit, baseG: z.baseG, stepG: z.stepG, stepFee: z.stepFee, freeOver: z.freeOver, eta: z.eta, areas: z.areas })),
     );
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
   const preorderIds = products.filter((p) => p.stock === null || p.stock <= 0).map((p) => p.id);
