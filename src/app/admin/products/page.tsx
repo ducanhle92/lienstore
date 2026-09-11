@@ -8,7 +8,7 @@ import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductS
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories } from "@/lib/db";
+import { getAllProducts, getCategories, getPricingConfig } from "@/lib/db";
 import { formatDate, formatPrice } from "@/lib/format";
 
 /** Profit per unit and margin % when both prices are known. */
@@ -35,7 +35,8 @@ export default async function AdminProducts({ searchParams }: Props) {
   const saved = first(sp.saved);
   const deleted = first(sp.deleted);
 
-  const [all, categories] = await Promise.all([getAllProducts(true), getCategories()]);
+  const [all, categories, pricing] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig()]);
+  const jpPrice = (cost: number | null) => (cost === null ? null : Math.round((cost * (1 + pricing.marginPct / 100)) / 1000) * 1000);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const items = filterProducts(all, sp);
   const fulfillment = first(sp.fulfillment);
@@ -118,8 +119,10 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass} />
                 <th className={thClass}>Tên</th>
                 <th className={thClass}>Danh mục</th>
-                <th className={thClass}>Giá bán</th>
-                <th className={thClass}>Giá vốn</th>
+                <th className={thClass} title="Giá khách thấy — đã gồm phí vận chuyển 3 chặng về kho shop">Giá bán VN</th>
+                <th className={thClass} title={`Giá vốn + ${pricing.marginPct}% lợi nhuận, chưa gồm vận chuyển`}>Giá bán NB</th>
+                <th className={thClass}>Giá vốn (VNĐ)</th>
+                <th className={thClass}>Giá vốn (¥)</th>
                 <th className={thClass}>Lợi nhuận</th>
                 <th className={thClass}>Hình thức · tồn</th>
                 <th className={thClass}>Cân / KT</th>
@@ -131,7 +134,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={15} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -153,7 +156,9 @@ export default async function AdminProducts({ searchParams }: Props) {
                   <td className={`${tdClass} whitespace-nowrap`}>
                     {p.price > 0 ? formatPrice(p.price, p.currency) : <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[12px] text-amber-800">chưa có giá</span>}
                   </td>
+                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{jpPrice(p.costPrice) === null ? "—" : formatPrice(jpPrice(p.costPrice) as number, p.currency)}</td>
                   <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costPrice === null ? "—" : formatPrice(p.costPrice, p.currency)}</td>
+                  <td className={`${tdClass} whitespace-nowrap font-mono text-[13px]`} title={p.costUrl || undefined}>{p.costJpy === null ? <span className="text-lien-muted">—</span> : <>¥{p.costJpy.toLocaleString("ja-JP")}<span className="ml-1 text-[10px] text-lien-muted">{p.costSource}</span></>}</td>
                   <td className={`${tdClass} whitespace-nowrap`}>
                     {(() => {
                       const pr = profitOf(p);

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getImportQuoteConfig, getPricingConfig, setPricingConfig, updateProductPricing } from "@/lib/db";
 import { MARGIN_RANGE } from "@/lib/pricing";
+import { runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
 import { suggestPrice } from "@/lib/pricing";
 
 const PAGE = "/admin/products/pricing/";
@@ -47,4 +48,25 @@ export async function applySuggestedPricesAction(formData: FormData): Promise<vo
   }
   revalidatePath("/", "layout");
   back("saved", `Đã cập nhật giá bán cho ${changed} sản phẩm theo công thức.${skippedSale ? ` Bỏ qua ${skippedSale} sản phẩm đang giảm giá.` : ""}`);
+}
+
+/** Tỉ giá: DCOM typed by the owner, or the market rate; auto-sell toggle. */
+export async function saveFxAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const raw = text(formData, "dcomRate").replace(/\./g, "").replace(",", ".");
+  const dcom = Number.parseFloat(raw);
+  if (raw && (!Number.isFinite(dcom) || dcom < 50 || dcom > 1000)) back("error", "Tỉ giá DCOM phải là số VND cho 1 yên, ví dụ 176,5.");
+  if (raw) setDcomRate(dcom);
+  setFxMode(text(formData, "mode") === "market" ? "market" : "dcom");
+  setAutoSell(formData.get("autoSell") === "on");
+  revalidatePath("/admin", "layout");
+  back("saved", raw ? `Đã lưu tỉ giá DCOM ${dcom} đ/¥.` : "Đã lưu thiết lập tỉ giá.");
+}
+
+/** "Cập nhật giá vốn theo tỉ giá ngay" — the same job that runs at 04:00. */
+export async function runPricingNowAction(): Promise<void> {
+  await requireAdmin("products");
+  const r = await runPricingJob();
+  revalidatePath("/", "layout");
+  back("saved", `Đã chạy: tỉ giá ${r.rate} (${r.rateSource}) · cập nhật giá vốn ${r.costsUpdated} sản phẩm · giá bán ${r.pricesUpdated} sản phẩm${r.skippedSale ? ` (bỏ qua ${r.skippedSale} đang giảm giá)` : ""}.`);
 }

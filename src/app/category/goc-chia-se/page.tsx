@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
@@ -18,6 +19,11 @@ export default async function BlogCategoryPage() {
         <div className="space-y-6">
           {posts.map((post) => (
             <article key={post.slug} className="rounded-md border border-lien-line bg-white p-6">
+              {post.image ? (
+                <Link href={`/${post.slug}/`} className="mb-4 block overflow-hidden rounded-md">
+                  <Image src={post.image} alt="" width={900} height={480} unoptimized className="h-auto max-h-[320px] w-full object-cover" />
+                </Link>
+              ) : null}
               <h2 className="mb-1 text-[20px] font-bold leading-7 text-lien-heading">
                 <Link href={`/${post.slug}/`} className="hover:text-lien-blue">
                   {post.title}

@@ -137,8 +137,21 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <FieldError msg={fields.regularPrice} />
               </div>
               <div>
+                <label className={adminLabel} htmlFor="costJpy">
+                  Giá vốn (円 — giá tại Nhật)
+                </label>
+                <div className="flex gap-2">
+                  <input id="costJpy" name="costJpy" inputMode="numeric" defaultValue={product?.costJpy ?? ""} placeholder="VD: 1980" className={cn(adminInput, "!w-[140px]", fields.costJpy && "border-red-500")} />
+                  <input name="costUrl" type="url" defaultValue={product?.costUrl ?? ""} placeholder="Link giá (Amazon / Rakuten / hãng)" className={adminInput} />
+                </div>
+                <FieldError msg={fields.costJpy} />
+                <p className="mt-1 text-[12px] leading-4 text-lien-muted">
+                  Có giá ¥ thì giá vốn VNĐ bên dưới được tính lại mỗi đêm theo tỉ giá (Kho hàng › Công thức giá).{product?.costSource ? ` Nguồn: ${product.costSource}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
+                </p>
+              </div>
+              <div>
                 <label className={adminLabel} htmlFor="costPrice">
-                  Giá vốn (giá nhập, VNĐ)
+                  Giá vốn (VNĐ) <span className="font-normal text-lien-muted">(tự tính từ ¥ nếu để trống)</span>
                 </label>
                 <input id="costPrice" name="costPrice" inputMode="numeric" value={costText} onChange={(e) => setCostText(e.target.value)} placeholder="Chỉ hiển thị trong quản trị" className={cn(adminInput, fields.costPrice && "border-red-500")} />
                 <FieldError msg={fields.costPrice} />

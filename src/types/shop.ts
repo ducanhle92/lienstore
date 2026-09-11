@@ -12,8 +12,14 @@ export interface CatalogProduct {
   /** Price in VND (integer, e.g. 890000). */
   price: number;
   regularPrice: number | null;
-  /** Purchase/cost price in VND used for profit reporting in admin; null = unknown. */
+  /** Purchase/cost price in VND used for profit reporting in admin; null = unknown. Derived from costJpy × rate when costJpy is set. */
   costPrice: number | null;
+  /** Japanese retail price (¥) from Amazon / Rakuten / the brand site; null = not harvested. */
+  costJpy: number | null;
+  /** Where the ¥ price came from ("amazon", "rakuten", "official") and the page. */
+  costSource: string;
+  costUrl: string;
+  costCheckedAt: string | null;
   /** Where to buy it (Amazon JP / brand page) — admin only, used by the purchase list. */
   supplierUrl: string | null;
   /** Reorder threshold for tracked stock; null = store default. */
@@ -213,6 +219,11 @@ export interface BlogPost {
   content: string;
   excerpt: string;
   date: string;
+  /** "publish" is visible on the storefront; "draft" only in admin. */
+  status: "publish" | "draft";
+  /** Cover picture (optional). */
+  image: string;
+  updatedAt: string | null;
 }
 
 export interface Database {

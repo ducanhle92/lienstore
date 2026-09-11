@@ -700,19 +700,39 @@ export const MIGRATIONS: Migration[] = [
         SELECT id, 'Hà Nội → Thanh Hóa (liên miền)', 22000, '', NULL, NULL, NULL, 'Kho Kiến Express Hà Nội → kho LienStore Thanh Hóa', '2–3 ngày', 1, 1, 1000, 500, 5000 FROM shipping_methods WHERE name LIKE 'SPX Express: kho Kiến%' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id)`,
     ],
   },
+  {
+    // Japanese retail price (¥) behind the VND cost price + the nightly exchange-rate job; blog posts get publish/draft + cover.
+    version: 32,
+    name: "cost-jpy-posts-status",
+    up: [
+      `ALTER TABLE products ADD COLUMN cost_jpy INTEGER`,
+      `ALTER TABLE products ADD COLUMN cost_source TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN cost_url TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE products ADD COLUMN cost_checked_at TEXT`,
+      `CREATE TABLE IF NOT EXISTS fx_rates (
+        day        TEXT PRIMARY KEY,
+        rate       REAL NOT NULL,
+        source     TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `ALTER TABLE posts ADD COLUMN status TEXT NOT NULL DEFAULT 'publish'`,
+      `ALTER TABLE posts ADD COLUMN image TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE posts ADD COLUMN updated_at TEXT`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 
 /** Shape of `data/seed.json` (also what `npm run db:export` writes). */
 export interface SeedFile {
-  products?: Array<Record<string, unknown> & { id: number; slug: string; categories?: string[] }>;
+  products?: Array<Record<string, unknown> & { id: number; slug: string; categories?: string[]; costJpy?: number; costSource?: string; costUrl?: string; costCheckedAt?: string }>;
   categories?: Array<{ slug: string; name: string; description?: string; image?: string | null; parent?: string | null; nameJa?: string }>;
   customers?: Array<Record<string, unknown> & { id: string; email: string }>;
   orders?: Array<Record<string, unknown> & { id: string; number: number; items?: Array<Record<string, unknown>> }>;
   pages?: Array<{ slug: string; title: string; content: string; date: string }>;
   posts?: Array<{ slug: string; title: string; content: string; excerpt: string; date: string }>;
-  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[]; contentRev?: number; categoryMoves?: Record<string, string> };
+  meta?: { nextOrderNumber?: number; seededAt?: string; removedSlugs?: string[]; contentRev?: number; costRev?: number; categoryMoves?: Record<string, string> };
 }
 
 type SqliteModule = typeof import("node:sqlite");
@@ -739,6 +759,7 @@ function open(): DatabaseSync {
   syncSeed(db);
   ensureOwnerAccounts(db);
   ensurePolicyPages(db);
+  cleanPostExcerpts(db);
   return db;
 }
 
@@ -869,7 +890,10 @@ function syncSeed(db: DatabaseSync) {
   }
   // Offline-authored product copy travels with its own revision and is refreshed even when the seed version itself
   // (meta.seededAt) has not changed — a content-only release does not re-export the seed.
-  withTransaction(db, () => syncContent(db, seed));
+  withTransaction(db, () => {
+    syncContent(db, seed);
+    syncCosts(db, seed);
+  });
   const version = seedVersion(seed);
   if (!version || getSetting(db, "seed_version") === version) return;
   const before = {
@@ -926,6 +950,43 @@ function syncContent(db: DatabaseSync, seed: SeedFile) {
   }
   setSetting(db, "seed_content_rev", String(rev));
   console.info(`[db] seed content rev ${rev}: refreshed the copy of ${n} product(s)${pics ? `, added pictures to ${pics}` : ""}`);
+}
+
+/**
+ * meta.costRev: Japanese retail prices harvested offline (scripts/xlsx/fetch_prices.py → apply_prices.py). Each new revision
+ * writes cost_jpy / cost_source / cost_url onto the matching products and refreshes the VND cost with the current rate;
+ * the nightly job (lib/fx.ts) keeps it current afterwards.
+ */
+function syncCosts(db: DatabaseSync, seed: SeedFile) {
+  const rev = seed.meta?.costRev;
+  if (!rev || getSetting(db, "seed_cost_rev") === String(rev)) return;
+  const rate = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175") || 175;
+  const upd = db.prepare(
+    "UPDATE products SET cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, cost_price = CAST(ROUND(? * ?) AS INTEGER) WHERE slug = ?",
+  );
+  let n = 0;
+  for (const p of seed.products ?? []) {
+    const jpy = typeof p.costJpy === "number" && p.costJpy > 0 ? Math.round(p.costJpy) : null;
+    if (!jpy) continue;
+    n += Number(upd.run(jpy, str(p.costSource), str(p.costUrl), str(p.costCheckedAt) || null, jpy, rate, p.slug).changes);
+  }
+  setSetting(db, "seed_cost_rev", String(rev));
+  console.info(`[db] seed cost rev ${rev}: ¥ cost set on ${n} product(s), VND cost at rate ${rate}`);
+}
+
+/** Legacy WordPress excerpts carry "&hellip; Continue reading &#8220;…&#8221;" — strip it once. */
+function cleanPostExcerpts(db: DatabaseSync) {
+  const rows = db.prepare("SELECT slug, excerpt FROM posts WHERE excerpt LIKE '%Continue reading%' OR excerpt LIKE '%&hellip;%' OR excerpt LIKE '%&#82%'").all() as unknown as Array<{ slug: string; excerpt: string }>;
+  const upd = db.prepare("UPDATE posts SET excerpt = ? WHERE slug = ?");
+  for (const r of rows) {
+    const clean = r.excerpt
+      .replace(/Continue reading[\s\S]*$/, "")
+      .replace(/&hellip;/g, "…")
+      .replace(/&#8220;|&#8221;|&#8217;|&#8216;/g, (m) => ({ "&#8220;": "“", "&#8221;": "”", "&#8217;": "’", "&#8216;": "‘" })[m] ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    upd.run(clean, r.slug);
+  }
 }
 
 /**

@@ -8,7 +8,7 @@ import { absolutePath, MIME_BY_EXT, verifyOrderFileToken } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
-const PUBLIC_DIRS = new Set(["products", "categories", "banners", "theme", "avatars"]);
+const PUBLIC_DIRS = new Set(["products", "categories", "banners", "theme", "avatars", "posts"]);
 
 /**
  * Serves admin uploads stored outside `public/`:

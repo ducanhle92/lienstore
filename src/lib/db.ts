@@ -71,6 +71,10 @@ interface ProductRow {
   stock: number | null;
   stock_status: "instock" | "outofstock";
   fulfillment: string | null;
+  cost_jpy: number | null;
+  cost_source: string | null;
+  cost_url: string | null;
+  cost_checked_at: string | null;
   tags: string;
   images: string;
   thumb: string;
@@ -106,6 +110,10 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     price: r.price,
     regularPrice: r.regular_price,
     costPrice: r.cost_price ?? null,
+    costJpy: r.cost_jpy ?? null,
+    costSource: r.cost_source ?? "",
+    costUrl: r.cost_url ?? "",
+    costCheckedAt: r.cost_checked_at ?? null,
     supplierUrl: r.supplier_url ?? null,
     minStock: r.min_stock ?? null,
     weightG: r.weight_g ?? null,
@@ -385,6 +393,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
       if (!exists) throw new Error(`Product ${id} not found`);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
+        cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?,
         tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?, name_ja = ?, short_description_ja = ?, description_ja = ?
         WHERE id = ?`).run(
         input.slug,
@@ -399,6 +408,10 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.stock,
         input.stockStatus,
         input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
+        input.costJpy ?? null,
+        input.costSource ?? "",
+        input.costUrl ?? "",
+        input.costCheckedAt ?? null,
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,
@@ -420,9 +433,9 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
-      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, tags, images, thumb,
+      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, tags, images, thumb,
         short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
@@ -435,6 +448,10 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.stock,
         input.stockStatus,
         input.fulfillment ?? (input.stock !== null ? "stock" : "order"),
+        input.costJpy ?? null,
+        input.costSource ?? "",
+        input.costUrl ?? "",
+        input.costCheckedAt ?? null,
         JSON.stringify(input.tags),
         JSON.stringify(input.images),
         input.thumb,
@@ -1548,12 +1565,61 @@ export async function getPageBySlug(slug: string): Promise<StaticPage | null> {
   return (getDb().prepare("SELECT slug, title, content, date FROM pages WHERE slug = ?").get(slug) as StaticPage | undefined) ?? null;
 }
 
+interface PostRow {
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  date: string;
+  status: string | null;
+  image: string | null;
+  updated_at: string | null;
+}
+const rowToPost = (r: PostRow): BlogPost => ({ slug: r.slug, title: r.title, content: r.content, excerpt: r.excerpt, date: r.date, status: r.status === "draft" ? "draft" : "publish", image: r.image ?? "", updatedAt: r.updated_at });
+
+/** Published posts, newest first (storefront). */
 export async function getPosts(): Promise<BlogPost[]> {
-  return getDb().prepare("SELECT slug, title, content, excerpt, date FROM posts ORDER BY date DESC").all() as unknown as BlogPost[];
+  return (getDb().prepare("SELECT * FROM posts WHERE status IS NULL OR status <> 'draft' ORDER BY date DESC").all() as unknown as PostRow[]).map(rowToPost);
 }
 
+/** Every post including drafts (admin). */
+export async function getAllPosts(): Promise<BlogPost[]> {
+  return (getDb().prepare("SELECT * FROM posts ORDER BY date DESC").all() as unknown as PostRow[]).map(rowToPost);
+}
+
+/** A published post by slug (storefront); drafts are invisible here. */
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  return (getDb().prepare("SELECT slug, title, content, excerpt, date FROM posts WHERE slug = ?").get(slug) as BlogPost | undefined) ?? null;
+  const r = getDb().prepare("SELECT * FROM posts WHERE slug = ? AND (status IS NULL OR status <> 'draft')").get(slug) as PostRow | undefined;
+  return r ? rowToPost(r) : null;
+}
+
+export async function getPostBySlugAdmin(slug: string): Promise<BlogPost | null> {
+  const r = getDb().prepare("SELECT * FROM posts WHERE slug = ?").get(slug) as PostRow | undefined;
+  return r ? rowToPost(r) : null;
+}
+
+/** Create or update a post; `originalSlug` set = update (the slug may change). */
+export async function savePost(input: { originalSlug?: string; slug: string; title: string; content: string; excerpt: string; date: string; status: "publish" | "draft"; image: string }): Promise<void> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  if (input.originalSlug) {
+    db.prepare("UPDATE posts SET slug = ?, title = ?, content = ?, excerpt = ?, date = ?, status = ?, image = ?, updated_at = ? WHERE slug = ?").run(input.slug, input.title, input.content, input.excerpt, input.date, input.status, input.image, now, input.originalSlug);
+  } else {
+    db.prepare("INSERT INTO posts (slug, title, content, excerpt, date, status, image, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(input.slug, input.title, input.content, input.excerpt, input.date, input.status, input.image, now);
+  }
+}
+
+export async function setPostStatus(slug: string, status: "publish" | "draft"): Promise<void> {
+  getDb().prepare("UPDATE posts SET status = ?, updated_at = ? WHERE slug = ?").run(status, new Date().toISOString(), slug);
+}
+
+export async function deletePost(slug: string): Promise<void> {
+  getDb().prepare("DELETE FROM posts WHERE slug = ?").run(slug);
+}
+
+/** Active shipping methods for quote building outside db.ts (nightly pricing job). */
+export function loadShippingMethodsForQuote(db: DatabaseSync): ShippingMethod[] {
+  return loadShippingMethods(db, true);
 }
 
 // ---------- Social proof ----------

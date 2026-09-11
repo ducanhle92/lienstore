@@ -5,7 +5,7 @@ import { isDimsConfidence } from "@/lib/shipping";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getProductById, saveProduct, slugExists } from "@/lib/db";
+import { deleteProduct, getJpyRate, getProductById, saveProduct, slugExists } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
 import { getAllProducts } from "@/lib/db";
@@ -46,9 +46,15 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const regularPrice = regularRaw ? parseIntField(regularRaw) : null;
   if (regularRaw && regularPrice === null) fields.regularPrice = "Giá gốc không hợp lệ.";
 
+  const costJpyRaw = get("costJpy");
+  const costJpy = costJpyRaw ? parseIntField(costJpyRaw) : null;
+  if (costJpyRaw && (costJpy === null || costJpy <= 0)) fields.costJpy = "Giá ¥ phải là số nguyên > 0.";
+  const costUrl = get("costUrl");
+  if (costUrl && !/^https?:\/\//i.test(costUrl)) fields.costJpy = "Link giá phải bắt đầu bằng http(s)://";
   const costRaw = get("costPrice");
-  const costPrice = costRaw ? parseIntField(costRaw) : null;
+  let costPrice = costRaw ? parseIntField(costRaw) : null;
   if (costRaw && costPrice === null) fields.costPrice = "Giá vốn không hợp lệ.";
+  if (costJpy && (costPrice === null || (existing?.costJpy !== costJpy))) costPrice = Math.round(costJpy * (await getJpyRate()));
 
   const supplierUrl = get("supplierUrl");
   if (supplierUrl && !/^https?:\/\//i.test(supplierUrl)) fields.supplierUrl = "Link nhà cung cấp phải bắt đầu bằng http(s)://";
@@ -107,6 +113,10 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     stock,
     stockStatus: outOfStock ? "outofstock" : "instock",
     fulfillment: get("fulfillment") === "stock" ? "stock" : "order",
+    costJpy,
+    costSource: costJpy ? (costJpy === existing?.costJpy ? existing.costSource : costUrl.includes("amazon") ? "amazon" : costUrl.includes("rakuten") ? "rakuten" : costUrl ? "official" : "manual") : "",
+    costUrl,
+    costCheckedAt: costJpy ? (costJpy === existing?.costJpy ? existing.costCheckedAt : new Date().toISOString()) : null,
     categories,
     tags,
     images: images.length ? images : [thumb],

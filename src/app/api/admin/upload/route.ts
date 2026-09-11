@@ -10,12 +10,13 @@ export const dynamic = "force-dynamic";
  * Both are stored under uploads/<folder>/<yyyy-mm>/ (folder = products | categories) and the public URLs are returned.
  */
 export async function POST(req: NextRequest) {
-  if (!(await canAny(["products", "categories"]))) return NextResponse.json({ error: "Chưa đăng nhập quản trị hoặc không có quyền." }, { status: 401 });
+  if (!(await canAny(["products", "categories", "posts"]))) return NextResponse.json({ error: "Chưa đăng nhập quản trị hoặc không có quyền." }, { status: 401 });
   const form = await req.formData();
   const image = form.get("image");
   const thumb = form.get("thumb");
   const label = String(form.get("name") ?? "anh");
-  const folder = form.get("folder") === "categories" ? "categories" : "products";
+  const folderRaw = String(form.get("folder") ?? "");
+  const folder = folderRaw === "categories" ? "categories" : folderRaw === "posts" ? "posts" : "products";
   if (!(image instanceof File)) return NextResponse.json({ error: "Thiếu file ảnh." }, { status: 400 });
   if (!IMAGE_MIMES.has(image.type)) return NextResponse.json({ error: `Định dạng ${image.type || "không rõ"} không được hỗ trợ.` }, { status: 415 });
   if (image.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "Ảnh vượt quá 10 MB." }, { status: 413 });

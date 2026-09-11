@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { applySuggestedPricesAction, savePricingConfigAction } from "@/app/admin/products/pricing/actions";
+import { applySuggestedPricesAction, runPricingNowAction, saveFxAction, savePricingConfigAction } from "@/app/admin/products/pricing/actions";
+import { readFx } from "@/lib/fx";
+import { formatDateTime } from "@/lib/format";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -22,6 +24,8 @@ export default async function AdminPricing({ searchParams }: Props) {
   await requireAdmin("products");
   const sp = await searchParams;
   const [products, quote, pricing] = await Promise.all([getAllProducts(true), getImportQuoteConfig(), getPricingConfig()]);
+  const fx = readFx();
+  const withJpy = products.filter((p) => p.costJpy).length;
   const legMethods: Array<{ leg: (typeof IMPORT_LEGS)[number]; method: QuoteMethod | null; href: string }> = [
     { leg: "jp_domestic", method: quote.jpDomestic, href: "/admin/shipping/?leg=jp_domestic" },
     { leg: "jp_vn", method: quote.jpVn, href: "/admin/shipping/?leg=jp_vn" },
@@ -43,6 +47,54 @@ export default async function AdminPricing({ searchParams }: Props) {
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
+
+      <Card className="mb-6" title="Tỉ giá ¥ → đ và cập nhật giá vốn hằng ngày">
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <form action={saveFxAction} className="grid gap-4 sm:grid-cols-[200px_1fr] sm:items-start">
+            <div>
+              <label className={adminLabel} htmlFor="dcomRate">
+                Tỉ giá DCOM (đ / 1 ¥)
+              </label>
+              <input id="dcomRate" name="dcomRate" inputMode="decimal" defaultValue={fx.dcomRate ?? ""} placeholder="VD: 176,5" className={adminInput} />
+              <p className="mt-1 text-[12px] text-lien-muted">{fx.dcomUpdatedAt ? `Nhập lúc ${formatDateTime(fx.dcomUpdatedAt)}` : "Chưa nhập — DCOM chỉ công bố trên app / Facebook, nhập tay ở đây."}</p>
+            </div>
+            <div className="space-y-2 text-[14px]">
+              <label className="flex items-start gap-2">
+                <input type="radio" name="mode" value="dcom" defaultChecked={fx.mode === "dcom"} className="mt-1 h-4 w-4" />
+                <span>
+                  <strong>Dùng tỉ giá DCOM</strong> đã nhập; khi chưa nhập thì tạm dùng tỉ giá thị trường.
+                </span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input type="radio" name="mode" value="market" defaultChecked={fx.mode === "market"} className="mt-1 h-4 w-4" />
+                <span>
+                  <strong>Dùng tỉ giá thị trường</strong> tự lấy mỗi đêm ({fx.marketRate ? `${fx.marketRate} đ/¥ · ${fx.marketSource} · ${fx.marketUpdatedAt ? formatDateTime(fx.marketUpdatedAt) : ""}` : "chưa lấy được"}).
+                </span>
+              </label>
+              <label className="flex items-start gap-2 border-t border-[#e5e7eb] pt-2">
+                <input type="checkbox" name="autoSell" defaultChecked={fx.autoSell} className="mt-1 h-4 w-4" />
+                <span>
+                  <strong>Tự cập nhật giá bán</strong> theo công thức sau mỗi lần tính lại giá vốn (bỏ qua sản phẩm đang giảm giá).
+                </span>
+              </label>
+              <button type="submit" className={btnPrimary}>
+                <Fa name="check" /> Lưu tỉ giá
+              </button>
+            </div>
+          </form>
+          <div className="rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-4 text-[13px] leading-6 text-lien-text">
+            <p className="m-0">
+              Đang dùng: <strong>{formatAmount(fx.effective)} đ/¥</strong> ({fx.mode === "dcom" && fx.dcomRate ? "DCOM" : "thị trường"}) · {withJpy} sản phẩm có giá ¥.
+            </p>
+            <p className="m-0 mt-1 text-lien-muted">Tự chạy lúc <strong>04:00</strong> mỗi ngày: lấy tỉ giá → giá vốn VNĐ = giá ¥ × tỉ giá → giá bán (nếu bật). Lần cuối: {fx.lastRunAt ? `${formatDateTime(fx.lastRunAt)} — ${fx.lastRunSummary}` : "chưa chạy"}.</p>
+            <form action={runPricingNowAction} className="mt-3">
+              <button type="submit" className={btnPrimary}>
+                <Fa name="refresh" /> Cập nhật giá vốn theo tỉ giá ngay
+              </button>
+            </form>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title="Tham số">
@@ -128,6 +180,7 @@ export default async function AdminPricing({ searchParams }: Props) {
             <thead>
               <tr>
                 <th className={thClass}>Sản phẩm</th>
+                <th className={thClass}>Giá ¥</th>
                 <th className={thClass}>Giá vốn</th>
                 <th className={thClass}>Lãi {pricing.marginPct}%</th>
                 <th className={thClass}>Ship 3 chặng</th>
@@ -139,7 +192,7 @@ export default async function AdminPricing({ searchParams }: Props) {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có sản phẩm nào nhập giá vốn.
                   </td>
                 </tr>
@@ -154,6 +207,7 @@ export default async function AdminPricing({ searchParams }: Props) {
                       </Link>
                       {p.regularPrice !== null ? <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-800">đang giảm giá · bỏ qua</span> : null}
                     </td>
+                    <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>{p.costJpy ? `¥${p.costJpy.toLocaleString("ja-JP")}` : "—"}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(s.cost)}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(s.margin)}</td>
                     <td className={`${tdClass} whitespace-nowrap`} title={s.legs.map((l) => `${LEG_LABEL[l.leg]}: ${formatAmount(l.fee)}đ (${l.label})`).join("\n") || "Chưa có phương thức"}>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -64,6 +65,7 @@ export default async function EntryPage({ params }: Props) {
             ) : null}
             <h1 className="mb-2 text-[26px] font-bold leading-9 text-lien-heading">{entry.title}</h1>
           </header>
+          {kind === "post" && entry.image ? <Image src={entry.image} alt="" width={1100} height={600} unoptimized className="mb-6 h-auto w-full rounded-md object-cover" /> : null}
           <div className="lien-prose" dangerouslySetInnerHTML={{ __html: entry.content }} />
           {kind === "post" ? (
             <>
