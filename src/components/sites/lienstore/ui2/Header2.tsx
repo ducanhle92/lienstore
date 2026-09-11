@@ -130,25 +130,26 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-lien-line pt-3 text-[13px]">
-                  <Link href="/shop/" className="font-semibold text-lien-blue no-underline hover:underline">
-                    {t("viewAll")}
+                <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-lien-line pt-3 text-[13px]">
+                  <Link href="/shop/?orderby=popularity" onClick={() => setOpen(null)} className="inline-flex items-center gap-1.5 font-bold uppercase text-lien-heading no-underline hover:text-lien-blue">
+                    <Fa name="fire" className="text-lien-sale" />
+                    {t("menuBest")}
                   </Link>
-                  <Link href="/shop/?orderby=date" className="text-lien-muted no-underline hover:text-lien-blue">
+                  <Link href="/shop/?onsale=1" onClick={() => setOpen(null)} className="inline-flex items-center gap-1.5 font-bold uppercase text-lien-sale no-underline hover:underline">
+                    <Fa name="tag" />
+                    {t("menuSaleCat")}
+                  </Link>
+                  <Link href="/shop/?orderby=date" onClick={() => setOpen(null)} className="inline-flex items-center gap-1.5 font-bold uppercase text-lien-info no-underline hover:underline">
+                    <Fa name="bolt" />
                     {t("newArrivals")}
+                  </Link>
+                  <Link href="/shop/" onClick={() => setOpen(null)} className="ml-auto font-semibold text-lien-blue no-underline hover:underline">
+                    {t("viewAll")}
                   </Link>
                 </div>
               </div>
             ) : null}
           </div>
-          <Link href="/shop/?onsale=1" className={cn(navItem, "text-[#ffd8d8]")} onClick={() => setOpen(null)}>
-            <Fa name="tag" className="text-[12px]" />
-            {t("menuSale")}
-          </Link>
-          <Link href="/shop/?orderby=popularity" className={navItem} onClick={() => setOpen(null)}>
-            <Fa name="fire" className="text-[12px]" />
-            {t("menuBest")}
-          </Link>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "bg-white/15")} aria-expanded={open === "support"}>
               {t("support")}
@@ -258,7 +259,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
                 </ul>
               </div>
               <div className="px-4 py-3">
-                {[{ label: t("allProducts"), href: "/shop/" }, { label: t("menuSale"), href: "/shop/?onsale=1" }, { label: t("menuBest"), href: "/shop/?orderby=popularity" }, ...supportLinks, ...newsLinks, { label: t("news"), href: newsHref }, { label: t("aboutContact"), href: aboutHref }, { label: t("account"), href: "/my-account/" }].map((l) => (
+                {[{ label: t("allProducts"), href: "/shop/" }, { label: t("menuBest"), href: "/shop/?orderby=popularity" }, { label: t("menuSaleCat"), href: "/shop/?onsale=1" }, ...supportLinks, ...newsLinks, { label: t("news"), href: newsHref }, { label: t("aboutContact"), href: aboutHref }, { label: t("account"), href: "/my-account/" }].map((l) => (
                   <Link key={l.href + l.label} href={l.href} className="block py-2 text-[14px] font-medium text-lien-heading no-underline">
                     {l.label}
                   </Link>

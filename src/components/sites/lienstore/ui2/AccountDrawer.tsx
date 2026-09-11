@@ -184,6 +184,12 @@ export function AccountDrawer({ open, onClose, customer }: Props) {
                   {t("login")}
                 </button>
               </p>
+              <p className="m-0 text-[14px] text-lien-text">
+                {t("forgot")}{" "}
+                <Link href="/my-account/lost-password/" onClick={onClose} className="font-medium text-lien-heading no-underline underline-offset-2 hover:underline">
+                  {t("recover")}
+                </Link>
+              </p>
             </form>
           )}
         </div>

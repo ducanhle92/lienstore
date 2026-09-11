@@ -83,6 +83,7 @@ const seed = {
 if (all) {
   seed.customers = q("SELECT * FROM customers ORDER BY created_at").map((r) => ({
     id: r.id,
+    customerNo: r.customer_no ?? null,
     email: r.email,
     passwordHash: r.password_hash,
     salt: r.salt,

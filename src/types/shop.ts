@@ -97,6 +97,8 @@ export interface Customer {
   lastName: string;
   phone: string;
   address: string;
+  /** Back-office customer number (10001, 10002…), shown in admin and exports only. */
+  customerNo: number | null;
   /** Login ID for the admin area (staff/admin); empty for plain customers. Email works too. */
   username: string;
   /** Storefront customer by default; admin/staff may sign in to /admin. */
@@ -269,6 +271,12 @@ export interface Voucher {
   usedCount: number;
   active: boolean;
   note: string;
+  /** Listed in the home-page "Ưu đãi độc quyền website" strip (public vouchers only). */
+  showHome: boolean;
+  /** When non-empty, only these customer accounts may redeem the code. */
+  customerIds: string[];
+  /** Human labels of those accounts (customer no · login ID) for the admin form. */
+  customerLabels: string[];
   createdAt: string;
   updatedAt: string;
 }

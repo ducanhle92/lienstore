@@ -81,6 +81,7 @@ export default async function AdminUsers({ searchParams }: Props) {
                           {u.username || showEmail(u.email) || "(không có ID)"}
                         </Link>
                         <div className="text-[12px] text-lien-muted">{name || "—"}{showEmail(u.email) && u.username ? ` · ${showEmail(u.email)}` : ""}</div>
+                        {u.customerNo ? <div className="text-[12px] font-semibold text-lien-heading">Mã KH: {u.customerNo}</div> : null}
                         <div className="font-mono text-[11px] text-[#9ca3af]">{u.id}</div>
                         {!u.active ? <span className="mt-1 inline-block rounded-full bg-gray-200 px-2 text-[11px] text-gray-700">Đã khoá</span> : null}
                       </td>

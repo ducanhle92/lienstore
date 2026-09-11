@@ -8,12 +8,14 @@ import { ShoppingGuideBlock } from "@/components/sites/lienstore/ui2/ShoppingGui
 import { ProductCarousel } from "@/components/sites/lienstore/shop/ProductCarousel";
 import { CAROUSEL_ITEM } from "@/components/sites/lienstore/shop/carousel-classes";
 import { CategoryCarousel } from "@/components/sites/lienstore/ui2/CategoryCarousel";
+import { VoucherStrip } from "@/components/sites/lienstore/ui2/VoucherStrip";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { localizeProducts } from "@/lib/localize";
-import { queryProducts } from "@/lib/db";
+import { getHomeVouchers, queryProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,8 @@ const CATEGORY_ROWS = 6;
 
 export default async function Home() {
   const lang = await getLang();
+  const me = await getCurrentCustomer();
+  const homeVouchers = await getHomeVouchers(me?.id ?? null);
   const categories = await getHeaderCategories(lang);
   const [fresh, popular, sale] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),
@@ -45,6 +49,8 @@ export default async function Home() {
       <FullWidthShell className="pt-0">
 
         <CategoryCarousel categories={categories} />
+
+        <VoucherStrip vouchers={homeVouchers.map((v) => ({ code: v.code, kind: v.kind, value: v.value, minSubtotal: v.minSubtotal, maxDiscount: v.maxDiscount, endsAt: v.endsAt, personal: v.personal, note: v.note }))} />
 
         {onSale.length >= 3 ? (
           <section className="mt-10" aria-label="Giảm giá">

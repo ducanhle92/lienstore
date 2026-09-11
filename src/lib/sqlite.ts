@@ -493,6 +493,23 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE products SET weight_g = 290, dims_cm = '11.43x4.83x4.83', dims_confidence = 'medium', dims_source = 'Chủ shop cung cấp 2026-09-11' WHERE slug = 'tinh-chat-estee-lauder-advanced-night-repair-50ml'`,
     ],
   },
+  {
+    // Back-office customer number 10001, 10002… (never shown to shoppers) and vouchers that can be given to
+    // specific accounts / hidden from the home-page strip.
+    version: 21,
+    name: "customer-no-and-private-vouchers",
+    up: [
+      `ALTER TABLE customers ADD COLUMN customer_no INTEGER`,
+      `UPDATE customers SET customer_no = (SELECT 10000 + COUNT(*) FROM customers c2 WHERE c2.created_at < customers.created_at OR (c2.created_at = customers.created_at AND c2.id <= customers.id))`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_no ON customers(customer_no)`,
+      `ALTER TABLE vouchers ADD COLUMN show_home INTEGER NOT NULL DEFAULT 1`,
+      `CREATE TABLE IF NOT EXISTS voucher_customers (
+        voucher_id  INTEGER NOT NULL REFERENCES vouchers(id) ON DELETE CASCADE,
+        customer_id TEXT NOT NULL,
+        PRIMARY KEY (voucher_id, customer_id)
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

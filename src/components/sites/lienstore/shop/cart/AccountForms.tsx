@@ -103,6 +103,11 @@ export function LoginRegisterForms() {
             {regPending ? "Đang tạo tài khoản…" : "Đăng ký"}
           </button>
         </p>
+        <p className="woocommerce-LostPassword mt-3">
+          <Link href="/my-account/lost-password/" className="text-lien-muted hover:text-lien-blue">
+            Quên mật khẩu? Lấy lại mật khẩu
+          </Link>
+        </p>
       </form>
     </div>
   );

@@ -16,7 +16,7 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("sv-
 
 function VoucherForm({ v }: { v?: Voucher }) {
   return (
-    <form action={saveVoucherAction} className="grid gap-3 md:grid-cols-6 md:items-end">
+    <form action={saveVoucherAction} encType="multipart/form-data" className="grid gap-3 md:grid-cols-6 md:items-end">
       {v ? <input type="hidden" name="id" value={v.id} /> : null}
       <div>
         <label className={adminLabel}>Mã *</label>
@@ -60,6 +60,19 @@ function VoucherForm({ v }: { v?: Voucher }) {
       <label className="inline-flex items-center gap-2 pb-2.5 text-[14px]">
         <input type="checkbox" name="active" defaultChecked={v ? v.active : true} className="h-4 w-4" /> Đang chạy
       </label>
+      <label className="inline-flex items-center gap-2 pb-2.5 text-[14px]">
+        <input type="checkbox" name="showHome" defaultChecked={v ? v.showHome : true} className="h-4 w-4" /> Hiện ở mục «Ưu đãi độc quyền website» trên trang chủ
+      </label>
+      <div className="md:col-span-6 rounded-md border border-dashed border-[#d1d5db] p-3">
+        <label className={adminLabel}>
+          Tặng riêng cho tài khoản <span className="font-normal text-lien-muted">— để trống = mọi khách. Nhập mã khách hàng (10001…), ID đăng nhập hoặc email, mỗi dòng một tài khoản; hoặc tải file CSV/TXT xuất từ Excel (cột đầu).</span>
+        </label>
+        <div className="grid gap-2 md:grid-cols-[1fr_280px]">
+          <textarea name="customers" rows={3} defaultValue={v?.customerLabels.join("\n") ?? ""} placeholder={"10001\n10002\nlinh.nguyen@gmail.com"} className={`${adminInput} font-mono text-[13px]`} />
+          <input type="file" name="customersFile" accept=".csv,.txt,text/csv,text/plain" className="text-[13px]" />
+        </div>
+        {v?.customerIds.length ? <p className="m-0 mt-1 text-[12px] text-lien-muted">Đang tặng riêng cho {v.customerIds.length} tài khoản; chỉ các tài khoản này nhập mã được, khách thấy mã trong mục Voucher của tài khoản và trên trang chủ khi đăng nhập.</p> : null}
+      </div>
       <div className="flex gap-2">
         <button type="submit" className={v ? btnSecondary : btnPrimary}>
           <Fa name={v ? "check" : "plus"} /> {v ? "Lưu" : "Tạo voucher"}
@@ -109,6 +122,7 @@ export default async function AdminVouchers({ searchParams }: Props) {
                 {v.minSubtotal ? <span className="text-[13px] text-lien-muted">đơn từ {formatAmount(v.minSubtotal)}đ</span> : null}
                 {v.maxDiscount ? <span className="text-[13px] text-lien-muted">tối đa {formatAmount(v.maxDiscount)}đ</span> : null}
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
+                {v.customerIds.length ? <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-800">Riêng cho {v.customerIds.length} tài khoản</span> : v.showHome ? <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">Hiện trang chủ</span> : null}
                 <span className="ml-auto text-[13px] text-lien-muted">
                   Đã dùng {v.usedCount}
                   {v.usageLimit !== null ? `/${v.usageLimit}` : ""} lượt

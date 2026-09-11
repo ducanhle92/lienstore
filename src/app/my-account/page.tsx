@@ -8,6 +8,8 @@ import { AccountDetailsForm, LoginRegisterForms } from "@/components/sites/liens
 import { OrderAddress, OrderSummary, STATUS_LABEL } from "@/components/sites/lienstore/shop/cart/OrderDetails";
 import { OrderLookupForm } from "@/components/sites/lienstore/shop/cart/OrderLookupForm";
 import { displayEmail } from "@/lib/customer-email";
+import { getHomeVouchers } from "@/lib/db";
+import { VoucherStrip } from "@/components/sites/lienstore/ui2/VoucherStrip";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { Price, shopTableClass, shopTdClass, shopThClass, WooHeading, WooNotice, wooButtonClass } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
@@ -20,11 +22,12 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tài khoản – LienStore" };
 
-type Tab = "dashboard" | "orders" | "address" | "details";
-const TAB_JA: Record<Tab, "dashboard" | "orders" | "addressTab" | "accountDetails"> = { dashboard: "dashboard", orders: "orders", address: "addressTab", details: "accountDetails" };
+type Tab = "dashboard" | "orders" | "vouchers" | "address" | "details";
+const TAB_JA: Record<Tab, "dashboard" | "orders" | "vouchersTab" | "addressTab" | "accountDetails"> = { dashboard: "dashboard", orders: "orders", vouchers: "vouchersTab", address: "addressTab", details: "accountDetails" };
 const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Bảng điều khiển" },
   { key: "orders", label: "Đơn hàng" },
+  { key: "vouchers", label: "Voucher" },
   { key: "address", label: "Địa chỉ" },
   { key: "details", label: "Chi tiết tài khoản" },
 ];
@@ -99,6 +102,20 @@ export default async function MyAccount({ searchParams }: Props) {
                 ) : null}
 
                 {tab === "orders" ? <OrdersTab customerId={customer.id} email={customer.email} viewId={viewId} /> : null}
+
+                {tab === "vouchers" ? (
+                  <>
+                    <WooHeading as="h3" className="mt-0">
+                      Voucher của bạn
+                    </WooHeading>
+                    <p className="mb-4 text-[16px] leading-6 text-lien-muted">Mã tặng riêng cho tài khoản này và các ưu đãi đang chạy trên website. Nhập mã ở trang thanh toán.</p>
+                    {(await getHomeVouchers(customer.id)).length ? (
+                      <VoucherStrip className="!my-0" vouchers={(await getHomeVouchers(customer.id)).map((v) => ({ code: v.code, kind: v.kind, value: v.value, minSubtotal: v.minSubtotal, maxDiscount: v.maxDiscount, endsAt: v.endsAt, personal: v.personal, note: v.note }))} />
+                    ) : (
+                      <WooNotice kind="info">Hiện chưa có voucher nào dành cho bạn.</WooNotice>
+                    )}
+                  </>
+                ) : null}
 
                 {tab === "address" ? (
                   <>

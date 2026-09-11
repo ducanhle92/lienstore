@@ -65,6 +65,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
                     <Link href={`/admin/customers/${encodeURIComponent(c.key)}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                       {c.name || c.email || c.phone || "Khách"}
                     </Link>
+                    {c.customerNo ? <div className="text-[12px] font-semibold text-lien-heading">Mã KH: {c.customerNo}</div> : null}
                     {c.address ? <div className="max-w-[260px] truncate text-[12px] text-lien-muted">{c.address}</div> : null}
                   </td>
                   <td className={`${tdClass} text-[13px]`}>

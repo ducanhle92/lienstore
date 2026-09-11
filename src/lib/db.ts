@@ -25,7 +25,7 @@ import type {
   UserRole,
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
-import { NO_EMAIL_DOMAIN } from "./customer-email";
+import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
@@ -230,6 +230,7 @@ interface CustomerRow {
   permissions: string | null;
   active: number | null;
   username: string | null;
+  customer_no: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -243,6 +244,7 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   lastName: r.last_name,
   phone: r.phone,
   address: r.address,
+  customerNo: r.customer_no ?? null,
   username: r.username ?? "",
   role: r.role === "admin" || r.role === "staff" ? r.role : "customer",
   permissions: parseArr(r.permissions ?? "[]"),
@@ -594,7 +596,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let discount = 0;
     let voucherCode = "";
     if (input.voucherCode?.trim()) {
-      const check = checkVoucher(db, input.voucherCode, subtotal);
+      const check = checkVoucher(db, input.voucherCode, subtotal, input.customerId ?? null);
       if (!check.ok) throw new Error(check.message);
       discount = check.discount;
       voucherCode = check.voucher.code;
@@ -895,6 +897,7 @@ interface VoucherRow {
   used_count: number;
   active: number;
   note: string;
+  show_home: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -911,28 +914,103 @@ const rowToVoucher = (r: VoucherRow): Voucher => ({
   usedCount: r.used_count,
   active: r.active === 1,
   note: r.note,
+  showHome: (r.show_home ?? 1) !== 0,
+  customerIds: [],
+  customerLabels: [],
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
 
-export async function getVouchers(): Promise<Voucher[]> {
-  return (getDb().prepare("SELECT * FROM vouchers ORDER BY active DESC, created_at DESC").all() as unknown as VoucherRow[]).map(rowToVoucher);
+/** Accounts a voucher was given to: `{ voucherId → [{ id, label }] }`. */
+function voucherOwners(db: DatabaseSync): Map<number, Array<{ id: string; label: string }>> {
+  const rows = db
+    .prepare("SELECT vc.voucher_id, vc.customer_id, c.customer_no, c.username, c.email FROM voucher_customers vc LEFT JOIN customers c ON c.id = vc.customer_id ORDER BY c.customer_no")
+    .all() as unknown as Array<{ voucher_id: number; customer_id: string; customer_no: number | null; username: string | null; email: string | null }>;
+  const map = new Map<number, Array<{ id: string; label: string }>>();
+  for (const r of rows) {
+    const label = r.customer_no ? String(r.customer_no) : r.username || (r.email ? displayEmail(r.email) : "") || r.customer_id;
+    map.set(r.voucher_id, [...(map.get(r.voucher_id) ?? []), { id: r.customer_id, label }]);
+  }
+  return map;
 }
 
-export async function saveVoucher(input: Omit<Voucher, "id" | "usedCount" | "createdAt" | "updatedAt"> & { id?: number }): Promise<number> {
+export async function getVouchers(): Promise<Voucher[]> {
+  const db = getDb();
+  const owners = voucherOwners(db);
+  return (db.prepare("SELECT * FROM vouchers ORDER BY active DESC, created_at DESC").all() as unknown as VoucherRow[]).map((r) => {
+    const v = rowToVoucher(r);
+    const o = owners.get(v.id) ?? [];
+    return { ...v, customerIds: o.map((x) => x.id), customerLabels: o.map((x) => x.label) };
+  });
+}
+
+export async function saveVoucher(input: Omit<Voucher, "id" | "usedCount" | "createdAt" | "updatedAt" | "customerLabels"> & { id?: number }): Promise<number> {
   const db = getDb();
   const now = new Date().toISOString();
   const code = input.code.trim().toUpperCase();
   if (!code) throw new Error("Cần mã voucher.");
   const dup = db.prepare("SELECT id FROM vouchers WHERE code = ? COLLATE NOCASE").get(code) as { id: number } | undefined;
   if (dup && dup.id !== input.id) throw new Error(`Mã "${code}" đã tồn tại.`);
-  const params = [code, input.kind, Math.max(0, Math.round(input.value)), Math.max(0, Math.round(input.minSubtotal)), input.maxDiscount, input.startsAt, input.endsAt, input.usageLimit, input.active ? 1 : 0, input.note, now];
-  if (input.id) {
-    db.prepare("UPDATE vouchers SET code = ?, kind = ?, value = ?, min_subtotal = ?, max_discount = ?, starts_at = ?, ends_at = ?, usage_limit = ?, active = ?, note = ?, updated_at = ? WHERE id = ?").run(...params, input.id);
-    return input.id;
+  const params = [code, input.kind, Math.max(0, Math.round(input.value)), Math.max(0, Math.round(input.minSubtotal)), input.maxDiscount, input.startsAt, input.endsAt, input.usageLimit, input.active ? 1 : 0, input.note, input.showHome ? 1 : 0, now];
+  return withTransaction(db, () => {
+    let id = input.id;
+    if (id) {
+      db.prepare("UPDATE vouchers SET code = ?, kind = ?, value = ?, min_subtotal = ?, max_discount = ?, starts_at = ?, ends_at = ?, usage_limit = ?, active = ?, note = ?, show_home = ?, updated_at = ? WHERE id = ?").run(...params, id);
+    } else {
+      const r = db.prepare("INSERT INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, show_home, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(...params, now);
+      id = Number(r.lastInsertRowid);
+    }
+    db.prepare("DELETE FROM voucher_customers WHERE voucher_id = ?").run(id);
+    const ins = db.prepare("INSERT OR IGNORE INTO voucher_customers (voucher_id, customer_id) VALUES (?, ?)");
+    for (const cid of new Set(input.customerIds ?? [])) ins.run(id, cid);
+    return id;
+  });
+}
+
+/**
+ * Turn what the admin typed / uploaded (customer numbers, login IDs or emails — one per line or comma separated)
+ * into customer ids. Unknown tokens are returned so the admin can fix the list.
+ */
+export async function resolveCustomerRefs(tokens: string[]): Promise<{ ids: string[]; unresolved: string[] }> {
+  const db = getDb();
+  const byNo = db.prepare("SELECT id FROM customers WHERE customer_no = ?");
+  const byUser = db.prepare("SELECT id FROM customers WHERE username = ? COLLATE NOCASE");
+  const byEmail = db.prepare("SELECT id FROM customers WHERE lower(email) = ?");
+  const ids = new Set<string>();
+  const unresolved: string[] = [];
+  for (const raw of tokens) {
+    const t = raw.trim().replace(/^#/, "");
+    if (!t) continue;
+    let row: { id: string } | undefined;
+    if (/^\d{4,}$/.test(t)) row = byNo.get(Number(t)) as { id: string } | undefined;
+    if (!row && t.includes("@")) row = byEmail.get(t.toLowerCase()) as { id: string } | undefined;
+    if (!row) row = byUser.get(t) as { id: string } | undefined;
+    if (!row && /^[0-9a-f-]{36}$/i.test(t) && db.prepare("SELECT 1 FROM customers WHERE id = ?").get(t)) row = { id: t };
+    if (row) ids.add(row.id);
+    else unresolved.push(t);
   }
-  const r = db.prepare("INSERT INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(...params, now);
-  return Number(r.lastInsertRowid);
+  return { ids: [...ids], unresolved };
+}
+
+/** Vouchers a shopper can see on the home page: public ones flagged for the strip, plus those given to this account. */
+export async function getHomeVouchers(customerId?: string | null): Promise<Array<Voucher & { personal: boolean }>> {
+  const db = getDb();
+  const owners = voucherOwners(db);
+  const now = new Date().toISOString();
+  const out: Array<Voucher & { personal: boolean }> = [];
+  for (const r of db.prepare("SELECT * FROM vouchers WHERE active = 1 ORDER BY created_at DESC").all() as unknown as VoucherRow[]) {
+    const v = rowToVoucher(r);
+    if (v.startsAt && now < v.startsAt) continue;
+    if (v.endsAt && now > v.endsAt) continue;
+    if (v.usageLimit !== null && v.usedCount >= v.usageLimit) continue;
+    const o = owners.get(v.id) ?? [];
+    if (o.length === 0) {
+      if (v.showHome) out.push({ ...v, personal: false });
+    } else if (customerId && o.some((x) => x.id === customerId)) {
+      out.push({ ...v, customerIds: o.map((x) => x.id), personal: true });
+    }
+  }
+  return out.sort((a, b) => Number(b.personal) - Number(a.personal));
 }
 
 export async function deleteVoucher(id: number): Promise<void> {
@@ -942,13 +1020,17 @@ export async function deleteVoucher(id: number): Promise<void> {
 export type VoucherCheck = { ok: true; voucher: Voucher; discount: number } | { ok: false; message: string };
 
 /** Validate a code against a subtotal (active, window, usage limit, minimum) and compute the discount. */
-function checkVoucher(db: DatabaseSync, codeRaw: string, subtotal: number): VoucherCheck {
+function checkVoucher(db: DatabaseSync, codeRaw: string, subtotal: number, customerId?: string | null): VoucherCheck {
   const code = codeRaw.trim();
   const row = db.prepare("SELECT * FROM vouchers WHERE code = ? COLLATE NOCASE").get(code) as VoucherRow | undefined;
   if (!row) return { ok: false, message: "Mã giảm giá không tồn tại." };
   const v = rowToVoucher(row);
   const now = new Date().toISOString();
   if (!v.active) return { ok: false, message: "Mã giảm giá đã tắt." };
+  const owners = db.prepare("SELECT customer_id FROM voucher_customers WHERE voucher_id = ?").all(v.id) as unknown as Array<{ customer_id: string }>;
+  if (owners.length && !(customerId && owners.some((o) => o.customer_id === customerId))) {
+    return { ok: false, message: customerId ? "Mã này được tặng riêng cho tài khoản khác." : "Mã này được tặng riêng cho tài khoản của bạn — vui lòng đăng nhập để dùng." };
+  }
   if (v.startsAt && now < v.startsAt) return { ok: false, message: "Mã giảm giá chưa tới ngày áp dụng." };
   if (v.endsAt && now > v.endsAt) return { ok: false, message: "Mã giảm giá đã hết hạn." };
   if (v.usageLimit !== null && v.usedCount >= v.usageLimit) return { ok: false, message: "Mã giảm giá đã hết lượt dùng." };
@@ -960,8 +1042,8 @@ function checkVoucher(db: DatabaseSync, codeRaw: string, subtotal: number): Vouc
   return { ok: true, voucher: v, discount };
 }
 
-export async function validateVoucher(code: string, subtotal: number): Promise<VoucherCheck> {
-  return checkVoucher(getDb(), code, subtotal);
+export async function validateVoucher(code: string, subtotal: number, customerId?: string | null): Promise<VoucherCheck> {
+  return checkVoucher(getDb(), code, subtotal, customerId);
 }
 
 /** Set / clear a sale price. `regularPrice` null = no sale (price is the only price). */
@@ -1080,6 +1162,7 @@ export interface CustomerOverview {
   key: string;
   registered: boolean;
   customerId: string | null;
+  customerNo: number | null;
   name: string;
   email: string;
   phone: string;
@@ -1098,6 +1181,7 @@ export async function getCustomerOverview(): Promise<CustomerOverview[]> {
       key: `c:${c.id}`,
       registered: true,
       customerId: c.id,
+      customerNo: c.customerNo,
       name: `${c.lastName} ${c.firstName}`.trim(),
       email: c.email,
       phone: c.phone,
@@ -1115,7 +1199,7 @@ export async function getCustomerOverview(): Promise<CustomerOverview[]> {
     const key = (o.customer_id && map.has(`c:${o.customer_id}`) ? `c:${o.customer_id}` : null) ?? emailToKey.get(email) ?? `g:${email || o.phone.replace(/\D/g, "")}`;
     let c = map.get(key);
     if (!c) {
-      c = { key, registered: false, customerId: null, name: `${o.last_name} ${o.first_name}`.trim(), email: o.email, phone: o.phone, address: o.address, ordersCount: 0, totalSpent: 0, lastOrderAt: null, createdAt: null };
+      c = { key, registered: false, customerId: null, customerNo: null, name: `${o.last_name} ${o.first_name}`.trim(), email: o.email, phone: o.phone, address: o.address, ordersCount: 0, totalSpent: 0, lastOrderAt: null, createdAt: null };
       map.set(key, c);
     }
     c.ordersCount += 1;
@@ -1207,6 +1291,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
   if (username && db.prepare("SELECT 1 FROM customers WHERE username = ? COLLATE NOCASE").get(username)) throw new Error("Tên đăng nhập này đã được dùng.");
   const salt = randomBytes(16).toString("hex");
   const now = new Date().toISOString();
+  const nextNo = (db.prepare("SELECT COALESCE(MAX(customer_no), 10000) + 1 AS n FROM customers").get() as { n: number }).n;
   const customer: Customer = {
     id: randomUUID(),
     email,
@@ -1216,6 +1301,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     lastName: input.lastName ?? "",
     phone: input.phone ?? "",
     address: input.address ?? "",
+    customerNo: nextNo,
     username,
     role: input.role ?? "customer",
     permissions: input.permissions ?? [],
@@ -1223,8 +1309,8 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     createdAt: now,
     updatedAt: now,
   };
-  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, username, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, username, customer_no, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
     customer.id,
     customer.email,
     customer.passwordHash,
@@ -1237,6 +1323,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     JSON.stringify(customer.permissions),
     customer.active ? 1 : 0,
     customer.username || null,
+    customer.customerNo,
     now,
     now,
   );

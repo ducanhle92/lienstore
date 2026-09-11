@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, getProductById, saveVoucher, updateProductPricing } from "@/lib/db";
+import { deleteVoucher, getProductById, resolveCustomerRefs, saveVoucher, updateProductPricing } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
@@ -52,6 +52,15 @@ export async function saveVoucherAction(formData: FormData): Promise<void> {
   if (kind === "percent" && value > 100) back(VOUCHERS, "error", "Phần trăm giảm tối đa 100.");
   const maxRaw = text(formData, "maxDiscount");
   const limitRaw = text(formData, "usageLimit");
+  // accounts the voucher is given to: pasted list + optional CSV/TXT upload (first column)
+  const file = formData.get("customersFile");
+  const uploaded = file instanceof File && file.size > 0 ? Buffer.from(await file.arrayBuffer()).toString("utf8").replace(/^\uFEFF/, "") : "";
+  const tokens = `${text(formData, "customers")}\n${uploaded}`
+    .split(/[\r\n;,\t]+/)
+    .map((t) => t.split(/[,;\t]/)[0].trim().replace(/^"|"$/g, ""))
+    .filter((t) => t && !/^(ma|mã|id|email|khach|khách|customer|stt)/i.test(t));
+  const { ids: customerIds, unresolved } = await resolveCustomerRefs(tokens);
+  if (unresolved.length) back(VOUCHERS, "error", `Không tìm thấy tài khoản: ${unresolved.slice(0, 10).join(", ")}${unresolved.length > 10 ? "…" : ""}. Dùng mã khách hàng (10001…), ID đăng nhập hoặc email đã đăng ký.`);
   try {
     const id = await saveVoucher({
       id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
@@ -65,6 +74,8 @@ export async function saveVoucherAction(formData: FormData): Promise<void> {
       usageLimit: limitRaw ? Number.parseInt(limitRaw, 10) || null : null,
       active: formData.get("active") === "on",
       note: text(formData, "note"),
+      showHome: formData.get("showHome") === "on",
+      customerIds,
     });
     revalidatePath("/admin", "layout");
     redirect(`${VOUCHERS}?saved=${encodeURIComponent(idRaw ? "Đã lưu voucher." : "Đã tạo voucher.")}#voucher-${id}`);

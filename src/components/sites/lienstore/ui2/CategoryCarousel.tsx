@@ -16,10 +16,8 @@ import type { HeaderCategory } from "./Header2";
 export function CategoryCarousel({ categories }: { categories: HeaderCategory[] }) {
   const { t } = useLang();
   const tree = buildCategoryTree(categories);
-  const tiles = [
-    ...tree.map((n) => ({ ...n.category, count: n.total, image: n.image })),
-    ...tree.flatMap((n) => n.children.map((c) => ({ ...c.category, count: c.total, image: c.image }))),
-  ].filter((c) => c.count > 0);
+  // top-level groups only (Sức khỏe, Mỹ phẩm, Mẹ và bé…); sub-categories live in the menu and the shop sidebar
+  const tiles = tree.map((n) => ({ ...n.category, count: n.total, image: n.image })).filter((c) => c.count > 0);
 
   const ref = useRef<HTMLUListElement>(null);
   const [pages, setPages] = useState(1);
