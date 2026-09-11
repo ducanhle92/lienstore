@@ -564,6 +564,27 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE orders ADD COLUMN ship_quote_json TEXT`,
     ],
   },
+  {
+    // Home-page banners managed in admin (Sales › Banner trang chủ); seeded with the four pictures shipped so far.
+    version: 25,
+    name: "home-banners",
+    up: [
+      `CREATE TABLE IF NOT EXISTS banners (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        image      TEXT NOT NULL,
+        href       TEXT NOT NULL DEFAULT '',
+        alt        TEXT NOT NULL DEFAULT '',
+        position   INTEGER NOT NULL DEFAULT 0,
+        active     INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) SELECT '/sites/lienstore/root-8a5edab2/images/uvsld-1280x520-b5707f.png', '/product/kem-chong-nang-skin-aqua-tone-up-uv-essence/', 'Kem chống nắng Skin Aqua Tone Up UV', 0, 1, '2026-09-11T07:00:00.000Z', '2026-09-11T07:00:00.000Z' WHERE NOT EXISTS (SELECT 1 FROM banners)`,
+      `INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) SELECT '/sites/lienstore/root-8a5edab2/images/vitamin-1280x520-ca9fa7.png', '/product/vitamin-c-dhc-60-ngay/', 'Vitamin C DHC', 1, 1, '2026-09-11T07:00:00.000Z', '2026-09-11T07:00:00.000Z' WHERE (SELECT COUNT(*) FROM banners) = 1`,
+      `INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) SELECT '/sites/lienstore/root-8a5edab2/images/son-1-2f8444.png', '/product/son-duong-tri-tham-moi-dhc/', 'Son dưỡng DHC', 2, 1, '2026-09-11T07:00:00.000Z', '2026-09-11T07:00:00.000Z' WHERE (SELECT COUNT(*) FROM banners) = 2`,
+      `INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) SELECT '/sites/lienstore/root-8a5edab2/images/kids-1280x520-2d52b6.png', '/product/thuoc-tri-cam-sot-cho-be-paburon-dang-goi/', 'Taisho Pabron Kids', 3, 1, '2026-09-11T07:00:00.000Z', '2026-09-11T07:00:00.000Z' WHERE (SELECT COUNT(*) FROM banners) = 3`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

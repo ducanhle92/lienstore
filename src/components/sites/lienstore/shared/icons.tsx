@@ -40,6 +40,7 @@ const GLYPHS = {
   "arrow-left": "",
   "eye": "",
   "eye-slash": "",
+  "picture-o": "",
   "times": "",
   "minus": "",
   "info-circle": "",

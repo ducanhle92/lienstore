@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
+  Banner,
   BlogPost,
   CartItem,
   CatalogProduct,
@@ -1902,4 +1903,38 @@ export async function deleteReview(id: number): Promise<void> {
   const row = db.prepare("SELECT product_id FROM reviews WHERE id = ?").get(id) as { product_id: number } | undefined;
   db.prepare("DELETE FROM reviews WHERE id = ?").run(id);
   if (row) refreshProductRating(db, row.product_id);
+}
+
+// ---- home banners --------------------------------------------------------------------------------------------------
+
+interface BannerRow {
+  id: number;
+  image: string;
+  href: string;
+  alt: string;
+  position: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+const rowToBanner = (r: BannerRow): Banner => ({ id: r.id, image: r.image, href: r.href, alt: r.alt, position: r.position, active: r.active === 1, createdAt: r.created_at, updatedAt: r.updated_at });
+
+export async function getBanners(activeOnly = true): Promise<Banner[]> {
+  const rows = getDb().prepare(`SELECT * FROM banners ${activeOnly ? "WHERE active = 1" : ""} ORDER BY position, id`).all() as unknown as BannerRow[];
+  return rows.map(rowToBanner);
+}
+
+export async function saveBanner(input: Omit<Banner, "id" | "createdAt" | "updatedAt"> & { id?: number }): Promise<number> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  if (input.id) {
+    db.prepare("UPDATE banners SET image = ?, href = ?, alt = ?, position = ?, active = ?, updated_at = ? WHERE id = ?").run(input.image, input.href, input.alt, input.position, input.active ? 1 : 0, now, input.id);
+    return input.id;
+  }
+  const r = db.prepare("INSERT INTO banners (image, href, alt, position, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(input.image, input.href, input.alt, input.position, input.active ? 1 : 0, now, now);
+  return Number(r.lastInsertRowid);
+}
+
+export async function deleteBanner(id: number): Promise<void> {
+  getDb().prepare("DELETE FROM banners WHERE id = ?").run(id);
 }

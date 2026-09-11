@@ -113,6 +113,18 @@ export interface Customer {
 
 export type ShipFeePayment = "prepaid" | "on_delivery";
 
+/** One picture of the home-page slider, with the page it opens. */
+export interface Banner {
+  id: number;
+  image: string;
+  href: string;
+  alt: string;
+  position: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Order {
   id: string;
   number: number;

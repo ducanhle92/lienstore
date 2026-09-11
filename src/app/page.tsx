@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { HeroSlider } from "@/components/sites/lienstore/root-8a5edab2/HeroSlider";
-import { sliderAssets, slides } from "@/components/sites/lienstore/root-8a5edab2/data";
+import { sliderAssets, slides as fallbackSlides } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { ShopProductCard } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { FullWidthShell, getHeaderCategories, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { SectionHeader2, UspStrip } from "@/components/sites/lienstore/ui2/HomeBlocks";
@@ -15,7 +15,7 @@ import { buildCategoryTree, shortName } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { localizeProducts } from "@/lib/localize";
-import { getHomeVouchers, queryProducts } from "@/lib/db";
+import { getBanners, getHomeVouchers, queryProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,8 @@ export default async function Home() {
   const lang = await getLang();
   const me = await getCurrentCustomer();
   const homeVouchers = await getHomeVouchers(me?.id ?? null);
+  const banners = await getBanners();
+  const slides = banners.length ? banners.map((b) => ({ image: b.image, href: b.href || "/shop/", alt: b.alt })) : fallbackSlides;
   const categories = await getHeaderCategories(lang);
   const [fresh, popular, sale] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),

@@ -8,9 +8,11 @@ import { absolutePath, MIME_BY_EXT, verifyOrderFileToken } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
+const PUBLIC_DIRS = new Set(["products", "categories", "banners"]);
+
 /**
  * Serves admin uploads stored outside `public/`:
- *   /api/files/products/…  and  /api/files/categories/…   public (product / category images)
+ *   /api/files/products/…, /api/files/categories/…, /api/files/banners/…   public (product / category / banner images)
  *   /api/files/orders/<orderId>/…   admin, the order's customer, or anyone holding the signed `?t=` token from the order page
  */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
       }
     }
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
-  } else if (parts[0] !== "products" && parts[0] !== "categories") {
+  } else if (!PUBLIC_DIRS.has(parts[0])) {
     return new NextResponse("Not found", { status: 404 });
   }
 
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
 
   const mime = MIME_BY_EXT[path.extname(abs).toLowerCase()] ?? "application/octet-stream";
   const data = await fs.promises.readFile(abs);
-  const isPublic = parts[0] === "products" || parts[0] === "categories";
+  const isPublic = PUBLIC_DIRS.has(parts[0]);
   return new NextResponse(new Uint8Array(data), {
     status: 200,
     headers: {
