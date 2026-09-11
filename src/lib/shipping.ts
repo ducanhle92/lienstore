@@ -25,6 +25,12 @@ export function billableKg(weightG: number): number {
   return Math.max(1, Math.ceil(weightG / 1000));
 }
 
+/** Products tagged as liquids / aerosols / bulky pay the zone surcharge (admin adds the tag on the product). */
+export const SPECIAL_TAG_RE = /(hàng lỏng|chất lỏng|liquid|bình xịt|spray|cồng kềnh|bulky|dễ vỡ|fragile)/i;
+export function isSpecialHandling(tags: string[]): boolean {
+  return tags.some((t) => SPECIAL_TAG_RE.test(t));
+}
+
 /** Zone priced as "first N g, then X per started M g" (the way Vietnamese carriers publish their tariffs). */
 export function isTiered(zone: Pick<ShippingZone, "baseG" | "stepG" | "stepFee">): boolean {
   return zone.baseG !== null && zone.stepG !== null && zone.stepFee !== null && zone.stepG > 0;

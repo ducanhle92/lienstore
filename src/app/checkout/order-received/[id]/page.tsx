@@ -11,6 +11,8 @@ import { getOrderById, getOrderMessages, markOrderMessagesRead } from "@/lib/db"
 import { BANK, transferContent, vietQrUrl } from "@/lib/payment";
 import { receiptLinksFor } from "@/lib/order-files";
 import { formatAmount, formatDate } from "@/lib/format";
+import { stageIndex } from "@/lib/shipping";
+import { OrderStatusWatcher } from "@/components/sites/lienstore/shop/cart/OrderStatusWatcher";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function OrderReceived({ params }: Props) {
   await markOrderMessagesRead(order.id, "customer");
   const [receipts, messages] = await Promise.all([receiptLinksFor(order.id), getOrderMessages(order.id)]);
 
+  const paid = stageIndex(order.shipStage) >= stageIndex("paid") && order.status !== "cancelled";
   const detail = "flex-1 basis-auto border-r border-dashed border-[#d3ced2] pr-6 mr-6 mb-4 text-[11.7px] uppercase leading-5 text-[#767676] last:mr-0 last:border-0";
   const value = "block text-[16px] normal-case leading-6 text-lien-text";
 
@@ -66,7 +69,14 @@ export default async function OrderReceived({ params }: Props) {
                 Phương thức thanh toán: <strong className={value}>{PAYMENT_LABEL[order.paymentMethod]}</strong>
               </li>
             </ul>
-            {order.paymentMethod === "bacs" ? (
+            <OrderStatusWatcher orderId={order.id} stage={order.shipStage} status={order.status} />
+            {paid ? (
+              <section className="mb-8 rounded-md border border-[#8fae1b] bg-[#f4fbe8] p-5 text-[15px] leading-6 text-lien-text" role="status">
+                <p className="m-0 text-[18px] font-bold text-lien-success">✔ Thanh toán thành công</p>
+                <p className="m-0 mt-1">LienStore đã xác nhận nhận được thanh toán cho đơn #{order.number}. Cảm ơn bạn! Hàng đang được đặt mua tại Nhật, bạn có thể theo dõi tiến độ ngay bên dưới.</p>
+              </section>
+            ) : null}
+            {order.paymentMethod === "bacs" && !paid && order.status !== "cancelled" ? (
               <section className="woocommerce-bacs-bank-details mb-8 rounded-md border border-lien-line bg-white p-5">
                 <WooHeading as="h2" className="!mt-0">
                   Chuyển khoản {order.prepaidRequired ? "toàn bộ giá trị đơn hàng" : "để hoàn tất đơn hàng"}
@@ -93,7 +103,7 @@ export default async function OrderReceived({ params }: Props) {
                 </div>
                 <p className="mt-4 mb-0 text-[13px] leading-5 text-lien-muted">
                   Quét mã bằng ứng dụng ngân hàng: số tiền và nội dung đã được điền sẵn. {order.prepaidRequired ? "Đơn có hàng order nên cần thanh toán đủ trước khi LienStore đặt mua tại Nhật." : "Đơn được xử lý ngay khi nhận được tiền."} Chuyển xong có thể gửi ảnh
-                  biên lai qua Zalo 0964 839 769 để được xác nhận nhanh.
+                  biên lai qua Zalo 0964 839 769 để được xác nhận nhanh. Trang này tự cập nhật khi LienStore xác nhận thanh toán.
                 </p>
               </section>
             ) : null}

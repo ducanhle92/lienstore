@@ -31,6 +31,8 @@ export interface CheckoutZone {
   baseG: number | null;
   stepG: number | null;
   stepFee: number | null;
+  /** Surcharge for liquids / aerosols / bulky items (zone "phụ phí"). */
+  extraFee: number | null;
   freeOver: number | null;
   eta: string;
   areas: string;
@@ -108,12 +110,16 @@ interface Props {
   preorderIds: number[];
   /** Billable grams per product id (safety factor already applied). */
   weights?: Record<number, number>;
+  /** Product ids tagged liquid / aerosol / bulky (pay the zone surcharge). */
+  specialIds?: number[];
+  /** Regular (crossed-out) price per product id, for the "you saved" line. */
+  regularPrices?: Record<number, number>;
   /** How the Japan-side legs are priced (per-order mode) — same function runs again on the server. */
   quote?: ShippingQuoteConfig;
 }
 
 /** Checkout: billing fields, delivery choice (pickup / home delivery with zone fee), order review, payment, place order. */
-export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods = [], pickupAddress, preorderIds, weights = {}, quote }: Props) {
+export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods = [], pickupAddress, preorderIds, weights = {}, specialIds = [], regularPrices = {}, quote }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const { t } = useLang();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
@@ -200,8 +206,16 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   }, [liveMethod, districtId, wardCode, itemsKey, payment]);
   const totalWeightG = items.reduce((s, it) => s + (weights[it.productId] ?? 1000) * it.quantity, 0);
   const kg = billableKg(totalWeightG || 1000);
+  const special = items.some((it) => specialIds.includes(it.productId));
   const zoneBase = (z: CheckoutZone) => zoneFeeForWeight(z, totalWeightG || 1000);
-  const vnFee = delivery === "pickup" ? 0 : liveMethod ? (ghnQuote?.total ?? 0) : !zone ? 0 : zone.freeOver && subtotal >= zone.freeOver ? 0 : zoneBase(zone);
+  const zoneSurcharge = (z: CheckoutZone) => (special && z.extraFee ? z.extraFee : 0);
+  // gross carrier fee → shop support (free-shipping threshold) → what the customer pays for the VN leg
+  const carrierFee = delivery === "pickup" ? 0 : liveMethod ? (ghnQuote?.total ?? 0) : zone ? zoneBase(zone) : 0;
+  const surcharge = delivery === "pickup" || liveMethod || !zone ? 0 : zoneSurcharge(zone);
+  const shipSupport = delivery === "ship" && !liveMethod && zone && zone.freeOver && subtotal >= zone.freeOver ? carrierFee + surcharge : 0;
+  const vnFee = Math.max(0, carrierFee + surcharge - shipSupport);
+  const productSaving = items.reduce((s, it) => s + Math.max(0, (regularPrices[it.productId] ?? it.price) - it.price) * it.quantity, 0);
+  const shipDetail = delivery === "pickup" ? t("pickupZero") : liveMethod ? `Giao Hàng Nhanh${ghnQuote ? ` · ${ghnQuote.service}` : ""}` : zone ? `${method?.carrier ?? method?.name ?? ""} · ${zone.label} · ≈ ${formatAmount(totalWeightG || 1000)} g` : "";
   const jpLegs = quote ? quoteJpLegs(quote, totalWeightG || 1000, subtotal) : [];
   const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
   const shippingFee = (effectiveFeePayment === "on_delivery" ? 0 : vnFee) + jpFee;
@@ -524,41 +538,47 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                   <td className={shopTdClass}>{l.fee === 0 ? t("free") : <Price value={l.fee} />}</td>
                 </tr>
               ))}
+              {productSaving > 0 ? (
+                <tr className="saving">
+                  <th className={cn(shopTdClass, "font-normal text-lien-muted")} scope="row">
+                    {t("productSaving")}
+                  </th>
+                  <td className={cn(shopTdClass, "text-lien-success")}>−<Price value={productSaving} /></td>
+                </tr>
+              ) : null}
               <tr className="shipping">
                 <th className={cn(shopTdClass, "font-bold")} scope="row">
                   {perOrder ? t("vnLeg") : t("shipping")}
-                  {delivery === "pickup" && perOrder ? <span className="block text-[12px] font-normal text-lien-success">Tự tới kho lấy · không tính phí chặng này</span> : null}
+                  {shipDetail ? <span className="block text-[12px] font-normal text-lien-muted">{shipDetail}</span> : null}
                 </th>
                 <td className={shopTdClass}>
-                  {delivery === "pickup" ? (
-                    t("pickupFree")
-                  ) : liveMethod ? (
-                    ghnQuote ? (
-                      <>
-                        {effectiveFeePayment === "on_delivery" ? "≈ " : ""}
-                        <Price value={ghnQuote.total} />
-                        {effectiveFeePayment === "on_delivery" ? <span className="block text-[12px] text-lien-muted">{t("shipOnDeliveryLine")} {t("notInTotal")}</span> : null}
-                      </>
-                    ) : ghnState === "loading" ? (
-                      <span className="text-lien-muted">{t("ghnQuoting")}</span>
-                    ) : (
-                      "—"
-                    )
-                  ) : zone ? (
-                    vnFee === 0 ? (
-                      `${zone.label} · ${t("free").toLowerCase()}`
-                    ) : (
-                      <>
-                        {effectiveFeePayment === "on_delivery" ? "≈ " : ""}
-                        <Price value={vnFee} />
-                        {effectiveFeePayment === "on_delivery" ? <span className="block text-[12px] text-lien-muted">{t("shipOnDeliveryLine")} {t("notInTotal")}</span> : null}
-                      </>
-                    )
-                  ) : (
-                    "—"
-                  )}
+                  {liveMethod && !ghnQuote ? <span className="text-lien-muted">{ghnState === "loading" ? t("ghnQuoting") : "—"}</span> : <Price value={carrierFee} />}
                 </td>
               </tr>
+              {surcharge > 0 ? (
+                <tr className="shipping-surcharge">
+                  <th className={cn(shopTdClass, "font-normal text-lien-muted")} scope="row">
+                    {t("shipSurcharge")}
+                  </th>
+                  <td className={shopTdClass}>+<Price value={surcharge} /></td>
+                </tr>
+              ) : null}
+              {shipSupport > 0 && zone?.freeOver ? (
+                <tr className="shipping-support">
+                  <th className={cn(shopTdClass, "font-normal text-lien-muted")} scope="row">
+                    {t("shipSupport")} <span className="text-[12px]">({t("orderFrom")} {formatAmount(zone.freeOver)}đ)</span>
+                  </th>
+                  <td className={cn(shopTdClass, "text-lien-success")}>−<Price value={shipSupport} /></td>
+                </tr>
+              ) : null}
+              {delivery === "ship" && effectiveFeePayment === "on_delivery" && vnFee > 0 ? (
+                <tr className="shipping-cod">
+                  <th className={cn(shopTdClass, "font-normal text-lien-muted")} scope="row">
+                    {t("shipOnDeliveryLine")} <span className="text-[12px]">{t("notInTotal")}</span>
+                  </th>
+                  <td className={cn(shopTdClass, "text-lien-muted")}>≈ <Price value={vnFee} /></td>
+                </tr>
+              ) : null}
               {perOrder ? (
                 <tr className="shipping-total">
                   <th className={cn(shopTdClass, "font-semibold text-lien-muted")} scope="row">
@@ -620,13 +640,9 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
                 </label>
                 {payment === "bacs" ? (
                   <div className="payment_box my-[14.72px] rounded-[2px] bg-white p-[14.72px] text-[14px] leading-[22px] text-[#515151]">
-                    <p className="m-0 mb-2">Sau khi đặt hàng, bạn sẽ thấy mã QR và số tài khoản để chuyển khoản. Nội dung chuyển khoản được tạo tự động theo mã đơn.</p>
-                    <ul className="m-0 list-none space-y-0.5 p-0 text-[13px]">
-                      <li>
-                        <Fa name="credit-card" className="mr-1 text-lien-blue" /> {BANK.bank} · <strong>{BANK.accountNumber}</strong> · {BANK.accountName}
-                      </li>
-                      <li className="text-lien-muted">{BANK.branch}</li>
-                    </ul>
+                    <p className="m-0">
+                      <Fa name="credit-card" className="mr-1 text-lien-blue" /> Sau khi bấm <strong>Đặt hàng</strong>, trang đơn hàng sẽ hiện mã QR và số tài khoản {BANK.bank} để chuyển khoản; nội dung chuyển khoản được tạo tự động theo mã đơn. Khi LienStore xác nhận đã nhận tiền, trang đơn hàng báo &ldquo;Thanh toán thành công&rdquo;.
+                    </p>
                   </div>
                 ) : null}
               </li>

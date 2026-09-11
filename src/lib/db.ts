@@ -29,7 +29,7 @@ import type {
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
 import { packageDims, quoteGhn, type GhnQuote } from "./ghn";
-import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
+import { billableKg, billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShipStage, isSpecialHandling, quoteJpLegs, type ShipStage, type ShippingPricingMode, zoneFeeForWeight } from "./shipping";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 
@@ -589,11 +589,13 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const items: CartItem[] = [];
     let prepaidRequired = false;
     let weightG = 0;
+    let special = false;
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm, dims_confidence FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }
+      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
         | undefined;
       if (!row) continue;
+      if (isSpecialHandling(parseArr(row.tags ?? "[]"))) special = true;
       const qty = Math.max(1, Math.floor(it.quantity));
       // made-to-order: no tracked stock, or not enough on hand
       if (row.stock === null || row.stock < qty) prepaidRequired = true;
@@ -615,16 +617,17 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       const zone = input.shippingZoneId
         ? (db
             .prepare(
-              `SELECT z.name, z.fee, z.unit, z.free_over, z.base_g, z.step_g, z.step_fee, m.name AS method, c.name AS carrier FROM shipping_zones z
+              `SELECT z.name, z.fee, z.unit, z.free_over, z.base_g, z.step_g, z.step_fee, z.extra_fee, m.name AS method, c.name AS carrier FROM shipping_zones z
                JOIN shipping_methods m ON m.id = z.method_id LEFT JOIN shipping_carriers c ON c.id = m.carrier_id
                WHERE z.id = ? AND z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'`,
             )
-            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; base_g: number | null; step_g: number | null; step_fee: number | null; method: string; carrier: string | null } | undefined)
+            .get(input.shippingZoneId) as { name: string; fee: number; unit: string; free_over: number | null; base_g: number | null; step_g: number | null; step_fee: number | null; extra_fee: number | null; method: string; carrier: string | null } | undefined)
         : undefined;
       const anyZone = db.prepare("SELECT 1 FROM shipping_zones z JOIN shipping_methods m ON m.id = z.method_id WHERE z.active = 1 AND m.active = 1 AND m.leg = 'vn_domestic'").get();
       if (!zone && anyZone) throw new Error("Vui lòng chọn khu vực giao hàng.");
       if (zone) {
-        const base = zoneFeeForWeight({ fee: zone.fee, unit: zone.unit, baseG: zone.base_g, stepG: zone.step_g, stepFee: zone.step_fee }, weightG || 1000);
+        // carrier tariff by billable weight + surcharge for liquids / bulky items; the shop covers it above free_over
+        const base = zoneFeeForWeight({ fee: zone.fee, unit: zone.unit, baseG: zone.base_g, stepG: zone.step_g, stepFee: zone.step_fee }, weightG || 1000) + (special && zone.extra_fee ? zone.extra_fee : 0);
         shippingFee = zone.free_over !== null && subtotal >= zone.free_over ? 0 : base;
         shippingLabel = `${zone.name}${zone.carrier ? ` · ${zone.carrier}` : ""}`;
       } else {
