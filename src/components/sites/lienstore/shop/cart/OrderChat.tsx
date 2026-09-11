@@ -54,11 +54,9 @@ export function OrderChat({ orderId, messages, me, action, hidden = {}, quickRep
 
   return (
     <section className={cn("order-chat", className)} aria-label="Trao đổi về đơn hàng">
-      <div ref={listRef} className="max-h-[420px] space-y-3 overflow-y-auto rounded-md border border-lien-line bg-white p-3">
+      <div ref={listRef} className={cn("max-h-[420px] space-y-3 overflow-y-auto rounded-md border border-lien-line bg-white p-3", messages.length === 0 && me === "customer" && "hidden")}>
         {messages.length === 0 ? (
-          <p className="m-0 py-6 text-center text-[13px] text-lien-muted">
-            {me === "customer" ? "Chưa có tin nhắn. Có thắc mắc về đơn này? Nhắn cho LienStore ngay tại đây." : "Chưa có tin nhắn với khách về đơn này."}
-          </p>
+          <p className="m-0 py-6 text-center text-[13px] text-lien-muted">Chưa có tin nhắn với khách về đơn này.</p>
         ) : (
           messages.map((m) => {
             const mine = m.sender === me;

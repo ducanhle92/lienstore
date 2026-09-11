@@ -152,6 +152,14 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   const [voucher, setVoucher] = useState<{ code: string; discount: number; label: string } | null>(null);
   const [voucherMsg, setVoucherMsg] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  // "Thanh toán" opens a confirmation sheet with a snapshot of the form; the real submit happens from there.
+  const formRef = useRef<HTMLFormElement>(null);
+  const [confirm, setConfirm] = useState<{ firstName: string; lastName: string; phone: string; email: string; address: string; note: string } | null>(null);
+  const openConfirm = () => {
+    const fd = new FormData(formRef.current ?? undefined);
+    const v = (k: string) => String(fd.get(k) ?? "").trim();
+    setConfirm({ firstName: v("first_name"), lastName: v("last_name"), phone: v("phone"), email: v("email"), address: v("address"), note: v("note") });
+  };
 
   // every order is paid up front by bank transfer (QR + account shown on the order page after "Đặt hàng")
   const payment = "bacs" as const;
@@ -289,7 +297,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
         </WooNotice>
       ) : null}
 
-      <form action={action} className="checkout woocommerce-checkout" noValidate>
+      <form ref={formRef} action={action} className="checkout woocommerce-checkout" noValidate>
         <input type="hidden" name="items" value={JSON.stringify(items)} readOnly />
         <input type="hidden" name="delivery" value={delivery} readOnly />
         <input type="hidden" name="shipping_method" value={method?.id ?? ""} readOnly />
@@ -614,15 +622,12 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
             </tfoot>
           </table>
 
-          <div className="place-order mt-4 rounded-[5px] bg-lien-blue-soft p-4">
-            <button type="submit" disabled={pending} className={cn(wooButtonClass, "w-full !py-3 !text-[15px] font-arial")} id="place_order">
-              {pending ? t("processing") : t("placeOrder")}
+          <div className="place-order mt-4 flex flex-col items-end gap-2">
+            <button type="button" onClick={openConfirm} disabled={pending} className={cn(wooButtonClass, "!px-10 !py-2.5 !text-[15px] font-arial")} id="place_order">
+              {pending ? t("processing") : t("payNow")}
             </button>
-            <p className="m-0 mt-3 text-[13px] leading-5 text-lien-text">
-              <Fa name="credit-card" className="mr-1 text-lien-blue" /> {t("payAfterOrderNote").replace("{0}", BANK.bank)}
-            </p>
-            <p className="m-0 mt-2 text-[12px] leading-5 text-lien-muted">
-              Thông tin của bạn chỉ dùng để xử lý đơn hàng và hỗ trợ mua hàng, theo{" "}
+            <p className="m-0 max-w-[560px] text-right text-[12px] leading-5 text-lien-muted">
+              <Fa name="credit-card" className="mr-1 text-lien-blue" /> {t("payAfterOrderNote").replace("{0}", BANK.bank)} Thông tin của bạn chỉ dùng để xử lý đơn hàng, theo{" "}
               <Link href="/privacy-policy/" className="text-lien-muted hover:text-lien-blue">
                 chính sách riêng tư
               </Link>
@@ -630,6 +635,96 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
             </p>
           </div>
         </div>
+
+        {confirm ? (
+          <div className="fixed inset-0 z-[9600] flex items-end justify-center bg-black/50 p-3 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <button type="button" aria-label={t("editInfo")} onClick={() => setConfirm(null)} className="absolute inset-0 cursor-default" />
+            <div className="relative max-h-[92vh] w-full max-w-[600px] overflow-y-auto rounded-lg bg-white p-5 shadow-2xl sm:p-6">
+              <h3 id="confirm-title" className="m-0 text-[18px] font-bold text-lien-heading">
+                {t("confirmTitle")}
+              </h3>
+              <p className="m-0 mt-1 text-[13px] leading-5 text-lien-muted">{t("confirmHint")}</p>
+              {(() => {
+                const missing = [
+                  !confirm.firstName && !confirm.lastName ? t("firstNameShort") : "",
+                  !confirm.phone ? t("phone") : "",
+                  !confirm.address ? t("address") : "",
+                  delivery === "ship" && !method ? t("deliveryLabel") : "",
+                ].filter(Boolean);
+                const row = "grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-[14px] leading-6";
+                return (
+                  <>
+                    <dl className={cn(row, "m-0 mt-4 rounded-md border border-lien-line bg-lien-cream/60 p-3")}>
+                      <dt className="text-lien-muted">{t("recipientLabel")}</dt>
+                      <dd className="m-0 font-semibold text-lien-heading">{`${confirm.lastName} ${confirm.firstName}`.trim() || "—"}</dd>
+                      <dt className="text-lien-muted">{t("phone")}</dt>
+                      <dd className="m-0">{confirm.phone || "—"}</dd>
+                      {confirm.email ? (
+                        <>
+                          <dt className="text-lien-muted">Email</dt>
+                          <dd className="m-0">{confirm.email}</dd>
+                        </>
+                      ) : null}
+                      <dt className="text-lien-muted">{t("address")}</dt>
+                      <dd className="m-0">{confirm.address || "—"}</dd>
+                      <dt className="text-lien-muted">{t("deliveryLabel")}</dt>
+                      <dd className="m-0">
+                        {delivery === "pickup" ? t("pickupFree") : method ? `${method.carrier ?? method.name}${zone ? ` · ${zone.label}` : ""}${liveMethod && ghnQuote ? ` · ${ghnQuote.service}` : ""}${effectiveFeePayment === "on_delivery" ? ` · ${t("shipOnDeliveryLine")}` : ""}` : "—"}
+                      </dd>
+                      {confirm.note ? (
+                        <>
+                          <dt className="text-lien-muted">{t("orderNoteLabel")}</dt>
+                          <dd className="m-0 whitespace-pre-wrap">{confirm.note}</dd>
+                        </>
+                      ) : null}
+                    </dl>
+                    <table className="mt-4 w-full border-collapse text-[14px] leading-6">
+                      <tbody>
+                        {items.map((it) => (
+                          <tr key={it.productId} className="border-b border-lien-line">
+                            <td className="py-1.5 pr-2 text-lien-text">
+                              {it.name} <strong className="whitespace-nowrap">× {it.quantity}</strong>
+                            </td>
+                            <td className="py-1.5 text-right whitespace-nowrap">
+                              <Price value={it.price * it.quantity} />
+                            </td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <td className="pt-2 text-lien-muted">{t("subtotal")}</td>
+                          <td className="pt-2 text-right"><Price value={subtotal} /></td>
+                        </tr>
+                        {discount > 0 ? (
+                          <tr>
+                            <td className="text-lien-muted">{t("discount")}{voucher ? ` (${voucher.code})` : ""}</td>
+                            <td className="text-right text-lien-success">−<Price value={discount} /></td>
+                          </tr>
+                        ) : null}
+                        <tr>
+                          <td className="text-lien-muted">{t("deliveryLabel")}</td>
+                          <td className="text-right"><Price value={shippingFee} /></td>
+                        </tr>
+                        <tr className="border-t-2 border-lien-heading/20 text-[16px] font-bold text-lien-heading">
+                          <td className="pt-2">{t("total")}</td>
+                          <td className="pt-2 text-right"><Price value={total} /></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    {missing.length ? <p className="m-0 mt-3 rounded-md bg-[#fde8ea] px-3 py-2 text-[13px] font-semibold text-[#842029]">{t("missingInfo")}{missing.join(", ")}.</p> : null}
+                    <div className="mt-5 flex flex-wrap justify-end gap-2">
+                      <button type="button" onClick={() => setConfirm(null)} className="rounded-md border border-lien-line bg-white px-4 py-2 text-[14px] font-semibold text-lien-text hover:bg-lien-cream">
+                        {t("editInfo")}
+                      </button>
+                      <button type="submit" disabled={pending || missing.length > 0} onClick={() => window.setTimeout(() => setConfirm(null), 400)} className={cn(wooButtonClass, "!px-6 !py-2 disabled:opacity-60")}>
+                        {pending ? t("processing") : t("confirmPay")}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        ) : null}
       </form>
     </div>
   );

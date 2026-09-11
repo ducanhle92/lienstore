@@ -46,7 +46,7 @@ export default async function AdminPricing({ searchParams }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title="Tham số">
-          <form action={savePricingConfigAction} className="grid gap-4 sm:grid-cols-[160px_200px_auto] sm:items-end">
+          <form action={savePricingConfigAction} className="grid gap-4 sm:grid-cols-[150px_170px_170px_auto] sm:items-end">
             <div>
               <label className={adminLabel} htmlFor="marginPct">
                 Lãi (% trên giá vốn)
@@ -68,12 +68,22 @@ export default async function AdminPricing({ searchParams }: Props) {
                 ))}
               </select>
             </div>
+            <div>
+              <label className={adminLabel} htmlFor="lotKg">
+                Cân lô gom hàng (kg)
+              </label>
+              <input id="lotKg" name="lotKg" inputMode="decimal" defaultValue={pricing.lotWeightG / 1000} className={adminInput} />
+              <p className="mt-1 text-[12px] text-lien-muted">Một chuyến hàng điển hình.</p>
+            </div>
             <button type="submit" className={cn(btnPrimary, "sm:mb-6")}>
               <Fa name="check" /> Lưu
             </button>
           </form>
+          <p className="mt-4 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-6 text-lien-text">
+            <strong>Luồng nhập hàng mặc định:</strong> nhà tại Funabashi (〒273-0005) → <em>bưu điện Nhật</em> → kho Kiến Express Nhật (Chiba) → <em>Kiến Express</em> → kho Kiến Hà Nội (Xuân Phương, Nam Từ Liêm) → <em>Viettel Post</em> → kho LienStore Thanh Hóa. Đổi hãng / thứ tự ở tab từng chặng trong Vận chuyển.
+          </p>
           <p className="mt-4 text-[13px] leading-6 text-lien-text">
-            Phí vận chuyển mỗi sản phẩm tính theo <strong>cân tính phí</strong> (lớn hơn giữa cân thực và cân quy đổi kích thước, nhân hệ số an toàn theo độ tin cậy) với phương thức <strong>đang bật, đứng đầu</strong> của từng chặng. Chặng tính theo /kg được chia theo đúng số gram của sản phẩm (hàng đi gom lô nên không làm tròn lên 1 kg cho từng món); chặng tính theo bậc / trọn gói lấy đúng cột đó. Giá ¥ đổi sang đ theo tỷ giá 1¥ = {formatAmount(quote.jpyRate)}đ (
+            Phí vận chuyển mỗi sản phẩm tính theo <strong>cân tính phí</strong> (lớn hơn giữa cân thực và cân quy đổi kích thước, nhân hệ số an toàn theo độ tin cậy) với phương thức <strong>đang bật, đứng đầu</strong> của từng chặng. Mỗi chặng được tính cho cả lô {formatAmount(pricing.lotWeightG / 1000)} kg (đúng cách hàng thực sự đi: một kiện tới Kiến, một chuyến Kiến, một kiện Viettel về Thanh Hóa) rồi chia theo số gram của sản phẩm — không làm tròn lên 1 kg cho từng món. Giá ¥ đổi sang đ theo tỷ giá 1¥ = {formatAmount(quote.jpyRate)}đ (
             <Link href="/admin/shipping/?leg=display" className="text-lien-blue hover:underline">
               sửa ở Vận chuyển › Hiển thị cho khách
             </Link>

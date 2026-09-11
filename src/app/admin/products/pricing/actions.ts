@@ -18,9 +18,11 @@ export async function savePricingConfigAction(formData: FormData): Promise<void>
   if (!Number.isFinite(marginPct) || marginPct < MARGIN_RANGE.min || marginPct > MARGIN_RANGE.max) back("error", `Lãi % phải là số từ ${MARGIN_RANGE.min} đến ${MARGIN_RANGE.max}.`);
   const roundTo = Number.parseInt(text(formData, "roundTo"), 10);
   if (![1, 100, 500, 1000, 5000, 10000].includes(roundTo)) back("error", "Bước làm tròn không hợp lệ.");
-  await setPricingConfig({ marginPct: Math.round(marginPct * 10) / 10, roundTo });
+  const lotKg = Number.parseFloat(text(formData, "lotKg").replace(",", "."));
+  if (!Number.isFinite(lotKg) || lotKg < 1 || lotKg > 100) back("error", "Cân lô gom hàng phải từ 1 đến 100 kg.");
+  await setPricingConfig({ marginPct: Math.round(marginPct * 10) / 10, roundTo, lotWeightG: Math.round(lotKg * 1000) });
   revalidatePath("/admin/products/", "layout");
-  back("saved", `Đã lưu công thức: giá vốn + ${marginPct}% + phí 3 chặng nhập hàng, làm tròn lên ${roundTo.toLocaleString("vi-VN")}đ.`);
+  back("saved", `Đã lưu công thức: giá vốn + ${marginPct}% + phí 3 chặng nhập hàng, làm tròn lên ${roundTo.toLocaleString("vi-VN")}đ; chia phí theo lô ${lotKg} kg.`);
 }
 
 /**

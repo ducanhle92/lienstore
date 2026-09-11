@@ -602,6 +602,28 @@ export const MIGRATIONS: Migration[] = [
         FROM shipping_methods m WHERE m.leg = 'vn_transfer' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = m.id)`,
     ],
   },
+  {
+    // Default import flow set by the owner: home in Funabashi → Kiến Express Japan warehouse by Japan Post (leg 1),
+    // Kiến Express Japan → Hà Nội (leg 2), Kiến's Hà Nội warehouse → shop in Thanh Hóa by Viettel Post (leg 3).
+    version: 27,
+    name: "default-import-flow",
+    up: [
+      `INSERT OR REPLACE INTO settings (key, value) VALUES ('jp_sender_address', '〒273-0005 千葉県船橋市本町 2-15-8 ジョイフル船橋 605')`,
+      `UPDATE shipping_carriers SET phone = '0949281182', note = 'Gom hàng Nhật → Việt Nam. Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Hà Nội: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm' WHERE id = 1`,
+      `UPDATE shipping_methods SET position = 5, description = 'Mặc định: gửi từ nhà tại Funabashi tới kho Kiến Express bằng bưu điện Nhật (ゆうパック, gửi tại bưu cục hoặc combini).',
+        warehouse = 'Từ: 〒273-0005 Chiba-ken, Funabashi-shi, Honcho 2-15-8 Joyful Funabashi 605 · Đến: kho Kiến Express Nhật — Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221)'
+        WHERE leg = 'jp_domestic' AND name = 'Japan Post ゆうパック'`,
+      `UPDATE shipping_methods SET warehouse = 'Kho Nhật: Chiba-ken, Tomisato-shi, Nanae 880-34 (〒286-0221) · Kho Việt Nam: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội (hotline 0949281182)'
+        WHERE id = 1 AND leg = 'jp_vn'`,
+      `UPDATE shipping_methods SET name = 'Viettel Post: kho Kiến Express (Hà Nội) → kho Thanh Hóa', carrier_id = 4,
+        description = 'Kiến Express gửi tiếp lô hàng từ kho Hà Nội về kho LienStore qua Viettel Post. Cước Viettel Post nội vùng miền Bắc theo nấc 500 g.',
+        warehouse = 'Từ: kho Kiến Express — OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội (hotline 0949281182) · Đến: kho LienStore, Hoằng Hóa, Thanh Hóa',
+        notes = 'Tra cước và thời gian: viettelpost.com.vn/tra-cuoc-va-thoi-gian-van-chuyen\nChia đều cho từng sản phẩm theo cân tính phí khi tính giá bán'
+        WHERE leg = 'vn_transfer' AND name = 'Kiến Express: Hà Nội → kho Thanh Hóa'`,
+      `UPDATE shipping_zones SET name = 'Hà Nội → Thanh Hóa (nội vùng miền Bắc)', fee = 25000, unit = '', base_g = 500, step_g = 500, step_fee = 4000, eta = '2–3 ngày', areas = 'Kho Kiến Express Hà Nội → kho LienStore Thanh Hóa'
+        WHERE method_id IN (SELECT id FROM shipping_methods WHERE leg = 'vn_transfer') AND fee = 12000 AND unit = '/kg'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
