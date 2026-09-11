@@ -2,14 +2,15 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCustomerById, verifyCustomerLogin } from "@/lib/db";
-import { effectivePermissions, type UserRole } from "@/lib/permissions";
+import { getCustomerById, hasOwnerAccount, verifyCustomerLogin } from "@/lib/db";
+import { type AdminRole, effectivePermissions, isAdminRole } from "@/lib/permissions";
 
 /**
  * Admin authentication.
- *  - Bootstrap account from env (ADMIN_USER / ADMIN_PASSWORD): always a full admin, cannot be edited in the UI.
- *  - Database users (table `customers`) with role `admin` or `staff` sign in with email + password; staff only see
- *    the modules granted in `permissions`.
+ *  - Database users (table `customers`) with role `owner`, `admin` or `staff` sign in with ID/email + password; staff only
+ *    see the modules granted in `permissions`. The `owner` and `admin` rows are created at first start
+ *    (see ensureOwnerAccounts in sqlite.ts) with the ADMIN_PASSWORD of the deployment.
+ *  - Bootstrap account from env (ADMIN_USER / ADMIN_PASSWORD) is only a fallback while no owner row exists in the database.
  * The session is an HMAC-signed cookie: `<subject>.<expiry>.<signature>` where subject is "env" or the user id.
  */
 const COOKIE = "lien_admin";
@@ -26,7 +27,7 @@ export interface AdminSession {
   id: string;
   label: string;
   email: string;
-  role: Exclude<UserRole, "customer">;
+  role: AdminRole;
   permissions: string[];
   isEnv: boolean;
 }
@@ -44,9 +45,9 @@ function safeEqual(a: string, b: string): boolean {
 /** Returns the session subject to store, or null when the credentials are wrong / the account has no admin access. */
 export async function verifyCredentials(user: string, password: string): Promise<string | null> {
   const u = user.trim();
-  if (safeEqual(u, ADMIN_USER) && safeEqual(password, ADMIN_PASSWORD)) return ENV_SUBJECT;
   const c = await verifyCustomerLogin(u, password);
-  if (c && c.active && (c.role === "admin" || c.role === "staff")) return c.id;
+  if (c && c.active && isAdminRole(c.role)) return c.id;
+  if (!(await hasOwnerAccount()) && safeEqual(u, ADMIN_USER) && safeEqual(password, ADMIN_PASSWORD)) return ENV_SUBJECT;
   return null;
 }
 
@@ -80,11 +81,12 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const subject = parseToken(jar.get(COOKIE)?.value);
   if (!subject) return null;
   if (subject === ENV_SUBJECT || subject === ADMIN_USER) {
-    return { id: ENV_SUBJECT, label: `${ADMIN_USER} (chủ cửa hàng)`, email: "", role: "admin", permissions: effectivePermissions("admin", []), isEnv: true };
+    if (await hasOwnerAccount()) return null; // the env fallback retires once the owner row exists
+    return { id: ENV_SUBJECT, label: `${ADMIN_USER} (chủ cửa hàng)`, email: "", role: "owner", permissions: effectivePermissions("owner", []), isEnv: true };
   }
   const c = await getCustomerById(subject);
-  if (!c || !c.active || (c.role !== "admin" && c.role !== "staff")) return null;
-  const name = `${c.firstName} ${c.lastName}`.trim();
+  if (!c || !c.active || !isAdminRole(c.role)) return null;
+  const name = `${c.lastName} ${c.firstName}`.trim();
   return { id: c.id, label: name || c.username || c.email, email: c.email, role: c.role, permissions: effectivePermissions(c.role, c.permissions), isEnv: false };
 }
 

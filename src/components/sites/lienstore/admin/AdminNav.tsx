@@ -69,7 +69,7 @@ interface AdminNavProps {
   /** Module keys the signed-in account may use; links for other modules are hidden. */
   permissions: string[];
   userLabel: string;
-  role: "admin" | "staff";
+  role: "owner" | "admin" | "staff";
   /** Brand name from Admin › Giao diện & Logo. */
   shopName?: string;
 }
@@ -152,7 +152,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
           <span className="block truncate text-white/90" title={userLabel}>
             {userLabel}
           </span>
-          {userLabel.includes("(chủ cửa hàng)") ? "Toàn quyền" : role === "admin" ? "Quản trị viên" : "Nhân viên"}
+          {role === "owner" ? "Chủ sở hữu · toàn quyền" : role === "admin" ? "Quản trị viên" : "Nhân viên"}
         </div>
         <form action={logout}>
           <button type="submit" className={cn(rowBase, rowIdle, "w-full text-left")}>

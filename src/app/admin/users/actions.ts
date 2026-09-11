@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth";
 import { adminCreateUser, adminUpdateUser, countActiveAdmins, deleteCustomer, getCustomerById } from "@/lib/db";
-import { isUserRole, sanitizePermissions, type UserRole } from "@/lib/permissions";
+import { assignableRoles, canManageRole, isUserRole, ROLE_LABELS, sanitizePermissions, type UserRole } from "@/lib/permissions";
 
 const LIST = "/admin/users/";
 
@@ -36,7 +36,9 @@ export async function createUserAction(formData: FormData): Promise<void> {
   const email = text(formData, "email").toLowerCase();
   const username = text(formData, "username");
   const password = text(formData, "password");
+  const me = await getAdminSession();
   const role = readRole(formData);
+  if (!me || !assignableRoles(me.role).includes(role)) back(LIST, "error", `Bạn không có quyền tạo tài khoản ${ROLE_LABELS[role]}. Chỉ chủ sở hữu mới thêm / sửa / xoá quản trị viên.`);
   const err = validate(email, username, password, role) ?? (password.length < 8 ? "Mật khẩu phải có ít nhất 8 ký tự." : null);
   if (err) back(LIST, "error", err);
   try {
@@ -73,13 +75,17 @@ export async function updateUserAction(formData: FormData): Promise<void> {
   let active = formData.get("active") === "on";
   const err = validate(email, username, password || null, role);
   if (err) back(url, "error", err);
-  // A signed-in admin cannot lock themselves out.
-  if (me.id === id && (role !== "admin" || !active)) {
-    role = "admin";
+  const isSelf = me.id === id;
+  // Only the owner touches admins; nobody changes the owner's role. Editing yourself keeps role and active state.
+  if (!isSelf && !canManageRole(me.role, current!.role)) back(url, "error", `Chỉ chủ sở hữu mới sửa được tài khoản ${ROLE_LABELS[current!.role]}.`);
+  if (isSelf || current!.role === "owner") {
+    role = current!.role;
     active = true;
+  } else if (!assignableRoles(me.role).includes(role)) {
+    back(url, "error", `Bạn không có quyền gán vai trò ${ROLE_LABELS[role]}.`);
   }
-  // Keep at least one active admin account in the database (the env account is a fallback, but be safe).
-  if (current!.role === "admin" && current!.active && (role !== "admin" || !active) && (await countActiveAdmins()) <= 1) {
+  // Keep at least one active owner/admin account in the database.
+  if ((current!.role === "admin" || current!.role === "owner") && current!.active && (role !== current!.role || !active) && (await countActiveAdmins()) <= 1) {
     back(url, "error", "Đây là quản trị viên hoạt động cuối cùng trong hệ thống; hãy tạo admin khác trước khi hạ quyền.");
   }
   try {
@@ -107,7 +113,8 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
   const id = text(formData, "id");
   if (id === me.id) back(`${LIST}${id}/`, "error", "Không thể xoá tài khoản đang đăng nhập.");
   const target = await getCustomerById(id);
-  if (target?.role === "admin" && target.active && (await countActiveAdmins()) <= 1) {
+  if (target && !canManageRole(me.role, target.role)) back(`${LIST}${id}/`, "error", `Chỉ chủ sở hữu mới xoá được tài khoản ${ROLE_LABELS[target.role]}; tài khoản chủ sở hữu không xoá được.`);
+  if ((target?.role === "admin" || target?.role === "owner") && target.active && (await countActiveAdmins()) <= 1) {
     back(`${LIST}${id}/`, "error", "Không thể xoá quản trị viên hoạt động cuối cùng.");
   }
   await deleteCustomer(id);

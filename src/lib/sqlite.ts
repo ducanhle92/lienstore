@@ -1,5 +1,7 @@
 import "server-only";
+import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import fs from "node:fs";
+import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
@@ -661,6 +663,8 @@ function open(): DatabaseSync {
   migrate(db);
   seedIfEmpty(db);
   syncSeed(db);
+  ensureOwnerAccounts(db);
+  ensurePolicyPages(db);
   return db;
 }
 
@@ -712,6 +716,42 @@ export function getSetting(db: DatabaseSync, key: string): string | null {
 
 export function setSetting(db: DatabaseSync, key: string, value: string) {
   db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+}
+
+/**
+ * Shop accounts that must always exist: `owner` (LE DUC ANH, role owner — the only one who manages admins) and
+ * `admin` (LE THI LIEN, role admin). Created with the deployment's ADMIN_PASSWORD; change them in Admin › Người dùng.
+ */
+function ensureOwnerAccounts(db: DatabaseSync) {
+  const password = process.env.ADMIN_PASSWORD ?? "admin123";
+  const now = new Date().toISOString();
+  const accounts: Array<{ username: string; role: string; first: string; last: string }> = [
+    // Vietnamese order: `last` = họ + tên đệm, `first` = tên → displayed "LE DUC ANH"
+    { username: "owner", role: "owner", first: "ANH", last: "LE DUC" },
+    { username: "admin", role: "admin", first: "LIEN", last: "LE THI" },
+  ];
+  for (const a of accounts) {
+    const existing = db.prepare("SELECT id, role FROM customers WHERE username = ? COLLATE NOCASE").get(a.username) as { id: string; role: string } | undefined;
+    if (existing) {
+      // an earlier install may have created `owner` with a lower role — the owner row is always the owner
+      if (a.role === "owner" && existing.role !== "owner") db.prepare("UPDATE customers SET role = 'owner', permissions = '[]', active = 1, updated_at = ? WHERE id = ?").run(now, existing.id);
+      // rows seeded by the first build had the name parts swapped
+      db.prepare("UPDATE customers SET first_name = ?, last_name = ? WHERE id = ? AND first_name IN ('LE DUC', 'LE THI')").run(a.first, a.last, existing.id);
+      continue;
+    }
+    const salt = randomBytes(16).toString("hex");
+    const hash = scryptSync(password, salt, 64).toString("hex");
+    db.prepare(
+      `INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, created_at, updated_at, role, permissions, active, username)
+       VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, '[]', 1, ?)`,
+    ).run(randomUUID(), `${a.username}@no-email.lienstore.local`, hash, salt, a.first, a.last, now, now, a.role, a.username);
+  }
+}
+
+/** Footer policy pages: inserted when missing so every deployment has them; content can be replaced later. */
+function ensurePolicyPages(db: DatabaseSync) {
+  const ins = db.prepare("INSERT OR IGNORE INTO pages (slug, title, content, date) VALUES (?, ?, ?, ?)");
+  for (const p of POLICY_PAGES) ins.run(p.slug, p.title, p.content, "2026-09-11T00:00:00.000Z");
 }
 
 function seedIfEmpty(db: DatabaseSync) {

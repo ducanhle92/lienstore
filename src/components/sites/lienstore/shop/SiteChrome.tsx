@@ -19,10 +19,18 @@ import { localizeCategories } from "@/lib/localize";
 type L2 = HeaderLink & { ja: string };
 const SUPPORT: L2[] = [
   { label: "Hướng dẫn đặt hàng", ja: "ご注文方法", href: "/huong-dan-dat-hang/" },
-  { label: "Chính sách đổi trả", ja: "返品・交換ポリシー", href: "/chinh-sach-doi-tra/" },
+  { label: "Hình thức thanh toán", ja: "お支払い方法", href: "/hinh-thuc-thanh-toan/" },
   { label: "Tra cứu đơn hàng", ja: "注文を確認", href: "/my-account/?tab=orders" },
-  { label: "Chính sách bảo mật", ja: "プライバシーポリシー", href: "/privacy-policy/" },
+  { label: "Kinh nghiệm mua hàng", ja: "お買い物のヒント", href: "/kinh-nghiem-mua-hang/" },
   { label: "Liên hệ", ja: "お問い合わせ", href: "/ve-chung-toi/#lien-he" },
+];
+/** Footer column "Chính sách chung". */
+const POLICIES: L2[] = [
+  { label: "Chính sách đổi trả, hoàn tiền", ja: "返品・返金ポリシー", href: "/chinh-sach-doi-tra/" },
+  { label: "Chính sách vận chuyển", ja: "配送ポリシー", href: "/van-chuyen/" },
+  { label: "Chính sách thanh toán", ja: "お支払いポリシー", href: "/chinh-sach-thanh-toan/" },
+  { label: "Chính sách bảo mật", ja: "プライバシーポリシー", href: "/privacy-policy/" },
+  { label: "Nghĩa vụ của người mua và người bán", ja: "購入者・販売者の義務", href: "/nghia-vu-nguoi-mua-nguoi-ban/" },
 ];
 const NEWS: L2[] = [
   { label: "Hàng mới về", ja: "新着商品", href: "/shop/?orderby=date" },
@@ -68,7 +76,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <TopBar2 contact={contact} lang={lang} loggedIn={!!customer} />
       <Header2 logo={logo} slogan={theme.slogan} categories={categories} supportLinks={pickLang(SUPPORT, lang)} newsLinks={pickLang(NEWS, lang)} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" customer={customer} />
       <div className="flex-1">{children}</div>
-      <Footer2 logo={footerLogo} shopName={theme.shopName} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} copyright={footerCopyright} lang={lang} />
+      <Footer2 logo={footerLogo} shopName={theme.shopName} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} policyLinks={pickLang(POLICIES, lang)} copyright={footerCopyright} lang={lang} />
       <CartDrawer />
       <SalesPopup />
       <FloatingWidgets contact={contact} />

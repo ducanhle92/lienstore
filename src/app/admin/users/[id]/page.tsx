@@ -8,7 +8,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerById, getOrdersForCustomer } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import { ROLE_LABELS } from "@/lib/permissions";
+import { assignableRoles, canManageRole, ROLE_LABELS } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,7 @@ export default async function EditUser({ params, searchParams }: Props) {
   if (!user) notFound();
   const orders = await getOrdersForCustomer(user);
   const isSelf = me.id === user.id;
+  const editable = isSelf || canManageRole(me.role, user.role);
   const name = `${user.lastName} ${user.firstName}`.trim();
 
   return (
@@ -45,10 +46,15 @@ export default async function EditUser({ params, searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
+      {!editable ? (
+        <Flash kind="warning">
+          Tài khoản {ROLE_LABELS[user.role]} chỉ do <strong>chủ sở hữu</strong> (owner) sửa hoặc xoá. Bạn đang xem ở chế độ chỉ đọc.
+        </Flash>
+      ) : null}
       <Card title="Thông tin tài khoản">
-        <form action={updateUserAction} className="space-y-5">
+        <form action={updateUserAction} className={editable ? "space-y-5" : "pointer-events-none space-y-5 opacity-60"}>
           <input type="hidden" name="id" value={user.id} />
-          <UserFields user={{ id: user.id, email: user.email, username: user.username, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, role: user.role, permissions: user.permissions, active: user.active }} isSelf={isSelf} />
+          <UserFields user={{ id: user.id, email: user.email, username: user.username, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, role: user.role, permissions: user.permissions, active: user.active }} isSelf={isSelf} assignable={assignableRoles(me.role)} />
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" className={btnPrimary}>
               <Fa name="check" /> Lưu thay đổi
@@ -60,7 +66,7 @@ export default async function EditUser({ params, searchParams }: Props) {
         </form>
       </Card>
 
-      {!isSelf ? (
+      {!isSelf && editable ? (
         <form action={deleteUserAction} className="mt-8 border-t border-[#e5e7eb] pt-6">
           <input type="hidden" name="id" value={user.id} />
           <ConfirmSubmit message={`Xoá tài khoản ${user.username || user.email}? Đơn hàng đã đặt vẫn được giữ (không còn gắn với tài khoản). Không thể hoàn tác.`} className={btnDanger}>

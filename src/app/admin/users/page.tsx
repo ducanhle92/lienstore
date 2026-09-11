@@ -17,6 +17,7 @@ interface Props {
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 const ROLE_BADGE: Record<UserRole, string> = {
+  owner: "bg-purple-100 text-purple-800",
   admin: "bg-red-100 text-red-800",
   staff: "bg-amber-100 text-amber-800",
   customer: "bg-gray-100 text-gray-700",
@@ -29,7 +30,7 @@ export default async function AdminUsers({ searchParams }: Props) {
   const role = first(sp.role) as UserRole | "";
   const users = (await listCustomers()).filter((u) => (!role || u.role === role) && (!q || `${u.username} ${u.email} ${u.firstName} ${u.lastName} ${u.phone} ${u.address}`.toLowerCase().includes(q)));
   const showEmail = (e: string) => (e.endsWith("@no-email.lienstore.local") ? "" : e);
-  const counts = { admin: 0, staff: 0, customer: 0 } as Record<UserRole, number>;
+  const counts: Record<UserRole, number> = { owner: 0, admin: 0, staff: 0, customer: 0 };
   for (const u of await listCustomers()) counts[u.role]++;
   const moduleLabel = Object.fromEntries(ADMIN_MODULES.map((m) => [m.key, m.label]));
 
@@ -37,13 +38,13 @@ export default async function AdminUsers({ searchParams }: Props) {
     <>
       <PageHeader
         title="Người dùng"
-        subtitle={`${counts.admin} quản trị viên · ${counts.staff} nhân viên · ${counts.customer} khách hàng có tài khoản`}
+        subtitle={`${counts.owner} chủ sở hữu · ${counts.admin} quản trị viên · ${counts.staff} nhân viên · ${counts.customer} khách hàng có tài khoản`}
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       <Flash kind="warning">
-        Tài khoản chủ cửa hàng <strong>{process.env.ADMIN_USER || "admin"}</strong> (đặt trong biến môi trường ADMIN_USER / ADMIN_PASSWORD của app) có toàn quyền thêm, sửa, xoá mọi tài khoản và không hiện trong bảng
-        này. Nhân viên / quản trị viên khác đăng nhập bằng <strong>tên đăng nhập (ID) + mật khẩu</strong>, hoặc email nếu có. {usingDefaultCredentials ? "Nó đang dùng mật khẩu mặc định — hãy đổi trong YAML app trên TrueNAS." : "Đổi mật khẩu của nó trong YAML app trên TrueNAS."}
+        <strong>owner</strong> (chủ sở hữu) là tài khoản duy nhất được thêm / sửa / xoá quản trị viên; các <strong>quản trị viên</strong> quản lý nhân viên và khách hàng. Mọi người đăng nhập bằng <strong>tên đăng nhập (ID) + mật khẩu</strong>, hoặc email nếu có.
+        {usingDefaultCredentials ? " Hai tài khoản owner / admin đang dùng mật khẩu mặc định — hãy đổi ngay bằng nút Sửa." : " Hai tài khoản owner / admin được tạo với mật khẩu ADMIN_PASSWORD của app; nên đổi riêng cho từng người bằng nút Sửa."}
       </Flash>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -52,6 +53,7 @@ export default async function AdminUsers({ searchParams }: Props) {
             <input name="q" defaultValue={first(sp.q)} placeholder="Tìm email, tên, điện thoại, địa chỉ…" className="min-w-[220px] flex-1 rounded-md border border-[#d1d5db] px-3 py-2 text-[14px]" />
             <select name="role" defaultValue={role} className="rounded-md border border-[#d1d5db] bg-white px-3 py-2 text-[14px]">
               <option value="">Mọi vai trò</option>
+              <option value="owner">Chủ sở hữu</option>
               <option value="admin">Quản trị viên</option>
               <option value="staff">Nhân viên</option>
               <option value="customer">Khách hàng</option>

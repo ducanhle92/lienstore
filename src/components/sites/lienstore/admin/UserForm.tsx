@@ -10,11 +10,15 @@ interface Props {
   user?: { id: string; email: string; username: string; firstName: string; lastName: string; phone: string; address: string; role: UserRole; permissions: string[]; active: boolean };
   /** The signed-in admin edits themselves → role/active locked. */
   isSelf?: boolean;
+  /** Roles the signed-in account may assign (owner: customer/staff/admin; admin: customer/staff). */
+  assignable?: UserRole[];
 }
 
 /** Shared fields of the create / edit user forms (no <form> element; the page supplies the action and buttons). */
-export function UserFields({ user, isSelf = false }: Props) {
+export function UserFields({ user, isSelf = false, assignable = ["customer", "staff"] }: Props) {
   const [role, setRole] = useState<UserRole>(user?.role ?? "staff");
+  const lockedRole = isSelf || user?.role === "owner";
+  const roleOptions = Array.from(new Set<UserRole>([...(user ? [user.role] : []), ...assignable]));
   const isEdit = !!user;
   return (
     <div className="grid gap-4">
@@ -73,15 +77,15 @@ export function UserFields({ user, isSelf = false }: Props) {
       <fieldset className="rounded-md border border-[#e5e7eb] p-4">
         <legend className="px-1 text-[13px] font-semibold text-[#374151]">Vai trò & quyền</legend>
         <div className="flex flex-wrap gap-4">
-          {(["customer", "staff", "admin"] as UserRole[]).map((r) => (
-            <label key={r} className={cn("inline-flex items-center gap-2 text-[14px]", isSelf && r !== "admin" && "opacity-50")}>
-              <input type="radio" name="role" value={r} checked={role === r} disabled={isSelf && r !== "admin"} onChange={() => setRole(r)} className="h-4 w-4" />
+          {roleOptions.map((r) => (
+            <label key={r} className={cn("inline-flex items-center gap-2 text-[14px]", lockedRole && r !== user?.role && "opacity-50")}>
+              <input type="radio" name="role" value={r} checked={role === r} disabled={lockedRole && r !== user?.role} onChange={() => setRole(r)} className="h-4 w-4" />
               {ROLE_LABELS[r]}
             </label>
           ))}
         </div>
         <p className="mt-2 text-[12px] leading-5 text-lien-muted">
-          Khách hàng: chỉ mua hàng, không vào được trang quản trị. Nhân viên: vào các module được tick bên dưới. Quản trị viên: toàn quyền, kể cả quản lý người dùng.
+          Khách hàng: chỉ mua hàng, không vào được trang quản trị. Nhân viên: vào các module được tick bên dưới. Quản trị viên: toàn quyền với cửa hàng, quản lý nhân viên và khách hàng. Chủ sở hữu: như quản trị viên và là người duy nhất thêm / sửa / xoá quản trị viên.
         </p>
         <div className={cn("mt-3 grid gap-2 sm:grid-cols-2", role !== "staff" && "pointer-events-none opacity-40")}>
           {ADMIN_MODULES.filter((m) => m.key !== "users").map((m) => (
@@ -95,7 +99,7 @@ export function UserFields({ user, isSelf = false }: Props) {
           ))}
         </div>
         <label className={cn("mt-4 inline-flex items-center gap-2 text-[14px]", isSelf && "opacity-50")}>
-          <input type="checkbox" name="active" defaultChecked={user?.active ?? true} disabled={isSelf} className="h-4 w-4" /> Đang hoạt động (bỏ tick để khoá đăng nhập mà không xoá)
+          <input type="checkbox" name="active" defaultChecked={user?.active ?? true} disabled={lockedRole} className="h-4 w-4" /> Đang hoạt động (bỏ tick để khoá đăng nhập mà không xoá)
         </label>
         {isSelf ? <p className="mt-1 text-[12px] text-lien-muted">Bạn đang sửa chính tài khoản của mình nên không thể tự hạ quyền hoặc tự khoá.</p> : null}
       </fieldset>

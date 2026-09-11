@@ -1,12 +1,13 @@
 /**
  * Admin roles and module permissions (shared by server auth and client nav).
  *
- * - `admin`   : full access, including user management.
+ * - `owner`   : the shop owner — full access, the only role that may create / edit / delete admins.
+ * - `admin`   : full access to the shop; manages staff and customer accounts but not other admins.
  * - `staff`   : access only to the modules listed in `permissions`.
  * - `customer`: storefront account, no admin access.
  * The bootstrap account from ADMIN_USER / ADMIN_PASSWORD is always a full admin.
  */
-export type UserRole = "admin" | "staff" | "customer";
+export type UserRole = "owner" | "admin" | "staff" | "customer";
 
 export interface AdminModule {
   key: string;
@@ -31,15 +32,33 @@ export const ADMIN_MODULES: AdminModule[] = [
 
 export const ALL_PERMISSIONS: string[] = ADMIN_MODULES.map((m) => m.key);
 
-export const ROLE_LABELS: Record<UserRole, string> = { admin: "Quản trị viên", staff: "Nhân viên", customer: "Khách hàng" };
+export const ROLE_LABELS: Record<UserRole, string> = { owner: "Chủ sở hữu", admin: "Quản trị viên", staff: "Nhân viên", customer: "Khách hàng" };
+
+/** Roles with access to /admin. */
+export type AdminRole = Exclude<UserRole, "customer">;
+export const isAdminRole = (r: UserRole): r is AdminRole => r === "owner" || r === "admin" || r === "staff";
+
+/** Roles an actor may assign when creating / editing accounts (the owner role is never assigned through the UI). */
+export function assignableRoles(actor: UserRole): UserRole[] {
+  if (actor === "owner") return ["customer", "staff", "admin"];
+  if (actor === "admin") return ["customer", "staff"];
+  return [];
+}
+
+/** May `actor` edit / delete an account that currently has `target` role? */
+export function canManageRole(actor: UserRole, target: UserRole): boolean {
+  if (actor === "owner") return target !== "owner";
+  if (actor === "admin") return target === "staff" || target === "customer";
+  return false;
+}
 
 export function isUserRole(v: unknown): v is UserRole {
-  return v === "admin" || v === "staff" || v === "customer";
+  return v === "owner" || v === "admin" || v === "staff" || v === "customer";
 }
 
 /** Effective module permissions for a role + stored permission list. */
 export function effectivePermissions(role: UserRole, permissions: string[]): string[] {
-  if (role === "admin") return ALL_PERMISSIONS;
+  if (role === "owner" || role === "admin") return ALL_PERMISSIONS;
   if (role === "staff") return permissions.filter((p) => ALL_PERMISSIONS.includes(p) && p !== "users");
   return [];
 }

@@ -256,7 +256,7 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   address: r.address,
   customerNo: r.customer_no ?? null,
   username: r.username ?? "",
-  role: r.role === "admin" || r.role === "staff" ? r.role : "customer",
+  role: r.role === "owner" || r.role === "admin" || r.role === "staff" ? r.role : "customer",
   permissions: parseArr(r.permissions ?? "[]"),
   active: (r.active ?? 1) === 1,
   createdAt: r.created_at,
@@ -1394,11 +1394,16 @@ export async function adminCreateUser(input: CreateCustomerInput & { role: UserR
 
 /** Every account, newest first (admin user list). */
 export async function listCustomers(): Promise<Customer[]> {
-  return (getDb().prepare("SELECT * FROM customers ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'staff' THEN 1 ELSE 2 END, created_at DESC").all() as unknown as CustomerRow[]).map(rowToCustomer);
+  return (getDb().prepare("SELECT * FROM customers ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'staff' THEN 2 ELSE 3 END, created_at DESC").all() as unknown as CustomerRow[]).map(rowToCustomer);
 }
 
 export async function countActiveAdmins(): Promise<number> {
-  return (getDb().prepare("SELECT COUNT(*) AS n FROM customers WHERE role = 'admin' AND active = 1").get() as { n: number }).n;
+  return (getDb().prepare("SELECT COUNT(*) AS n FROM customers WHERE role IN ('owner', 'admin') AND active = 1").get() as { n: number }).n;
+}
+
+/** True once the shop-owner account (role `owner`) exists — the env bootstrap login then retires. */
+export async function hasOwnerAccount(): Promise<boolean> {
+  return !!getDb().prepare("SELECT 1 FROM customers WHERE role = 'owner' AND active = 1 LIMIT 1").get();
 }
 
 export interface AdminUserPatch {

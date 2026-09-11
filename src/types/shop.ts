@@ -86,7 +86,7 @@ export interface OrderCustomer {
   note: string;
 }
 
-export type UserRole = "admin" | "staff" | "customer";
+export type UserRole = "owner" | "admin" | "staff" | "customer";
 
 export interface Customer {
   id: string;

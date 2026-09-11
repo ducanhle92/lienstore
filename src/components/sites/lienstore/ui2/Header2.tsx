@@ -161,10 +161,6 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
               </div>
             ) : null}
           </div>
-          <Link href="/shop/?onsale=1" aria-label="Hot sale" className="mx-1.5 inline-flex flex-col items-center rounded-md bg-[#ffd93b] px-2 py-0.5 text-[11px] font-black uppercase leading-[1.05] text-[#c1121f] no-underline shadow-[0_2px_0_#c99a00] hover:bg-[#ffe066]">
-            <span>Hot</span>
-            <span>Sale</span>
-          </Link>
           <div className="relative">
             <button type="button" onClick={() => setOpen(open === "support" ? null : "support")} className={cn(navItem, open === "support" && "bg-white/15")} aria-expanded={open === "support"}>
               {t("support")}
@@ -184,7 +180,6 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
             <button type="button" onClick={() => setOpen(open === "news" ? null : "news")} className={cn(navItem, open === "news" && "bg-white/15")} aria-expanded={open === "news"}>
               {t("news")}
               <Fa name="angle-down" className="text-[12px]" />
-              <span className="ml-1 rounded-full bg-lien-info px-1.5 py-px text-[9px] font-bold uppercase text-white">New</span>
             </button>
             {open === "news" ? (
               <div className="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-md border border-lien-line bg-white py-2 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">

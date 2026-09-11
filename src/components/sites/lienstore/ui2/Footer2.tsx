@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { buildCategoryTree, displayName } from "@/lib/categories";
 import type { ContactInfo } from "@/types/lienstore";
 import { SOCIAL_COLORS, SocialIcon } from "@/components/sites/lienstore/shared/BrandIcons";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -14,6 +13,8 @@ interface Footer2Props {
   categories: HeaderCategory[];
   accountLinks: HeaderLink[];
   supportLinks: HeaderLink[];
+  /** "Chính sách chung" column. */
+  policyLinks?: HeaderLink[];
   copyright: string;
   lang?: Lang;
 }
@@ -22,8 +23,7 @@ const colTitle = "mb-4 text-[14px] font-bold uppercase tracking-[0.5px] text-lie
 const colLink = "block py-1 text-[14px] leading-6 text-lien-text no-underline hover:text-lien-blue";
 
 /** Light-grey 5-column footer: store info · account · support · main categories · connect. */
-export function Footer2({ logo, shopName = "LienStore", contact, categories, accountLinks, supportLinks, copyright, lang = "vi" }: Footer2Props) {
-  const topCats = buildCategoryTree(categories).map((n) => ({ ...n.category, count: n.total })).slice(0, 8);
+export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, supportLinks, policyLinks = [], copyright, lang = "vi" }: Footer2Props) {
   return (
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
@@ -75,16 +75,10 @@ export function Footer2({ logo, shopName = "LienStore", contact, categories, acc
           ))}
         </div>
         <div>
-          <h3 className={colTitle}>{t(lang, "fCategories")}</h3>
-          <Link href="/shop/" className={colLink}>
-            {t(lang, "allProducts")}
-          </Link>
-          <Link href="/shop/?orderby=date" className={colLink}>
-            {t(lang, "newArrivals")}
-          </Link>
-          {topCats.map((c) => (
-            <Link key={c.slug} href={`/product-category/${c.slug}/`} className={colLink}>
-              {displayName(c.name)}
+          <h3 className={colTitle}>{t(lang, "fPolicies")}</h3>
+          {policyLinks.map((l) => (
+            <Link key={l.href + l.label} href={l.href} className={colLink}>
+              {l.label}
             </Link>
           ))}
         </div>
@@ -111,19 +105,8 @@ export function Footer2({ logo, shopName = "LienStore", contact, categories, acc
         </div>
       </div>
       <div className="border-t border-lien-line">
-        <div className="mx-auto flex max-w-[1300px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-[13px] text-lien-muted">
+        <div className="mx-auto max-w-[1300px] px-4 py-4 text-[13px] text-lien-muted">
           <span>{copyright}</span>
-          <span className="flex gap-4">
-            <Link href="/ve-chung-toi/" className="text-lien-muted no-underline hover:text-lien-blue">
-              {t(lang, "about")}
-            </Link>
-            <Link href="/chinh-sach-doi-tra/" className="text-lien-muted no-underline hover:text-lien-blue">
-              {t(lang, "fReturns")}
-            </Link>
-            <Link href="/privacy-policy/" className="text-lien-muted no-underline hover:text-lien-blue">
-              {t(lang, "privacyPolicy")}
-            </Link>
-          </span>
         </div>
       </div>
     </footer>
