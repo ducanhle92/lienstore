@@ -103,9 +103,20 @@ function Field({ name, label, type = "text", placeholder, autoComplete, error, h
   );
 }
 
+export interface SavedAddress {
+  id: number;
+  label: string;
+  name: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
+}
+
 interface Props {
   defaults?: CheckoutDefaults;
   loggedIn?: boolean;
+  /** Address book of the signed-in customer (picked with radios above the address field). */
+  savedAddresses?: SavedAddress[];
   zones: CheckoutZone[];
   /** Carriers for the VN leg (zones grouped per carrier, or live-quoted). */
   methods?: CheckoutMethod[];
@@ -123,7 +134,7 @@ interface Props {
 }
 
 /** Checkout: billing fields, delivery choice (pickup / home delivery with zone fee), order review, payment, place order. */
-export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods = [], pickupAddress, preorderIds, weights = {}, specialIds = [], regularPrices = {}, quote }: Props) {
+export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses = [], zones, methods = [], pickupAddress, preorderIds, weights = {}, specialIds = [], regularPrices = {}, quote }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const { t } = useLang();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
@@ -132,7 +143,10 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
   const [methodId, setMethodId] = useState<number>(0);
   const method = carriers.find((m) => m.id === methodId) ?? null;
   const methodZones = method?.zones ?? [];
-  const [address, setAddress] = useState(defaults.address ?? "");
+  const defaultSaved = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
+  const [picked, setPicked] = useState<number | "new">(defaultSaved ? defaultSaved.id : "new");
+  const pickedAddr = picked === "new" ? null : (savedAddresses.find((a) => a.id === picked) ?? null);
+  const [address, setAddress] = useState(defaultSaved?.address ?? defaults.address ?? "");
   // the fee region comes from the address the customer typed — no region picker
   const detected = detectRegion(address);
   const [feePayment, setFeePayment] = useState<"prepaid" | "on_delivery">("prepaid");
@@ -318,9 +332,31 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, zones, methods =
               <div className="flex flex-wrap justify-between">
                 <Field name="first_name" label={t("firstNameShort")} autoComplete="given-name" error={fields.first_name} half defaultValue={defaults.firstName} />
                 <Field name="last_name" label={t("lastNameShort")} autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
-                <Field name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={defaults.phone} />
+                <Field key={`phone-${picked}`} name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={pickedAddr?.phone || defaults.phone} />
                 <Field name="email" label={t("emailOptionalLabel")} type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
-                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} value={address} onChange={setAddress} />
+                {savedAddresses.length ? (
+                  <fieldset className="mb-2 w-full p-[3px]">
+                    <legend className="mb-1.5 text-[16px] font-semibold leading-8 text-lien-input-text">{t("savedAddresses")}</legend>
+                    <div className="space-y-1.5">
+                      {savedAddresses.map((a) => (
+                        <label key={a.id} className={cn("flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-[14px] leading-5", picked === a.id ? "border-lien-blue bg-lien-blue-soft/60" : "border-lien-line bg-white hover:border-lien-blue/60")}>
+                          <input type="radio" name="saved_address" value={a.id} checked={picked === a.id} onChange={() => { setPicked(a.id); setAddress(a.address); }} className="mt-0.5 h-4 w-4" />
+                          <span>
+                            <strong className="text-lien-heading">{a.label}</strong>
+                            {a.isDefault ? <span className="ml-1 rounded bg-lien-blue px-1.5 text-[10px] font-bold uppercase text-white">mặc định</span> : null}
+                            <span className="block text-lien-text">{a.address}</span>
+                            {a.name || a.phone ? <span className="block text-[12px] text-lien-muted">{[a.name, a.phone].filter(Boolean).join(" · ")}</span> : null}
+                          </span>
+                        </label>
+                      ))}
+                      <label className={cn("flex cursor-pointer items-center gap-2 rounded-md border p-2.5 text-[14px] leading-5", picked === "new" ? "border-lien-blue bg-lien-blue-soft/60" : "border-lien-line bg-white hover:border-lien-blue/60")}>
+                        <input type="radio" name="saved_address" value="new" checked={picked === "new"} onChange={() => { setPicked("new"); setAddress(""); }} className="h-4 w-4" />
+                        {t("newAddress")}
+                      </label>
+                    </div>
+                  </fieldset>
+                ) : null}
+                <Field name="address" label={t("address")} placeholder={t("addressPh")} autoComplete="street-address" error={fields.address} value={address} onChange={(v) => { setAddress(v); if (pickedAddr && v !== pickedAddr.address) setPicked("new"); }} />
               </div>
             </div>
             {!loggedIn ? (

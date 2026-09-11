@@ -69,7 +69,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
   const [categories, me, theme] = await Promise.all([getHeaderCategories(lang), getCurrentCustomer(), getSiteTheme()]);
   const logo = { src: theme.logoHeader, width: LOGO_RATIO.width, height: LOGO_RATIO.height, alt: theme.shopName };
   const footerLogo = { ...logo, src: theme.logoLight };
-  const customer = me ? { firstName: me.firstName, lastName: me.lastName, username: me.username, email: displayEmail(me.email) } : null;
+  const customer = me ? { firstName: me.firstName, lastName: me.lastName, username: me.username, email: displayEmail(me.email), avatar: me.avatar } : null;
   return (
     <LangProvider lang={lang}>
     <div id="page" className="relative flex min-h-screen flex-col">

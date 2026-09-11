@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { deleteAddress, listAddresses, saveAddress, setDefaultAddress } from "@/lib/db";
+import { saveUpload } from "@/lib/uploads";
 import { endCustomerSession, getCurrentCustomer, startCustomerSession } from "@/lib/customer-auth";
 import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { addOrderMessage, createCustomer, findCustomerByEmail, findCustomerByLogin, findOrder, getOrderById, updateCustomer, verifyCustomer } from "@/lib/db";
@@ -123,4 +125,109 @@ export async function customerSendMessageAction(_prev: ChatState, formData: Form
   revalidatePath(`/checkout/order-received/${orderId}`);
   revalidatePath(`/admin/orders/${orderId}`);
   return null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Trang của tôi: profile, address book, avatar, password (plain form actions → redirect back with a notice)
+
+const ACCOUNT = "/my-account/";
+const acc = (tab: string, key: "saved" | "error", msg: string): never => redirect(`${ACCOUNT}?tab=${tab}&${key}=${encodeURIComponent(msg)}`);
+const isRedirectErr = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
+
+/** Thông tin cá nhân: name, optional e-mail, phone. */
+export async function updateProfile(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const lastName = get("last_name");
+  const firstName = get("first_name");
+  const email = get("email").toLowerCase();
+  const phone = get("phone").replace(/\s+/g, "");
+  if (!firstName && !lastName) acc("profile", "error", "Vui lòng nhập họ và tên.");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) acc("profile", "error", "Email không hợp lệ.");
+  if (phone && !/^0\d{9}$/.test(phone)) acc("profile", "error", "Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0.");
+  try {
+    await updateCustomer(me.id, { firstName, lastName, phone, email });
+  } catch (e) {
+    if (isRedirectErr(e)) throw e;
+    acc("profile", "error", e instanceof Error ? e.message : "Không lưu được.");
+  }
+  revalidatePath("/", "layout");
+  acc("profile", "saved", "Đã lưu thông tin cá nhân.");
+}
+
+/** Add / edit one address in the book. */
+export async function saveAddressAction(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const get = (k: string) => String(formData.get(k) ?? "").trim();
+  const idRaw = get("id");
+  const address = get("address");
+  const phone = get("phone").replace(/\s+/g, "");
+  if (address.length < 8) acc("profile", "error", "Địa chỉ cần ghi đủ số nhà, đường, phường/xã, quận/huyện, tỉnh/thành.");
+  if (phone && !/^0\d{9}$/.test(phone)) acc("profile", "error", "Số điện thoại người nhận phải gồm 10 chữ số.");
+  await saveAddress(me.id, {
+    id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
+    label: get("label"),
+    name: get("name") || `${me.lastName} ${me.firstName}`.trim(),
+    phone: phone || me.phone,
+    address,
+    isDefault: formData.get("is_default") === "on",
+  });
+  revalidatePath("/checkout/");
+  acc("profile", "saved", idRaw ? "Đã cập nhật địa chỉ." : "Đã thêm địa chỉ mới.");
+}
+
+export async function deleteAddressAction(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const id = Number.parseInt(String(formData.get("id") ?? ""), 10);
+  if (Number.isInteger(id)) await deleteAddress(me.id, id);
+  revalidatePath("/checkout/");
+  acc("profile", "saved", "Đã xoá địa chỉ.");
+}
+
+export async function setDefaultAddressAction(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const id = Number.parseInt(String(formData.get("id") ?? ""), 10);
+  if (Number.isInteger(id)) await setDefaultAddress(me.id, id);
+  revalidatePath("/checkout/");
+  acc("profile", "saved", "Đã đặt làm địa chỉ mặc định.");
+}
+
+/** Tài khoản: avatar picture (JPG/PNG/WebP ≤ 3 MB). */
+export async function uploadAvatarAction(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const file = formData.get("avatar");
+  if (formData.get("remove") === "1") {
+    await updateCustomer(me.id, { avatar: "" });
+    revalidatePath("/", "layout");
+    acc("account", "saved", "Đã bỏ ảnh đại diện.");
+  }
+  if (!(file instanceof File) || file.size === 0) acc("account", "error", "Hãy chọn một ảnh.");
+  const f = file as File;
+  const types: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  if (!types[f.type]) acc("account", "error", "Ảnh đại diện phải là JPG, PNG hoặc WebP.");
+  if (f.size > 3 * 1024 * 1024) acc("account", "error", "Ảnh tối đa 3 MB.");
+  const saved = await saveUpload("avatars", `${me.id}-${Date.now()}.${types[f.type]}`, Buffer.from(await f.arrayBuffer()));
+  await updateCustomer(me.id, { avatar: saved.url });
+  revalidatePath("/", "layout");
+  acc("account", "saved", "Đã cập nhật ảnh đại diện.");
+}
+
+/** Tài khoản: change password (current password required). */
+export async function changePasswordAction(formData: FormData): Promise<void> {
+  const me = await getCurrentCustomer();
+  if (!me) redirect("/?login=1");
+  const current = String(formData.get("password_current") ?? "");
+  const pw1 = String(formData.get("password_1") ?? "");
+  const pw2 = String(formData.get("password_2") ?? "");
+  if (!current) acc("account", "error", "Vui lòng nhập mật khẩu hiện tại.");
+  if (!(await verifyCustomer(me.email, current))) acc("account", "error", "Mật khẩu hiện tại không đúng.");
+  if (pw1.length < 6) acc("account", "error", "Mật khẩu mới phải có ít nhất 6 ký tự.");
+  if (pw1 !== pw2) acc("account", "error", "Mật khẩu mới không khớp.");
+  await updateCustomer(me.id, { password: pw1 });
+  acc("account", "saved", "Đã đổi mật khẩu.");
 }

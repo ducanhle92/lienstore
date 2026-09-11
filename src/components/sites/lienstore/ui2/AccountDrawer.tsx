@@ -15,6 +15,7 @@ export interface HeaderCustomer {
   lastName: string;
   username: string;
   email: string;
+  avatar?: string;
 }
 
 interface Props {
@@ -68,13 +69,22 @@ export function AccountDrawer({ open, onClose, customer }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {customer ? (
             <div className="space-y-1 text-[15px]">
-              <p className="mb-4 text-lien-text">
-                {t("hello")}, <strong className="text-lien-heading">{name}</strong>
-                {customer.username ? <span className="block text-[13px] text-lien-muted">ID: {customer.username}</span> : null}
-              </p>
+              <Link href="/my-account/" onClick={onClose} className="mb-4 flex items-center gap-3 rounded-md px-2 py-2 text-lien-text no-underline hover:bg-lien-cream">
+                {customer.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- customer upload served from /api/files
+                  <img src={customer.avatar} alt="" className="h-12 w-12 rounded-full border border-lien-line object-cover" />
+                ) : (
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-lien-blue text-[18px] font-bold text-white">{(name.trim()[0] ?? "?").toUpperCase()}</span>
+                )}
+                <span className="min-w-0">
+                  <strong className="block truncate text-[15px] text-lien-heading">{name}</strong>
+                  {customer.username ? <span className="block text-[13px] text-lien-muted">ID: {customer.username}</span> : null}
+                </span>
+              </Link>
               {[
-                { href: "/my-account/", label: t("myAccount"), icon: "user-circle" as const },
-                { href: "/my-account/?tab=orders", label: t("myOrders"), icon: "shopping-bag" as const },
+                { href: "/my-account/", label: t("myPage"), icon: "user-circle" as const },
+                { href: "/my-account/?tab=profile", label: t("profileTab"), icon: "pencil" as const },
+                { href: "/my-account/?tab=orders", label: t("purchasedTab"), icon: "shopping-bag" as const },
                 { href: "/wishlist/", label: t("wishlist"), icon: "heart-o" as const },
                 { href: "/cart/", label: t("cart"), icon: "shopping-cart" as const },
               ].map((l) => (

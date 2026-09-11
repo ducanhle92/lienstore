@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
+  CustomerAddress,
   Banner,
   BlogPost,
   CartItem,
@@ -241,6 +242,7 @@ interface CustomerRow {
   active: number | null;
   username: string | null;
   customer_no: number | null;
+  avatar: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -259,6 +261,7 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   role: r.role === "owner" || r.role === "admin" || r.role === "staff" ? r.role : "customer",
   permissions: parseArr(r.permissions ?? "[]"),
   active: (r.active ?? 1) === 1,
+  avatar: r.avatar ?? "",
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -715,6 +718,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       const cust = db.prepare("SELECT email FROM customers WHERE id = ?").get(input.customerId) as { email: string } | undefined;
       if (cust) {
         db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, address = ?, updated_at = ? WHERE id = ?").run(c.firstName, c.lastName, c.phone, c.address, now, input.customerId);
+        rememberAddress(db, input.customerId, `${c.lastName} ${c.firstName}`.trim(), c.phone, c.address);
         const typed = c.email.trim().toLowerCase();
         if (typed && cust.email.endsWith(`@${NO_EMAIL_DOMAIN}`)) {
           const taken = db.prepare("SELECT 1 FROM customers WHERE lower(email) = ? AND id != ?").get(typed, input.customerId);
@@ -1356,6 +1360,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     salt,
     firstName: input.firstName ?? "",
     lastName: input.lastName ?? "",
+    avatar: "",
     phone: input.phone ?? "",
     address: input.address ?? "",
     customerNo: nextNo,
@@ -1472,7 +1477,7 @@ export async function verifyCustomer(login: string, password: string): Promise<C
 
 export async function updateCustomer(
   id: string,
-  patch: Partial<Pick<Customer, "firstName" | "lastName" | "phone" | "address">> & { password?: string },
+  patch: Partial<Pick<Customer, "firstName" | "lastName" | "phone" | "address" | "avatar" | "email">> & { password?: string },
 ): Promise<Customer | null> {
   const db = getDb();
   return withTransaction(db, () => {
@@ -1483,16 +1488,26 @@ export async function updateCustomer(
     if (patch.lastName !== undefined) c.lastName = patch.lastName;
     if (patch.phone !== undefined) c.phone = patch.phone;
     if (patch.address !== undefined) c.address = patch.address;
+    if (patch.avatar !== undefined) c.avatar = patch.avatar;
+    if (patch.email !== undefined) {
+      const next = patch.email.trim().toLowerCase() || (c.username ? `${c.username.toLowerCase()}@${NO_EMAIL_DOMAIN}` : c.email);
+      if (next !== c.email) {
+        if (db.prepare("SELECT 1 FROM customers WHERE email = ? AND id <> ?").get(next, id)) throw new Error("Email này đã được tài khoản khác sử dụng.");
+        c.email = next;
+      }
+    }
     if (patch.password) {
       c.salt = randomBytes(16).toString("hex");
       c.passwordHash = hashPassword(patch.password, c.salt);
     }
     c.updatedAt = new Date().toISOString();
-    db.prepare(`UPDATE customers SET first_name = ?, last_name = ?, phone = ?, address = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`).run(
+    db.prepare(`UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, avatar = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`).run(
+      c.email,
       c.firstName,
       c.lastName,
       c.phone,
       c.address,
+      c.avatar,
       c.passwordHash,
       c.salt,
       c.updatedAt,
@@ -1985,4 +2000,81 @@ export async function saveBanner(input: Omit<Banner, "id" | "createdAt" | "updat
 
 export async function deleteBanner(id: number): Promise<void> {
   getDb().prepare("DELETE FROM banners WHERE id = ?").run(id);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Customer address book (Trang của tôi › Thông tin cá nhân; picked at checkout)
+
+interface AddressRow {
+  id: number;
+  customer_id: string;
+  label: string;
+  name: string;
+  phone: string;
+  address: string;
+  is_default: number;
+  created_at: string;
+}
+const rowToAddress = (r: AddressRow): CustomerAddress => ({ id: r.id, customerId: r.customer_id, label: r.label, name: r.name, phone: r.phone, address: r.address, isDefault: r.is_default === 1, createdAt: r.created_at });
+const normAddr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").replace(/[.,;]+$/g, "").trim();
+
+export async function listAddresses(customerId: string): Promise<CustomerAddress[]> {
+  return (getDb().prepare("SELECT * FROM customer_addresses WHERE customer_id = ? ORDER BY is_default DESC, id ASC").all(customerId) as unknown as AddressRow[]).map(rowToAddress);
+}
+
+/** Add or update one address; the first address of a customer (or `isDefault`) becomes the default. */
+export async function saveAddress(customerId: string, input: { id?: number; label: string; name: string; phone: string; address: string; isDefault?: boolean }): Promise<number> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const count = (db.prepare("SELECT COUNT(*) AS n FROM customer_addresses WHERE customer_id = ?").get(customerId) as { n: number }).n;
+    const makeDefault = !!input.isDefault || (count === 0 && !input.id);
+    if (makeDefault) db.prepare("UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?").run(customerId);
+    let id = input.id ?? 0;
+    if (input.id) {
+      db.prepare("UPDATE customer_addresses SET label = ?, name = ?, phone = ?, address = ?, is_default = CASE WHEN ? THEN 1 ELSE is_default END WHERE id = ? AND customer_id = ?").run(
+        input.label,
+        input.name,
+        input.phone,
+        input.address,
+        makeDefault ? 1 : 0,
+        input.id,
+        customerId,
+      );
+    } else {
+      const r = db.prepare("INSERT INTO customer_addresses (customer_id, label, name, phone, address, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(customerId, input.label || `Địa chỉ ${count + 1}`, input.name, input.phone, input.address, makeDefault ? 1 : 0, new Date().toISOString());
+      id = Number(r.lastInsertRowid);
+    }
+    // keep the legacy single address column in sync with the default
+    const def = db.prepare("SELECT address, phone FROM customer_addresses WHERE customer_id = ? AND is_default = 1").get(customerId) as { address: string; phone: string } | undefined;
+    if (def) db.prepare("UPDATE customers SET address = ?, phone = CASE WHEN ? <> '' THEN ? ELSE phone END, updated_at = ? WHERE id = ?").run(def.address, def.phone, def.phone, new Date().toISOString(), customerId);
+    return id;
+  });
+}
+
+export async function deleteAddress(customerId: string, id: number): Promise<void> {
+  const db = getDb();
+  withTransaction(db, () => {
+    const was = db.prepare("SELECT is_default FROM customer_addresses WHERE id = ? AND customer_id = ?").get(id, customerId) as { is_default: number } | undefined;
+    db.prepare("DELETE FROM customer_addresses WHERE id = ? AND customer_id = ?").run(id, customerId);
+    if (was?.is_default) db.prepare("UPDATE customer_addresses SET is_default = 1 WHERE id = (SELECT id FROM customer_addresses WHERE customer_id = ? ORDER BY id LIMIT 1)").run(customerId);
+  });
+}
+
+export async function setDefaultAddress(customerId: string, id: number): Promise<void> {
+  const db = getDb();
+  withTransaction(db, () => {
+    db.prepare("UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?").run(customerId);
+    db.prepare("UPDATE customer_addresses SET is_default = 1 WHERE id = ? AND customer_id = ?").run(id, customerId);
+    const def = db.prepare("SELECT address FROM customer_addresses WHERE id = ?").get(id) as { address: string } | undefined;
+    if (def) db.prepare("UPDATE customers SET address = ?, updated_at = ? WHERE id = ?").run(def.address, new Date().toISOString(), customerId);
+  });
+}
+
+/** After an order: add the delivery address to the book when it is new (no default change). */
+function rememberAddress(db: DatabaseSync, customerId: string, name: string, phone: string, address: string): void {
+  const a = address.trim();
+  if (!a) return;
+  const rows = db.prepare("SELECT id, address FROM customer_addresses WHERE customer_id = ?").all(customerId) as unknown as Array<{ id: number; address: string }>;
+  if (rows.some((r) => normAddr(r.address) === normAddr(a))) return;
+  db.prepare("INSERT INTO customer_addresses (customer_id, label, name, phone, address, is_default, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(customerId, `Địa chỉ ${rows.length + 1}`, name, phone, a, rows.length === 0 ? 1 : 0, new Date().toISOString());
 }

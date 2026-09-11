@@ -107,8 +107,22 @@ export interface Customer {
   permissions: string[];
   /** false = login blocked without deleting the account. */
   active: boolean;
+  /** Profile picture URL (uploaded by the customer); empty = initial letter. */
+  avatar: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One saved delivery address of a customer (address book, picked at checkout). */
+export interface CustomerAddress {
+  id: number;
+  customerId: string;
+  label: string;
+  name: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
+  createdAt: string;
 }
 
 export type ShipFeePayment = "prepaid" | "on_delivery";

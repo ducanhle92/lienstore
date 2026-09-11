@@ -626,6 +626,27 @@ export const MIGRATIONS: Migration[] = [
         WHERE method_id IN (SELECT id FROM shipping_methods WHERE leg = 'vn_transfer') AND fee = 12000 AND unit = '/kg'`,
     ],
   },
+  {
+    // Customer profile: avatar picture + an address book (several delivery addresses to pick from at checkout).
+    version: 28,
+    name: "customer-avatar-addresses",
+    up: [
+      `ALTER TABLE customers ADD COLUMN avatar TEXT NOT NULL DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS customer_addresses (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+        label       TEXT NOT NULL DEFAULT '',
+        name        TEXT NOT NULL DEFAULT '',
+        phone       TEXT NOT NULL DEFAULT '',
+        address     TEXT NOT NULL,
+        is_default  INTEGER NOT NULL DEFAULT 0,
+        created_at  TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_customer_addresses_customer ON customer_addresses(customer_id)`,
+      `INSERT INTO customer_addresses (customer_id, label, name, phone, address, is_default, created_at)
+        SELECT id, 'Địa chỉ 1', TRIM(last_name || ' ' || first_name), phone, address, 1, updated_at FROM customers WHERE role = 'customer' AND TRIM(address) <> ''`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

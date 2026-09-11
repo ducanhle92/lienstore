@@ -6,7 +6,7 @@ import { CheckoutForm, type CheckoutMethod, type CheckoutZone } from "@/componen
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getShippingMethods, getShippingPricingMode } from "@/lib/db";
+import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getShippingMethods, getShippingPricingMode, listAddresses } from "@/lib/db";
 import { billableProductWeightG, buildQuoteConfig, isSpecialHandling } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +58,7 @@ export default async function Checkout() {
                 ? { firstName: customer.firstName, lastName: customer.lastName, address: customer.address, phone: customer.phone, email: displayEmail(customer.email) }
                 : undefined
             }
+            savedAddresses={customer ? (await listAddresses(customer.id)).map((a) => ({ id: a.id, label: a.label, name: a.name, phone: a.phone, address: a.address, isDefault: a.isDefault })) : []}
           />
         </article>
       </TwoColumnShell>
