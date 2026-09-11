@@ -668,6 +668,38 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE products SET fulfillment = CASE WHEN stock IS NOT NULL THEN 'stock' ELSE 'order' END`,
     ],
   },
+  {
+    // SPX Express (Shopee Express) for the Vietnamese legs, from the official tariff (spx.vn/downloads/resource/shipping_rate_vn.pdf,
+    // parcels, VAT included, effective 01/02/2024): nội tỉnh 18.000đ/1 kg + 2.500đ per 0,5 kg · nội miền 22.000 + 2.500 ·
+    // liên miền / đặc biệt 22.000 + 5.000. Shop is in Thanh Hóa (SPX counts it as Miền Trung). COD fee is included; ≤ 17 kg, ≤ 60 cm a side.
+    version: 31,
+    name: "spx-express",
+    up: [
+      `INSERT INTO shipping_carriers (name, phone, website, note, position, legs)
+        SELECT 'SPX Express (Shopee Express)', '1900 6885', 'https://spx.vn/vi', 'Giao nội địa Việt Nam · phí COD đã gồm trong cước · tối đa 17 kg, mỗi chiều ≤ 60 cm · biểu phí spx.vn/downloads/resource/shipping_rate_vn.pdf', 13, 'vn_transfer,vn_domestic'
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_carriers WHERE name LIKE 'SPX Express%')`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, cod_ship_fee)
+        SELECT 'SPX Express · Giao hàng tiêu chuẩn', 'Shipper SPX lấy hàng tại kho Hoằng Hóa và giao tận nhà. Cước theo biểu phí công khai của SPX: kg đầu rồi mỗi 0,5 kg tiếp theo; nội tỉnh Thanh Hóa rẻ nhất, cùng miền Trung 2.500đ/0,5 kg, đi miền Bắc / miền Nam 5.000đ/0,5 kg.', '', 'đ', 22, 1, 'vn_domestic',
+               (SELECT id FROM shipping_carriers WHERE name LIKE 'SPX Express%'), 1, 'Kho LienStore – Xã Hoằng Hóa, Tỉnh Thanh Hóa', 1,
+               'Phí thu hộ (COD) đã gồm trong cước\nHàng giá trị từ 3.000.000đ thu thêm 25.000đ/kiện\nGiao huyện – xã cộng thêm 1 ngày làm việc', 1
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE name = 'SPX Express · Giao hàng tiêu chuẩn')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee)
+        SELECT id, 'Thanh Hóa', 18000, '', NULL, NULL, NULL, 'Nội tỉnh Thanh Hóa (nội thành / ngoại thành cùng giá)', '1–2 ngày', 1, 1, 1000, 500, 2500 FROM shipping_methods WHERE name = 'SPX Express · Giao hàng tiêu chuẩn' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id)`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee)
+        SELECT id, 'Miền Bắc', 22000, '', NULL, NULL, NULL, 'Liên miền: Thanh Hóa → các tỉnh phía Bắc (SPX xếp Thanh Hóa vào miền Trung)', '2–3 ngày', 2, 1, 1000, 500, 5000 FROM shipping_methods WHERE name = 'SPX Express · Giao hàng tiêu chuẩn' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Bắc')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee)
+        SELECT id, 'Miền Trung', 22000, '', NULL, NULL, NULL, 'Nội miền: duyên hải Thanh Hóa – Bình Thuận và Tây Nguyên', '2–3 ngày', 3, 1, 1000, 500, 2500 FROM shipping_methods WHERE name = 'SPX Express · Giao hàng tiêu chuẩn' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Trung')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee)
+        SELECT id, 'Miền Nam', 22000, '', NULL, NULL, NULL, 'Liên miền: Đông Nam Bộ và Đồng bằng sông Cửu Long', '3–4 ngày', 4, 1, 1000, 500, 5000 FROM shipping_methods WHERE name = 'SPX Express · Giao hàng tiêu chuẩn' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id AND z.name = 'Miền Nam')`,
+      `INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, cod_ship_fee)
+        SELECT 'SPX Express: kho Kiến Express (Hà Nội) → kho Thanh Hóa', 'Kiến Express gửi lô hàng từ kho Hà Nội về kho LienStore qua SPX Express. Cước liên miền (miền Bắc → miền Trung) theo biểu phí SPX: 22.000đ kg đầu + 5.000đ mỗi 0,5 kg. Tối đa 17 kg / kiện.', '', 'đ', 31, 1, 'vn_transfer',
+               (SELECT id FROM shipping_carriers WHERE name LIKE 'SPX Express%'), 0, 'Từ: kho Kiến Express — OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội · Đến: kho LienStore, Hoằng Hóa, Thanh Hóa', 1,
+               'Biểu phí spx.vn/downloads/resource/shipping_rate_vn.pdf (từ 01/02/2024, đã gồm VAT)\nChia đều cho từng sản phẩm theo cân tính phí khi tính giá bán', 0
+        WHERE NOT EXISTS (SELECT 1 FROM shipping_methods WHERE name LIKE 'SPX Express: kho Kiến%')`,
+      `INSERT INTO shipping_zones (method_id, name, fee, unit, free_over, extra_fee, extra_free_over, areas, eta, position, active, base_g, step_g, step_fee)
+        SELECT id, 'Hà Nội → Thanh Hóa (liên miền)', 22000, '', NULL, NULL, NULL, 'Kho Kiến Express Hà Nội → kho LienStore Thanh Hóa', '2–3 ngày', 1, 1, 1000, 500, 5000 FROM shipping_methods WHERE name LIKE 'SPX Express: kho Kiến%' AND NOT EXISTS (SELECT 1 FROM shipping_zones z WHERE z.method_id = shipping_methods.id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -1,46 +1,59 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&family=Be+Vietnam+Pro:wght@800&display=swap" rel="stylesheet">
 <style>
+  /*
+    Geometry traced from the owner's original artwork (1920×1920 file, logo box x 180–1800, y 520–1195):
+      Lienanh  left 180  baseline 1195  cap 305   width 1280
+      Store    left 590  baseline  975  cap 300   width  860   (overlaps the top of "Lienanh")
+      circle   centre (1550, 775) r 250 · sakura centre (1595, 715) size ≈ 220
+    Canvas 800×360 → scale 0.469 with a 20 px margin. Poppins Black is wider than the original lettering, so each
+    word is squeezed horizontally (scaleX) to the traced width at render time.
+  */
   body{margin:0;background:transparent;font-family:Poppins,sans-serif}
-  .logo{position:relative;width:800px;height:388px;overflow:hidden}
+  .logo{position:relative;width:800px;height:360px;overflow:hidden}
   .logo.red{background:#D22B26}
   .logo.white{background:#fff}
-  .circle{position:absolute;left:532px;top:42px;width:228px;height:228px;border-radius:50%}
-  .circle svg{position:absolute;left:96px;top:30px;width:104px;height:104px}
-  .t{position:absolute;font-weight:800;line-height:1;letter-spacing:-5px;white-space:nowrap}
-  .store{left:226px;top:66px;font-size:158px}
-  .lien{left:38px;top:186px;font-size:158px}
-  .red .t{color:#fff}
+  .circle{position:absolute;left:546px;top:23px;width:234px;height:234px;border-radius:50%;background:#F7A0B5}
+  .circle svg{position:absolute;left:86px;top:20px;width:103px;height:103px}
+  .t{position:absolute;font-weight:900;line-height:1;letter-spacing:-0.035em;white-space:nowrap;transform-origin:left bottom}
+  .store{left:208px;font-size:186px;bottom:132px}
+  .lien{left:20px;font-size:186px;bottom:28px}
+  .red .t,.transwhite .t{color:#fff}
   .white .t,.trans .t{color:#D22B26}
-  .transwhite .t{color:#fff}
-  .transwhite .circle{background:#F7A0B5}
-  .red .circle{background:#F7A0B5}
   .white .circle,.trans .circle{background:#F5A9BC}
+  /* square (social / avatar) version with the slogan, like the owner's red artwork */
+  .square{position:relative;width:820px;height:640px;background:#D22B26;overflow:hidden}
+  .square .logo{position:absolute;left:55px;top:110px;transform:scale(0.72);transform-origin:left top;background:transparent}
+  .square .slogan{position:absolute;left:75px;top:430px;font:800 46px/1 "Be Vietnam Pro",Poppins,sans-serif;color:#fff;letter-spacing:-0.01em;white-space:nowrap}
   .icon{position:relative;width:512px;height:512px;overflow:hidden}
   .icon.sq{background:#D22B26;border-radius:112px}
   .icon.round{background:#F5A9BC;border-radius:50%}
   .icon svg{position:absolute;left:96px;top:96px;width:320px;height:320px}
   .og{position:relative;width:1200px;height:630px;background:#D22B26;overflow:hidden}
-  .og .logo{position:absolute;left:200px;top:121px;background:transparent}
+  .og .logo{position:absolute;left:200px;top:135px;background:transparent}
 </style></head><body>
-<svg width="0" height="0" style="position:absolute"><defs>
-  <!-- five-petal sakura: petal drawn pointing up with a notched tip, rotated ×5 -->
-  <g id="sakura" fill="#fff">
-    <g id="petal"><path d="M0,-10 C-14,-30 -30,-58 -24,-84 C-20,-100 -8,-108 0,-100 C8,-108 20,-100 24,-84 C30,-58 14,-30 0,-10 Z" transform="translate(0,-8)"/><path d="M0,-108 L-9,-96 L0,-102 L9,-96 Z" fill="#D22B26" opacity="0"/></g>
-    <use href="#petal" transform="rotate(72)"/><use href="#petal" transform="rotate(144)"/><use href="#petal" transform="rotate(216)"/><use href="#petal" transform="rotate(288)"/>
-  </g>
-</defs></svg>
 <script>
-  const sakura = (fill) => `<svg viewBox="-120 -120 240 240"><g transform="translate(0,0)">${[0,72,144,216,288].map(a=>`<g transform="rotate(${a})"><path fill="${fill}" d="M0,-6 C-22,-22 -42,-50 -36,-80 C-32,-98 -17,-108 -6,-100 L0,-91 L6,-100 C17,-108 32,-98 36,-80 C42,-50 22,-22 0,-6 Z"/></g>`).join('')}</g></svg>`;
+  const sakura = (fill) => `<svg viewBox="-120 -120 240 240">${[0,72,144,216,288].map(a=>`<g transform="rotate(${a})"><path fill="${fill}" d="M0,-6 C-22,-22 -42,-50 -36,-80 C-32,-98 -17,-108 -6,-100 L0,-91 L6,-100 C17,-108 32,-98 36,-80 C42,-50 22,-22 0,-6 Z"/></g>`).join('')}</svg>`;
   const kind = new URLSearchParams(location.search).get('k') || 'red';
   const logo = (cls) => `<div class="logo ${cls}"><div class="circle">${sakura('#fff')}</div><div class="t store">Store</div><div class="t lien">Lienanh</div></div>`;
   let html = '';
-  if (kind === 'red' || kind === 'white' || kind === 'trans' || kind === 'transwhite') html = logo(kind);
+  if (['red','white','trans','transwhite'].includes(kind)) html = logo(kind);
   else if (kind === 'icon') html = `<div class="icon sq">${sakura('#fff')}</div>`;
   else if (kind === 'round') html = `<div class="icon round">${sakura('#fff')}</div>`;
-  else if (kind === 'og') html = `<div class="og">${logo('trans red-text').replace('class="logo','class="logo og-logo')}</div>`;
+  else if (kind === 'og') html = `<div class="og">${logo('transwhite')}</div>`;
+  else if (kind === 'square') html = `<div class="square">${logo('transwhite')}<div class="slogan">Chuyên hàng Nhật nội địa</div></div>`;
   document.body.innerHTML = html;
-  if (kind === 'og') { document.querySelectorAll('.og .t').forEach(e => e.style.color = '#fff'); document.querySelector('.og .circle').style.background = '#F7A0B5'; }
+  // squeeze each word to the traced width once the font is in
+  const TARGET = { store: 428, lien: 640 };
+  document.fonts.ready.then(() => {
+    for (const cls of ['store', 'lien']) {
+      document.querySelectorAll('.t.' + cls).forEach((el) => {
+        const w = el.getBoundingClientRect().width / (el.closest('.square') ? 0.72 : 1);
+        el.style.transform = `scaleX(${(TARGET[cls] / w).toFixed(4)})`;
+      });
+    }
+    document.body.dataset.ready = '1';
+  });
 </script>
 </body></html>

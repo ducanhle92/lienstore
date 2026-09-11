@@ -60,8 +60,8 @@ export const DEFAULT_THEME: SiteTheme = {
   colors: { ...THEME_PRESETS.red.colors },
 };
 
-/** Logo artwork is 800×388 (Store Lienanh); the header scales it by width. */
-export const LOGO_RATIO = { width: 800, height: 388 };
+/** Logo artwork is 800×360 (Store Lienanh); the header scales it by width. */
+export const LOGO_RATIO = { width: 800, height: 360 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 

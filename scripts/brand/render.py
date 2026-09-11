@@ -16,6 +16,7 @@ JOBS = [  # kind, selector, transparent?, outputs [(name, width)]
     ("icon", ".icon", True, [("icon-512.png", 512), ("icon-192.png", 192), ("icon-180.png", 180), ("icon-48.png", 48), ("icon-32.png", 32), ("icon-16.png", 16)]),
     ("round", ".icon", True, [("icon-round-512.png", 512), ("icon-round-192.png", 192)]),
     ("og", ".og", False, [("og-image-1200x630.png", 1200)]),
+    ("square", ".square", False, [("logo-square-red-820.png", 820)]),
 ]
 
 with sync_playwright() as p:
@@ -23,12 +24,12 @@ with sync_playwright() as p:
     for kind, sel, transparent, outs in JOBS:
         if ONLY and kind != ONLY: continue
         for name, width in outs:
-            base = {"logo": 800, "icon": 512, "og": 1200}[sel.strip(".")]
+            base = {"logo": 800, "icon": 512, "og": 1200, "square": 820}[sel.strip(".")]
             scale = width / base
             pg = b.new_page(viewport={"width": 1400, "height": 800}, device_scale_factor=scale)
             pg.goto(f"{URL}?k={kind}")
-            pg.wait_for_timeout(1500)  # fonts
-            pg.evaluate("document.fonts.ready")
+            pg.wait_for_function("document.body.dataset.ready === '1'", timeout=20000)
+            pg.wait_for_timeout(200)
             pg.locator(sel).screenshot(path=str(OUT / name), omit_background=transparent)
             pg.close()
             print("wrote", name)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Be_Vietnam_Pro } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -10,6 +11,9 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 import { AccountDrawer, type HeaderCustomer } from "./AccountDrawer";
+
+/** Slogan under the logo uses the same heavy geometric style as the artwork; Be Vietnam Pro carries the Vietnamese diacritics. */
+const sloganFont = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["800"], display: "swap" });
 
 export interface HeaderCategory {
   name: string;
@@ -95,9 +99,9 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
           <Fa name="bars" />
         </button>
 
-        <Link href="/" className="flex shrink-0 flex-col items-center no-underline" aria-label={logo.alt}>
-          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[104px] transition-[width] sm:w-[124px]", stuck && "sm:w-[104px]")} />
-          {slogan ? <span className={cn("mt-0.5 whitespace-nowrap text-[10px] font-semibold leading-3 tracking-wide text-white/95 sm:text-[11px]", stuck && "sm:hidden")}>{slogan}</span> : null}
+        <Link href="/" className="flex shrink-0 flex-col items-start no-underline" aria-label={logo.alt}>
+          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[112px] transition-[width] sm:w-[132px]", stuck && "sm:w-[112px]")} />
+          {slogan ? <span className={cn(sloganFont.className, "mt-0.5 whitespace-nowrap text-[10.5px] font-extrabold leading-3 tracking-[-0.01em] text-white sm:text-[12px]", stuck && "sm:hidden")}>{slogan}</span> : null}
         </Link>
 
         <nav aria-label="Menu chính" className="hidden items-center lg:flex">

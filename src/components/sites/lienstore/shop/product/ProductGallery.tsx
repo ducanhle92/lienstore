@@ -47,9 +47,11 @@ export function ProductGallery({ images, alt, className, watermark = null }: Pro
           ref={frame}
           onMouseMove={onMove}
           onMouseLeave={() => setLens(null)}
+          onContextMenu={(e) => e.preventDefault()}
           className="woocommerce-product-gallery__image relative aspect-square w-full overflow-visible rounded-md border border-lien-line bg-white"
         >
-          <a href={current} target="_blank" rel="noreferrer" className="absolute inset-0 block p-3">
+          {/* no link to the file and no context menu: pictures are viewed here, not opened / saved directly */}
+          <div className="absolute inset-0 block select-none p-3">
             {/* all pictures stay mounted and pre-loaded; only the selected one is visible, so a thumbnail click is instant */}
             {images.map((src, i) => (
               <Image
@@ -61,10 +63,12 @@ export function ProductGallery({ images, alt, className, watermark = null }: Pro
                 priority={i === 0}
                 loading={i === 0 ? undefined : "eager"}
                 aria-hidden={i === index ? undefined : true}
-                className={cn("absolute inset-3 block h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain transition-opacity duration-150", i === index ? "opacity-100" : "pointer-events-none opacity-0")}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                className={cn("absolute inset-3 block h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain transition-opacity duration-150 select-none", i === index ? "opacity-100" : "pointer-events-none opacity-0")}
               />
             ))}
-          </a>
+          </div>
           {watermark ? (
             // eslint-disable-next-line @next/next/no-img-element -- theme logo, plain img keeps the overlay light
             <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-5 bottom-5 z-[5] w-[22%] max-w-[120px] select-none opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />
@@ -108,7 +112,7 @@ export function ProductGallery({ images, alt, className, watermark = null }: Pro
                     )}
                   >
                     <span className="relative block h-full w-full">
-                      <Image src={src} alt="" width={100} height={100} className="block h-full w-full object-contain" />
+                      <Image src={src} alt="" width={100} height={100} draggable={false} onContextMenu={(e) => e.preventDefault()} className="block h-full w-full select-none object-contain" />
                       {watermark ? (
                         // eslint-disable-next-line @next/next/no-img-element -- theme logo overlay
                         <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-1 bottom-1 w-[34%] select-none opacity-80" />
