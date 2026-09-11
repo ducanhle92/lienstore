@@ -10,6 +10,19 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 export function ResizableTable({ id, children, className = "" }: { id: string; children: ReactNode; className?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [reset, setReset] = useState(0);
+  // the scroll box never extends below the viewport, so its horizontal scrollbar is always on screen (Excel-like)
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const firstScreen = Math.max(240, window.innerHeight - Math.max(0, top - window.scrollY) - 24);
+      el.style.maxHeight = `${Math.max(240, Math.min(firstScreen, window.innerHeight - 40))}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [reset]);
   useEffect(() => {
     const table = box.current?.querySelector("table");
     if (!table) return;
@@ -54,7 +67,7 @@ export function ResizableTable({ id, children, className = "" }: { id: string; c
     };
     const handles: HTMLSpanElement[] = [];
     ths.forEach((th, i) => {
-      th.style.position = "relative";
+      // sticky header cells are containing blocks for the absolute handle; no position:relative (it would undo sticky)
       th.classList.add("select-none");
       const h = document.createElement("span");
       h.className = "lien-col-handle";
@@ -98,7 +111,7 @@ export function ResizableTable({ id, children, className = "" }: { id: string; c
   return (
     <div className={className}>
       <div className="mb-1 flex items-center justify-end gap-3 text-[11px] text-lien-muted">
-        <span>Kéo mép cột để đổi độ rộng · Shift + lăn chuột để cuộn ngang</span>
+        <span>Kéo thanh cuộn dưới bảng hoặc Shift + lăn chuột để xem các cột bên phải · kéo mép cột để đổi độ rộng</span>
         <button
           type="button"
           onClick={() => {
@@ -116,7 +129,8 @@ export function ResizableTable({ id, children, className = "" }: { id: string; c
           Đặt lại cột
         </button>
       </div>
-      <div ref={box} className="lien-table-scroll overflow-x-scroll pb-1 [&_table.lien-resizable_td]:overflow-hidden [&_table.lien-resizable_td]:text-ellipsis [&_table.lien-resizable_th]:overflow-hidden [&_table.lien-resizable_th]:text-ellipsis">
+      {/* bounded height: the horizontal scrollbar sits at the bottom of this box, always on screen; the header stays put while scrolling */}
+      <div ref={box} className="lien-table-scroll overflow-auto pb-1 [&_table.lien-resizable_td]:overflow-hidden [&_table.lien-resizable_td]:text-ellipsis [&_table.lien-resizable_th]:overflow-hidden [&_table.lien-resizable_th]:text-ellipsis [&_table.lien-resizable_thead_th]:sticky [&_table.lien-resizable_thead_th]:top-0 [&_table.lien-resizable_thead_th]:z-[1] [&_table.lien-resizable_thead_th]:bg-[#f9fafb]" style={{ overflowX: "scroll" }}>
         {children}
       </div>
     </div>

@@ -131,7 +131,7 @@ export default async function AdminInventory({ searchParams }: Props) {
           </p>
         ) : null}
 
-        <p className="mb-2 text-[12px] text-lien-muted">Bấm tên cột để sắp xếp tăng / giảm · kéo mép cột để đổi độ rộng (nhấp đôi để đặt lại) · bảng cuộn ngang khi hẹp.</p>
+        <p className="mb-2 text-[12px] text-lien-muted">Bấm tên cột để sắp xếp tăng / giảm.</p>
         <ResizableTable id="inventory">
           <table className={tableClass}>
             <thead>

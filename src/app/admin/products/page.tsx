@@ -8,7 +8,8 @@ import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductS
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories, getPricingConfig } from "@/lib/db";
+import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig } from "@/lib/db";
+import { suggestPrice } from "@/lib/pricing";
 import { formatDate, formatPrice } from "@/lib/format";
 
 /** Profit per unit and margin % when both prices are known. */
@@ -35,8 +36,12 @@ export default async function AdminProducts({ searchParams }: Props) {
   const saved = first(sp.saved);
   const deleted = first(sp.deleted);
 
-  const [all, categories, pricing] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig()]);
+  const [all, categories, pricing, quote, rate] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate()]);
   const jpPrice = (cost: number | null) => (cost === null ? null : Math.round((cost * (1 + pricing.marginPct / 100)) / 1000) * 1000);
+  // price formula per product: import legs shared per gram (same numbers as the CSV export and Công thức giá)
+  const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence }, quote, pricing);
+  const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
+  const money = (v: number | null | undefined) => (v === null || v === undefined ? <span className="text-lien-muted">—</span> : formatPrice(v));
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const items = filterProducts(all, sp);
   const fulfillment = first(sp.fulfillment);
@@ -126,7 +131,6 @@ export default async function AdminProducts({ searchParams }: Props) {
           </button>
         </form>
 
-        <p className="mb-2 text-[12px] text-lien-muted">Kéo mép cột để đổi độ rộng (nhấp đôi để đặt lại) · bảng cuộn ngang khi hẹp.</p>
         <ResizableTable id="products">
           <table className={tableClass}>
             <thead>
@@ -135,10 +139,16 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>SKU</th>
                 <th className={thClass}>Tên</th>
                 <th className={thClass}>Danh mục</th>
-                <th className={thClass} title="Giá khách thấy — đã gồm phí vận chuyển 3 chặng về kho shop">Giá bán VN</th>
-                <th className={thClass} title={`Giá vốn + ${pricing.marginPct}% lợi nhuận, chưa gồm vận chuyển`}>Giá bán NB</th>
-                <th className={thClass}>Giá vốn (VNĐ)</th>
+                <th className={thClass} title="Giá khách đang thấy trên web">Giá bán VN</th>
                 <th className={thClass}>Giá vốn (¥)</th>
+                <th className={`${thClass} whitespace-nowrap`} title="Tỉ giá đang dùng (Kho hàng › Công thức giá)">Tỉ giá (đ/¥)</th>
+                <th className={thClass}>Giá vốn (VNĐ)</th>
+                <th className={thClass} title={`Giá vốn + ${pricing.marginPct}% lợi nhuận, chưa gồm vận chuyển`}>Giá bán NB</th>
+                <th className={thClass} title="Chia theo gram sản phẩm trong lô gom, luồng mặc định">Ship nội địa Nhật</th>
+                <th className={thClass}>Ship Nhật → VN</th>
+                <th className={thClass}>Ship kho ĐVVC → kho shop</th>
+                <th className={thClass}>Tổng phí về kho VN</th>
+                <th className={thClass} title="Giá vốn + lãi + tổng phí, làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Chi phí lên kệ website</th>
                 <th className={thClass}>Lợi nhuận</th>
                 <th className={thClass}>Hình thức · tồn</th>
                 <th className={thClass}>Cân / KT</th>
@@ -150,7 +160,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={20} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -169,9 +179,26 @@ export default async function AdminProducts({ searchParams }: Props) {
                   <td className={`${tdClass} whitespace-nowrap`}>
                     {p.price > 0 ? formatPrice(p.price, p.currency) : <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[12px] text-amber-800">chưa có giá</span>}
                   </td>
-                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{jpPrice(p.costPrice) === null ? "—" : formatPrice(jpPrice(p.costPrice) as number, p.currency)}</td>
-                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costPrice === null ? "—" : formatPrice(p.costPrice, p.currency)}</td>
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[13px]`} title={p.costUrl || undefined}>{p.costJpy === null ? <span className="text-lien-muted">—</span> : <>¥{p.costJpy.toLocaleString("ja-JP")}<span className="ml-1 text-[10px] text-lien-muted">{p.costSource}</span></>}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costJpy === null ? "—" : rate}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costPrice === null ? "—" : formatPrice(p.costPrice, p.currency)}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{jpPrice(p.costPrice) === null ? "—" : formatPrice(jpPrice(p.costPrice) as number, p.currency)}</td>
+                  {(() => {
+                    const bd = breakdown(p);
+                    const shelf = bd?.suggested ?? null;
+                    const diff = shelf !== null && p.price > 0 ? shelf - p.price : null;
+                    return (
+                      <>
+                        <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{money(legFee(bd, "jp_domestic"))}</td>
+                        <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{money(legFee(bd, "jp_vn"))}</td>
+                        <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{money(legFee(bd, "vn_transfer"))}</td>
+                        <td className={`${tdClass} whitespace-nowrap`}>{money(bd?.shipping)}</td>
+                        <td className={`${tdClass} whitespace-nowrap font-semibold`} title={diff === null ? undefined : diff === 0 ? "Bằng giá bán hiện tại" : `${diff > 0 ? "+" : "−"}${formatPrice(Math.abs(diff))} so với giá bán VN hiện tại`}>
+                          {shelf === null ? <span className="text-lien-muted">—</span> : <span className={diff === null || diff === 0 ? "text-lien-heading" : diff > 0 ? "text-red-700" : "text-green-700"}>{formatPrice(shelf)}</span>}
+                        </td>
+                      </>
+                    );
+                  })()}
                   <td className={`${tdClass} whitespace-nowrap`}>
                     {(() => {
                       const pr = profitOf(p);
