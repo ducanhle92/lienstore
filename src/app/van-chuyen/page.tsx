@@ -21,7 +21,7 @@ export default async function ShippingPage() {
       <PageBand title={t(lang, "shippingTitle")} crumbs={[{ label: t(lang, "shippingTitle") }]} description={t(lang, "shippingDesc")} />
       <FullWidthShell>
         <div className="mx-auto max-w-[1000px]">
-          <ShippingTable methods={methods} notes={notes} />
+          <ShippingTable methods={methods.filter((m) => m.leg === "vn_domestic")} notes={notes} />
         </div>
       </FullWidthShell>
     </SiteChrome>

@@ -39,6 +39,7 @@ const DICT = {
   menuSaleCat: ["Danh mục sale", "セール商品"],
   homeVouchers: ["Ưu đãi độc quyền website", "ウェブサイト限定クーポン"],
   copyCode: ["Sao chép mã", "コードをコピー"],
+  voucherHint: ["Nhập mã ở trang thanh toán", "お会計時にコードを入力"],
   copied: ["Đã sao chép", "コピーしました"],
   discountWord: ["Giảm", "割引"],
   orderFrom: ["Đơn hàng từ", "注文額"],

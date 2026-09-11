@@ -8,9 +8,10 @@ import { ProductMeta } from "@/components/sites/lienstore/shop/product/ProductMe
 import { ProductPageNotice } from "@/components/sites/lienstore/shop/product/ProductPageNotice";
 import { ProductShare } from "@/components/sites/lienstore/shop/product/ProductShare";
 import { ProductTabs } from "@/components/sites/lienstore/shop/product/ProductTabs";
+import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts } from "@/lib/db";
+import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShippingMethods } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
@@ -56,7 +57,9 @@ export default async function ProductPage({ params }: PageProps) {
   const lang = await getLang();
   const product = localizeProduct(raw, lang);
 
-  const [cats, relatedRaw, reviews, me] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer()]);
+  const [cats, relatedRaw, reviews, me, allMethods] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer(), getShippingMethods()]);
+  // customers compare Vietnam delivery options only — the Japan legs are already included in the price
+  const vnMethods = allMethods.filter((m) => m.leg === "vn_domestic");
   const reviewer = me ? me.username || [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email.split("@")[0] : null;
   const categories = localizeCategories(cats, lang);
   const related = localizeProducts(relatedRaw, lang);
@@ -94,7 +97,14 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
 
         <div className="mt-10">
-          <ProductTabs name={product.name} productId={product.id} description={product.description} reviews={reviews} reviewer={reviewer} />
+          <ProductTabs
+            name={product.name}
+            productId={product.id}
+            description={product.description}
+            reviews={reviews}
+            reviewer={reviewer}
+            shipping={vnMethods.length ? <ShippingTable methods={vnMethods} notes={[]} compact weightG={product.weightG} dimsCm={product.dimsCm} dimsConfidence={product.dimsConfidence} /> : undefined}
+          />
         </div>
 
         {related.length > 0 ? (

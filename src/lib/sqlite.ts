@@ -510,6 +510,16 @@ export const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    // Starter vouchers for the home-page strip (the owner edits or deletes them in Sales › Voucher).
+    version: 22,
+    name: "sample-vouchers",
+    up: ["GIAM20K|fixed|20000|499000", "GIAM40K|fixed|40000|799000", "GIAM60K|fixed|60000|1099000", "GIAM100K|fixed|100000|1549000"].map((row) => {
+      const [code, kind, value, min] = row.split("|");
+      return `INSERT OR IGNORE INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, show_home, created_at, updated_at)
+        VALUES ('${code}', '${kind}', ${value}, ${min}, NULL, NULL, '2026-09-30T16:59:59.000Z', NULL, 1, 'Voucher mẫu — sửa hoặc xoá trong Sales › Voucher', 1, '2026-09-11T04:00:00.000Z', '2026-09-11T04:00:00.000Z')`;
+    }),
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
