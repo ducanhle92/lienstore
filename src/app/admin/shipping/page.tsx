@@ -319,68 +319,65 @@ function CarriersCard({ leg, carriers, methods, tab }: { leg: ShippingLeg | null
   return (
     <div id="carriers">
       <Card title={`Đơn vị vận chuyển${leg ? ` · ${LEG_LABEL[leg]}` : ""}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-[13px]">
-            <thead>
-              <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
-                <th className="px-2 py-2">Tên</th>
-                <th className="px-2 py-2">Điện thoại</th>
-                <th className="px-2 py-2">Website</th>
-                <th className="px-2 py-2">Ghi chú</th>
-                <th className="px-2 py-2">Chặng</th>
-                <th className="px-2 py-2">Đang dùng</th>
-                <th className="px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((c) => {
-                const fid = `c${c.id}`;
-                const used = methods.filter((m) => m.carrierId === c.id).length;
-                return (
-                  <tr key={c.id}>
-                    <td className={cell}>
-                      <input name="name" form={fid} defaultValue={c.name} required className={`${small} min-w-[170px]`} />
-                    </td>
-                    <td className={cell}>
-                      <input name="phone" form={fid} defaultValue={c.phone} className={`${small} w-[130px]`} />
-                    </td>
-                    <td className={cell}>
-                      <input name="website" form={fid} defaultValue={c.website} className={`${small} min-w-[170px]`} />
-                    </td>
-                    <td className={cell}>
-                      <input name="note" form={fid} defaultValue={c.note} className={`${small} min-w-[200px]`} />
-                    </td>
-                    <td className={`${cell} whitespace-nowrap`}>
-                      {SHIPPING_LEGS.map((l) => (
-                        <label key={l.key} className="mr-2 inline-flex items-center gap-1 text-[12px]" title={l.label}>
-                          <input type="checkbox" name="legs" value={l.key} form={fid} defaultChecked={c.legs.includes(l.key)} className="h-3.5 w-3.5" />
-                          <Fa name={LEG_ICON[l.key]} className="text-lien-muted" />
-                        </label>
-                      ))}
-                    </td>
-                    <td className={`${cell} text-[12px] text-lien-muted`}>{used ? `${used} phương thức` : "—"}</td>
-                    <td className={`${cell} whitespace-nowrap`}>
-                      <form id={fid} action={saveCarrierAction} className="inline">
-                        <input type="hidden" name="id" value={c.id} />
-                        <input type="hidden" name="backTab" value={tab} />
-                        <button type="submit" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px]`}>
+        <ul className="m-0 list-none divide-y divide-[#f0f0f0] p-0 text-[13px]">
+          {list.map((c) => {
+            const fid = `c${c.id}`;
+            const used = methods.filter((m) => m.carrierId === c.id).length;
+            return (
+              <li key={c.id} className="py-2" data-testid={`carrier-${c.id}`}>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="font-semibold text-lien-heading">{c.name}</span>
+                  {c.phone ? <span className="text-lien-muted"><Fa name="phone" className="mr-1" />{c.phone}</span> : null}
+                  {c.website ? (
+                    <a href={c.website} target="_blank" rel="noreferrer" className="text-lien-blue hover:underline">
+                      <Fa name="external-link" className="mr-1" />
+                      {c.website.replace(/^https?:\/\//, "").split("/")[0]}
+                    </a>
+                  ) : null}
+                  <span className="text-lien-muted" title="Chặng phục vụ">
+                    {SHIPPING_LEGS.filter((l) => c.legs.includes(l.key)).map((l) => (
+                      <Fa key={l.key} name={LEG_ICON[l.key]} className="mr-1" />
+                    ))}
+                  </span>
+                  <span className="text-[12px] text-lien-muted">{used ? `${used} phương thức` : "chưa dùng"}</span>
+                  <details className="ml-auto">
+                    <summary className="cursor-pointer select-none text-[12px] font-semibold text-lien-blue">
+                      <Fa name="cog" className="mr-1" /> Sửa
+                    </summary>
+                    <form id={fid} action={saveCarrierAction} className="mt-2 grid gap-2 rounded-md border border-[#e5e7eb] bg-[#fafafa] p-3 md:grid-cols-[1fr_130px_1fr_1fr]">
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="backTab" value={tab} />
+                      <input name="name" defaultValue={c.name} required className={small} aria-label="Tên" />
+                      <input name="phone" defaultValue={c.phone} placeholder="Điện thoại" className={small} aria-label="Điện thoại" />
+                      <input name="website" defaultValue={c.website} placeholder="https://…" className={small} aria-label="Website" />
+                      <input name="note" defaultValue={c.note} placeholder="Ghi chú" className={small} aria-label="Ghi chú" />
+                      <div className="flex flex-wrap items-center gap-3 md:col-span-4">
+                        <span className="text-[12px] text-lien-muted">Chặng:</span>
+                        {SHIPPING_LEGS.map((l) => (
+                          <label key={l.key} className="inline-flex items-center gap-1 text-[12px]" title={l.label}>
+                            <input type="checkbox" name="legs" value={l.key} defaultChecked={c.legs.includes(l.key)} className="h-3.5 w-3.5" />
+                            <Fa name={LEG_ICON[l.key]} className="text-lien-muted" /> {l.label.replace(/^[①②③④]\s*/, "")}
+                          </label>
+                        ))}
+                        <button type="submit" className={`${btnSecondary} ml-auto !px-2.5 !py-1.5 !text-[13px]`}>
                           <Fa name="check" /> Lưu
                         </button>
-                      </form>
-                      <form action={deleteCarrierAction} className="ml-1 inline">
-                        <input type="hidden" name="id" value={c.id} />
-                        <input type="hidden" name="backTab" value={tab} />
-                        <button type="submit" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px]`} title="Xoá đơn vị">
-                          <Fa name="trash" />
+                        <button type="submit" form={`del-${fid}`} className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px]`} title="Xoá đơn vị">
+                          <Fa name="trash" /> Xoá
                         </button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                    </form>
+                    <form id={`del-${fid}`} action={deleteCarrierAction} className="hidden">
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="backTab" value={tab} />
+                    </form>
+                  </details>
+                </div>
+              </li>
+            );
+          })}
+          {list.length === 0 ? <li className="py-2 text-lien-muted">Chưa có đơn vị nào cho chặng này.</li> : null}
+        </ul>
         <details className="mt-3 rounded-md border border-dashed border-[#d1d5db]">
           <summary className="cursor-pointer px-4 py-2 text-[13px] font-semibold text-lien-blue select-none">
             <Fa name="plus" /> Thêm đơn vị vận chuyển
