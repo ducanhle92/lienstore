@@ -773,7 +773,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     else if (live) {
       const q = live.quote;
       const par = live.bundle && !("error" in live.bundle) ? live.bundle.parcel : null;
-      const method = db.prepare("SELECT m.id FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id WHERE m.leg = 'vn_domestic' AND (lower(m.name) LIKE ? OR lower(c.name) LIKE ?) ORDER BY m.active DESC, m.position LIMIT 1").get(`%${q.carrier === "GHN" ? "ghn" : q.carrier === "SPX" ? "spx" : q.carrier === "VNPOST" ? "vnpost" : "viettel"}%`, `%${q.carrier === "GHN" ? "ghn" : q.carrier === "SPX" ? "spx" : q.carrier === "VNPOST" ? "vnpost" : "viettel"}%`) as { id: number } | undefined;
+      const needle = q.carrier === "GHN" ? "ghn" : q.carrier === "SPX" ? "spx" : q.carrier === "VNPOST" ? "vnpost" : q.carrier === "VIETTEL_POST" ? "viettel" : q.carrier === "GHTK" ? "tiết kiệm" : q.carrier === "JNT" ? "j&t" : q.carrier.toLowerCase();
+      const method = db.prepare("SELECT m.id FROM shipping_methods m LEFT JOIN shipping_carriers c ON c.id = m.carrier_id WHERE m.leg = 'vn_domestic' AND (lower(m.name) LIKE ? OR lower(c.name) LIKE ?) ORDER BY m.active DESC, m.position LIMIT 1").get(`%${needle}%`, `%${needle}%`) as { id: number } | undefined;
       insLeg.run(
         id,
         "vn_domestic",

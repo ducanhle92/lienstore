@@ -1,4 +1,5 @@
-import { saveCarrierTogglesAction, saveGhnSettingsAction, saveSpxSettingsAction } from "@/app/admin/shipping/carrier-actions";
+import { saveCarrierTogglesAction, saveGhnSettingsAction, saveGoshipSettingsAction, saveSpxSettingsAction } from "@/app/admin/shipping/carrier-actions";
+import { GOSHIP_SANDBOX, goshipConfigured, goshipCredentials } from "@/lib/carriers/goship";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { RATE_CARD_VERSIONS } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
@@ -25,8 +26,56 @@ export function CarrierStatusPanel() {
   const spx = spxApiCredentials();
   const spxStored = spxKeyStored();
   const spxOn = spxApiConfigured();
+  const gs = goshipCredentials();
+  const gsOn = goshipConfigured();
   return (
     <>
+    <Card className="mb-6" title="Kết nối Goship — một API cho mọi hãng (Viettel Post, VNPost, EMS, GHTK, GHN, SPX, J&T, Best…)">
+      <form action={saveGoshipSettingsAction} className="grid gap-3 md:grid-cols-[1fr_150px_130px_130px_auto] md:items-end" data-testid="goship-form">
+        <div>
+          <label className={adminLabel} htmlFor="gs-token">
+            Access Token {gsOn ? <span className="ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">đã kết nối ••••{gs.token.slice(-4)}</span> : gs.token ? <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">có token, thiếu kho gửi</span> : <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">chưa có</span>}
+          </label>
+          <input id="gs-token" name="token" type="password" autoComplete="off" placeholder={gs.token ? "Để trống = giữ token hiện tại" : "shop.goship.io › Cài đặt › Kết nối API › Lấy Access Token trực tiếp"} className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="gs-base">
+            Môi trường
+          </label>
+          <select id="gs-base" name="base" defaultValue={gs.base === GOSHIP_SANDBOX ? "sandbox" : "prod"} className={adminInput}>
+            <option value="prod">Production (api.goship.io)</option>
+            <option value="sandbox">Sandbox (thử nghiệm)</option>
+          </select>
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="gs-city">
+            Mã tỉnh gửi
+          </label>
+          <input id="gs-city" name="fromCity" defaultValue={gs.fromCity} placeholder="tự tìm" className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="gs-district">
+            Mã huyện gửi
+          </label>
+          <input id="gs-district" name="fromDistrict" defaultValue={gs.fromDistrict} placeholder="tự tìm" className={adminInput} />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className={btnPrimary}>
+            <Fa name="check" /> Lưu & kiểm tra
+          </button>
+          {gs.token ? (
+            <button type="submit" name="clear" value="1" className={btnSecondary} title="Gỡ token">
+              Gỡ
+            </button>
+          ) : null}
+        </div>
+      </form>
+      <p className="mt-2 text-[12px] leading-5 text-lien-muted" data-testid="goship-status">
+        {gsOn
+          ? "Đang dùng Goship làm nguồn cước: một lần gọi trả về giá thật của mọi hãng cho địa chỉ khách (kèm dự kiến giao, tỉ lệ giao thành công). Khi Goship lỗi, hệ thống tự dùng nguồn dự phòng (GHN trực tiếp, biểu phí VNPost/SPX)."
+          : "Chưa kết nối Goship — cước lấy từ GHN trực tiếp (nếu có token) và biểu phí công khai VNPost/SPX. Token chỉ lưu trên máy chủ. Goship dùng địa chỉ 3 cấp cũ; hệ thống tự ánh xạ xã/phường mới → quận/huyện cũ theo tên."}
+      </p>
+    </Card>
     <Card className="mb-6" title="Kết nối SPX Express (Open API đối tác)">
       <form action={saveSpxSettingsAction} className="grid gap-3 md:grid-cols-[180px_1fr_1fr_auto] md:items-end" data-testid="spx-form">
         <div>
@@ -117,9 +166,9 @@ export function CarrierStatusPanel() {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((r) => {
+            {[...ROWS, ...(["EMS", "GHTK", "JNT", "BEST", "OTHER"] as CarrierCode[]).map((code) => ({ code, how: "Chỉ có qua Goship (API hãng, giá theo hợp đồng Goship).", configured: goshipConfigured, source: "live_api" }))].map((r) => {
               const on = !disabled.includes(r.code);
-              const ok = r.configured();
+              const ok = r.code === "GHN" || r.code === "VIETTEL_POST" || r.code === "VNPOST" || r.code === "SPX" ? r.configured() || gsOn : r.configured();
               return (
                 <tr key={r.code} className="align-top" data-testid={`carrier-row-${r.code}`}>
                   <td className="border-b border-[#f3f4f6] px-2 py-2">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { formatQuoteFee, type ShippingQuote, usableForCheckoutTotal } from "@/lib/carriers/types";
+import { CARRIER_SHORT, formatQuoteFee, type ShippingQuote, usableForCheckoutTotal } from "@/lib/carriers/types";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -293,7 +293,7 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
                 </div>
                 {selectable && q.available ? (
                   <button type="button" onClick={() => onSelect?.(isSel ? null : q)} className={cn("shrink-0 rounded-md px-3 py-1.5 text-[13px] font-semibold", isSel ? "bg-lien-blue text-white" : "border border-lien-blue text-lien-blue hover:bg-lien-blue-soft")} aria-pressed={isSel}>
-                    {isSel ? t("shipChosen") : `${t("shipChoose")} ${q.carrier === "GHN" ? "GHN" : q.carrier === "SPX" ? "SPX" : q.carrier === "VNPOST" ? "VNPost" : "Viettel Post"}`}
+                    {isSel ? t("shipChosen") : `${t("shipChoose")} ${CARRIER_SHORT[q.carrier]}`}
                   </button>
                 ) : null}
               </div>

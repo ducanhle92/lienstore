@@ -9,6 +9,7 @@ import { ghnVolumetricWeightG } from "../../src/lib/carriers/ghn-adapter";
 import { quoteSPX, SPX_RATE_CARD, spxBillableWeightG, spxHighValueFee, spxRoutes, spxWeightFee } from "../../src/lib/carriers/spx";
 import { formatQuoteFee, sortQuotes, usableForCheckoutTotal, type AddressInput, type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "../../src/lib/carriers/types";
 import { viettelAdapter, viettelRowToQuote } from "../../src/lib/carriers/viettel";
+import { goshipCarrierCode, goshipRateToQuote, matchGoshipAddress, matchGoshipCities } from "../../src/lib/carriers/goship-pure";
 import { classifyVNPostRoute, quoteVNPost, vnpostBaseFee, vnpostFactor, vnpostZone } from "../../src/lib/carriers/vnpost";
 import { findProvince, findProvinceByName, findWardByName, isMergedProvince, legacyCode, legacyProvincesOf, VN_PROVINCES, wardsOf } from "../../src/lib/vn-address";
 
@@ -203,6 +204,71 @@ describe("Viettel Post", () => {
     assert.equal(q!.totalFeeVnd, 31000);
     assert.equal(q!.billableWeightG, 500);
     assert.equal(q!.etaText, "2 ngày");
+  });
+});
+
+describe("Goship (aggregator)", () => {
+  const cities = [
+    { id: "100000", name: "Hà Nội" },
+    { id: "380000", name: "Thanh Hóa" },
+    { id: "420000", name: "Nam Định" },
+    { id: "430000", name: "Ninh Bình" },
+    { id: "740000", name: "Bà Rịa - Vũng Tàu" },
+  ];
+  const districts: Record<string, Array<{ id: string; name: string; city_id: string }>> = {
+    "380000": [
+      { id: "380100", name: "Thành phố Thanh Hóa", city_id: "380000" },
+      { id: "381200", name: "Huyện Hoằng Hóa", city_id: "380000" },
+    ],
+    "100000": [{ id: "100300", name: "Quận Hai Bà Trưng", city_id: "100000" }, { id: "100100", name: "Quận Ba Đình", city_id: "100000" }],
+    "420000": [{ id: "420100", name: "Thành phố Nam Định", city_id: "420000" }],
+    "430000": [{ id: "430100", name: "Thành phố Ninh Bình", city_id: "430000" }],
+  };
+  const wards: Record<string, Array<{ id: number; name: string; district_id: string }>> = {
+    "381200": [{ id: 1, name: "Thị trấn Bút Sơn", district_id: "381200" }],
+    "380100": [{ id: 2, name: "Phường Hạc Thành", district_id: "380100" }],
+    "100300": [{ id: 3, name: "Phường Quỳnh Lôi", district_id: "100300" }],
+    "100100": [{ id: 4, name: "Phường Ba Đình", district_id: "100100" }],
+    "420100": [{ id: 5, name: "Phường Vị Xuyên", district_id: "420100" }],
+    "430100": [{ id: 6, name: "Phường Tân Thành", district_id: "430100" }],
+  };
+  const dOf = async (c: string) => districts[c] ?? [];
+  const wOf = async (d: string) => wards[d] ?? [];
+  it("maps carrier short names", () => {
+    assert.equal(goshipCarrierCode("vnp"), "VNPOST");
+    assert.equal(goshipCarrierCode("ems"), "EMS");
+    assert.equal(goshipCarrierCode("ghnv3"), "GHN");
+    assert.equal(goshipCarrierCode("shopee"), "SPX");
+    assert.equal(goshipCarrierCode("vtp"), "VIETTEL_POST");
+    assert.equal(goshipCarrierCode("weird"), "OTHER");
+  });
+  it("matches legacy provinces to Goship cities (merged provinces → several cities)", () => {
+    assert.deepEqual(matchGoshipCities(cities, ["Ninh Bình", "Hà Nam", "Nam Định"]).map((c) => c.id), ["420000", "430000"]);
+    assert.deepEqual(matchGoshipCities(cities, ["Bà Rịa - Vũng Tàu"]).map((c) => c.id), ["740000"]);
+  });
+  it("resolves a new ward by name, by old-district name, or the province's first district", async () => {
+    const byWard = await matchGoshipAddress(cities, dOf, wOf, ["Hà Nội"], "Phường Ba Đình");
+    assert.equal(byWard?.district.id, "100100"); assert.equal(byWard?.how, "ward");
+    const byDistrict = await matchGoshipAddress(cities, dOf, wOf, ["Thanh Hóa"], "Xã Hoằng Hóa");
+    assert.equal(byDistrict?.district.id, "381200"); assert.equal(byDistrict?.how, "district");
+    const merged = await matchGoshipAddress(cities, dOf, wOf, ["Ninh Bình", "Hà Nam", "Nam Định"], "Phường Vị Xuyên");
+    assert.equal(merged?.city.id, "420000");
+    const first = await matchGoshipAddress(cities, dOf, wOf, ["Thanh Hóa"], "Xã Mới Lạ");
+    assert.equal(first?.how, "first_district");
+    assert.equal((await matchGoshipAddress(cities, dOf, wOf, ["Hà Nội"], "Xã Không Có"))?.how, "first_district", "single-city province with an unknown ward → its first district");
+    assert.equal(await matchGoshipAddress(cities, dOf, wOf, ["Ninh Bình", "Hà Nam", "Nam Định"], "Xã Không Có"), null, "merged province: several candidate cities and no name match → no guess");
+    assert.equal(await matchGoshipAddress(cities, dOf, wOf, ["Tỉnh Không Tồn Tại"], "Xã X"), null);
+  });
+  it("turns a rate row into an exact live quote with fee parts and ETA", () => {
+    const q = goshipRateToQuote(
+      { id: "MTFf", rate: "MTFf", carrier_name: "Viettel Post", carrier_short_name: "vtp", service: "Nhanh", expected: "Dự kiến giao 2 ngày", service_fee: 0, cod_fee: 0, insurance_fee: 5000, location_fee: 25000, oil_fee: 2500, total_fee: 32500, return_fee: 9000, report: { success_percent: 97.1, avg_time_delivery_format: "40H" } },
+      casio(addr("Hà Nội")),
+    );
+    assert.equal(q.carrier, "VIETTEL_POST"); assert.equal(q.accuracy, "exact_now"); assert.equal(q.source, "live_api");
+    assert.equal(q.totalFeeVnd, 32500); assert.equal(q.serviceCode, "MTFf"); assert.equal(q.providerReference, "MTFf");
+    assert.ok(q.etaText?.includes("2 ngày") && q.etaText.includes("40H"));
+    assert.equal(q.feeParts.find((p) => p.code === "insurance_fee")?.amountVnd, 5000);
+    assert.equal(usableForCheckoutTotal(q), true);
   });
 });
 

@@ -3,14 +3,26 @@
  * Pure types — imported by server adapters, API routes and the storefront quote cards alike.
  */
 
-export type CarrierCode = "GHN" | "VIETTEL_POST" | "VNPOST" | "SPX";
+export type CarrierCode = "GHN" | "VIETTEL_POST" | "VNPOST" | "SPX" | "EMS" | "GHTK" | "JNT" | "BEST" | "OTHER" | "GOSHIP";
 
 export const CARRIER_NAME: Record<CarrierCode, string> = {
   GHN: "Giao Hàng Nhanh (GHN)",
   VIETTEL_POST: "Viettel Post",
   VNPOST: "Vietnam Post (VNPost)",
   SPX: "SPX Express",
+  EMS: "EMS (Bưu điện)",
+  GHTK: "Giao Hàng Tiết Kiệm",
+  JNT: "J&T Express",
+  BEST: "Best Express",
+  OTHER: "Hãng khác",
+  /** Aggregator status card (only when Goship itself fails / is not connected). */
+  GOSHIP: "Goship (nhiều hãng)",
 };
+
+/** Short label for buttons ("Chọn GHN"). */
+export const CARRIER_SHORT: Record<CarrierCode, string> = { GHN: "GHN", VIETTEL_POST: "Viettel Post", VNPOST: "VNPost", SPX: "SPX", EMS: "EMS", GHTK: "GHTK", JNT: "J&T", BEST: "Best", OTHER: "hãng này", GOSHIP: "Goship" };
+
+export const ALL_CARRIER_CODES: CarrierCode[] = ["GHN", "VIETTEL_POST", "VNPOST", "SPX", "EMS", "GHTK", "JNT", "BEST", "OTHER", "GOSHIP"];
 
 /** Normalised delivery / origin address (new 2-level model: province → ward, plus the legacy codes some carriers still need). */
 export interface AddressInput {

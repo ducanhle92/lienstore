@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
 import { isCarrierCode } from "@/lib/carriers";
-import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
+import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
+import { GOSHIP_PROD, GOSHIP_SANDBOX, GOSHIP_SETTING_KEYS, GoshipError, goshipCheck, goshipResetCache } from "@/lib/carriers/goship";
 import { getOrderById, saveOrderLeg } from "@/lib/db";
 import { quoteCart } from "@/lib/ship-quote";
 import { getDb, getSetting, setSetting } from "@/lib/sqlite";
@@ -12,7 +13,7 @@ import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces
 import { SPX_SETTING_KEYS } from "@/lib/carriers/spx-api";
 import { parseAddressToCodes } from "@/lib/vn-address";
 
-const ALL: CarrierCode[] = ["GHN", "VIETTEL_POST", "VNPOST", "SPX"];
+const ALL: CarrierCode[] = ALL_CARRIER_CODES.filter((c) => c !== "GOSHIP");
 
 /** ④ Nội địa Việt Nam › which carriers customers may pick (unchecked = hidden from the quote cards). */
 export async function saveCarrierTogglesAction(formData: FormData): Promise<void> {
@@ -79,6 +80,48 @@ export async function saveGhnSettingsAction(formData: FormData): Promise<void> {
   ghnResetCache();
   revalidatePath("/", "layout");
   redirect(`${back}&saved=${encodeURIComponent(`Đã kết nối GHN: shop "${shop.name}" (#${shop.id})${districtId ? ` · điểm lấy hàng district ${districtId}${wardCode ? ` / ward ${wardCode}` : ""}` : ""}. Khách sẽ thấy cước GHN thật khi nhập địa chỉ.`)}`);
+}
+
+/**
+ * ④ › Goship: the owner pastes the Access Token (shop.goship.io › Cài đặt › Kết nối API). The token is checked against
+ * /cities and the warehouse (Hoằng Hóa, Thanh Hóa) is resolved to Goship's city/district codes for address_from.
+ */
+export async function saveGoshipSettingsAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping"))) redirect("/admin/login/");
+  const db = getDb();
+  const back = "/admin/shipping/?leg=vn_domestic";
+  const fail = (msg: string): never => redirect(`${back}&error=${encodeURIComponent(msg)}`);
+  if (formData.get("clear") === "1") {
+    for (const k of Object.values(GOSHIP_SETTING_KEYS)) setSetting(db, k, "");
+    goshipResetCache();
+    revalidatePath("/", "layout");
+    redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối Goship — quay về GHN trực tiếp + biểu phí.")}`);
+  }
+  const typed = String(formData.get("token") ?? "").trim();
+  const token = typed || getSetting(db, GOSHIP_SETTING_KEYS.token) || "";
+  if (!token) return fail("Dán Access Token Goship (shop.goship.io › Cài đặt › Kết nối API › Lấy Access Token).");
+  const base = String(formData.get("base") ?? "") === "sandbox" ? GOSHIP_SANDBOX : GOSHIP_PROD;
+  let check: Awaited<ReturnType<typeof goshipCheck>>;
+  try {
+    goshipResetCache();
+    check = await goshipCheck(token, base);
+  } catch (e) {
+    return fail(e instanceof GoshipError ? e.message : "Không kiểm tra được token Goship.");
+  }
+  let fromCity = String(formData.get("fromCity") ?? "").trim();
+  let fromDistrict = String(formData.get("fromDistrict") ?? "").trim();
+  if (!fromCity || !fromDistrict) {
+    if (!check.origin) return fail("Token đúng nhưng không tìm thấy Hoằng Hóa / Thanh Hóa trong danh mục Goship — điền tay mã tỉnh và quận/huyện gửi.");
+    fromCity = check.origin.city.id;
+    fromDistrict = check.origin.district.id;
+  }
+  setSetting(db, GOSHIP_SETTING_KEYS.token, token);
+  setSetting(db, GOSHIP_SETTING_KEYS.base, base);
+  setSetting(db, GOSHIP_SETTING_KEYS.fromCity, fromCity);
+  setSetting(db, GOSHIP_SETTING_KEYS.fromDistrict, fromDistrict);
+  goshipResetCache();
+  revalidatePath("/", "layout");
+  redirect(`${back}&saved=${encodeURIComponent(`Đã kết nối Goship (${base === GOSHIP_SANDBOX ? "sandbox" : "production"}): ${check.cities} tỉnh/thành · kho gửi ${check.origin ? `${check.origin.district.name}, ${check.origin.city.name}` : `${fromDistrict}/${fromCity}`}. Khách sẽ thấy cước thật của mọi hãng qua Goship.`)}`);
 }
 
 /** ④ › SPX Express: store User ID + Secret Key (+ fee endpoint once SPX sends the partner document). */

@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { ghnAdapter } from "./ghn-adapter";
 import { SPX_RATE_CARD } from "./spx";
 import { spxAdapter } from "./spx";
-import { CARRIER_NAME, type CarrierCode, type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, sortQuotes, unavailableQuote } from "./types";
+import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode, type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, sortQuotes, unavailableQuote } from "./types";
 import { viettelAdapter } from "./viettel";
 import { VNPOST_RATE_CARD } from "./vnpost";
 import { vnpostAdapter } from "./vnpost";
@@ -75,6 +75,8 @@ export async function quoteAllCarriers(req: ShippingQuoteRequest, opts: QuoteOpt
       if (r.status === "fulfilled" && r.value.length) quotes.push(...r.value);
       else quotes.push(unavailableQuote(carrier, "error", `Tạm không lấy được cước ${CARRIER_NAME[carrier]}`));
     });
+    // hide carriers the admin switched off even when they arrive through an aggregator
+    for (let i = quotes.length - 1; i >= 0; i--) if (opts.disabled?.includes(quotes[i].carrier)) quotes.splice(i, 1);
     const quotedAt = new Date();
     const bundle: QuoteBundle = { quotes: sortQuotes(quotes), quotedAt: quotedAt.toISOString(), expiresAt: new Date(quotedAt.getTime() + ttl).toISOString(), cacheKey: key, fromCache: false };
     // an all-failed answer is not worth caching — the next click should retry the carriers
@@ -90,7 +92,7 @@ export function findQuote(quotes: ShippingQuote[], carrier: string, serviceCode:
 }
 
 export function isCarrierCode(v: unknown): v is CarrierCode {
-  return v === "GHN" || v === "VIETTEL_POST" || v === "VNPOST" || v === "SPX";
+  return typeof v === "string" && (ALL_CARRIER_CODES as string[]).includes(v);
 }
 
 /** Test helper. */

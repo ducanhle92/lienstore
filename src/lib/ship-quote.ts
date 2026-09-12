@@ -1,7 +1,8 @@
 import "server-only";
 import type { DatabaseSync } from "node:sqlite";
-import { quoteAllCarriers, type QuoteBundle, type QuoteOptions } from "./carriers";
-import type { AddressInput, CarrierCode, ShippingQuoteRequest } from "./carriers/types";
+import { ALL_ADAPTERS, quoteAllCarriers, type QuoteBundle, type QuoteOptions } from "./carriers";
+import { goshipAdapter, goshipConfigured } from "./carriers/goship";
+import { ALL_CARRIER_CODES, type AddressInput, type CarrierCode, type ShippingQuoteRequest } from "./carriers/types";
 import { loadShippingMethods, parcelOf } from "./db";
 import { getDb, getSetting } from "./sqlite";
 import { composeAddress, findProvince, findWard, findWardByName, legacyCode, legacyProvincesOf, wardsOf } from "./vn-address";
@@ -58,6 +59,8 @@ const CARRIER_MATCH: Array<[CarrierCode, RegExp]> = [
   ["VIETTEL_POST", /viettel/i],
   ["VNPOST", /vnpost|vietnam post|b[ưu]u ?[đd]i[ệe]n/i],
   ["SPX", /spx/i],
+  ["GHTK", /ghtk|ti[ếe]t ki[ệe]m/i],
+  ["JNT", /j&t|jnt/i],
 ];
 
 /** Carriers hidden from customers: the JSON setting plus VN-domestic methods the admin de-activated for that carrier. */
@@ -65,7 +68,7 @@ export function disabledCarriers(db: DatabaseSync = getDb()): CarrierCode[] {
   const out = new Set<CarrierCode>();
   try {
     const raw = JSON.parse(getSetting(db, "vn_carriers_disabled") || "[]") as unknown;
-    if (Array.isArray(raw)) for (const v of raw) if (v === "GHN" || v === "VIETTEL_POST" || v === "VNPOST" || v === "SPX") out.add(v);
+    if (Array.isArray(raw)) for (const v of raw) if (typeof v === "string" && (ALL_CARRIER_CODES as string[]).includes(v)) out.add(v as CarrierCode);
   } catch {
     /* ignore */
   }
@@ -115,6 +118,14 @@ export async function quoteCart(input: CartQuoteInput, opts: Pick<QuoteOptions, 
     paymentMethod: input.cod ? "cod" : "bank_transfer",
     coupon: input.coupon?.trim() || undefined,
   };
-  const bundle = await quoteAllCarriers(request, { disabled: disabledCarriers(db), fresh: opts.fresh });
+  // Goship (one API, every carrier) is the source when connected; the per-carrier adapters (GHN direct, rate cards)
+  // only step in when Goship itself cannot answer, so the customer never sees two prices for the same carrier.
+  const disabled = disabledCarriers(db);
+  let bundle = await quoteAllCarriers(request, { disabled, fresh: opts.fresh, adapters: goshipConfigured() ? [goshipAdapter] : ALL_ADAPTERS });
+  if (goshipConfigured() && !bundle.quotes.some((q) => q.available)) {
+    const fallback = await quoteAllCarriers(request, { disabled, fresh: opts.fresh, adapters: ALL_ADAPTERS });
+    const note = bundle.quotes[0]?.statusText ?? "Goship không phản hồi";
+    bundle = { ...fallback, quotes: fallback.quotes.map((q) => ({ ...q, warnings: [`${note} — dùng nguồn dự phòng.`, ...q.warnings] })) };
+  }
   return { ...bundle, request, parcel: { weightG: parcel.weightG, length: parcel.dims.length, width: parcel.dims.width, height: parcel.dims.height, subtotal: parcel.subtotal, quantity: parcel.quantity } };
 }
