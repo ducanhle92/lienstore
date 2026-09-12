@@ -182,6 +182,10 @@ export interface Order {
   shipFeePayment: ShipFeePayment;
   /** Snapshot of a live carrier quote (JSON) when one was used. */
   shipQuote: string | null;
+  /** Unique payment code = the whole bank-transfer memo (A–Z, 0–9 only), e.g. "LS1034K7Q". */
+  payCode: string;
+  /** Receiving bank account stamped on the order when it was placed (bank_accounts.id). */
+  payAccountId: number | null;
   /** Logistics progress shown to the customer (see SHIP_STAGES). */
   shipStage: "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
   /** When each stage was reached (only filled for single-order loads). */
@@ -190,6 +194,39 @@ export interface Order {
   currency: string;
   /** Internal note, admin only. */
   adminNote: string;
+}
+
+/** A receiving bank account (Admin › Kế toán › Tài khoản ngân hàng). */
+export interface BankAccount {
+  id: number;
+  /** Short bank code, e.g. "BIDV". */
+  bank: string;
+  /** NAPAS BIN embedded in the VietQR payload. */
+  bin: string;
+  accountNumber: string;
+  accountName: string;
+  branch: string;
+  isDefault: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
+/** One bank-transfer notification (SePay webhook / admin simulation) and how it was reconciled. */
+export interface PaymentEvent {
+  id: number;
+  provider: string;
+  externalId: string;
+  orderId: string | null;
+  orderNumber: number | null;
+  status: "matched" | "matched_manual" | "already_paid" | "amount_mismatch" | "unmatched" | "unknown_account" | "order_cancelled" | "ignored" | "duplicate";
+  amount: number;
+  payCode: string;
+  content: string;
+  accountNumber: string;
+  gateway: string;
+  transactionDate: string | null;
+  reference: string;
+  createdAt: string;
 }
 
 export type OrderFileKind = "receipt" | "other";

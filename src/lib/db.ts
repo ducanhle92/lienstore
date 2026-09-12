@@ -42,6 +42,8 @@ import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
+import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
+import { makePayCode } from "./pay-code";
 
 /** Synchronous category list for use inside transactions. */
 function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
@@ -193,6 +195,8 @@ interface OrderRow {
   ship_stage: string | null;
   ship_fee_payment: string | null;
   ship_quote_json: string | null;
+  pay_code: string | null;
+  pay_account_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -241,6 +245,8 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     discount: r.discount ?? 0,
     shipFeePayment: r.ship_fee_payment === "on_delivery" ? "on_delivery" : "prepaid",
     shipQuote: r.ship_quote_json ?? null,
+    payCode: r.pay_code ?? "",
+    payAccountId: r.pay_account_id ?? null,
     voucherCode: r.voucher_code ?? "",
     shipStage: isShipStage(r.ship_stage) ? r.ship_stage : "ordered",
     stageLog: [],
@@ -726,8 +732,13 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const id = randomUUID();
     const c = { ...input.customer };
     if (shipAddress) c.address = shipAddress;
+    // Unique payment code (the whole transfer memo) + the receiving account frozen at order time.
+    const payPrefix = loadPayPrefix(db);
+    let payCode = makePayCode(payPrefix, number);
+    for (let attempt = 0; attempt < 20 && db.prepare("SELECT 1 FROM orders WHERE pay_code = ?").get(payCode); attempt++) payCode = makePayCode(payPrefix, number);
+    const payAccount = loadDefaultBankAccount(db);
     db.prepare(`INSERT INTO orders (id, number, customer_id, status, payment_method, first_name, last_name, address, phone, email, note,
-      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code, ship_fee_payment, ship_quote_json) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code, ship_fee_payment, ship_quote_json, pay_code, pay_account_id) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
       number,
       input.customerId ?? null,
@@ -760,6 +771,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
             others: live.bundle && !("error" in live.bundle) ? live.bundle.quotes.map((q) => ({ carrier: q.carrier, serviceCode: q.serviceCode, available: q.available, totalFeeVnd: q.totalFeeVnd, accuracy: q.accuracy })) : [],
           })
         : null,
+      payCode,
+      payAccount.id || null,
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -813,6 +826,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       paymentMethod: input.paymentMethod,
       shipFeePayment,
       shipQuote: live ? JSON.stringify(live.quote) : null,
+      payCode,
+      payAccountId: payAccount.id || null,
       customer: c,
       items,
       subtotal,

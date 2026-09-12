@@ -10,7 +10,7 @@ export const BANK = {
   branch: "BIDV – CN Mỹ Đình",
 };
 
-/** Transfer memo the customer must use: "LIENSTORE <order number>". */
+/** Legacy memo shape ("LIENSTORE <n>"); orders now carry their own unique `payCode`, use that instead. */
 export function transferContent(orderNumber: number): string {
   return `LIENSTORE ${orderNumber}`;
 }

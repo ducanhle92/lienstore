@@ -18,7 +18,7 @@ import { getOrderById, getOrderLegs, getOrderMessages, getSiteTheme, markOrderMe
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { receiptLinksFor } from "@/lib/order-files";
 import QRCode from "qrcode";
-import { getBankConfig, orderMemo, orderQrPayload } from "@/lib/bank-config";
+import { accountForOrder, orderQrPayload } from "@/lib/bank-config";
 import { CopyButton } from "@/components/sites/lienstore/shop/cart/CopyButton";
 import { stageIndex } from "@/lib/shipping";
 
@@ -45,9 +45,9 @@ export default async function OrderReceived({ params }: Props) {
   const [receipts, messages, legMap, theme] = await Promise.all([receiptLinksFor(order.id), getOrderMessages(order.id), getOrderLegs([order.id]), getSiteTheme()]);
   const legs = legMap.get(order.id) ?? [];
   const paid = stageIndex(order.shipStage) >= stageIndex("paid") && order.status !== "cancelled";
-  const bank = await getBankConfig();
-  const memo = orderMemo(bank, order.number);
-  const qrSvg = order.paymentMethod === "bacs" && !paid && order.status !== "cancelled" ? await QRCode.toString(orderQrPayload(bank, order.total, order.number), { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : "";
+  const bank = await accountForOrder(order);
+  const memo = order.payCode;
+  const qrSvg = order.paymentMethod === "bacs" && !paid && order.status !== "cancelled" ? await QRCode.toString(orderQrPayload(bank, order.total, memo), { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : "";
   const c = order.customer;
 
   return (
@@ -175,7 +175,8 @@ export default async function OrderReceived({ params }: Props) {
                   <dl className="m-0 grid grid-cols-[120px_1fr] gap-y-2 text-[14px] leading-6 text-lien-text">
                     <dt className="text-lien-muted">Ngân hàng</dt>
                     <dd className="m-0 font-semibold">
-                      {bank.bank} <span className="font-normal text-lien-muted">({bank.branch})</span>
+                      {bank.bank}
+                      {bank.branch ? <span className="font-normal text-lien-muted"> ({bank.branch})</span> : null}
                     </dd>
                     <dt className="text-lien-muted">Số tài khoản</dt>
                     <dd className="m-0 text-[18px] font-bold tracking-wide text-lien-heading">
@@ -191,8 +192,11 @@ export default async function OrderReceived({ params }: Props) {
                     </dd>
                     <dt className="text-lien-muted">Nội dung CK</dt>
                     <dd className="m-0">
-                      <code className="rounded bg-lien-cream px-2 py-1 text-[15px] font-bold text-lien-heading">{memo}</code>
+                      <code className="rounded bg-lien-cream px-2 py-1 text-[15px] font-bold tracking-wider text-lien-heading" data-testid="pay-code">
+                        {memo}
+                      </code>
                       <CopyButton value={memo} />
+                      <span className="block text-[12px] leading-5 text-lien-muted">Chỉ ghi đúng mã này (không thêm chữ khác) để hệ thống tự nhận diện thanh toán.</span>
                     </dd>
                   </dl>
                 </div>

@@ -267,7 +267,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 <dd>
                   {PAYMENT[order.paymentMethod]}
                   {order.prepaidRequired ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Hàng order · cần thanh toán trước 100%</span> : null}
-                  <span className="block text-[12px] text-lien-muted">Nội dung CK: LIENSTORE {order.number}</span>
+                  <span className="block text-[12px] text-lien-muted">
+                    Mã thanh toán / nội dung CK: <code className="rounded bg-lien-cream px-1.5 font-bold tracking-wider text-lien-heading">{order.payCode || "—"}</code>
+                  </span>
                 </dd>
               </div>
               {c.note ? (

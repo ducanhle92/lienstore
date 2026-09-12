@@ -1,8 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { setBankConfig } from "@/lib/bank-config";
-import { bankBin, sanitizeMemo } from "@/lib/vietqr";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getSiteTheme, setSiteTheme } from "@/lib/db";
@@ -66,18 +64,6 @@ export async function saveThemeAction(formData: FormData): Promise<void> {
       colors,
     };
     await setSiteTheme(theme);
-    // receiving bank account for the transfer QR
-    const bankCode = text(formData, "bankCode").toUpperCase();
-    if (bankCode && !bankBin(bankCode)) back("error", `Ngân hàng "${bankCode}" chưa có mã BIN — chọn trong danh sách.`);
-    const account = text(formData, "bankAccount").replace(/\s+/g, "");
-    if (account && !/^\d{6,20}$/.test(account)) back("error", "Số tài khoản chỉ gồm 6–20 chữ số.");
-    await setBankConfig({
-      bank: bankCode || undefined,
-      accountNumber: account || undefined,
-      accountName: text(formData, "bankAccountName").toUpperCase().slice(0, 50) || undefined,
-      branch: text(formData, "bankBranch").slice(0, 60),
-      memoPrefix: sanitizeMemo(text(formData, "bankMemoPrefix")).toUpperCase().slice(0, 15) || undefined,
-    });
     revalidatePath("/", "layout");
     back("saved", "Đã lưu giao diện. Tải lại trang cửa hàng để xem.");
   } catch (e) {

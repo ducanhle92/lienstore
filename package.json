@@ -43,7 +43,8 @@
     "xlsx:export": "python scripts/xlsx/export_products_xlsx.py",
     "xlsx:import": "python scripts/xlsx/import_products_xlsx.py",
     "test:shipping": "npx -y tsx --conditions=react-server --test scripts/tests/carriers.test.ts",
-    "test:vietqr": "npx -y tsx --conditions=react-server --test scripts/tests/vietqr.test.ts"
+    "test:vietqr": "npx -y tsx --conditions=react-server --test scripts/tests/vietqr.test.ts",
+    "test:paycode": "npx -y tsx --conditions=react-server --test scripts/tests/pay-code.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

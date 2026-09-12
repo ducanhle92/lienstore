@@ -45,7 +45,17 @@ const NAV: NavGroup[] = [
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
-  { href: "/admin/accounting/", label: "Kế toán", icon: "money", module: "accounting" },
+  {
+    href: "/admin/accounting/",
+    label: "Kế toán",
+    icon: "money",
+    module: "accounting",
+    children: [
+      { href: "/admin/accounting/", label: "Lãi / lỗ", icon: "money", module: "accounting", exact: true },
+      { href: "/admin/accounting/banks/", label: "Tài khoản ngân hàng", icon: "credit-card", module: "accounting" },
+      { href: "/admin/accounting/payments/", label: "Thanh toán tự động", icon: "bolt", module: "accounting" },
+    ],
+  },
   {
     href: "/admin/customers/",
     label: "Sales",

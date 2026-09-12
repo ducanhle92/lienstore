@@ -772,6 +772,64 @@ export const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    // Receiving bank accounts (several, one default) + a unique per-order payment code used as the whole transfer memo
+    // + a log of bank-transfer notifications (SePay webhook) for automatic "Đã thanh toán".
+    version: 36,
+    name: "bank-accounts-pay-codes",
+    up: [
+      `CREATE TABLE IF NOT EXISTS bank_accounts (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        bank_code      TEXT NOT NULL,
+        bin            TEXT NOT NULL,
+        account_number TEXT NOT NULL,
+        account_name   TEXT NOT NULL,
+        branch         TEXT NOT NULL DEFAULT '',
+        is_default     INTEGER NOT NULL DEFAULT 0,
+        active         INTEGER NOT NULL DEFAULT 1,
+        created_at     TEXT NOT NULL
+      )`,
+      `INSERT INTO bank_accounts (bank_code, bin, account_number, account_name, branch, is_default, active, created_at)
+        SELECT upper(COALESCE((SELECT value FROM settings WHERE key = 'bank_code'), 'BIDV')),
+               CASE upper(COALESCE((SELECT value FROM settings WHERE key = 'bank_code'), 'BIDV'))
+                 WHEN 'BIDV' THEN '970418' WHEN 'VCB' THEN '970436' WHEN 'VIETCOMBANK' THEN '970436' WHEN 'TCB' THEN '970407' WHEN 'TECHCOMBANK' THEN '970407'
+                 WHEN 'MB' THEN '970422' WHEN 'MBBANK' THEN '970422' WHEN 'ACB' THEN '970416' WHEN 'VPB' THEN '970432' WHEN 'VPBANK' THEN '970432'
+                 WHEN 'TPB' THEN '970423' WHEN 'TPBANK' THEN '970423' WHEN 'STB' THEN '970403' WHEN 'SACOMBANK' THEN '970403' WHEN 'VIB' THEN '970441'
+                 WHEN 'ICB' THEN '970415' WHEN 'VIETINBANK' THEN '970415' WHEN 'VBA' THEN '970405' WHEN 'AGRIBANK' THEN '970405' WHEN 'SHB' THEN '970443'
+                 WHEN 'MSB' THEN '970426' WHEN 'HDB' THEN '970437' WHEN 'HDBANK' THEN '970437' WHEN 'OCB' THEN '970448' WHEN 'LPB' THEN '970449' WHEN 'SEAB' THEN '970440'
+                 ELSE '970418' END,
+               COALESCE((SELECT value FROM settings WHERE key = 'bank_account'), '26010000748323'),
+               COALESCE((SELECT value FROM settings WHERE key = 'bank_account_name'), 'LE THI LIEN'),
+               COALESCE((SELECT value FROM settings WHERE key = 'bank_branch'), 'BIDV – CN Mỹ Đình'),
+               1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE NOT EXISTS (SELECT 1 FROM bank_accounts)`,
+      `ALTER TABLE orders ADD COLUMN pay_code TEXT`,
+      `ALTER TABLE orders ADD COLUMN pay_account_id INTEGER`,
+      // Existing orders get a code in the same shape as new ones (prefix + number + 3 random chars, letters/digits only).
+      `UPDATE orders SET pay_code = 'LS' || number || substr(replace(replace(replace(replace(replace(replace(upper(hex(randomblob(3))), '0', 'X'), '1', 'Y'), 'I', 'Z'), 'O', 'W'), 'A', 'K'), 'B', 'M'), 1, 3) WHERE pay_code IS NULL OR pay_code = ''`,
+      `UPDATE orders SET pay_account_id = (SELECT id FROM bank_accounts WHERE is_default = 1 LIMIT 1) WHERE pay_account_id IS NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_pay_code ON orders(pay_code)`,
+      `CREATE TABLE IF NOT EXISTS payment_events (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider         TEXT NOT NULL,
+        external_id      TEXT NOT NULL,
+        order_id         TEXT,
+        status           TEXT NOT NULL,
+        amount           INTEGER NOT NULL DEFAULT 0,
+        pay_code         TEXT,
+        content          TEXT NOT NULL DEFAULT '',
+        account_number   TEXT NOT NULL DEFAULT '',
+        gateway          TEXT NOT NULL DEFAULT '',
+        transaction_date TEXT,
+        reference        TEXT NOT NULL DEFAULT '',
+        raw_json         TEXT NOT NULL DEFAULT '',
+        created_at       TEXT NOT NULL,
+        UNIQUE (provider, external_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_payment_events_order ON payment_events(order_id)`,
+      `DELETE FROM settings WHERE key IN ('bank_code', 'bank_account', 'bank_account_name', 'bank_branch', 'bank_memo_prefix')`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
