@@ -1,5 +1,8 @@
 import Image from "next/image";
+import QRCode from "qrcode";
 import { resetThemeAction, saveThemeAction } from "@/app/admin/theme/actions";
+import { getBankConfig } from "@/lib/bank-config";
+import { BANK_BINS, vietQrPayload } from "@/lib/vietqr";
 import { ColorField } from "@/components/sites/lienstore/admin/ColorField";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
@@ -35,6 +38,8 @@ function ImageField({ name, label, hint, value, wide, dark }: { name: string; la
 
 /** Sales › Giao diện & Logo: brand name, slogan, logo files and colour palette for the storefront and the web app. */
 export default async function AdminTheme({ searchParams }: Props) {
+  const bank = await getBankConfig();
+  const bankQrPreview = await QRCode.toString(vietQrPayload({ bank: bank.bin, accountNumber: bank.accountNumber }), { type: "svg", margin: 1, width: 96 });
   await requireAdmin("theme");
   const sp = await searchParams;
   const theme = await getSiteTheme();
@@ -80,6 +85,55 @@ export default async function AdminTheme({ searchParams }: Props) {
               <ImageField name="logoLight" label="Logo trên nền sáng (chân trang, e-mail, hoá đơn)" hint="Ảnh PNG nền trong suốt, chữ màu." value={theme.logoLight} wide />
               <ImageField name="icon" label="Icon ứng dụng / favicon" hint="PNG vuông ≥ 512 px. Dùng cho tab trình duyệt, màn hình chính điện thoại (web app)." value={theme.icon} />
               <ImageField name="ogImage" label="Ảnh chia sẻ mạng xã hội" hint="1200×630 px, hiện khi dán link shop lên Facebook / Zalo." value={theme.ogImage} wide />
+            </div>
+          </Card>
+
+          <Card title="Tài khoản nhận tiền (mã QR chuyển khoản trên trang đơn hàng)">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={adminLabel} htmlFor="bankCode">
+                  Ngân hàng
+                </label>
+                <select id="bankCode" name="bankCode" defaultValue={bank.bank.toUpperCase()} className={adminInput}>
+                  {Object.entries(BANK_BINS)
+                    .filter(([code, v], i, arr) => arr.findIndex(([, w]) => w.bin === v.bin) === i && code === code.toUpperCase())
+                    .map(([code, v]) => (
+                      <option key={code} value={code}>
+                        {v.name} ({v.bin})
+                      </option>
+                    ))}
+                </select>
+                <p className="mt-1 text-[12px] text-lien-muted">Mã BIN NAPAS được nhúng trong QR để app ngân hàng nhận đúng nơi nhận.</p>
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="bankAccount">
+                  Số tài khoản
+                </label>
+                <input id="bankAccount" name="bankAccount" defaultValue={bank.accountNumber} inputMode="numeric" className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="bankAccountName">
+                  Chủ tài khoản (in hoa không dấu)
+                </label>
+                <input id="bankAccountName" name="bankAccountName" defaultValue={bank.accountName} className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="bankBranch">
+                  Chi nhánh (hiển thị)
+                </label>
+                <input id="bankBranch" name="bankBranch" defaultValue={bank.branch} className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="bankMemoPrefix">
+                  Tiền tố nội dung chuyển khoản
+                </label>
+                <input id="bankMemoPrefix" name="bankMemoPrefix" defaultValue={bank.memoPrefix} maxLength={15} className={adminInput} />
+                <p className="mt-1 text-[12px] text-lien-muted">Nội dung = tiền tố + số đơn, ví dụ “{bank.memoPrefix} 1032” (chữ không dấu, tối đa 25 ký tự).</p>
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="rounded border border-[#e5e7eb] bg-white p-1" dangerouslySetInnerHTML={{ __html: bankQrPreview }} data-testid="bank-qr-preview" />
+                <p className="m-0 text-[12px] leading-5 text-lien-muted">Mã QR tĩnh của tài khoản (không số tiền). Trang đơn hàng sinh QR động riêng cho từng đơn: số tiền + nội dung điền sẵn khi khách quét.</p>
+              </div>
             </div>
           </Card>
 

@@ -17,7 +17,9 @@ import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { getOrderById, getOrderLegs, getOrderMessages, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { receiptLinksFor } from "@/lib/order-files";
-import { BANK, transferContent, vietQrUrl } from "@/lib/payment";
+import QRCode from "qrcode";
+import { getBankConfig, orderMemo, orderQrPayload } from "@/lib/bank-config";
+import { CopyButton } from "@/components/sites/lienstore/shop/cart/CopyButton";
 import { stageIndex } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,9 @@ export default async function OrderReceived({ params }: Props) {
   const [receipts, messages, legMap, theme] = await Promise.all([receiptLinksFor(order.id), getOrderMessages(order.id), getOrderLegs([order.id]), getSiteTheme()]);
   const legs = legMap.get(order.id) ?? [];
   const paid = stageIndex(order.shipStage) >= stageIndex("paid") && order.status !== "cancelled";
+  const bank = await getBankConfig();
+  const memo = orderMemo(bank, order.number);
+  const qrSvg = order.paymentMethod === "bacs" && !paid && order.status !== "cancelled" ? await QRCode.toString(orderQrPayload(bank, order.total, order.number), { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : "";
   const c = order.customer;
 
   return (
@@ -159,28 +164,40 @@ export default async function OrderReceived({ params }: Props) {
                 <h2 className={cardTitle}>
                   <Fa name="credit-card" className="text-lien-blue" /> Chuyển khoản {order.prepaidRequired ? "toàn bộ giá trị đơn hàng" : "để hoàn tất đơn hàng"}
                 </h2>
-                <div className="grid gap-5 md:grid-cols-[200px_1fr]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- external VietQR image generated per order */}
-                  <img src={vietQrUrl(order.total, transferContent(order.number))} alt={`Mã QR chuyển khoản ${formatAmount(order.total)}đ`} width={200} height={200} className="h-auto w-[200px] rounded border border-lien-line" />
+                <div className="grid gap-5 md:grid-cols-[220px_1fr]">
+                  <div>
+                    {/* VietQR (NAPAS 247) built on our server: bank, account, amount and memo are inside the code */}
+                    <div className="rounded border border-lien-line bg-white p-1" dangerouslySetInnerHTML={{ __html: qrSvg }} data-testid="order-qr" />
+                    <a href={`/api/orders/${order.id}/qr/`} download={`qr-don-${order.number}.png`} className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-lien-blue hover:underline">
+                      <Fa name="download" /> Tải mã QR (PNG)
+                    </a>
+                  </div>
                   <dl className="m-0 grid grid-cols-[120px_1fr] gap-y-2 text-[14px] leading-6 text-lien-text">
                     <dt className="text-lien-muted">Ngân hàng</dt>
                     <dd className="m-0 font-semibold">
-                      {BANK.bank} <span className="font-normal text-lien-muted">({BANK.branch})</span>
+                      {bank.bank} <span className="font-normal text-lien-muted">({bank.branch})</span>
                     </dd>
                     <dt className="text-lien-muted">Số tài khoản</dt>
-                    <dd className="m-0 text-[18px] font-bold tracking-wide text-lien-heading">{BANK.accountNumber}</dd>
+                    <dd className="m-0 text-[18px] font-bold tracking-wide text-lien-heading">
+                      {bank.accountNumber}
+                      <CopyButton value={bank.accountNumber} />
+                    </dd>
                     <dt className="text-lien-muted">Chủ tài khoản</dt>
-                    <dd className="m-0 font-semibold">{BANK.accountName}</dd>
+                    <dd className="m-0 font-semibold">{bank.accountName}</dd>
                     <dt className="text-lien-muted">Số tiền</dt>
-                    <dd className="m-0 text-[18px] font-bold text-lien-sale-text">{formatAmount(order.total)}đ</dd>
+                    <dd className="m-0 text-[18px] font-bold text-lien-sale-text">
+                      {formatAmount(order.total)}đ
+                      <CopyButton value={String(order.total)} />
+                    </dd>
                     <dt className="text-lien-muted">Nội dung CK</dt>
                     <dd className="m-0">
-                      <code className="rounded bg-lien-cream px-2 py-1 text-[15px] font-bold text-lien-heading">{transferContent(order.number)}</code>
+                      <code className="rounded bg-lien-cream px-2 py-1 text-[15px] font-bold text-lien-heading">{memo}</code>
+                      <CopyButton value={memo} />
                     </dd>
                   </dl>
                 </div>
                 <p className="mt-4 mb-0 text-[13px] leading-5 text-lien-muted">
-                  Quét mã bằng ứng dụng ngân hàng: số tiền và nội dung đã được điền sẵn. {order.prepaidRequired ? "Đơn có hàng order nên cần thanh toán đủ trước khi shop đặt mua tại Nhật." : "Đơn được xử lý ngay khi nhận được tiền."} Chuyển xong có thể gửi ảnh biên lai qua Zalo 0964 839 769 hoặc nhắn ở khung bên dưới. Trang này tự cập nhật khi {theme.shopName} xác nhận thanh toán.
+                  Quét mã bằng ứng dụng ngân hàng bất kỳ (VietQR/NAPAS 247): ngân hàng, số tài khoản, số tiền và nội dung đã được điền sẵn — chỉ cần xác nhận. {order.prepaidRequired ? "Đơn có hàng order nên cần thanh toán đủ trước khi shop đặt mua tại Nhật." : "Đơn được xử lý ngay khi nhận được tiền."} Chuyển xong có thể gửi ảnh biên lai qua Zalo 0964 839 769 hoặc nhắn ở khung bên dưới. Trang này tự cập nhật khi {theme.shopName} xác nhận thanh toán.
                 </p>
               </section>
             ) : null}

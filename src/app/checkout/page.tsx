@@ -8,6 +8,7 @@ import { getCurrentCustomer } from "@/lib/customer-auth";
 import { displayEmail, getAllProducts, getJpyRate, getPickupAddress, getQuoteDefaults, getShippingMethods, getShippingPricingMode, listAddresses } from "@/lib/db";
 import { billableProductWeightG, buildQuoteConfig } from "@/lib/shipping";
 import { parseAddressToCodes } from "@/lib/vn-address";
+import { getBankConfig } from "@/lib/bank-config";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Thanh toán – LienStore" };
@@ -35,6 +36,7 @@ export default async function Checkout() {
             weights={weights}
             regularPrices={regularPrices}
             quote={quote}
+            bankName={(await getBankConfig()).bank}
             defaults={
               customer
                 ? { firstName: customer.firstName, lastName: customer.lastName, address: customer.address, addressCodes: parseAddressToCodes(customer.address), phone: customer.phone, email: displayEmail(customer.email) }

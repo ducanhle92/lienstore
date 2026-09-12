@@ -8,7 +8,6 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { type ShippingQuote, usableForCheckoutTotal } from "@/lib/carriers/types";
 import { formatAmount } from "@/lib/format";
-import { BANK } from "@/lib/payment";
 import { openAccountDrawer } from "@/components/sites/lienstore/shared/open-account";
 import { billableKg, quoteJpLegs, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
@@ -88,6 +87,8 @@ interface Props {
   regularPrices?: Record<number, number>;
   /** How the Japan-side legs are priced (per-order mode) — same function runs again on the server. */
   quote?: ShippingQuoteConfig;
+  /** Receiving bank shown in the payment note (Admin › Giao diện & Logo › Tài khoản nhận tiền). */
+  bankName?: string;
 }
 
 const EMPTY_ADDR: ShipAddress = { provinceCode: "", wardCode: "", street: "" };
@@ -97,7 +98,7 @@ const EMPTY_ADDR: ShipAddress = { provinceCode: "", wardCode: "", street: "" };
  * with per-carrier quotes for that address), order review, payment, place order. The chosen quote is re-quoted on the
  * server when the order is created; the browser never decides the fee.
  */
-export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses = [], pickupAddress, preorderIds, weights = {}, regularPrices = {}, quote }: Props) {
+export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses = [], pickupAddress, preorderIds, weights = {}, regularPrices = {}, quote, bankName = "ngân hàng" }: Props) {
   const { items, hydrated, subtotal } = useCart();
   const { t } = useLang();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
@@ -544,7 +545,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
               {pending ? t("processing") : t("payNow")}
             </button>
             <p className="m-0 max-w-[560px] text-right text-[12px] leading-5 text-lien-muted">
-              <Fa name="credit-card" className="mr-1 text-lien-blue" /> {t("payAfterOrderNote").replace("{0}", BANK.bank)} Thông tin của bạn chỉ dùng để xử lý đơn hàng, theo{" "}
+              <Fa name="credit-card" className="mr-1 text-lien-blue" /> {t("payAfterOrderNote").replace("{0}", bankName)} Thông tin của bạn chỉ dùng để xử lý đơn hàng, theo{" "}
               <Link href="/privacy-policy/" className="text-lien-muted hover:text-lien-blue">
                 chính sách riêng tư
               </Link>
