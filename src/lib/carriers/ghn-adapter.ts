@@ -20,12 +20,22 @@ export async function resolveGhnCodes(provinceName: string, wardName: string): P
   let value: { districtId: number; wardCode: string } | null = null;
   if (p) {
     const districts = await ghnDistricts(p.id);
+    const stripD = (s: string) => fold(s).replace(/^(quan|huyen|thi xa|thanh pho)\s+/, "");
+    // 1) a GHN ward with the same name (most old wards survive in the new model)
     for (const d of districts) {
       const wards = await ghnWards(d.id);
       const w = wards.find((x) => strip(x.name) === strip(wardName));
       if (w) {
         value = { districtId: d.id, wardCode: w.code };
         break;
+      }
+    }
+    // 2) merged communes often carry the old district's name ("Xã Hoằng Hóa" ← "Huyện Hoằng Hóa"): first ward of that district
+    if (!value) {
+      const d = districts.find((x) => stripD(x.name) === strip(wardName));
+      if (d) {
+        const wards = await ghnWards(d.id);
+        if (wards[0]) value = { districtId: d.id, wardCode: wards[0].code };
       }
     }
   }
@@ -64,7 +74,7 @@ export function ghnQuoteToShippingQuote(q: GhnQuote, req: ShippingQuoteRequest):
     billableWeightG: Math.max(req.parcel.actualWeightG, vol),
     volumetricWeightG: vol,
     routeLabel: q.service.name,
-    etaText: q.expectedDelivery ? `Dự kiến giao ${new Date(q.expectedDelivery).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "short", day: "2-digit", month: "2-digit" })}` : undefined,
+    etaText: q.expectedDelivery ? `giao ${new Date(q.expectedDelivery).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "short", day: "2-digit", month: "2-digit" })} (theo GHN)` : undefined,
     quotedAt: q.quotedAt,
     expiresAt: q.expiresAt,
     warnings: [],

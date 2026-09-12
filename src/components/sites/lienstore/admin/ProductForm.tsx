@@ -67,16 +67,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
     if (costFromJpy) setCostText(String(costFromJpy));
     return costFromJpy;
   };
-  /** Recompute the expected selling price from the (recalculated) cost and the margin, and use it. */
+  /** "Tính lại giá kỳ vọng": refresh the VND cost from the chosen ¥ source; the expected-price box recomputes from it and the margin. */
   const recalcPrice = () => {
-    const cost = recalcCost() ?? (Number.isFinite(costNum) ? costNum : null);
-    if (!quote || !pricing || cost === null) return;
-    const s = suggestPrice(
-      { costPrice: cost, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null, marginPct: marginText.trim() === "" ? null : Number.parseFloat(marginText.replace(",", ".")), categories: catSlugs },
-      quote,
-      pricing,
-    );
-    if (s) setPriceText(String(s.suggested));
+    recalcCost();
   };
   const suggestion =
     quote && pricing
@@ -214,33 +207,43 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
                   </p>
                 ) : null}
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="marginPct">
+                  Tỉ lệ lãi kỳ vọng (%){" "}
+                  <span className="font-normal text-lien-muted">{marginText.trim() === "" ? `— đang dùng ${defaultMargin}% ${pricing && defaultMargin !== pricing.marginPct ? "theo danh mục" : "mặc định của shop"}; sửa số để đặt riêng cho sản phẩm` : "— tỉ lệ riêng của sản phẩm"}</span>
+                </label>
+                {/* the hidden field carries the override ("" = follow category / shop default); the visible box always shows the number in force */}
+                <input type="hidden" name="marginPct" value={marginText} readOnly />
+                <div className="flex items-center gap-2">
+                  <input id="marginPct" inputMode="decimal" value={marginText.trim() === "" ? String(defaultMargin) : marginText} onChange={(e) => setMarginText(e.target.value)} className={cn(adminInput, "!mb-0 !w-[120px]", marginText.trim() !== "" && "border-lien-blue font-semibold")} data-testid="margin-input" />
+                  {marginText.trim() !== "" ? (
+                    <button type="button" onClick={() => setMarginText("")} className="text-[12px] text-lien-muted underline hover:text-lien-blue" data-testid="margin-reset">
+                      Bỏ tỉ lệ riêng, theo {defaultMargin}%
+                    </button>
+                  ) : null}
+                  <span className="text-[12px] text-lien-muted">Bấm &quot;Lưu thay đổi&quot; để ghi.</span>
+                </div>
                 {suggestion ? (
-                  <div className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-2.5 text-[12px] leading-5 text-lien-text">
+                  <div className="mt-3 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-2.5 text-[12px] leading-5 text-lien-text" data-testid="expected-box">
                     <p className="m-0 font-semibold text-lien-heading">
-                      Giá kỳ vọng bán ra trên website: {suggestion.suggested.toLocaleString("vi-VN")}đ{" "}
-                      {digits(priceText) !== suggestion.suggested ? (
-                        <button type="button" onClick={() => setPriceText(String(suggestion.suggested))} className="ml-1 rounded bg-lien-blue px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-lien-blue-hover">
-                          Dùng giá này
-                        </button>
-                      ) : (
-                        <span className="ml-1 text-green-700">✓ đang dùng</span>
-                      )}
-                      <button type="button" onClick={recalcPrice} className="ml-1 rounded border border-lien-blue px-2 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft" title="Tính lại giá vốn từ nguồn ¥ đã chọn rồi tính giá kỳ vọng theo tỉ lệ lãi riêng và dùng làm giá bán" data-testid="recalc-price">
-                        <Fa name="refresh" /> Tính lại giá kỳ vọng &amp; dùng
-                      </button>
+                      Giá kỳ vọng bán ra trên website: <span data-testid="expected-price">{suggestion.suggested.toLocaleString("vi-VN")}đ</span>
+                      {digits(priceText) === suggestion.suggested ? <span className="ml-1 font-normal text-green-700">✓ đang dùng</span> : null}
                     </p>
-                    <p className="m-0 text-lien-muted">
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      <button type="button" onClick={recalcPrice} className="rounded border border-lien-blue px-2 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft" title="Tính lại giá vốn từ nguồn ¥ đã chọn và giá kỳ vọng theo tỉ lệ lãi hiện tại" data-testid="recalc-price">
+                        <Fa name="refresh" /> Tính lại giá kỳ vọng
+                      </button>
+                      <button type="button" onClick={() => setPriceText(String(suggestion.suggested))} disabled={digits(priceText) === suggestion.suggested} className="rounded bg-lien-blue px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-lien-blue-hover disabled:opacity-50" data-testid="use-expected">
+                        <Fa name="check" /> Dùng giá này
+                      </button>
+                    </div>
+                    <p className="m-0 mt-1 text-lien-muted">
                       Giá vốn về tới VN {suggestion.landed.toLocaleString("vi-VN")} = vốn {suggestion.cost.toLocaleString("vi-VN")} + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí
                       {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}) · × (1 + {suggestion.marginPct}%) → lợi nhuận kỳ vọng {suggestion.margin.toLocaleString("vi-VN")}đ.
                     </p>
                   </div>
                 ) : null}
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="marginPct">
-                  Tỉ lệ lãi kỳ vọng riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng {defaultMargin}%{pricing && defaultMargin !== pricing.marginPct ? " theo danh mục" : " mặc định của shop"})</span>
-                </label>
-                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(defaultMargin)} className={cn(adminInput, "!w-[140px]")} />
               </div>
               <div>
                 <label className={adminLabel} htmlFor="minStock">

@@ -1,12 +1,12 @@
-import { saveCarrierTogglesAction } from "@/app/admin/shipping/carrier-actions";
+import { saveCarrierTogglesAction, saveGhnSettingsAction } from "@/app/admin/shipping/carrier-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { RATE_CARD_VERSIONS } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
-import { ghnConfigured } from "@/lib/ghn";
+import { ghnConfigured, ghnCredentials } from "@/lib/ghn";
 import { viettelConfigured } from "@/lib/carriers/viettel";
 import { disabledCarriers, warehouseAddress } from "@/lib/ship-quote";
 import { VN_ADDRESS_VERSION } from "@/lib/vn-address";
-import { btnPrimary, Card } from "./ui";
+import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
 
 const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; source: string }> = [
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
@@ -19,7 +19,49 @@ const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; s
 export function CarrierStatusPanel() {
   const disabled = disabledCarriers();
   const wh = warehouseAddress();
+  const ghn = ghnCredentials();
+  const ghnOn = ghnConfigured();
   return (
+    <>
+    <Card className="mb-6" title="Kết nối GHN (Giao Hàng Nhanh) — API tính cước thật">
+      <form action={saveGhnSettingsAction} className="grid gap-3 md:grid-cols-[1fr_140px_150px_150px_auto] md:items-end" data-testid="ghn-form">
+        <div>
+          <label className={adminLabel} htmlFor="ghn-token">
+            Token API {ghnOn ? <span className="ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">đã đặt ••••{ghn.token.slice(-4)}</span> : <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">chưa có</span>}
+          </label>
+          <input id="ghn-token" name="token" type="password" autoComplete="off" placeholder={ghnOn ? "Để trống = giữ token hiện tại" : "Dán token từ khachhang.ghn.vn › Cài đặt › Token API"} className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="ghn-shop">
+            Shop ID
+          </label>
+          <input id="ghn-shop" name="shopId" inputMode="numeric" defaultValue={ghn.shopId || ""} placeholder="tự lấy" className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="ghn-district">
+            District lấy hàng
+          </label>
+          <input id="ghn-district" name="pickupDistrictId" inputMode="numeric" defaultValue={ghn.pickupDistrictId || ""} placeholder="1748 = Hoằng Hóa" className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="ghn-ward">
+            Ward lấy hàng
+          </label>
+          <input id="ghn-ward" name="pickupWardCode" defaultValue={ghn.pickupWardCode} className={adminInput} />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className={btnPrimary}>
+            <Fa name="check" /> Lưu & kiểm tra
+          </button>
+          {ghnOn ? (
+            <button type="submit" name="clear" value="1" className={btnSecondary} title="Gỡ token">
+              Gỡ
+            </button>
+          ) : null}
+        </div>
+      </form>
+      <p className="mt-2 text-[12px] leading-5 text-lien-muted">Token chỉ lưu trong CSDL máy chủ, không bao giờ gửi xuống trình duyệt. Khi lưu, hệ thống gọi GHN để lấy danh sách shop của tài khoản (Shop ID tự điền) và tìm mã điểm lấy hàng Hoằng Hóa nếu để trống. Có token là thẻ GHN ở trang sản phẩm / thanh toán hiện cước thật từ API (data.total) cùng ngày giao dự kiến.</p>
+    </Card>
     <Card title="Cước nội địa báo theo địa chỉ khách (từng hãng một adapter)">
       <p className="m-0 mb-3 text-[13px] leading-5 text-lien-text">
         Khách nhập <strong>tỉnh/thành → xã/phường → số nhà</strong> (danh mục {VN_ADDRESS_VERSION}, 34 tỉnh) rồi mới thấy thẻ báo giá của từng hãng cho kiện hàng đã đóng gói. Báo giá lại khi vào thanh toán và lần nữa khi tạo đơn; cache tối đa 10 phút. Các bảng vùng bên dưới chỉ còn dùng làm nhãn/ghi chú, <strong>không</strong> dùng để thu tiền. Kho gửi: {wh.fullAddress}.
@@ -73,5 +115,6 @@ export function CarrierStatusPanel() {
         </div>
       </form>
     </Card>
+    </>
   );
 }

@@ -4,7 +4,28 @@
  * Configuration is read lazily so the site keeps running (with the estimate tables) until GHN is configured.
  */
 
+import { getDb, getSetting } from "./sqlite";
+
 export const GHN_PRODUCTION_URL = "https://online-gateway.ghn.vn";
+
+/** Settings keys (Admin › Vận chuyển › ④); the matching env variables are the fallback. */
+export const GHN_SETTING_KEYS = { token: "ghn_token", shopId: "ghn_shop_id", pickupDistrictId: "ghn_pickup_district_id", pickupWardCode: "ghn_pickup_ward_code" } as const;
+
+function setting(key: string): string {
+  try {
+    return (getSetting(getDb(), key) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+/** Raw credentials: settings table first, then env. */
+export function ghnCredentials(): { token: string; shopId: number; pickupDistrictId: number; pickupWardCode: string } {
+  const token = setting(GHN_SETTING_KEYS.token) || process.env.GHN_TOKEN?.trim() || "";
+  const shopId = Number(setting(GHN_SETTING_KEYS.shopId) || process.env.GHN_SHOP_ID || 0);
+  const pickupDistrictId = Number(setting(GHN_SETTING_KEYS.pickupDistrictId) || process.env.GHN_PICKUP_DISTRICT_ID || "1748");
+  const pickupWardCode = setting(GHN_SETTING_KEYS.pickupWardCode) || (process.env.GHN_PICKUP_WARD_CODE ?? "282201").trim();
+  return { token, shopId: Number.isInteger(shopId) ? shopId : 0, pickupDistrictId: Number.isInteger(pickupDistrictId) ? pickupDistrictId : 0, pickupWardCode };
+}
 
 export class GhnApiError extends Error {
   constructor(
@@ -28,17 +49,14 @@ interface GhnConfig {
 
 /** True when the four required server variables are present (the checkout then offers live GHN quotes). */
 export function ghnConfigured(): boolean {
-  const shop = Number(process.env.GHN_SHOP_ID);
-  return !!process.env.GHN_TOKEN?.trim() && Number.isInteger(shop) && shop > 0;
+  const c = ghnCredentials();
+  return !!c.token && c.shopId > 0;
 }
 
 function config(): GhnConfig {
   const baseUrl = (process.env.GHN_BASE_URL?.trim() || GHN_PRODUCTION_URL).replace(/\/$/, "");
   if (baseUrl !== GHN_PRODUCTION_URL) throw new GhnApiError("GHN_BASE_URL must point to GHN Production", 500, "GHN_CONFIGURATION_ERROR");
-  const token = process.env.GHN_TOKEN?.trim() ?? "";
-  const shopId = Number(process.env.GHN_SHOP_ID);
-  const pickupDistrictId = Number(process.env.GHN_PICKUP_DISTRICT_ID ?? "1748");
-  const pickupWardCode = (process.env.GHN_PICKUP_WARD_CODE ?? "282201").trim();
+  const { token, shopId, pickupDistrictId, pickupWardCode } = ghnCredentials();
   if (!token || !Number.isInteger(shopId) || shopId <= 0) throw new GhnApiError("GHN chưa được cấu hình (GHN_TOKEN / GHN_SHOP_ID).", 500, "GHN_CONFIGURATION_ERROR");
   if (!Number.isInteger(pickupDistrictId) || pickupDistrictId <= 0 || !pickupWardCode) throw new GhnApiError("GHN_PICKUP_DISTRICT_ID / GHN_PICKUP_WARD_CODE không hợp lệ.", 500, "GHN_CONFIGURATION_ERROR");
   const timeoutMs = Number(process.env.GHN_TIMEOUT_MS || 8000);
@@ -116,6 +134,33 @@ async function request<T>(path: string, init: RequestInit = {}, retry = 1): Prom
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ---------------------------------------------------------------- account check (admin)
+
+export interface GhnShop {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  districtId: number;
+  wardCode: string;
+}
+
+/** Shops of a GHN account — used when the admin saves a token (no ShopId needed for this call). */
+export async function ghnListShops(token: string): Promise<GhnShop[]> {
+  const res = await fetch(`${GHN_PRODUCTION_URL}/shiip/public-api/v2/shop/all`, { method: "POST", cache: "no-store", signal: AbortSignal.timeout(10000), headers: { Accept: "application/json", "Content-Type": "application/json", Token: token }, body: JSON.stringify({ offset: 0, limit: 50 }) });
+  if (res.status === 401 || res.status === 403) throw new GhnApiError("Token GHN không hợp lệ.", 401, "GHN_CONFIGURATION_ERROR");
+  if (!res.ok) throw new GhnApiError("GHN không phản hồi.", 502, "GHN_UNAVAILABLE");
+  const j = (await res.json()) as { code: number; data?: { shops?: Array<{ _id: number; name: string; phone: string; address: string; district_id: number; ward_code: string }> } };
+  if (j.code !== 200) throw new GhnApiError("Token GHN không hợp lệ.", 401, "GHN_CONFIGURATION_ERROR");
+  return (j.data?.shops ?? []).map((s) => ({ id: s._id, name: s.name, phone: s.phone, address: s.address ?? "", districtId: s.district_id ?? 0, wardCode: String(s.ward_code ?? "") }));
+}
+
+/** Drop cached master data / quotes (after credentials change). */
+export function ghnResetCache(): void {
+  cache.clear();
+  inflight.clear();
 }
 
 // ---------------------------------------------------------------- master data (3-level address book)

@@ -7,7 +7,8 @@ import { isCarrierCode } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { getOrderById, saveOrderLeg } from "@/lib/db";
 import { quoteCart } from "@/lib/ship-quote";
-import { getDb, setSetting } from "@/lib/sqlite";
+import { getDb, getSetting, setSetting } from "@/lib/sqlite";
+import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces, ghnResetCache, ghnWards } from "@/lib/ghn";
 import { parseAddressToCodes } from "@/lib/vn-address";
 
 const ALL: CarrierCode[] = ["GHN", "VIETTEL_POST", "VNPOST", "SPX"];
@@ -20,6 +21,63 @@ export async function saveCarrierTogglesAction(formData: FormData): Promise<void
   setSetting(getDb(), "vn_carriers_disabled", JSON.stringify(disabled));
   revalidatePath("/", "layout");
   redirect(`/admin/shipping/?leg=vn_domestic&saved=${encodeURIComponent(`Đã lưu: khách được chọn ${ALL.filter((c) => enabled.has(c)).map((c) => CARRIER_NAME[c]).join(", ") || "không hãng nào"}.`)}`);
+}
+
+/**
+ * ④ › GHN: the owner pastes the token (server-side settings, never sent to the browser). The shop id is taken from the
+ * account when left blank; the pickup district/ward default to Hoằng Hóa (found by name in GHN master data).
+ */
+export async function saveGhnSettingsAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping"))) redirect("/admin/login/");
+  const db = getDb();
+  const back = "/admin/shipping/?leg=vn_domestic";
+  const fail = (msg: string): never => redirect(`${back}&error=${encodeURIComponent(msg)}`);
+  if (formData.get("clear") === "1") {
+    for (const k of Object.values(GHN_SETTING_KEYS)) setSetting(db, k, "");
+    ghnResetCache();
+    revalidatePath("/", "layout");
+    redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối GHN.")}`);
+  }
+  const typed = String(formData.get("token") ?? "").trim();
+  const token = typed || getSetting(db, GHN_SETTING_KEYS.token) || "";
+  if (!token) fail("Dán token GHN (Token API trong tài khoản khachhang.ghn.vn).");
+  let shops: Awaited<ReturnType<typeof ghnListShops>>;
+  try {
+    shops = await ghnListShops(token);
+  } catch (e) {
+    return fail(e instanceof GhnApiError ? e.message : "Không kiểm tra được token GHN.");
+  }
+  const shopRaw = Number.parseInt(String(formData.get("shopId") ?? "").trim(), 10);
+  const shop = shops.find((s) => s.id === shopRaw) ?? shops[0];
+  if (!shop) fail("Tài khoản GHN chưa có cửa hàng (shop) nào — tạo shop trong khachhang.ghn.vn rồi thử lại.");
+  // pickup point: typed → the shop's own address → Hoằng Hóa (Thanh Hóa) by name
+  let districtId = Number.parseInt(String(formData.get("pickupDistrictId") ?? "").trim(), 10);
+  let wardCode = String(formData.get("pickupWardCode") ?? "").trim();
+  if (!Number.isInteger(districtId) || districtId <= 0) {
+    districtId = shop.districtId || 0;
+    wardCode = shop.wardCode || "";
+  }
+  setSetting(db, GHN_SETTING_KEYS.token, token);
+  setSetting(db, GHN_SETTING_KEYS.shopId, String(shop.id));
+  ghnResetCache();
+  if (!districtId) {
+    try {
+      const th = (await ghnProvinces()).find((p) => /thanh h[oó]a/i.test(p.name));
+      const d = th ? (await ghnDistricts(th.id)).find((x) => /ho[ằa]ng h[oó]a/i.test(x.name)) : undefined;
+      const w = d ? (await ghnWards(d.id))[0] : undefined;
+      if (d && w) {
+        districtId = d.id;
+        wardCode = wardCode || w.code;
+      }
+    } catch {
+      /* keep defaults */
+    }
+  }
+  if (districtId) setSetting(db, GHN_SETTING_KEYS.pickupDistrictId, String(districtId));
+  if (wardCode) setSetting(db, GHN_SETTING_KEYS.pickupWardCode, wardCode);
+  ghnResetCache();
+  revalidatePath("/", "layout");
+  redirect(`${back}&saved=${encodeURIComponent(`Đã kết nối GHN: shop "${shop.name}" (#${shop.id})${districtId ? ` · điểm lấy hàng district ${districtId}${wardCode ? ` / ward ${wardCode}` : ""}` : ""}. Khách sẽ thấy cước GHN thật khi nhập địa chỉ.`)}`);
 }
 
 /**

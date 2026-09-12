@@ -38,11 +38,11 @@
     "docker:build": "docker build -t lienstore:local .",
     "docker:run": "docker run --rm -p 3000:3000 -v lienstore-data:/app/data --env-file .env.local lienstore:local",
     "db:export": "node scripts/db-export.mjs",
-    "test:ghn": "npx -y tsx --test scripts/tests/ghn.test.ts",
+    "test:ghn": "npx -y tsx --conditions=react-server --test scripts/tests/ghn.test.ts",
     "db:reset": "node -e \"const fs=require(\\\"fs\\\");for(const s of [\\\"\\\",\\\"-wal\\\",\\\"-shm\\\"])fs.rmSync(\\\"data/lienstore.db\\\"+s,{force:true});console.log(\\\"database removed; it will be re-created from data/seed.json on next start\\\")\"",
     "xlsx:export": "python scripts/xlsx/export_products_xlsx.py",
     "xlsx:import": "python scripts/xlsx/import_products_xlsx.py",
-    "test:shipping": "npx -y tsx --test scripts/tests/carriers.test.ts"
+    "test:shipping": "npx -y tsx --conditions=react-server --test scripts/tests/carriers.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -63,6 +63,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
