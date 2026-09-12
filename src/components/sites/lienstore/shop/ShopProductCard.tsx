@@ -101,9 +101,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
             <span className="rounded bg-lien-muted px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-discontinued"><T k="outOfStock" /></span>
           ) : group === "available" ? (
             <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-available"><T k="availableNow" /></span>
-          ) : (
-            <span className="rounded bg-amber-500 px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-order"><T k="orderBadge" /></span>
-          )}
+          ) : null}
         </div>
         <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />

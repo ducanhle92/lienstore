@@ -6,6 +6,7 @@ import { deleteProductAction, saveProductAction, type ProductFormState } from "@
 import { effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
 import { costSourceLabel, sourceFromUrl } from "@/lib/cost-sources";
 import { CostSourcesEditor } from "./CostSourcesEditor";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct, CostSource, ShopCategory } from "@/types/shop";
@@ -56,8 +57,27 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [confText, setConfText] = useState(product?.dimsConfidence ?? "");
   const [catSlugs, setCatSlugs] = useState<string[]>(product?.categories ?? []);
   const defaultMargin = pricing ? effectiveMarginPct(pricing, null, catSlugs) : 25;
+  const [primaryJpy, setPrimaryJpy] = useState<number | null>(product?.costJpy ?? null);
   const margin = computeMargin(priceText, costText);
   const costNum = digits(costText);
+  const rate = quote?.jpyRate ?? 0;
+  /** Giá vốn VNĐ from the chosen ¥ quote at today's rate. */
+  const costFromJpy = primaryJpy && rate ? Math.round(primaryJpy * rate) : null;
+  const recalcCost = () => {
+    if (costFromJpy) setCostText(String(costFromJpy));
+    return costFromJpy;
+  };
+  /** Recompute the expected selling price from the (recalculated) cost and the margin, and use it. */
+  const recalcPrice = () => {
+    const cost = recalcCost() ?? (Number.isFinite(costNum) ? costNum : null);
+    if (!quote || !pricing || cost === null) return;
+    const s = suggestPrice(
+      { costPrice: cost, weightG: Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsCm: dimsText || null, dimsConfidence: isDimsConfidence(confText) ? confText : null, marginPct: marginText.trim() === "" ? null : Number.parseFloat(marginText.replace(",", ".")), categories: catSlugs },
+      quote,
+      pricing,
+    );
+    if (s) setPriceText(String(s.suggested));
+  };
   const suggestion =
     quote && pricing
       ? suggestPrice(
@@ -122,6 +142,27 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
+          <Card title="Danh mục *">
+            <div className={cn("grid max-h-60 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3", fields.categories && "rounded border border-red-500 p-2")}>
+              {categories.map((c) => (
+                <label key={c.slug} className="flex items-start gap-2 text-[13px] leading-5">
+                  <input type="checkbox" name="categories" value={c.slug} defaultChecked={product?.categories.includes(c.slug)} onChange={(e) => setCatSlugs((s) => (e.target.checked ? [...s, c.slug] : s.filter((x) => x !== c.slug)))} className="mt-0.5 h-4 w-4" />
+                  <span>
+                    {c.name} <span className="text-lien-muted">({c.count})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <FieldError msg={fields.categories} />
+          </Card>
+
+          <Card title="Từ khóa (thông tin cơ bản)">
+            <label className={adminLabel} htmlFor="tags">
+              Cách nhau bằng dấu phẩy
+            </label>
+            <input id="tags" name="tags" defaultValue={product?.tags.join(", ")} className={adminInput} />
+          </Card>
+
           <Card title="Hình ảnh">
             <ProductImageManager
               initial={product?.images ?? []}
@@ -150,14 +191,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>
-                <CostSourcesEditor
-                  initial={costDrafts}
-                  primaryIndex={costPrimary}
-                  defaultSource={defaultSource}
-                  error={fields.costJpy}
-                />
+                <CostSourcesEditor initial={costDrafts} primaryIndex={costPrimary} defaultSource={defaultSource} error={fields.costJpy} onPrimaryChange={(p) => setPrimaryJpy(p?.priceJpy ?? null)} />
                 <p className="mt-1 text-[12px] leading-4 text-lien-muted">
-                  Nhập giá ở từng nguồn (Amazon, Rakuten, web hãng…); nút tròn chọn giá dùng làm giá vốn. Giá vốn VNĐ bên dưới tính lại mỗi đêm theo tỉ giá (Kho hàng › Công thức giá); nút &quot;Tối ưu&quot; ở đó tự chuyển sang nguồn rẻ nhất.
+                  Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp). Nút tròn chọn giá dùng làm giá vốn; đổi nguồn xong bấm &quot;Tính lại giá vốn&quot; bên dưới (mỗi đêm hệ thống cũng tính lại theo tỉ giá).
                   {product?.costSource ? ` Nguồn hiện tại: ${costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
                 </p>
               </div>
@@ -165,8 +201,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <label className={adminLabel} htmlFor="costPrice">
                   Giá vốn (VNĐ) <span className="font-normal text-lien-muted">(tự tính từ ¥ nếu để trống)</span>
                 </label>
-                <input id="costPrice" name="costPrice" inputMode="numeric" value={costText} onChange={(e) => setCostText(e.target.value)} placeholder="Chỉ hiển thị trong quản trị" className={cn(adminInput, fields.costPrice && "border-red-500")} />
+                <div className="flex gap-2">
+                  <input id="costPrice" name="costPrice" inputMode="numeric" value={costText} onChange={(e) => setCostText(e.target.value)} placeholder="Chỉ hiển thị trong quản trị" className={cn(adminInput, "!mb-0 flex-1", fields.costPrice && "border-red-500")} />
+                  <button type="button" onClick={recalcCost} disabled={!costFromJpy} title={costFromJpy ? `${primaryJpy?.toLocaleString("vi-VN")}¥ × ${rate.toLocaleString("vi-VN")} = ${costFromJpy.toLocaleString("vi-VN")}đ` : "Chọn một nguồn có giá ¥ trước"} className="shrink-0 rounded-md border border-lien-blue px-2.5 py-1.5 text-[12px] font-semibold text-lien-blue hover:bg-lien-blue-soft disabled:opacity-50" data-testid="recalc-cost">
+                    <Fa name="refresh" /> Tính lại giá vốn
+                  </button>
+                </div>
                 <FieldError msg={fields.costPrice} />
+                {costFromJpy && Number.isFinite(costNum) && costNum !== costFromJpy ? <p className="mt-1 text-[12px] text-amber-700">Theo nguồn đã chọn: {costFromJpy.toLocaleString("vi-VN")}đ ({primaryJpy?.toLocaleString("vi-VN")}¥ × {rate.toLocaleString("vi-VN")}) — bấm &quot;Tính lại giá vốn&quot; để cập nhật.</p> : null}
                 {margin ? (
                   <p className={cn("mt-1 text-[12px] leading-4", margin.profit >= 0 ? "text-green-700" : "text-red-600")}>
                     Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
@@ -183,6 +225,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                       ) : (
                         <span className="ml-1 text-green-700">✓ đang dùng</span>
                       )}
+                      <button type="button" onClick={recalcPrice} className="ml-1 rounded border border-lien-blue px-2 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft" title="Tính lại giá vốn từ nguồn ¥ đã chọn rồi tính giá kỳ vọng theo tỉ lệ lãi riêng và dùng làm giá bán" data-testid="recalc-price">
+                        <Fa name="refresh" /> Tính lại giá kỳ vọng &amp; dùng
+                      </button>
                     </p>
                     <p className="m-0 text-lien-muted">
                       Giá vốn về tới VN {suggestion.landed.toLocaleString("vi-VN")} = vốn {suggestion.cost.toLocaleString("vi-VN")} + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí
@@ -195,18 +240,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <label className={adminLabel} htmlFor="marginPct">
                   Tỉ lệ lãi kỳ vọng riêng (%) <span className="font-normal text-lien-muted">(để trống = dùng {defaultMargin}%{pricing && defaultMargin !== pricing.marginPct ? " theo danh mục" : " mặc định của shop"})</span>
                 </label>
-                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(defaultMargin)} className={cn(adminInput, "mb-4 !w-[140px]")} />
-                <label className={adminLabel} htmlFor="supplierUrl">
-                  Link nhà cung cấp (Amazon JP, trang hãng…)
-                </label>
-                <input id="supplierUrl" name="supplierUrl" type="url" defaultValue={product?.supplierUrl ?? ""} placeholder="https://www.amazon.co.jp/dp/…" className={cn(adminInput, fields.supplierUrl && "border-red-500")} />
-                <FieldError msg={fields.supplierUrl} />
+                <input id="marginPct" name="marginPct" inputMode="decimal" value={marginText} onChange={(e) => setMarginText(e.target.value)} placeholder={String(defaultMargin)} className={cn(adminInput, "!w-[140px]")} />
               </div>
               <div>
                 <label className={adminLabel} htmlFor="minStock">
                   Mức tồn tối thiểu (cảnh báo sắp hết)
                 </label>
-                <input id="minStock" name="minStock" inputMode="numeric" defaultValue={product?.minStock ?? ""} placeholder="Mặc định 2" className={cn(adminInput, fields.minStock && "border-red-500")} />
+                <input id="minStock" name="minStock" inputMode="numeric" defaultValue={product?.minStock ?? ""} placeholder="Mặc định 0 (không cảnh báo)" className={cn(adminInput, fields.minStock && "border-red-500")} />
                 <FieldError msg={fields.minStock} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -293,26 +333,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
-          <Card title="Danh mục *">
-            <div className={cn("grid max-h-72 gap-1.5 overflow-y-auto pr-1", fields.categories && "rounded border border-red-500 p-2")}>
-              {categories.map((c) => (
-                <label key={c.slug} className="flex items-start gap-2 text-[13px] leading-5">
-                  <input type="checkbox" name="categories" value={c.slug} defaultChecked={product?.categories.includes(c.slug)} onChange={(e) => setCatSlugs((s) => (e.target.checked ? [...s, c.slug] : s.filter((x) => x !== c.slug)))} className="mt-0.5 h-4 w-4" />
-                  <span>
-                    {c.name} <span className="text-lien-muted">({c.count})</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            <FieldError msg={fields.categories} />
-          </Card>
-
-          <Card title="Từ khóa">
-            <label className={adminLabel} htmlFor="tags">
-              Cách nhau bằng dấu phẩy
-            </label>
-            <input id="tags" name="tags" defaultValue={product?.tags.join(", ")} className={adminInput} />
-          </Card>
 
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" disabled={pending} className={btnPrimary}>

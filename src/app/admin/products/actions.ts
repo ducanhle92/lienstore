@@ -75,8 +75,8 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const marginRaw = get("marginPct").replace(",", ".");
   const marginPct = marginRaw === "" ? null : Number.parseFloat(marginRaw);
   if (marginRaw !== "" && (marginPct === null || !Number.isFinite(marginPct) || marginPct < 0 || marginPct > 100)) fields.marginPct = "Lãi riêng phải là số % từ 0 đến 100.";
-  const supplierUrl = get("supplierUrl");
-  if (supplierUrl && !/^https?:\/\//i.test(supplierUrl)) fields.supplierUrl = "Link nhà cung cấp phải bắt đầu bằng http(s)://";
+  // the supplier link is the link of the chosen purchase source
+  const supplierUrl = primaryRow?.url ?? "";
   const minRaw = get("minStock");
   const minStock = minRaw === "" ? null : parseIntField(minRaw);
   if (minRaw !== "" && (minStock === null || minStock < 0)) fields.minStock = "Mức tồn tối thiểu phải là số nguyên ≥ 0.";

@@ -3,7 +3,7 @@ import type { CatalogProduct } from "@/types/shop";
 import { getAllProducts, getOpenOrderDemand, getPipelineUnits, type DemandLine, type PipelineUnits } from "./db";
 
 /** Default reorder threshold when a product has no `minStock`. */
-export const DEFAULT_MIN_STOCK = Number.parseInt(process.env.LIEN_MIN_STOCK ?? "2", 10) || 2;
+export const DEFAULT_MIN_STOCK = Number.parseInt(process.env.LIEN_MIN_STOCK ?? "0", 10) || 0;
 
 export type StockState = "untracked" | "out" | "low" | "ok";
 
