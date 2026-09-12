@@ -33,6 +33,11 @@ export interface InventorySummary {
   toBuyLines: number;
   toBuyUnits: number;
   toBuyCost: number;
+  /** Units bought and still outside the shop (Japan, in transit, carrier warehouse) and their cost. */
+  inTransitUnits: number;
+  inTransitValue: number;
+  /** Units bought for open orders already sitting at the shop. */
+  atShopUnits: number;
 }
 
 export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
@@ -80,6 +85,9 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     toBuyLines: lines.filter((l) => l.toBuy > 0).length,
     toBuyUnits: lines.reduce((s, l) => s + l.toBuy, 0),
     toBuyCost: lines.reduce((s, l) => s + l.toBuy * (l.product.costPrice ?? 0), 0),
+    inTransitUnits: lines.reduce((s, l) => s + l.pipeline.inTransit, 0),
+    inTransitValue: lines.reduce((s, l) => s + l.pipeline.inTransit * (l.product.costPrice ?? 0), 0),
+    atShopUnits: lines.reduce((s, l) => s + l.pipeline.atShop, 0),
   };
   return { lines, summary };
 }

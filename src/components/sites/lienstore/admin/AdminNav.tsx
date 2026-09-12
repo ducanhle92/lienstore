@@ -45,6 +45,7 @@ const NAV: NavGroup[] = [
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
+  { href: "/admin/accounting/", label: "Kế toán", icon: "money", module: "accounting" },
   {
     href: "/admin/customers/",
     label: "Sales",

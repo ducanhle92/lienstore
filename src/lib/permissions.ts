@@ -27,6 +27,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   { key: "theme", label: "Giao diện & Logo", href: "/admin/theme/", description: "Logo, slogan, bảng màu của web và web app" },
   { key: "posts", label: "Góc chia sẻ", href: "/admin/posts/", description: "Bài viết blog: viết, sửa, đăng / ẩn" },
   { key: "inventory", label: "Kho hàng", href: "/admin/inventory/", description: "Tồn kho, danh sách cần đặt" },
+  { key: "accounting", label: "Kế toán", href: "/admin/accounting/", description: "Doanh thu, giá vốn, phí vận chuyển, lãi/lỗ theo đơn và theo tháng; vốn tồn kho" },
   { key: "shipping", label: "Vận chuyển", href: "/admin/shipping/", description: "Bảng phí vận chuyển" },
   { key: "users", label: "Người dùng", href: "/admin/users/", description: "Tài khoản, vai trò, quyền (chỉ admin)" },
 ];

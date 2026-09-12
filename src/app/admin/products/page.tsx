@@ -39,15 +39,13 @@ export default async function AdminProducts({ searchParams }: Props) {
   const fulfillment = first(sp.fulfillment);
   const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
-  const stockValue = withCost.reduce((s, p) => s + (p.stock ?? 0) * (p.costPrice ?? 0), 0);
-  const stockProfit = withCost.reduce((s, p) => s + (p.stock ?? 0) * (p.price - (p.costPrice ?? 0)), 0);
   const missingPrice = items.filter((p) => p.price <= 0).length;
 
   return (
     <>
       <PageHeader
         title="Sản phẩm"
-        subtitle={`${items.length} / ${all.length} sản phẩm · ${withCost.length} có giá vốn · vốn tồn kho ${formatPrice(stockValue)} · lợi nhuận tồn kho ${formatPrice(stockProfit)}${missingPrice ? ` · ${missingPrice} chưa có giá bán` : ""}`}
+        subtitle={`${items.length} / ${all.length} sản phẩm · ${withCost.length} có giá vốn${missingPrice ? ` · ${missingPrice} chưa có giá bán` : ""} · vốn tồn kho và lãi/lỗ xem ở tab Kế toán`}
         actions={
           <>
             {all.filter((p) => !p.sku).length ? (

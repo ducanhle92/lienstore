@@ -7,7 +7,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getPurchaseLines, type PurchaseLine } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import { PURCHASE_STAGES, type PurchaseStatus, purchaseIndex } from "@/lib/purchase";
+import { IN_TRANSIT_STATUSES, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
     <>
       <PageHeader
         title="Quản lý mua hàng"
-        subtitle={`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đang về ${counts.bought + counts.shipped_jp_vn + counts.to_shop} · tại kho ${counts.at_shop}`}
+        subtitle={`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}
         actions={
           <>
             <Link href="/admin/inventory/export/" className={btnSecondary}>

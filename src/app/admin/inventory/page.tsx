@@ -59,7 +59,9 @@ export default async function AdminInventory({ searchParams }: Props) {
       />
       {saved ? <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash> : null}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stat href="/admin/purchases/" label="Đang trên đường về" value={`${summary.inTransitUnits} đv`} tone="blue" hint={`Đã mua, chưa tới kho shop (Nhật · NB→VN · kho ĐVVC) · vốn ${formatPrice(summary.inTransitValue)}`} />
+        <Stat href="/admin/purchases/" label="Sẵn tại kho shop (đã mua cho đơn)" value={`${summary.atShopUnits} đv`} tone="gray" hint={`Cộng tồn kho tự do ${summary.units} đv`} />
         <Stat href={inventoryHref(v, { track: "tracked", state: "out" })} label="Hết hàng" value={String(summary.out)} tone="red" hint="Sản phẩm tồn 0 hoặc đánh dấu hết" />
         <Stat href={inventoryHref(v, { track: "tracked", state: "low" })} label="Sắp hết" value={String(summary.low)} tone="amber" hint={`Tồn ≤ mức tối thiểu (mặc định ${DEFAULT_MIN_STOCK})`} />
         <Stat href={inventoryHref(v, { need: "order" })} label="Cần đặt hàng" value={`${summary.toBuyLines} sp · ${summary.toBuyUnits} đv`} tone="blue" hint={`Ước tính vốn ${formatPrice(summary.toBuyCost)}`} />
