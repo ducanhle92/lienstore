@@ -9,6 +9,7 @@ import { getOrderById, saveOrderLeg } from "@/lib/db";
 import { quoteCart } from "@/lib/ship-quote";
 import { getDb, getSetting, setSetting } from "@/lib/sqlite";
 import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces, ghnResetCache, ghnWards } from "@/lib/ghn";
+import { SPX_SETTING_KEYS } from "@/lib/carriers/spx-api";
 import { parseAddressToCodes } from "@/lib/vn-address";
 
 const ALL: CarrierCode[] = ["GHN", "VIETTEL_POST", "VNPOST", "SPX"];
@@ -78,6 +79,31 @@ export async function saveGhnSettingsAction(formData: FormData): Promise<void> {
   ghnResetCache();
   revalidatePath("/", "layout");
   redirect(`${back}&saved=${encodeURIComponent(`Đã kết nối GHN: shop "${shop.name}" (#${shop.id})${districtId ? ` · điểm lấy hàng district ${districtId}${wardCode ? ` / ward ${wardCode}` : ""}` : ""}. Khách sẽ thấy cước GHN thật khi nhập địa chỉ.`)}`);
+}
+
+/** ④ › SPX Express: store User ID + Secret Key (+ fee endpoint once SPX sends the partner document). */
+export async function saveSpxSettingsAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping"))) redirect("/admin/login/");
+  const db = getDb();
+  const back = "/admin/shipping/?leg=vn_domestic";
+  if (formData.get("clear") === "1") {
+    for (const k of Object.values(SPX_SETTING_KEYS)) setSetting(db, k, "");
+    revalidatePath("/", "layout");
+    redirect(`${back}&saved=${encodeURIComponent("Đã gỡ khóa SPX.")}`);
+  }
+  const userId = String(formData.get("userId") ?? "").replace(/\s+/g, "");
+  const typedKey = String(formData.get("secretKey") ?? "").trim();
+  const feeUrl = String(formData.get("feeUrl") ?? "").trim();
+  if (userId && !/^\d{6,20}$/.test(userId)) redirect(`${back}&error=${encodeURIComponent("Mã user SPX là dãy số (thường 15 chữ số) trong Hồ sơ shop.")}`);
+  if (feeUrl && !/^https:\/\//.test(feeUrl)) redirect(`${back}&error=${encodeURIComponent("Endpoint SPX phải bắt đầu bằng https://")}`);
+  const secretKey = typedKey || getSetting(db, SPX_SETTING_KEYS.secretKey) || "";
+  if (!secretKey) redirect(`${back}&error=${encodeURIComponent("Dán Secret Key SPX (Quản lý tài khoản › Hồ sơ shop).")}`);
+  setSetting(db, SPX_SETTING_KEYS.secretKey, secretKey);
+  setSetting(db, SPX_SETTING_KEYS.userId, userId);
+  setSetting(db, SPX_SETTING_KEYS.feeUrl, feeUrl);
+  revalidatePath("/", "layout");
+  const missing = [!userId ? "Mã user (15 số)" : "", !feeUrl ? "tài liệu endpoint tính cước từ SPX" : ""].filter(Boolean);
+  redirect(`${back}&saved=${encodeURIComponent(`Đã lưu khóa SPX trên máy chủ.${missing.length ? ` Còn thiếu: ${missing.join(" và ")} — khi có, cước SPX sẽ lấy từ API thay biểu phí.` : " Đủ thông tin — chờ xác nhận định dạng gọi API."}`)}`);
 }
 
 /**

@@ -1,8 +1,9 @@
-import { saveCarrierTogglesAction, saveGhnSettingsAction } from "@/app/admin/shipping/carrier-actions";
+import { saveCarrierTogglesAction, saveGhnSettingsAction, saveSpxSettingsAction } from "@/app/admin/shipping/carrier-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { RATE_CARD_VERSIONS } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { ghnConfigured, ghnCredentials } from "@/lib/ghn";
+import { spxApiConfigured, spxApiCredentials, spxKeyStored } from "@/lib/carriers/spx-api";
 import { viettelConfigured } from "@/lib/carriers/viettel";
 import { disabledCarriers, warehouseAddress } from "@/lib/ship-quote";
 import { VN_ADDRESS_VERSION } from "@/lib/vn-address";
@@ -12,7 +13,7 @@ const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; s
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
   { code: "VIETTEL_POST", how: "Chỉ qua Open API đối tác (VTP_TOKEN). Không có bảng 17k/25k/30k/35k; chưa có token thì khách thấy “Liên hệ / tra cước”.", configured: viettelConfigured, source: "live_api" },
   { code: "VNPOST", how: "Bộ tính theo biểu phí Chuyển phát tiêu chuẩn (34 tỉnh, 5 loại tuyến, nấc 50/100/250/500/1000/1500/2000 g, +1 kg). Chưa gồm VAT/xăng dầu/COD → hiển thị “Từ …”.", configured: () => true, source: "public_rate_card" },
-  { code: "SPX", how: "Biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Không khẳng định vùng của Thanh Hóa.", configured: () => true, source: "public_rate_card" },
+  { code: "SPX", how: "Biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Open API đối tác: cần Mã user + Secret Key (Hồ sơ shop) và tài liệu endpoint do SPX cấp qua CSKH.", configured: () => true, source: "public_rate_card" },
 ];
 
 /** ④ Nội địa Việt Nam: how each carrier is quoted today, what is connected, and which carriers customers may pick. */
@@ -21,8 +22,46 @@ export function CarrierStatusPanel() {
   const wh = warehouseAddress();
   const ghn = ghnCredentials();
   const ghnOn = ghnConfigured();
+  const spx = spxApiCredentials();
+  const spxStored = spxKeyStored();
+  const spxOn = spxApiConfigured();
   return (
     <>
+    <Card className="mb-6" title="Kết nối SPX Express (Open API đối tác)">
+      <form action={saveSpxSettingsAction} className="grid gap-3 md:grid-cols-[180px_1fr_1fr_auto] md:items-end" data-testid="spx-form">
+        <div>
+          <label className={adminLabel} htmlFor="spx-user">
+            Mã user (User ID, 15 số)
+          </label>
+          <input id="spx-user" name="userId" inputMode="numeric" defaultValue={spx.userId} placeholder="VD: 123456789012345" className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="spx-secret">
+            Secret Key {spxStored ? <span className="ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">đã lưu ••••{spx.secretKey.slice(-4)}</span> : <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">chưa có</span>}
+          </label>
+          <input id="spx-secret" name="secretKey" type="password" autoComplete="off" placeholder={spxStored ? "Để trống = giữ khóa hiện tại" : "spx.vn › Quản lý tài khoản › Hồ sơ shop › Secret Key"} className={adminInput} />
+        </div>
+        <div>
+          <label className={adminLabel} htmlFor="spx-url">
+            Endpoint tính cước <span className="font-normal text-lien-muted">(từ tài liệu SPX cấp)</span>
+          </label>
+          <input id="spx-url" name="feeUrl" type="url" defaultValue={spx.feeUrl} placeholder="https://… (điền khi SPX gửi tài liệu API)" className={adminInput} />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className={btnPrimary}>
+            <Fa name="check" /> Lưu
+          </button>
+          {spxStored ? (
+            <button type="submit" name="clear" value="1" className={btnSecondary} title="Gỡ khóa">
+              Gỡ
+            </button>
+          ) : null}
+        </div>
+      </form>
+      <p className="mt-2 text-[12px] leading-5 text-lien-muted" data-testid="spx-status">
+        {spxOn ? "Đủ khóa và endpoint — đang chờ xác nhận định dạng gọi API theo tài liệu SPX; thẻ SPX tạm vẫn theo biểu phí công khai." : spxStored ? `Khóa đã lưu trên máy chủ${spx.userId ? "" : ", chưa có Mã user"}. SPX không công khai tài liệu Open API: liên hệ CSKH SPX (1900 6885 / cskh@spxexpress.com) xin "kích hoạt kết nối API + tài liệu tích hợp"; khi có endpoint tính cước, điền vào ô trên là chuyển sang cước API.` : "Chưa lưu khóa SPX — thẻ SPX tính theo biểu phí công khai."}
+      </p>
+    </Card>
     <Card className="mb-6" title="Kết nối GHN (Giao Hàng Nhanh) — API tính cước thật">
       <form action={saveGhnSettingsAction} className="grid gap-3 md:grid-cols-[1fr_140px_150px_150px_auto] md:items-end" data-testid="ghn-form">
         <div>

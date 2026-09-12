@@ -7,6 +7,7 @@
  * readings disagree we answer "Từ …" (from_price) instead of guessing.
  */
 import { findProvince } from "@/lib/vn-address";
+import { spxApiConfigured, spxKeyStored } from "./spx-api";
 import { CARRIER_NAME, type CarrierQuoteAdapter, type FeePart, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "./types";
 
 export type SpxRegion = "north" | "central" | "south";
@@ -137,6 +138,14 @@ export const spxAdapter: CarrierQuoteAdapter = {
   carrier: "SPX",
   configured: () => true,
   async quote(req) {
-    return [quoteSPX(req)];
+    const q = quoteSPX(req);
+    if (spxApiConfigured()) {
+      // Endpoint + request/response mapping are filled in from SPX's partner documentation (not public); until that
+      // is confirmed the card keeps the public rate card so no unverified number is charged.
+      q.warnings.push("Đã có khóa và endpoint SPX; đang chờ xác nhận định dạng gọi API từ tài liệu SPX — tạm dùng biểu phí công khai.");
+    } else if (spxKeyStored()) {
+      q.warnings.push("Khóa SPX đã lưu trên máy chủ; cước API sẽ thay biểu phí khi SPX cấp tài liệu endpoint (Open API dành cho đối tác).");
+    }
+    return [q];
   },
 };
