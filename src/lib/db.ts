@@ -37,7 +37,7 @@ import { coarseRegionOf } from "./vn-address";
 import { cheapestQuote } from "./cost-sources";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
-import { parsePricing, serializePricing, type PricingConfig } from "./pricing";
+import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
 import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
@@ -708,7 +708,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
     // the default import flow (Japan Post → Kiến Express → Viettel Post) is always recorded on the order for the admin;
     // the customer only pays it in per-order mode
-    const importLegs = quoteImportLegs(buildQuoteConfig(loadShippingMethods(db, true), mode, jpyRate, loadQuoteDefaults(db)), weightG || 1000, subtotal);
+    // per-order mode: the customer pays the whole-parcel tariff; included mode: record the cost the price formula used
+    // (lot tariff shared per gram), so Kế toán matches the selling price and a 55 g item is not charged a 1 kg leg
+    const importCfg = buildQuoteConfig(loadShippingMethods(db, true), mode, jpyRate, loadQuoteDefaults(db));
+    const importLegs = mode === "per_order" ? quoteImportLegs(importCfg, weightG || 1000, subtotal) : quoteImportLegsProRata(importCfg, weightG || 1000, parsePricing(getSetting(db, "pricing_config")).lotWeightG);
     const jpLegs = mode === "per_order" ? importLegs : [];
     const jpFee = jpLegs.reduce((s, l) => s + l.fee, 0);
     const vnFee = shippingFee;
@@ -768,7 +771,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     }
     // Pre-fill the per-leg table so the admin sees what was quoted (editable later).
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
-    for (const l of importLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `${mode === "per_order" ? "Báo giá khi đặt" : "Mặc định theo luồng nhập hàng (đã gồm trong giá bán)"}: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
+    for (const l of importLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `${mode === "per_order" ? "Báo giá khi đặt" : "Mặc định theo luồng nhập hàng (đã gồm trong giá bán; chia theo lô)"}: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
     else if (live) {
       const q = live.quote;

@@ -27,6 +27,16 @@ export async function register() {
   };
   setTimeout(tick, 15_000); // catch-up shortly after start
   setInterval(tick, 60_000);
+  // one-time: re-price default import legs written with the whole-parcel tariff (see lib/leg-fix-job.ts)
+  setTimeout(async () => {
+    try {
+      const { fixDefaultImportLegs } = await import("./lib/leg-fix-job");
+      const r = await fixDefaultImportLegs();
+      if (r) console.info(`[legs] re-priced ${r.updated} default import legs pro-rata`);
+    } catch (e) {
+      console.warn(`[legs] fix failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 8_000);
   // one-time: even out uploaded product thumbnails (white margins trimmed) — public/ thumbs are trimmed in the repo
   setTimeout(async () => {
     try {
