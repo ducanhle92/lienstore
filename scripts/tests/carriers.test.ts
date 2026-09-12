@@ -266,7 +266,7 @@ describe("Goship (aggregator)", () => {
     );
     assert.equal(q.carrier, "VIETTEL_POST"); assert.equal(q.accuracy, "exact_now"); assert.equal(q.source, "live_api");
     assert.equal(q.totalFeeVnd, 32500); assert.equal(q.serviceCode, "MTFf"); assert.equal(q.providerReference, "MTFf");
-    assert.ok(q.etaText?.includes("2 ngày") && q.etaText.includes("40H"));
+    assert.equal(q.etaText, "giao 2 ngày · thực tế TB 40 giờ");
     assert.equal(q.feeParts.find((p) => p.code === "insurance_fee")?.amountVnd, 5000);
     assert.equal(usableForCheckoutTotal(q), true);
   });

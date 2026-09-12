@@ -96,7 +96,16 @@ export async function goshipDistricts(cityId: string, opts: { token?: string; ba
   return cached(`districts:${cityId}`, DAY, () => call<GoshipDistrict[]>(`/cities/${encodeURIComponent(cityId)}/districts`, opts));
 }
 export async function goshipWards(districtId: string, opts: { token?: string; base?: string } = {}): Promise<GoshipWard[]> {
-  return cached(`wards:${districtId}`, DAY, () => call<GoshipWard[]>(`/districts/${encodeURIComponent(districtId)}/wards`, opts));
+  // the ward list is only used to refine the match; a district without wards (or an endpoint hiccup) must not break the quote
+  return cached(`wards:${districtId}`, DAY, async () => {
+    try {
+      const rows = await call<GoshipWard[]>(`/districts/${encodeURIComponent(districtId)}/wards`, opts);
+      return Array.isArray(rows) ? rows : [];
+    } catch (e) {
+      if (e instanceof GoshipError && e.status === 401) throw e;
+      return [];
+    }
+  });
 }
 
 /** New-model (province code, ward name) → Goship city/district, cached a day per pair. */
@@ -173,7 +182,8 @@ export const goshipAdapter: CarrierQuoteAdapter = {
       });
       if (!rows.length) return [unavailableQuote("GOSHIP", "unsupported", "Không hãng nào trên Goship phục vụ tuyến này")];
       const now = new Date();
-      const routeNote = to.how === "ward" ? undefined : `Địa chỉ ánh xạ theo ${to.how === "district" ? "quận/huyện cũ cùng tên" : "quận/huyện đầu của tỉnh"} (${to.district.name}, ${to.city.name}).`;
+      // an exact ward or same-name district is a faithful mapping; only the "first district of the province" guess is flagged
+      const routeNote = to.how === "first_district" ? `Xã/phường mới chưa có trong danh mục hãng — cước tính theo ${to.district.name}, ${to.city.name}; hãng xác nhận khi tạo vận đơn.` : undefined;
       return rows.map((r) => {
         const q = goshipRateToQuote(r, req, now);
         if (routeNote) q.warnings.push(routeNote);

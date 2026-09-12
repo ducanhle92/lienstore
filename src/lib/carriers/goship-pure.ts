@@ -142,7 +142,9 @@ export function goshipRateToQuote(r: GoshipRate, req: ShippingQuoteRequest, quot
   ];
   const vol = Math.round(((req.parcel.lengthCm * req.parcel.widthCm * req.parcel.heightCm) / 6000) * 1000);
   const report = r.report;
-  const eta = [r.expected?.trim(), report?.avg_time_delivery_format ? `TB ${report.avg_time_delivery_format}` : ""].filter(Boolean).join(" · ");
+  // "Dự kiến giao 2 ngày" → "giao 2 ngày" (the card already says "Dự kiến:"); average real delivery time from Goship's report
+  const expected = (r.expected ?? "").trim().replace(/^d[ựu]\s*ki[ếe]n\s*/i, "");
+  const eta = [expected, report?.avg_time_delivery_format ? `thực tế TB ${report.avg_time_delivery_format.replace(/H$/i, " giờ")}` : ""].filter(Boolean).join(" · ");
   return {
     carrier,
     carrierName: r.carrier_name?.trim() || CARRIER_NAME[carrier],
