@@ -90,7 +90,19 @@ export default async function OrderReceived({ params }: Props) {
                   </>
                 ) : null}
                 <dt className="text-lien-muted">Giao hàng</dt>
-                <dd className="m-0 text-right">{order.shippingFee > 0 ? (order.shipFeePayment === "on_delivery" ? <span className="text-lien-muted">trả cho shipper</span> : `${formatAmount(order.shippingFee)}đ`) : "0đ"}</dd>
+                <dd className="m-0 text-right">
+                  {order.shippingFee > 0 ? (
+                    order.shipFeePayment === "on_delivery" ? (
+                      <span className="text-lien-muted">trả cho shipper</span>
+                    ) : (
+                      <>
+                        {formatAmount(order.shippingFee)}đ<span className="block text-[11px] font-normal text-lien-muted">đã gồm trong mã QR</span>
+                      </>
+                    )
+                  ) : (
+                    "0đ"
+                  )}
+                </dd>
                 <dt className="font-bold text-lien-heading">
                   <T k="total" />
                 </dt>

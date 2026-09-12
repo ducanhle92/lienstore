@@ -310,7 +310,13 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
                         {pending.map((p) => p.label).join(", ")}: {t("shipConfirmLater")}
                       </li>
                     ) : null}
-                    {zero.length ? <li>{t("shipCardHighValue")}: {zero.map((p) => p.label).join(", ")}</li> : null}
+                    {zero.length ? (
+                      q.accuracy === "exact_now" ? (
+                        <li className="text-lien-success">Tổng trên là số cuối cùng — đã tính đủ {zero.map((p) => p.label.toLowerCase()).join(", ")}; không phát sinh thêm.</li>
+                      ) : (
+                        <li>{t("shipCardHighValue")}: {zero.map((p) => p.label).join(", ")}</li>
+                      )
+                    ) : null}
                     <li>
                       {t("shipSource")}: {t(SOURCE_KEY[q.source])} · {t("shipQuotedAt")} {time(q.quotedAt)}
                       {q.rateCardVersion ? ` · v${q.rateCardVersion}` : ""}
