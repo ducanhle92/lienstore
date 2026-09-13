@@ -70,6 +70,10 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
   const fresh = isNewProduct(product);
   const hot = product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
   const primary = product.thumb || product.images[0];
+  const fam = product.variantSummary && product.variantSummary.count > 1 ? product.variantSummary : null;
+  const range = fam && fam.minPrice !== fam.maxPrice;
+  // a collapsed family is titled after the family, not after whichever variant happens to be the representative
+  const title = fam?.groupName || product.name;
   const second = product.images.find((src) => src && src !== primary && src !== product.images[0]) ?? (product.images[0] && product.images[0] !== primary ? product.images[0] : null);
   return (
     <li className={cn("group relative flex flex-col rounded-md border border-lien-line bg-white transition-shadow hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]", className)}>
@@ -97,6 +101,11 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           {pct ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]">-{pct}%</span> : null}
           {hot && !out ? <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="bestseller" /></span> : null}
           {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="isNew" /></span> : null}
+          {fam ? (
+            <span className="rounded bg-white/95 px-1 py-0.5 text-[10px] font-semibold leading-4 text-lien-blue ring-1 ring-lien-blue sm:px-1.5 sm:text-[11px]" data-testid="badge-variants">
+              {fam.count} <T k="variantChoices" />
+            </span>
+          ) : null}
           {out ? (
             <span className="rounded bg-lien-muted px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-discontinued"><T k="outOfStock" /></span>
           ) : group === "available" ? (
@@ -111,7 +120,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
       </div>
       <div className="flex flex-1 flex-col px-2 pt-2 pb-2.5 text-center sm:px-3 sm:pb-3">
         <Link href={productHref(product)} className="no-underline">
-          <h2 className="m-0 line-clamp-2 min-h-[36px] text-[12px] font-medium leading-[18px] text-lien-heading hover:text-lien-blue sm:min-h-[42px] sm:text-[14px] sm:leading-[21px]">{product.name}</h2>
+          <h2 className="m-0 line-clamp-2 min-h-[36px] text-[12px] font-medium leading-[18px] text-lien-heading hover:text-lien-blue sm:min-h-[42px] sm:text-[14px] sm:leading-[21px]">{title}</h2>
         </Link>
         {product.rating ? (
           <span className="mt-1 block">
@@ -119,7 +128,12 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           </span>
         ) : null}
         <p className="mt-1.5 mb-0 flex flex-wrap items-baseline justify-center gap-x-1.5 text-[13px] font-semibold leading-5 sm:gap-x-2 sm:text-[15px]">
-          {product.regularPrice && product.regularPrice > product.price ? (
+          {range ? (
+            <span className="text-lien-price">
+              <span className="text-[11px] font-normal text-lien-muted sm:text-[12px]"><T k="priceFrom" /> </span>
+              {formatAmount(fam.minPrice)}đ
+            </span>
+          ) : product.regularPrice && product.regularPrice > product.price ? (
             <>
               <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]">{formatAmount(product.regularPrice)}đ</del>
               <span className="text-lien-sale-text">{formatAmount(product.price)}đ</span>

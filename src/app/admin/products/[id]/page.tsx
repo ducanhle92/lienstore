@@ -4,7 +4,7 @@ import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
 import { suggestSku } from "@/lib/sku";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getImportQuoteConfig, getPricingConfig, getProductById, getPurchaseSourceDefault, listCostSources } from "@/lib/db";
+import { getCategories, getImportQuoteConfig, getPricingConfig, getProductById, getPurchaseSourceDefault, listCostSources, listProductGroups } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function EditProduct({ params }: Props) {
   const { id } = await params;
   const numericId = Number.parseInt(id, 10);
   if (!Number.isInteger(numericId)) notFound();
-  const [product, categories, quote, pricing, defaultSource] = await Promise.all([getProductById(numericId), getCategories(), getImportQuoteConfig(), getPricingConfig(), getPurchaseSourceDefault()]);
+  const [product, categories, quote, pricing, defaultSource, groups] = await Promise.all([getProductById(numericId), getCategories(), getImportQuoteConfig(), getPricingConfig(), getPurchaseSourceDefault(), listProductGroups()]);
   if (!product) notFound();
   const costSources = await listCostSources(product.id);
   const skuSuggestion = suggestSku({ id: product.id, name: product.name, categories: product.categories, createdAt: product.createdAt, brand: await brandHintOf(product) });
@@ -33,7 +33,7 @@ export default async function EditProduct({ params }: Props) {
           </a>
         }
       />
-      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} costSources={costSources} defaultSource={defaultSource} />
+      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} costSources={costSources} defaultSource={defaultSource} groups={groups} />
     </>
   );
 }

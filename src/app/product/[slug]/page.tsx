@@ -12,7 +12,7 @@ import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard
 import { ShippingQuoteTab } from "@/components/sites/lienstore/shop/ShippingQuotePanel";
 import { ShopProductGrid, toCartProduct } from "@/components/sites/lienstore/shop/ShopProductCard";
 import { SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getCategories, getProductBySlug, getProductReviews, getRelatedProducts, getShipPolicy, getSiteTheme } from "@/lib/db";
+import { getCategories, getProductBySlug, getProductGroupById, getProductReviews, getProductVariants, getRelatedProducts, getShipPolicy, getSiteTheme } from "@/lib/db";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
@@ -58,11 +58,13 @@ export default async function ProductPage({ params }: PageProps) {
   const lang = await getLang();
   const product = localizeProduct(raw, lang);
 
-  const [cats, relatedRaw, reviews, me, shipPolicy] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer(), getShipPolicy()]);
+  const [cats, relatedRaw, reviews, me, shipPolicy, group, variantsRaw] = await Promise.all([getCategories(), getRelatedProducts(raw, 6), getProductReviews(raw.id), getCurrentCustomer(), getShipPolicy(), raw.groupId ? getProductGroupById(raw.groupId) : null, getProductVariants(raw)]);
+  const variants = localizeProducts(variantsRaw, lang).map((v) => ({ id: v.id, slug: v.slug, name: v.name, price: v.price, regularPrice: v.regularPrice, thumb: v.thumb, images: v.images, stock: v.stock, stockStatus: v.stockStatus, fulfillment: v.fulfillment, variantAttrs: v.variantAttrs, variantPosition: v.variantPosition }));
   // the "Chi phí vận chuyển" tab quotes the Vietnam delivery per carrier for the address the visitor types — the Japan legs are already in the price
   const reviewer = me ? me.username || [me.firstName, me.lastName].filter(Boolean).join(" ") || me.email.split("@")[0] : null;
   const categories = localizeCategories(cats, lang);
-  const related = localizeProducts(relatedRaw, lang);
+  // siblings of the family are not "related" — the picker already shows them
+  const related = localizeProducts(relatedRaw, lang).filter((p) => raw.groupId === null || p.groupId !== raw.groupId);
   const categoryNames = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const firstCategory = product.categories[0];
 
@@ -89,11 +91,15 @@ export default async function ProductPage({ params }: PageProps) {
       <main id="main" className="mx-auto max-w-[1300px] px-4 py-6">
         <ProductPageNotice product={toCartProduct(product)} />
         <div id={`product-${product.id}`} className="product type-product grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
-          <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" watermark={(await getSiteTheme()).logoLight} />
-          <ProductInfo2 product={product} categoryNames={categoryNames}>
-            <ProductMeta product={product} categoryNames={categoryNames} />
-            <ProductShare name={product.name} slug={product.slug} />
-          </ProductInfo2>
+          <div className="min-w-0">
+            <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" watermark={(await getSiteTheme()).logoLight} />
+            {/* SKU · tags · share live under the photos, out of the way of the buying column */}
+            <div className="mt-3 text-[13px] leading-6 text-lien-muted [&_.product_meta]:!pt-0 [&_.product_meta]:!text-[13px]">
+              <ProductMeta product={product} categoryNames={categoryNames} />
+              <ProductShare name={product.name} slug={product.slug} />
+            </div>
+          </div>
+          <ProductInfo2 product={product} categoryNames={categoryNames} group={group ? { name: group.name, attrLabels: group.attrLabels } : null} variants={variants} />
         </div>
 
         <div className="mt-10">

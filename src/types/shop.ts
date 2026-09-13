@@ -62,6 +62,24 @@ export interface CatalogProduct {
   status: "publish" | "draft";
   createdAt: string;
   updatedAt: string;
+  /** Variant family this product belongs to (product_groups.id); null = stand-alone. */
+  groupId: number | null;
+  /** Attribute values inside the family, keyed by the group's labels, e.g. { "Vị": "Dâu", "Khối lượng": "980g" }. */
+  variantAttrs: Record<string, string>;
+  /** Order inside the family; the lowest is the card shown on the shelf. */
+  variantPosition: number;
+  /** Set by listings when several variants were collapsed into this card. */
+  variantSummary?: { count: number; minPrice: number; maxPrice: number; groupName?: string };
+}
+
+/** A family of variants: one shelf card, one picker; members are ordinary products with `groupId` set. */
+export interface ProductGroup {
+  id: number;
+  slug: string;
+  name: string;
+  /** Attribute labels used by the picker (≤ 3), e.g. ["Vị", "Khối lượng"]; empty = chips by name/thumbnail. */
+  attrLabels: string[];
+  createdAt: string;
 }
 
 export interface ShopCategory {
@@ -305,6 +323,8 @@ export interface ProductQuery {
   page?: number;
   perPage?: number;
   includeDrafts?: boolean;
+  /** Storefront default collapses variant families to one card; admin lists pass true to see every row. */
+  expandVariants?: boolean;
 }
 
 export interface ProductQueryResult {

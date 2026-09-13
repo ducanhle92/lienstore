@@ -830,6 +830,25 @@ export const MIGRATIONS: Migration[] = [
       `DELETE FROM settings WHERE key IN ('bank_code', 'bank_account', 'bank_account_name', 'bank_branch', 'bank_memo_prefix')`,
     ],
   },
+  {
+    // Variant families ("nhóm biến thể"): same line in another flavour / size / count — one card on the shelf,
+    // a picker on the product page; every variant stays its own product row.
+    version: 37,
+    name: "product-groups",
+    up: [
+      `CREATE TABLE IF NOT EXISTS product_groups (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug        TEXT NOT NULL UNIQUE,
+        name        TEXT NOT NULL,
+        attr_labels TEXT NOT NULL DEFAULT '[]',
+        created_at  TEXT NOT NULL
+      )`,
+      `ALTER TABLE products ADD COLUMN group_id INTEGER REFERENCES product_groups(id) ON DELETE SET NULL`,
+      `ALTER TABLE products ADD COLUMN variant_attrs TEXT NOT NULL DEFAULT '{}'`,
+      `ALTER TABLE products ADD COLUMN variant_position INTEGER NOT NULL DEFAULT 0`,
+      `CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -11,12 +11,16 @@ import type { CatalogProduct } from "@/types/shop";
 import { AddToCartButton } from "../AddToCartButton";
 import { discountPercent, toCartProduct } from "../ShopProductCard";
 import { WishlistButton } from "../WishlistButton";
+import { VariantPicker, type VariantOption } from "./VariantPicker";
 
 interface Props {
   product: CatalogProduct;
   categoryNames: Record<string, string>;
-  /** Rendered server components (meta, share) appended below. */
+  /** Rendered server components appended below (optional). */
   children?: ReactNode;
+  /** Variant family of this product (null = stand-alone) and its published members. */
+  group?: { name: string; attrLabels: string[] } | null;
+  variants?: VariantOption[];
 }
 
 function stripHtml(s: string): string {
@@ -24,7 +28,7 @@ function stripHtml(s: string): string {
 }
 
 /** Product summary column (sesofoods style): title, price + saving badge, stock, short description, qty stepper, CTA, info boxes. */
-export function ProductInfo2({ product, categoryNames, children }: Props) {
+export function ProductInfo2({ product, categoryNames, children, group = null, variants = [] }: Props) {
   const { t } = useLang();
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
@@ -88,6 +92,8 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
         </div>
       ) : null}
 
+      {group && variants.length > 1 ? <VariantPicker group={group} variants={variants} currentId={product.id} /> : null}
+
       <form className="cart mt-5 flex flex-wrap items-center gap-3" onSubmit={(e) => e.preventDefault()}>
         <div className="inline-flex h-11 items-center overflow-hidden rounded-full border border-lien-line">
           <button type="button" aria-label={t("decrease")} disabled={out || qty <= 1} onClick={() => setQty(clamp(qty - 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
@@ -113,22 +119,7 @@ export function ProductInfo2({ product, categoryNames, children }: Props) {
         <WishlistButton product={toCartProduct(product)} className="flex h-11 w-11 items-center justify-center rounded-full border border-lien-line text-[16px] text-lien-heading hover:border-lien-blue hover:text-lien-blue" />
       </form>
 
-      <div className="mt-5 grid gap-2 rounded-md border border-lien-line bg-lien-footer2 p-3 text-[13px] leading-5 text-lien-text sm:grid-cols-2">
-        <p className="m-0 flex items-start gap-2">
-          <Fa name="credit-card" className="mt-1 text-lien-blue" /> {t("info1")}
-        </p>
-        <p className="m-0 flex items-start gap-2">
-          <Fa name="plane" className="mt-1 text-lien-blue" /> {t("info2")}
-        </p>
-        <p className="m-0 flex items-start gap-2">
-          <Fa name="shield" className="mt-1 text-lien-blue" /> {t("info3")}
-        </p>
-        <p className="m-0 flex items-start gap-2">
-          <Fa name="comments-o" className="mt-1 text-lien-blue" /> {t("info4")} <a href="https://zalo.me/0964839769" className="font-medium text-lien-blue no-underline hover:underline">0964 839 769</a>
-        </p>
-      </div>
-
-      <div className="mt-4 text-[13px] leading-6 text-lien-muted">{children}</div>
+      {children ? <div className="mt-4 text-[13px] leading-6 text-lien-muted">{children}</div> : null}
     </div>
   );
 }

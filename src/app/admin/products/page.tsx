@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { deleteProductAction, generateSkusAction, importProductsCsvAction } from "@/app/admin/products/actions";
+import { groupProductsAction } from "@/app/admin/products/groups/actions";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
@@ -8,7 +9,7 @@ import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductS
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig } from "@/lib/db";
+import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, listProductGroups } from "@/lib/db";
 import { suggestPrice } from "@/lib/pricing";
 import { formatDate, formatPrice } from "@/lib/format";
 
@@ -29,7 +30,8 @@ export default async function AdminProducts({ searchParams }: Props) {
   const saved = first(sp.saved);
   const deleted = first(sp.deleted);
 
-  const [all, categories, pricing, quote, rate] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate()]);
+  const [all, categories, pricing, quote, rate, groups] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate(), listProductGroups()]);
+  const groupName = Object.fromEntries(groups.map((g) => [g.id, g.name]));
   // price formula per product: import legs shared per gram (same numbers as the CSV export and Công thức giá)
   const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
   const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
@@ -64,6 +66,9 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <Fa name="upload" /> Nhập CSV
               </button>
             </form>
+            <Link href="/admin/products/groups/" className={btnSecondary} title="Gộp các sản phẩm cùng dòng (khác vị / dung tích / số viên) thành một thẻ ngoài kệ">
+              <Fa name="th-large" /> Nhóm biến thể ({groups.length})
+            </Link>
             <Link href="/admin/products/new/" className={btnPrimary}>
               + Thêm sản phẩm
             </Link>
@@ -121,10 +126,28 @@ export default async function AdminProducts({ searchParams }: Props) {
           </button>
         </form>
 
+        {/* bulk: tick rows (checkboxes carry form="bulk-group") → one family */}
+        <form id="bulk-group" action={groupProductsAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-md border border-dashed border-[#d1d5db] bg-[#fafafa] px-3 py-2" data-testid="bulk-group">
+          <span className="text-[13px] font-semibold text-lien-heading">Tích chọn các sản phẩm cùng dòng →</span>
+          <select name="groupId" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Nhóm">
+            <option value="">Tạo nhóm mới</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                Thêm vào: {g.name}
+              </option>
+            ))}
+          </select>
+          <input name="groupName" placeholder="Tên chung (nhóm mới)" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Tên nhóm" />
+          <input name="attrLabels" placeholder="Thuộc tính: Vị, Khối lượng" className={`${adminInput} !mb-0 !w-[200px] !py-1.5 !text-[13px]`} aria-label="Thuộc tính" />
+          <button type="submit" className={`${btnSecondary} !py-1.5 !text-[13px]`}>
+            <Fa name="th-large" /> Gộp thành nhóm biến thể
+          </button>
+        </form>
         <ResizableTable id="products">
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={thClass} />
                 <th className={thClass}>ID</th>
                 <th className={thClass}>SKU</th>
                 <th className={thClass}>Tên</th>
@@ -152,13 +175,16 @@ export default async function AdminProducts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={22} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={23} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
               ) : null}
               {items.map((p) => (
                 <tr key={p.id} className="hover:bg-[#fafafa]">
+                  <td className={`${tdClass} !px-2`}>
+                    <input type="checkbox" name="ids" value={p.id} form="bulk-group" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+                  </td>
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>#{p.id}</td>
                   <td className={`${tdClass} whitespace-nowrap font-mono text-[12px]`}>{p.sku ? p.sku : <span className="text-lien-muted">—</span>}</td>
                   <td className={`${tdClass} min-w-[220px]`}>
@@ -166,6 +192,12 @@ export default async function AdminProducts({ searchParams }: Props) {
                       {p.name}
                     </Link>
                     <div className="text-[12px] text-lien-muted">{p.slug}</div>
+                    {p.groupId && groupName[p.groupId] ? (
+                      <Link href={`/admin/products/groups/${p.groupId}/`} className="mt-0.5 inline-block rounded-full bg-lien-blue-soft px-2 py-0.5 text-[11px] font-semibold text-lien-blue no-underline hover:bg-lien-blue hover:text-white" title="Thuộc nhóm biến thể">
+                        <Fa name="th-large" /> {groupName[p.groupId]}
+                        {Object.values(p.variantAttrs).length ? ` · ${Object.values(p.variantAttrs).join(" · ")}` : ""}
+                      </Link>
+                    ) : null}
                   </td>
                   <td className={`${tdClass} max-w-[220px] text-[13px]`}>{p.categories.map((c) => catName[c] ?? c).join(", ")}</td>
                   <td className={`${tdClass} whitespace-nowrap`}>

@@ -6,7 +6,8 @@ import { isDimsConfidence } from "@/lib/shipping";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getJpyRate, getProductById, replaceCostSources, saveProduct, slugExists } from "@/lib/db";
+import { deleteProduct, getJpyRate, getProductById, getProductGroupById, replaceCostSources, saveProduct, saveProductGroup, slugExists } from "@/lib/db";
+import { normalizeAttrLabels } from "@/lib/variants";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
 import { getAllProducts } from "@/lib/db";
@@ -113,6 +114,30 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
 
   if (Object.keys(fields).length > 0) return { error: "Vui lòng kiểm tra lại các trường được đánh dấu.", fields };
 
+  // variant family: keep / move / create / leave
+  const groupSel = get("groupId");
+  let groupId: number | null = null;
+  let groupLabels: string[] = [];
+  if (groupSel === "new") {
+    const gName = get("groupName");
+    if (!gName) return { error: "Nhập tên chung của nhóm biến thể mới.", fields: { groupName: "Bắt buộc khi tạo nhóm mới." } };
+    const g = await saveProductGroup({ name: gName, attrLabels: normalizeAttrLabels(get("groupAttrLabels")) });
+    groupId = g.id;
+    groupLabels = g.attrLabels;
+  } else if (groupSel) {
+    const g = await getProductGroupById(Number.parseInt(groupSel, 10));
+    if (!g) return { error: "Nhóm biến thể không tồn tại." };
+    groupId = g.id;
+    groupLabels = g.attrLabels;
+  }
+  const variantAttrs: Record<string, string> = {};
+  groupLabels.forEach((label, i) => {
+    const v = get(`variant_${i}`).slice(0, 40);
+    if (v) variantAttrs[label] = v;
+  });
+  const posRaw = Number.parseInt(get("variantPosition"), 10);
+  const variantPosition = Number.isInteger(posRaw) ? posRaw : (existing?.variantPosition ?? 0);
+
   slug = slug || `san-pham-${Date.now()}`;
   const saved = await saveProduct({
     id,
@@ -150,6 +175,9 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     rating: existing?.rating ?? null,
     reviewCount: existing?.reviewCount ?? 0,
     status,
+    groupId,
+    variantAttrs,
+    variantPosition,
   });
 
   await replaceCostSources(saved.id, costRows.map(({ source, priceJpy, url }) => ({ source, priceJpy, url })));

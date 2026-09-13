@@ -9,7 +9,7 @@ import { CostSourcesEditor } from "./CostSourcesEditor";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
-import type { CatalogProduct, CostSource, ShopCategory } from "@/types/shop";
+import type { CatalogProduct, CostSource, ProductGroup, ShopCategory } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { ProductImageManager } from "./ProductImageManager";
@@ -27,6 +27,8 @@ interface ProductFormProps {
   pricing?: PricingConfig;
   /** SKU proposed by the convention (existing products only). */
   skuSuggestion?: string;
+  /** Variant families to pick from (Kho hàng › Nhóm biến thể). */
+  groups?: ProductGroup[];
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -43,7 +45,11 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon" }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [] }: ProductFormProps) {
+  const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
+  const [newLabels, setNewLabels] = useState("");
+  const selGroup = groups.find((g) => String(g.id) === groupSel) ?? null;
+  const groupLabels = groupSel === "new" ? newLabels.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3) : (selGroup?.attrLabels ?? []);
   // rows of the ¥ editor: saved sources, or the legacy single price of the product
   const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl }] : [];
   const costPrimary = Math.max(0, costDrafts.findIndex((c) => product?.costJpy !== null && product?.costJpy !== undefined && Number(c.priceJpy) === product.costJpy && (!product.costSource || c.source === product.costSource)));
@@ -336,6 +342,69 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
+
+          <Card title="Nhóm biến thể">
+            <div className="grid gap-3">
+              <div>
+                <label className={adminLabel} htmlFor="groupId">
+                  Thuộc dòng sản phẩm <span className="font-normal text-lien-muted">(cùng loại, chỉ khác vị / dung tích / số viên…)</span>
+                </label>
+                <select id="groupId" name="groupId" value={groupSel} onChange={(e) => setGroupSel(e.target.value)} className={adminInput}>
+                  <option value="">— Sản phẩm độc lập —</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                      {g.attrLabels.length ? ` (${g.attrLabels.join(", ")})` : ""}
+                    </option>
+                  ))}
+                  <option value="new">+ Tạo nhóm mới…</option>
+                </select>
+              </div>
+              {groupSel === "new" ? (
+                <>
+                  <div>
+                    <label className={adminLabel} htmlFor="groupName">
+                      Tên chung của nhóm
+                    </label>
+                    <input id="groupName" name="groupName" placeholder="VD: SAVAS Whey Protein 100" className={adminInput} />
+                  </div>
+                  <div>
+                    <label className={adminLabel} htmlFor="groupAttrLabels">
+                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(tối đa 3, cách nhau dấu phẩy)</span>
+                    </label>
+                    <input id="groupAttrLabels" name="groupAttrLabels" value={newLabels} onChange={(e) => setNewLabels(e.target.value)} placeholder="VD: Vị, Khối lượng" className={adminInput} />
+                  </div>
+                </>
+              ) : null}
+              {groupSel ? (
+                <>
+                  {groupLabels.map((label, i) => (
+                    <div key={label}>
+                      <label className={adminLabel} htmlFor={`variant_${i}`}>
+                        {label} <span className="font-normal text-lien-muted">của sản phẩm này</span>
+                      </label>
+                      <input id={`variant_${i}`} name={`variant_${i}`} defaultValue={product?.variantAttrs[label] ?? ""} placeholder={label === "Vị" ? "VD: Dâu" : label} className={adminInput} />
+                    </div>
+                  ))}
+                  <div>
+                    <label className={adminLabel} htmlFor="variantPosition">
+                      Thứ tự trong nhóm <span className="font-normal text-lien-muted">(nhỏ nhất = thẻ đại diện ngoài kệ)</span>
+                    </label>
+                    <input id="variantPosition" name="variantPosition" inputMode="numeric" defaultValue={product?.variantPosition ?? 0} className={adminInput} />
+                  </div>
+                  {selGroup ? (
+                    <p className="m-0 text-[12px] text-lien-muted">
+                      <Link href={`/admin/products/groups/${selGroup.id}/`} className="text-lien-blue hover:underline">
+                        Xem / sửa cả nhóm →
+                      </Link>
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="m-0 text-[12px] leading-5 text-lien-muted">Ngoài kệ mỗi nhóm chỉ hiện một thẻ “N lựa chọn”; trong trang sản phẩm khách bấm chip để đổi loại. Ảnh, giá, SKU, mô tả vẫn riêng cho từng biến thể.</p>
+              )}
+            </div>
+          </Card>
 
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" disabled={pending} className={btnPrimary}>

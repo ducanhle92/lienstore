@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
+  ProductGroup,
   CustomerAddress,
   Banner,
   BlogPost,
@@ -43,6 +44,7 @@ import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
+import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { makePayCode } from "./pay-code";
 
 /** Synchronous category list for use inside transactions. */
@@ -96,6 +98,9 @@ interface ProductRow {
   created_at: string;
   updated_at: string;
   categories: string | null;
+  group_id: number | null;
+  variant_attrs: string | null;
+  variant_position: number | null;
 }
 
 const PRODUCT_SELECT = `SELECT p.*,
@@ -150,6 +155,9 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     status: r.status,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    groupId: r.group_id ?? null,
+    variantAttrs: parseVariantAttrs(r.variant_attrs),
+    variantPosition: r.variant_position ?? 0,
   };
 }
 
@@ -361,6 +369,8 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
     });
   }
   if (q.onSale) items = items.filter((p) => (p.regularPrice ?? 0) > p.price);
+  // one card per variant family on the shelf (the picker on the product page reaches the others)
+  if (!q.expandVariants && !q.includeDrafts) items = collapseVariants(items, new Map((await listProductGroups()).map((g) => [g.id, g.name])));
   switch (q.orderby) {
     case "price":
       items = [...items].sort((a, b) => a.price - b.price);
@@ -396,7 +406,7 @@ export async function getRelatedProducts(product: CatalogProduct, limit = 4): Pr
   return [...explicit, ...sameCat].slice(0, limit);
 }
 
-export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt"> & { id?: number };
+export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number };
 
 export async function saveProduct(input: ProductInput): Promise<CatalogProduct> {
   const db = getDb();
@@ -486,9 +496,84 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
     }
     const insPC = db.prepare("INSERT OR IGNORE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     input.categories.forEach((slug, i) => insPC.run(id, slug, i));
+    // variant family (only when the caller says so — CSV import / pricing jobs leave it alone)
+    if (input.groupId !== undefined) db.prepare("UPDATE products SET group_id = ?, variant_attrs = ?, variant_position = ? WHERE id = ?").run(input.groupId, JSON.stringify(input.variantAttrs ?? {}), input.variantPosition ?? 0, id);
     const row = db.prepare(`${PRODUCT_SELECT} WHERE p.id = ?`).get(id) as unknown as ProductRow;
     return rowToProduct(row);
   });
+}
+
+// ---------- Variant families (nhóm biến thể) ----------
+
+interface GroupRow {
+  id: number;
+  slug: string;
+  name: string;
+  attr_labels: string;
+  created_at: string;
+}
+const rowToGroup = (r: GroupRow): ProductGroup => {
+  let labels: string[] = [];
+  try {
+    const v = JSON.parse(r.attr_labels) as unknown;
+    if (Array.isArray(v)) labels = v.filter((x): x is string => typeof x === "string");
+  } catch {
+    labels = [];
+  }
+  return { id: r.id, slug: r.slug, name: r.name, attrLabels: labels, createdAt: r.created_at };
+};
+
+export async function listProductGroups(): Promise<ProductGroup[]> {
+  return (getDb().prepare("SELECT * FROM product_groups ORDER BY name COLLATE NOCASE").all() as unknown as GroupRow[]).map(rowToGroup);
+}
+export async function getProductGroupById(id: number): Promise<ProductGroup | null> {
+  const r = getDb().prepare("SELECT * FROM product_groups WHERE id = ?").get(id) as GroupRow | undefined;
+  return r ? rowToGroup(r) : null;
+}
+export async function saveProductGroup(input: { id?: number; name: string; attrLabels: string[] }): Promise<ProductGroup> {
+  const db = getDb();
+  const name = input.name.trim().slice(0, 120);
+  const labels = JSON.stringify(normalizeAttrLabels(input.attrLabels));
+  if (input.id) {
+    db.prepare("UPDATE product_groups SET name = ?, attr_labels = ? WHERE id = ?").run(name, labels, input.id);
+    return (await getProductGroupById(input.id))!;
+  }
+  let slug = groupSlug(name) || `nhom-${Date.now()}`;
+  for (let i = 2; db.prepare("SELECT 1 FROM product_groups WHERE slug = ?").get(slug); i++) slug = `${groupSlug(name)}-${i}`;
+  const res = db.prepare("INSERT INTO product_groups (slug, name, attr_labels, created_at) VALUES (?, ?, ?, ?)").run(slug, name, labels, new Date().toISOString());
+  return (await getProductGroupById(Number(res.lastInsertRowid)))!;
+}
+/** Put products into a family; new members go after the existing ones. Returns how many rows changed. */
+export async function assignProductsToGroup(groupId: number, productIds: number[]): Promise<number> {
+  const db = getDb();
+  if (!db.prepare("SELECT 1 FROM product_groups WHERE id = ?").get(groupId)) return 0;
+  const max = (db.prepare("SELECT COALESCE(MAX(variant_position), -1) AS m FROM products WHERE group_id = ?").get(groupId) as { m: number }).m;
+  let n = 0;
+  const upd = db.prepare("UPDATE products SET group_id = ?, variant_position = ?, updated_at = ? WHERE id = ? AND (group_id IS NULL OR group_id != ?)");
+  const now = new Date().toISOString();
+  productIds.forEach((id, i) => {
+    n += Number(upd.run(groupId, max + 1 + i, now, id, groupId).changes);
+  });
+  return n;
+}
+export async function setProductVariant(productId: number, groupId: number | null, attrs: Record<string, string>, position: number): Promise<boolean> {
+  const res = getDb().prepare("UPDATE products SET group_id = ?, variant_attrs = ?, variant_position = ?, updated_at = ? WHERE id = ?").run(groupId, JSON.stringify(attrs), position, new Date().toISOString(), productId);
+  return Number(res.changes) > 0;
+}
+export async function ungroupProducts(productIds: number[]): Promise<number> {
+  const upd = getDb().prepare("UPDATE products SET group_id = NULL, variant_attrs = '{}', variant_position = 0 WHERE id = ?");
+  return productIds.reduce((n, id) => n + Number(upd.run(id).changes), 0);
+}
+export async function deleteProductGroup(id: number): Promise<boolean> {
+  const db = getDb();
+  db.prepare("UPDATE products SET group_id = NULL, variant_attrs = '{}', variant_position = 0 WHERE group_id = ?").run(id);
+  return Number(db.prepare("DELETE FROM product_groups WHERE id = ?").run(id).changes) > 0;
+}
+/** Published members of a product's family (the product itself included), in picker order; [] when stand-alone. */
+export async function getProductVariants(product: Pick<CatalogProduct, "groupId">, includeDrafts = false): Promise<CatalogProduct[]> {
+  if (product.groupId === null) return [];
+  const rows = getDb().prepare(`${PRODUCT_SELECT} WHERE p.group_id = ?${includeDrafts ? "" : " AND p.status = 'publish'"}`).all(product.groupId) as unknown as ProductRow[];
+  return sortVariants(rows.map(rowToProduct));
 }
 
 export async function deleteProduct(id: number): Promise<boolean> {
