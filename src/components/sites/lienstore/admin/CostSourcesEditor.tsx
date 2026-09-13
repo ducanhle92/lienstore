@@ -12,6 +12,10 @@ export interface CostSourceDraft {
   source: string;
   priceJpy: string;
   url: string;
+  /** ISO time the price was last seen valid (shown as "giá cập nhật lúc"); "" = new row. */
+  checkedAt?: string;
+  /** Set when the owner pressed "Còn đúng hôm nay" — the server stamps now. */
+  confirm?: boolean;
 }
 
 interface Props {
@@ -97,6 +101,18 @@ export function CostSourcesEditor({ initial, primaryIndex, defaultSource, source
               </button>
             </div>
             <input name="cs_url" type="url" value={r.url} onChange={(e) => update(i, { url: e.target.value })} placeholder="Link sản phẩm tại nguồn này (Amazon JP, trang hãng…)" className={cn(adminInput, "!mb-0 mt-1.5 !text-[12px]")} aria-label="Link nguồn mua" />
+            <input type="hidden" name="cs_confirm" value={r.confirm ? "1" : "0"} />
+            <p className="m-0 mt-1 flex flex-wrap items-center gap-2 text-[11px] text-lien-muted">
+              <span>
+                Giá cập nhật lúc:{" "}
+                {r.confirm ? <strong className="text-green-700">hôm nay (khi lưu)</strong> : r.checkedAt ? <strong className="text-lien-text">{new Date(r.checkedAt).toLocaleDateString("vi-VN")}</strong> : <em>mới — sẽ ghi khi lưu</em>}
+              </span>
+              {r.checkedAt && !r.confirm ? (
+                <button type="button" onClick={() => update(i, { confirm: true })} className="rounded border border-[#d1d5db] px-1.5 py-0.5 text-[11px] text-lien-blue hover:bg-lien-blue-soft" title="Giá vẫn đúng khi kiểm tra hôm nay (giá tại cửa hàng/web đổi theo tồn, hạn dùng…)">
+                  Còn đúng hôm nay
+                </button>
+              ) : null}
+            </p>
             {i === cheapestIdx && priced > 1 ? <span className="mt-1 inline-block rounded bg-green-100 px-1.5 text-[11px] font-semibold text-green-800">rẻ nhất</span> : null}
           </div>
         ))}

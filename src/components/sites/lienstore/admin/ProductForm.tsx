@@ -54,7 +54,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const selGroup = groups.find((g) => String(g.id) === groupSel) ?? null;
   const groupLabels = groupSel === "new" ? newLabels.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3) : (selGroup?.attrLabels ?? []);
   // rows of the ¥ editor: saved sources, or the legacy single price of the product
-  const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl }] : [];
+  const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url, checkedAt: c.checkedAt ?? undefined })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl, checkedAt: product.costCheckedAt ?? undefined }] : [];
   const costPrimary = Math.max(0, costDrafts.findIndex((c) => product?.costJpy !== null && product?.costJpy !== undefined && Number(c.priceJpy) === product.costJpy && (!product.costSource || c.source === product.costSource)));
   const [state, action, pending] = useActionState<ProductFormState, FormData>(saveProductAction, null);
   const [priceText, setPriceText] = useState(String(product?.price ?? ""));

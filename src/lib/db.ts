@@ -3,6 +3,8 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypt
 import type {
   ProductGroup,
   PurchaseSource,
+  StockLot,
+  StockPurchase,
   CustomerAddress,
   Banner,
   BlogPost,
@@ -40,13 +42,14 @@ import { cheapestQuote } from "./cost-sources";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
-import { isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
+import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
+import { planConsumption, todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
 
 /** Synchronous category list for use inside transactions. */
@@ -874,6 +877,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     for (const it of items) {
       insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity);
       decStock.run(it.quantity, now, it.productId);
+      consumeLotsSync(db, it.productId, it.quantity, now); // FEFO: earliest expiry leaves first
     }
     // Pre-fill the per-leg table so the admin sees what was quoted (editable later).
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
@@ -1378,13 +1382,164 @@ export async function countOrderFiles(): Promise<Map<string, number>> {
 export async function updateProductStock(id: number, stock: number | null, minStock?: number | null): Promise<boolean> {
   const db = getDb();
   const status: string | null = null; // the sale status (còn bán / ngừng bán tại Nhật) is independent of the stock level
+  const now = new Date().toISOString();
   const res =
     minStock === undefined
-      ? db.prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), updated_at = ? WHERE id = ?").run(stock, status, new Date().toISOString(), id)
+      ? db.prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), updated_at = ? WHERE id = ?").run(stock, status, now, id)
       : db
           .prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), min_stock = ?, updated_at = ? WHERE id = ?")
-          .run(stock, status, minStock, new Date().toISOString(), id);
+          .run(stock, status, minStock, now, id);
+  // keep the lots in step with a hand-typed total: extra units become an adjustment lot, fewer units leave FEFO
+  if (stock !== null) adjustLotsToTotal(db, id, stock, now);
+  else db.prepare("DELETE FROM stock_lots WHERE product_id = ?").run(id);
   return Number(res.changes) > 0;
+}
+
+// ---------- Stock lots (lô hàng) ----------
+
+interface LotRow {
+  id: number;
+  product_id: number;
+  qty_in: number;
+  qty_left: number;
+  received_at: string;
+  source_key: string;
+  unit_cost_jpy: number | null;
+  unit_cost_vnd: number | null;
+  expiry: string | null;
+  location: string;
+  note: string;
+  purchase_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+const rowToLot = (r: LotRow): StockLot => ({ id: r.id, productId: r.product_id, qtyIn: r.qty_in, qtyLeft: r.qty_left, receivedAt: r.received_at, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, unitCostVnd: r.unit_cost_vnd, expiry: r.expiry, location: r.location ?? "", note: r.note ?? "", purchaseId: r.purchase_id, createdAt: r.created_at, updatedAt: r.updated_at });
+
+/** products.stock := sum of what is left in the lots (only when the product has lots). */
+function syncStockFromLots(db: DatabaseSync, productId: number, now: string): void {
+  const r = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(qty_left), 0) AS s FROM stock_lots WHERE product_id = ?").get(productId) as { n: number; s: number };
+  if (Number(r.n) > 0) db.prepare("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?").run(Number(r.s), now, productId);
+}
+/** Take `qty` units out of the product's lots, earliest expiry first. Silent when the product has no lots. */
+function consumeLotsSync(db: DatabaseSync, productId: number, qty: number, now: string): void {
+  const lots = (db.prepare("SELECT * FROM stock_lots WHERE product_id = ? AND qty_left > 0").all(productId) as unknown as LotRow[]).map(rowToLot);
+  if (!lots.length) return;
+  const { takes } = planConsumption(lots, qty);
+  const upd = db.prepare("UPDATE stock_lots SET qty_left = qty_left - ?, updated_at = ? WHERE id = ?");
+  for (const [lotId, take] of takes) upd.run(take, now, lotId);
+}
+function adjustLotsToTotal(db: DatabaseSync, productId: number, target: number, now: string): void {
+  const cur = (db.prepare("SELECT COALESCE(SUM(qty_left), 0) AS s, COUNT(*) AS n FROM stock_lots WHERE product_id = ?").get(productId) as { s: number; n: number });
+  const have = Number(cur.s);
+  if (target > have) {
+    const p = db.prepare("SELECT cost_jpy, cost_price FROM products WHERE id = ?").get(productId) as { cost_jpy: number | null; cost_price: number | null } | undefined;
+    db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, location, note, created_at, updated_at) VALUES (?, ?, ?, ?, 'unknown', ?, ?, NULL, '', ?, ?, ?)").run(productId, target - have, target - have, todayIso(), p?.cost_jpy ?? null, p?.cost_price ?? null, Number(cur.n) ? "Điều chỉnh kiểm kho (+)" : "Tồn đầu kỳ", now, now);
+  } else if (target < have) consumeLotsSync(db, productId, have - target, now);
+}
+
+export async function listStockLots(productId?: number, onlyLeft = true): Promise<StockLot[]> {
+  const db = getDb();
+  const where = [productId !== undefined ? "product_id = ?" : "", onlyLeft ? "qty_left > 0" : ""].filter(Boolean).join(" AND ");
+  const rows = db.prepare(`SELECT * FROM stock_lots ${where ? `WHERE ${where}` : ""} ORDER BY CASE WHEN expiry IS NULL THEN 1 ELSE 0 END, expiry, received_at, id`).all(...(productId !== undefined ? [productId] : [])) as unknown as LotRow[];
+  return rows.map(rowToLot);
+}
+export async function getStockLot(id: number): Promise<StockLot | null> {
+  const r = getDb().prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
+  return r ? rowToLot(r) : null;
+}
+export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; location?: string; note?: string; purchaseId?: number | null }): Promise<StockLot> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const p = db.prepare("SELECT cost_jpy, cost_price FROM products WHERE id = ?").get(input.productId) as { cost_jpy: number | null; cost_price: number | null } | undefined;
+    if (!p) throw new Error("Sản phẩm không tồn tại.");
+    const jpy = input.unitCostJpy ?? p.cost_jpy ?? null;
+    const vnd = input.unitCostVnd ?? (jpy && jpy !== p.cost_jpy ? null : p.cost_price) ?? null;
+    const res = db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.qty, input.receivedAt || todayIso(), input.sourceKey || UNKNOWN_SOURCE, jpy, vnd, input.expiry ?? null, input.location ?? "", input.note ?? "", input.purchaseId ?? null, now, now);
+    syncStockFromLots(db, input.productId, now);
+    return rowToLot(db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as LotRow);
+  });
+}
+export async function updateStockLot(id: number, patch: { qtyLeft?: number; receivedAt?: string; sourceKey?: string; unitCostJpy?: number | null; expiry?: string | null; location?: string; note?: string }): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const cur = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
+    if (!cur) return false;
+    const qtyLeft = patch.qtyLeft ?? cur.qty_left;
+    db.prepare("UPDATE stock_lots SET qty_left = ?, qty_in = MAX(qty_in, ?), received_at = ?, source_key = ?, unit_cost_jpy = ?, expiry = ?, location = ?, note = ?, updated_at = ? WHERE id = ?").run(qtyLeft, qtyLeft, patch.receivedAt ?? cur.received_at, patch.sourceKey ?? cur.source_key, patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy, patch.expiry === undefined ? cur.expiry : patch.expiry, patch.location ?? cur.location, patch.note ?? cur.note, now, id);
+    syncStockFromLots(db, cur.product_id, now);
+    return true;
+  });
+}
+export async function deleteStockLot(id: number): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const cur = db.prepare("SELECT product_id FROM stock_lots WHERE id = ?").get(id) as { product_id: number } | undefined;
+    if (!cur) return false;
+    db.prepare("DELETE FROM stock_lots WHERE id = ?").run(id);
+    const left = db.prepare("SELECT COUNT(*) AS n FROM stock_lots WHERE product_id = ?").get(cur.product_id) as { n: number };
+    if (Number(left.n) > 0) syncStockFromLots(db, cur.product_id, now);
+    else db.prepare("UPDATE products SET stock = 0, updated_at = ? WHERE id = ? AND stock IS NOT NULL").run(now, cur.product_id);
+    return true;
+  });
+}
+
+// ---------- Purchases for stock (mua lưu kho) ----------
+
+interface StockPurchaseRow {
+  id: number;
+  product_id: number;
+  qty: number;
+  source_key: string;
+  unit_cost_jpy: number | null;
+  status: string;
+  expiry: string | null;
+  location: string;
+  note: string;
+  lot_id: number | null;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  sku: string | null;
+  thumb: string;
+}
+const SP_SELECT = "SELECT sp.*, p.name, p.sku, p.thumb FROM stock_purchases sp JOIN products p ON p.id = sp.product_id";
+const rowToStockPurchase = (r: StockPurchaseRow): StockPurchase => ({ id: r.id, productId: r.product_id, productName: r.name, productSku: r.sku, productThumb: r.thumb ?? "", qty: r.qty, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, status: isPurchaseStatus(r.status) ? r.status : "not_bought", expiry: r.expiry, location: r.location ?? "", note: r.note ?? "", lotId: r.lot_id, createdAt: r.created_at, updatedAt: r.updated_at });
+
+export async function listStockPurchases(includeDone = false): Promise<StockPurchase[]> {
+  const rows = getDb().prepare(`${SP_SELECT} ${includeDone ? "" : "WHERE sp.lot_id IS NULL"} ORDER BY sp.id DESC`).all() as unknown as StockPurchaseRow[];
+  return rows.map(rowToStockPurchase);
+}
+export async function createStockPurchase(input: { productId: number; qty: number; sourceKey: string; unitCostJpy: number | null; expiry: string | null; location: string; note: string; status?: PurchaseStatus }): Promise<StockPurchase> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const res = db.prepare("INSERT INTO stock_purchases (product_id, qty, source_key, unit_cost_jpy, status, expiry, location, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.sourceKey || UNKNOWN_SOURCE, input.unitCostJpy, input.status ?? "not_bought", input.expiry, input.location, input.note, now, now);
+  const id = Number(res.lastInsertRowid);
+  if (input.status === "at_shop") await setStockPurchaseStatus(id, "at_shop");
+  return rowToStockPurchase(db.prepare(`${SP_SELECT} WHERE sp.id = ?`).get(id) as unknown as StockPurchaseRow);
+}
+/** Move a stock purchase along the chain; reaching "at_shop" books the lot (once) and the stock follows. */
+export async function setStockPurchaseStatus(id: number, status: PurchaseStatus, note?: string): Promise<{ ok: boolean; lotId: number | null; message?: string }> {
+  const db = getDb();
+  const cur = db.prepare("SELECT * FROM stock_purchases WHERE id = ?").get(id) as StockPurchaseRow | undefined;
+  if (!cur) return { ok: false, lotId: null, message: "Không tìm thấy phiếu mua." };
+  if (cur.lot_id && purchaseIndex(status) < purchaseIndex("at_shop")) return { ok: false, lotId: cur.lot_id, message: "Hàng đã nhập kho thành lô — sửa/xoá lô trong Kho hàng thay vì lùi trạng thái." };
+  const now = new Date().toISOString();
+  let lotId = cur.lot_id;
+  if (purchaseIndex(status) >= purchaseIndex("at_shop") && !lotId) {
+    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, location: cur.location, note: cur.note ? `Mua lưu kho #${cur.id} · ${cur.note}` : `Mua lưu kho #${cur.id}`, purchaseId: cur.id });
+    lotId = lot.id;
+  }
+  db.prepare("UPDATE stock_purchases SET status = ?, note = COALESCE(?, note), lot_id = ?, updated_at = ? WHERE id = ?").run(purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status, note ?? null, lotId, now, id);
+  return { ok: true, lotId };
+}
+export async function deleteStockPurchase(id: number): Promise<boolean> {
+  const db = getDb();
+  const cur = db.prepare("SELECT lot_id FROM stock_purchases WHERE id = ?").get(id) as { lot_id: number | null } | undefined;
+  if (!cur || cur.lot_id) return false; // once it became a lot, manage the lot instead
+  return Number(db.prepare("DELETE FROM stock_purchases WHERE id = ?").run(id).changes) > 0;
 }
 
 export interface DemandLine {
@@ -2446,6 +2601,15 @@ export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
     u.pipeline = u.inTransit + u.atShop;
     out.set(r.product_id, u);
   }
+  // goods bought for stock and still on the way (once at the shop they are a lot → counted in products.stock)
+  const inTransit = IN_TRANSIT_STATUSES.map(() => "?").join(",");
+  const sp = getDb().prepare(`SELECT product_id, SUM(qty) AS n FROM stock_purchases WHERE lot_id IS NULL AND status IN (${inTransit}) GROUP BY product_id`).all(...IN_TRANSIT_STATUSES) as unknown as Array<{ product_id: number; n: number }>;
+  for (const r of sp) {
+    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    u.inTransit += Number(r.n);
+    u.pipeline = u.inTransit + u.atShop;
+    out.set(r.product_id, u);
+  }
   return out;
 }
 
@@ -2474,13 +2638,19 @@ export async function listCostSources(productId: number): Promise<CostSource[]> 
 }
 
 /** Replace every quote of a product (the form sends the full list each save). */
-export async function replaceCostSources(productId: number, rows: Array<{ source: string; priceJpy: number; url: string; note?: string }>): Promise<void> {
+export async function replaceCostSources(productId: number, rows: Array<{ source: string; priceJpy: number; url: string; note?: string; checkedAt?: string | null }>): Promise<void> {
   const db = getDb();
   withTransaction(db, () => {
+    // a quote whose source + ¥ did not change keeps its "giá cập nhật lúc"; a new price (or an explicit confirm) stamps now
+    const prev = db.prepare("SELECT source, price_jpy, checked_at, created_at FROM product_cost_sources WHERE product_id = ?").all(productId) as unknown as Array<{ source: string; price_jpy: number; checked_at: string | null; created_at: string }>;
     db.prepare("DELETE FROM product_cost_sources WHERE product_id = ?").run(productId);
     const ins = db.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
     const now = new Date().toISOString();
-    for (const r of rows) ins.run(productId, r.source || "manual", Math.round(r.priceJpy), r.url ?? "", r.note ?? "", now, now);
+    for (const r of rows) {
+      const same = prev.find((p) => p.source === (r.source || "manual") && p.price_jpy === Math.round(r.priceJpy));
+      const checked = r.checkedAt ?? (same ? same.checked_at ?? same.created_at : now);
+      ins.run(productId, r.source || "manual", Math.round(r.priceJpy), r.url ?? "", r.note ?? "", checked, same?.created_at ?? now);
+    }
   });
 }
 

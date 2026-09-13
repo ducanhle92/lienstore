@@ -5,7 +5,8 @@ import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTabl
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getPurchaseLines, type PurchaseLine } from "@/lib/db";
+import { getAllProducts, getPurchaseLines, listPurchaseSources, listStockPurchases, type PurchaseLine } from "@/lib/db";
+import { StockPurchasePanel } from "@/components/sites/lienstore/admin/StockPurchasePanel";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { IN_TRANSIT_STATUSES, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,10 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const view = first(sp.view) === "product" ? "product" : "line";
   const includeDone = first(sp.done) === "1";
-  const all = await getPurchaseLines(includeDone);
+  const tab = first(sp.tab) === "stock" ? "stock" : "orders";
+  const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab === "stock" ? getAllProducts(true) : Promise.resolve([])]);
+  const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
+  const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
   const lines = all
     .filter((l) => !status || l.purchaseStatus === status)
     .filter((l) => !q || `${l.name} ${l.sku ?? ""} #${l.orderNumber} ${l.customerName}`.toLowerCase().includes(q));
@@ -65,7 +69,18 @@ export default async function AdminPurchases({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
-      <div className="mb-5 grid gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mb-5 flex flex-wrap gap-2" data-testid="purchase-tabs">
+        <Link href="/admin/purchases/" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+          Theo đơn hàng ({all.length} dòng)
+        </Link>
+        <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+          Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
+        </Link>
+      </div>
+
+      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
+
+      <div className={cn("mb-5 grid gap-2 sm:grid-cols-4 lg:grid-cols-7", tab === "stock" && "hidden")}>
         {PURCHASE_STAGES.map((s) => (
           <Link key={s.key} href={`/admin/purchases/?status=${s.key}${includeDone || s.key === "delivered" ? "&done=1" : ""}`} className={cn("rounded-lg border p-3 no-underline", status === s.key ? "border-lien-blue bg-lien-blue-soft/60" : "border-[#e5e7eb] bg-white hover:border-lien-blue/50")}>
             <div className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280]">{s.short}</div>
@@ -75,7 +90,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
         ))}
       </div>
 
-      <Card>
+      <Card className={cn(tab === "stock" && "hidden")}>
         <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto_auto_auto] md:items-center">
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm sản phẩm, SKU, #đơn, tên khách…" className={adminInput} />
           <select name="status" defaultValue={status} className={adminInput}>

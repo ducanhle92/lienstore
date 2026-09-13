@@ -1,6 +1,7 @@
 import "server-only";
-import type { CatalogProduct } from "@/types/shop";
-import { getAllProducts, getOpenOrderDemand, getPipelineUnits, type DemandLine, type PipelineUnits } from "./db";
+import type { CatalogProduct, StockLot } from "@/types/shop";
+import { getAllProducts, getOpenOrderDemand, getPipelineUnits, listStockLots, type DemandLine, type PipelineUnits } from "./db";
+import { expiryState } from "./lots";
 
 /** Default reorder threshold when a product has no `minStock`. */
 export const DEFAULT_MIN_STOCK = Number.parseInt(process.env.LIEN_MIN_STOCK ?? "0", 10) || 0;
@@ -20,6 +21,8 @@ export interface InventoryLine {
   pipeline: PipelineUnits;
   /** (stock + pipeline) × cost price — capital tied up in goods bought at Japan, in transit and in Vietnam. */
   stockValue: number;
+  /** Warehouse lots with units left (ngày nhập · SL · nguồn · HSD · vị trí), FEFO order. */
+  lots: StockLot[];
 }
 
 export interface InventorySummary {
@@ -38,6 +41,9 @@ export interface InventorySummary {
   inTransitValue: number;
   /** Units bought for open orders already sitting at the shop. */
   atShopUnits: number;
+  /** Lots expiring within 90 days / already expired (units). */
+  expiringSoonUnits: number;
+  expiredUnits: number;
 }
 
 export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
@@ -48,7 +54,9 @@ export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
 }
 
 export async function getInventory(): Promise<{ lines: InventoryLine[]; summary: InventorySummary }> {
-  const [products, demand, pipe] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits()]);
+  const [products, demand, pipe, allLots] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits(), listStockLots()]);
+  const lotsByProduct = new Map<number, StockLot[]>();
+  for (const l of allLots) lotsByProduct.set(l.productId, [...(lotsByProduct.get(l.productId) ?? []), l]);
   const lines: InventoryLine[] = products.map((p) => {
     const minStock = p.minStock ?? DEFAULT_MIN_STOCK;
     const state = stockStateOf(p, minStock);
@@ -72,6 +80,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
       toBuy,
       pipeline,
       stockValue: ((p.stock ?? 0) + pipeline.pipeline) * (p.costPrice ?? 0),
+      lots: lotsByProduct.get(p.id) ?? [],
     };
   });
   const summary: InventorySummary = {
@@ -88,6 +97,8 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     inTransitUnits: lines.reduce((s, l) => s + l.pipeline.inTransit, 0),
     inTransitValue: lines.reduce((s, l) => s + l.pipeline.inTransit * (l.product.costPrice ?? 0), 0),
     atShopUnits: lines.reduce((s, l) => s + l.pipeline.atShop, 0),
+    expiringSoonUnits: allLots.filter((l) => expiryState(l.expiry) === "soon").reduce((s, l) => s + l.qtyLeft, 0),
+    expiredUnits: allLots.filter((l) => expiryState(l.expiry) === "expired").reduce((s, l) => s + l.qtyLeft, 0),
   };
   return { lines, summary };
 }

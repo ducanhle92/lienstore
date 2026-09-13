@@ -72,6 +72,47 @@ export interface CatalogProduct {
   variantSummary?: { count: number; minPrice: number; maxPrice: number; groupName?: string; variants: Array<{ id: number; slug: string; thumb: string; name: string }> };
 }
 
+/** One receipt into the shop warehouse; units leave it FEFO when orders are placed. */
+export interface StockLot {
+  id: number;
+  productId: number;
+  qtyIn: number;
+  qtyLeft: number;
+  /** ISO date the goods reached the shop. */
+  receivedAt: string;
+  /** purchase_sources.key */
+  sourceKey: string;
+  unitCostJpy: number | null;
+  unitCostVnd: number | null;
+  /** ISO date (YYYY-MM-DD) or null. */
+  expiry: string | null;
+  /** Shelf / box / room, free text. */
+  location: string;
+  note: string;
+  purchaseId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Goods bought for stock (not for an order); becomes a StockLot when it reaches the shop. */
+export interface StockPurchase {
+  id: number;
+  productId: number;
+  productName: string;
+  productSku: string | null;
+  productThumb: string;
+  qty: number;
+  sourceKey: string;
+  unitCostJpy: number | null;
+  status: import("@/lib/purchase").PurchaseStatus;
+  expiry: string | null;
+  location: string;
+  note: string;
+  lotId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type PurchaseSourceKind = "website" | "store" | "auction" | "secondhand" | "other";
 
 /** A place products are bought from (Kho hàng › Nguồn nhập): web shop, physical store, auction, second-hand… */

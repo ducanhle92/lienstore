@@ -54,9 +54,10 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const csSources = formData.getAll("cs_source").map(String);
   const csPrices = formData.getAll("cs_price").map(String);
   const csUrls = formData.getAll("cs_url").map(String);
+  const csConfirm = formData.getAll("cs_confirm").map(String);
   const primaryRaw = Number.parseInt(get("cs_primary"), 10);
   const sourceKeys = await purchaseSourceKeys();
-  const costRows: Array<{ source: string; priceJpy: number; url: string; primary: boolean }> = [];
+  const costRows: Array<{ source: string; priceJpy: number; url: string; primary: boolean; checkedAt?: string }> = [];
   for (let i = 0; i < csSources.length; i++) {
     const priceRaw = (csPrices[i] ?? "").trim();
     const url = (csUrls[i] ?? "").trim();
@@ -64,7 +65,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     const priceJpy = parseIntField(priceRaw);
     if (priceJpy === null || priceJpy <= 0) fields.costJpy = "Giá ¥ của mỗi nguồn phải là số nguyên > 0.";
     else if (url && !/^https?:\/\//i.test(url)) fields.costJpy = "Link giá phải bắt đầu bằng http(s)://";
-    else costRows.push({ source: sourceKeys.has(csSources[i]) || isCostSourceKind(csSources[i]) ? csSources[i] : sourceFromUrl(url), priceJpy, url, primary: i === primaryRaw });
+    else costRows.push({ source: sourceKeys.has(csSources[i]) || isCostSourceKind(csSources[i]) ? csSources[i] : sourceFromUrl(url), priceJpy, url, primary: i === primaryRaw, ...(csConfirm[i] === "1" ? { checkedAt: new Date().toISOString() } : {}) });
   }
   const primaryRow = costRows.find((r) => r.primary) ?? costRows[0];
   const costJpy = primaryRow?.priceJpy ?? null;
@@ -182,7 +183,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     variantPosition,
   });
 
-  await replaceCostSources(saved.id, costRows.map(({ source, priceJpy, url }) => ({ source, priceJpy, url })));
+  await replaceCostSources(saved.id, costRows.map(({ source, priceJpy, url, checkedAt }) => ({ source, priceJpy, url, checkedAt })));
   if (existing) await cleanupRemovedUploads(existing.images, saved.images, saved.id);
   revalidatePath("/", "layout");
   redirect(`/admin/products/?saved=${saved.id}`);

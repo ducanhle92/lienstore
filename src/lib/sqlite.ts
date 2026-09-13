@@ -880,6 +880,48 @@ export const MIGRATIONS: Migration[] = [
         ('unknown', 'other', 'Chưa xác định — thêm sau', '', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
     ],
   },
+  {
+    // Warehouse lots (ngày nhập · số lượng · nguồn · HSD · vị trí) behind products.stock, and purchases made for stock
+    // (not for an order) that turn into a lot when they reach the shop. Existing stock becomes one opening lot.
+    version: 39,
+    name: "stock-lots",
+    up: [
+      `CREATE TABLE IF NOT EXISTS stock_lots (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id    INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        qty_in        INTEGER NOT NULL,
+        qty_left      INTEGER NOT NULL,
+        received_at   TEXT NOT NULL,
+        source_key    TEXT NOT NULL DEFAULT 'unknown',
+        unit_cost_jpy INTEGER,
+        unit_cost_vnd INTEGER,
+        expiry        TEXT,
+        location      TEXT NOT NULL DEFAULT '',
+        note          TEXT NOT NULL DEFAULT '',
+        purchase_id   INTEGER,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_stock_lots_product ON stock_lots(product_id)`,
+      `CREATE TABLE IF NOT EXISTS stock_purchases (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id    INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        qty           INTEGER NOT NULL,
+        source_key    TEXT NOT NULL DEFAULT 'unknown',
+        unit_cost_jpy INTEGER,
+        status        TEXT NOT NULL DEFAULT 'not_bought',
+        expiry        TEXT,
+        location      TEXT NOT NULL DEFAULT '',
+        note          TEXT NOT NULL DEFAULT '',
+        lot_id        INTEGER,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, location, note, created_at, updated_at)
+        SELECT id, stock, stock, date('now'), 'unknown', cost_jpy, cost_price, NULL, '', 'Tồn đầu kỳ (chuyển từ số tồn cũ)', strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        FROM products WHERE stock IS NOT NULL AND stock > 0`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

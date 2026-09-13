@@ -8,6 +8,9 @@ import { requireAdmin } from "@/lib/auth";
 import { getCategories } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
 import { DEFAULT_MIN_STOCK, getInventory, type InventoryLine, type StockState } from "@/lib/inventory";
+import { daysToExpiry, expiryState } from "@/lib/lots";
+import { purchaseSourceName } from "@/lib/purchase-sources";
+import { listPurchaseSources } from "@/lib/db";
 import { applyInventoryView, inventoryHref, type InventoryView, parseInventoryView, type SortKey, sortHref } from "@/lib/inventory-view";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +34,8 @@ export default async function AdminInventory({ searchParams }: Props) {
   const v = parseInventoryView(sp);
   const saved = first(sp.saved);
 
-  const [{ lines, summary }, categories] = await Promise.all([getInventory(), getCategories()]);
+  const [{ lines, summary }, categories, sources] = await Promise.all([getInventory(), getCategories(), listPurchaseSources(true)]);
+  const sourceName = (k: string) => purchaseSourceName(k, sources);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
   const back = inventoryHref(v);
@@ -66,6 +70,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         <Stat href={inventoryHref(v, { track: "tracked", state: "low" })} label="Sắp hết" value={String(summary.low)} tone="amber" hint={`Tồn ≤ mức tối thiểu (mặc định ${DEFAULT_MIN_STOCK})`} />
         <Stat href={inventoryHref(v, { need: "order" })} label="Cần đặt hàng" value={`${summary.toBuyLines} sp · ${summary.toBuyUnits} đv`} tone="blue" hint={`Ước tính vốn ${formatPrice(summary.toBuyCost)}`} />
         <Stat href={inventoryHref(v, { track: "untracked", state: "" })} label="Không theo dõi tồn" value={String(summary.untracked)} tone="gray" hint="Mua theo đơn — mọi đơn mở đều cần đặt" />
+        <Stat href={inventoryHref(v, { track: "tracked", state: "" })} label="Hạn dùng cần chú ý" value={`${summary.expiringSoonUnits} đv sắp hết · ${summary.expiredUnits} đv hết hạn`} tone={summary.expiredUnits ? "red" : summary.expiringSoonUnits ? "amber" : "gray"} hint="Theo lô nhập kho (≤ 90 ngày = sắp hết hạn)" />
       </div>
 
       <Card>
@@ -144,6 +149,9 @@ export default async function AdminInventory({ searchParams }: Props) {
                 <Th v={v} k="name" label="Sản phẩm" />
                 <Th v={v} k="state" label="Tình trạng" />
                 <Th v={v} k="stock" label="Số lượng tồn hiện tại" />
+                <th className={cn(thClass, "whitespace-nowrap")} title="Từng lần nhập kho: ngày nhập · còn/nhập · nguồn · hạn dùng · vị trí">
+                  Lô hàng (ngày nhập · SL · nguồn · HSD · vị trí)
+                </th>
                 <Th v={v} k="pipeline" label="Đang về · tại kho" title="Đã mua tại Nhật / đang về / đã tới kho shop, chưa giao cho khách" />
                 <Th v={v} k="orders" label="Đơn hàng (đơn mở cần)" />
                 <Th v={v} k="need" label="Cần mua" />
@@ -156,13 +164,13 @@ export default async function AdminInventory({ searchParams }: Props) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={14} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
               ) : null}
               {filtered.map((l) => (
-                <Row key={l.product.id} line={l} catName={catName} back={back} />
+                <Row key={l.product.id} line={l} catName={catName} back={back} sourceName={sourceName} />
               ))}
             </tbody>
           </table>
@@ -195,7 +203,9 @@ function Stat({ label, value, hint, tone, href }: { label: string; value: string
   );
 }
 
-function Row({ line, catName, back }: { line: InventoryLine; catName: Record<string, string>; back: string }) {
+const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "text-lien-muted", none: "text-lien-muted" } as const;
+
+function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName: Record<string, string>; back: string; sourceName: (k: string) => string }) {
   const p = line.product;
   const st = STATE_LABEL[line.state];
   return (
@@ -218,6 +228,35 @@ function Row({ line, catName, back }: { line: InventoryLine; catName: Record<str
       <td className={`${tdClass} whitespace-nowrap`}>
         {p.stock === null ? <span className="text-lien-muted">—</span> : <span className={cn("font-semibold", line.state === "out" && "text-red-700", line.state === "low" && "text-amber-700")}>{p.stock}</span>}
         <span className="ml-1 text-[12px] text-lien-muted">/ min {line.minStock}</span>
+      </td>
+      <td className={`${tdClass} min-w-[260px] text-[12px]`}>
+        {line.lots.length ? (
+          <ul className="m-0 list-none space-y-0.5 p-0" data-testid="lot-list">
+            {line.lots.slice(0, 4).map((lot) => {
+              const st = expiryState(lot.expiry);
+              const d = daysToExpiry(lot.expiry);
+              return (
+                <li key={lot.id} className="flex flex-wrap items-center gap-x-1.5 leading-4">
+                  <span className="text-lien-muted">{lot.receivedAt.slice(5).split("-").reverse().join("/")}</span>
+                  <span className="font-semibold text-lien-heading">{lot.qtyLeft}</span>
+                  <span className="text-lien-muted">· {sourceName(lot.sourceKey)}</span>
+                  {lot.expiry ? (
+                    <span className={cn("rounded px-1 font-semibold", EXP_CLS[st])} title={d !== null ? `${d} ngày` : undefined}>
+                      HSD {lot.expiry.slice(2).split("-").reverse().join("/")}
+                    </span>
+                  ) : null}
+                  {lot.location ? <span className="text-lien-muted">· {lot.location}</span> : null}
+                </li>
+              );
+            })}
+            {line.lots.length > 4 ? <li className="text-lien-muted">+{line.lots.length - 4} lô nữa</li> : null}
+          </ul>
+        ) : (
+          <span className="text-lien-muted">{p.stock ? "chưa chia lô" : "—"}</span>
+        )}
+        <Link href={`/admin/inventory/lots/${p.id}/`} className="mt-1 inline-block text-[12px] font-semibold text-lien-blue hover:underline">
+          {line.lots.length ? "Quản lý lô →" : "Nhập lô →"}
+        </Link>
       </td>
       <td className={`${tdClass} whitespace-nowrap`}>
         {line.pipeline.pipeline ? (
