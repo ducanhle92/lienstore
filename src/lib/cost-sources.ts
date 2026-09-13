@@ -3,7 +3,7 @@
  * brand shop, Yahoo, Mercari… Each product keeps every quote the seller entered; one of them is the "primary" that feeds
  * `products.cost_jpy` and the price formula. "Tối ưu" picks the cheapest for every product. Pure helpers (no DB).
  */
-export const COST_SOURCES = ["amazon", "rakuten", "official", "yahoo", "mercari", "yodobashi", "other", "manual"] as const;
+export const COST_SOURCES = ["amazon", "rakuten", "official", "yahoo", "mercari", "yodobashi", "other", "manual", "unknown"] as const;
 export type CostSourceKind = (typeof COST_SOURCES)[number];
 
 export const COST_SOURCE_LABEL: Record<CostSourceKind, string> = {
@@ -15,6 +15,7 @@ export const COST_SOURCE_LABEL: Record<CostSourceKind, string> = {
   yodobashi: "Yodobashi",
   other: "Nguồn khác",
   manual: "Nhập tay",
+  unknown: "Chưa xác định — thêm sau",
 };
 
 export function isCostSourceKind(v: unknown): v is CostSourceKind {

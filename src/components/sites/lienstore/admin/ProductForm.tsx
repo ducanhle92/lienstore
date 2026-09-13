@@ -9,7 +9,8 @@ import { CostSourcesEditor } from "./CostSourcesEditor";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
-import type { CatalogProduct, CostSource, ProductGroup, ShopCategory } from "@/types/shop";
+import type { CatalogProduct, CostSource, ProductGroup, PurchaseSource, ShopCategory } from "@/types/shop";
+import { purchaseSourceName } from "@/lib/purchase-sources";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { ProductImageManager } from "./ProductImageManager";
@@ -29,6 +30,8 @@ interface ProductFormProps {
   skuSuggestion?: string;
   /** Variant families to pick from (Kho hàng › Nhóm biến thể). */
   groups?: ProductGroup[];
+  /** Purchase-source registry (Kho hàng › Nguồn nhập). */
+  sources?: PurchaseSource[];
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -45,7 +48,7 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [] }: ProductFormProps) {
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
   const [newLabels, setNewLabels] = useState("");
   const selGroup = groups.find((g) => String(g.id) === groupSel) ?? null;
@@ -190,10 +193,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>
-                <CostSourcesEditor initial={costDrafts} primaryIndex={costPrimary} defaultSource={defaultSource} error={fields.costJpy} onPrimaryChange={(p) => setPrimaryJpy(p?.priceJpy ?? null)} />
+                <CostSourcesEditor initial={costDrafts} primaryIndex={costPrimary} defaultSource={defaultSource} sources={sources} error={fields.costJpy} onPrimaryChange={(p) => setPrimaryJpy(p?.priceJpy ?? null)} />
                 <p className="mt-1 text-[12px] leading-4 text-lien-muted">
-                  Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp). Nút tròn chọn giá dùng làm giá vốn; đổi nguồn xong bấm &quot;Tính lại giá vốn&quot; bên dưới (mỗi đêm hệ thống cũng tính lại theo tỉ giá).
-                  {product?.costSource ? ` Nguồn hiện tại: ${costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
+                  Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp); chưa rõ mua ở đâu thì chọn “Chưa xác định — thêm sau”. Thêm cửa hàng / sàn mới ở{" "}
+                  <Link href="/admin/products/sources/" className="text-lien-blue hover:underline">
+                    Nguồn nhập
+                  </Link>
+                  . Nút tròn chọn giá dùng làm giá vốn; đổi nguồn xong bấm &quot;Tính lại giá vốn&quot; bên dưới (mỗi đêm hệ thống cũng tính lại theo tỉ giá).
+                  {product?.costSource ? ` Nguồn hiện tại: ${sources.length ? purchaseSourceName(product.costSource, sources) : costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
                 </p>
               </div>
               <div>

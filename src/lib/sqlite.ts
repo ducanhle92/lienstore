@@ -849,6 +849,37 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_products_group ON products(group_id)`,
     ],
   },
+  {
+    // Registry of purchase sources (websites, physical stores with address/branch, auctions, second-hand) — the
+    // legacy keys stay so product_cost_sources.source keeps working; "unknown" = decide later.
+    version: 38,
+    name: "purchase-sources",
+    up: [
+      `CREATE TABLE IF NOT EXISTS purchase_sources (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        key        TEXT NOT NULL UNIQUE,
+        kind       TEXT NOT NULL DEFAULT 'other',
+        name       TEXT NOT NULL,
+        url        TEXT NOT NULL DEFAULT '',
+        address    TEXT NOT NULL DEFAULT '',
+        branch     TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        builtin    INTEGER NOT NULL DEFAULT 0,
+        active     INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL
+      )`,
+      `INSERT OR IGNORE INTO purchase_sources (key, kind, name, url, builtin, active, created_at) VALUES
+        ('amazon', 'website', 'Amazon.co.jp', 'https://www.amazon.co.jp/', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('rakuten', 'website', 'Rakuten', 'https://www.rakuten.co.jp/', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('official', 'website', 'Web chính hãng', '', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('yahoo', 'website', 'Yahoo! Shopping', 'https://shopping.yahoo.co.jp/', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('mercari', 'secondhand', 'Mercari', 'https://jp.mercari.com/', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('yodobashi', 'website', 'Yodobashi', 'https://www.yodobashi.com/', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('other', 'other', 'Nguồn khác', '', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('manual', 'other', 'Nhập tay', '', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        ('unknown', 'other', 'Chưa xác định — thêm sau', '', 1, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

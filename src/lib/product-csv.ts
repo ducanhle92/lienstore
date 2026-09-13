@@ -144,7 +144,8 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
   const patch: CsvPatch = {};
   const errors: string[] = [];
   // older exports used these headers; map them onto the current names so old files still import
-  const ALIAS: Record<string, CsvColumn> = { "Giá bán VN (VNĐ)": "Giá thực tế trên website (VNĐ)", "Lãi (%)": "Tỉ lệ lãi kỳ vọng (%)" };
+  // short headers (no comma inside → safe to type by hand / from ChatGPT) map onto the export names
+  const ALIAS: Record<string, CsvColumn> = { "Giá bán VN (VNĐ)": "Giá thực tế trên website (VNĐ)", "Lãi (%)": "Tỉ lệ lãi kỳ vọng (%)", "Danh mục": "Danh mục (slug, cách nhau bằng ;)", "Tags": "Tags (cách nhau bằng ;)", "Giá bán (VNĐ)": "Giá thực tế trên website (VNĐ)", "Giá vốn ¥": "Giá vốn (¥)" };
   for (const [oldName, cur] of Object.entries(ALIAS)) if (oldName in rec && !(cur in rec)) rec[cur] = rec[oldName];
   const has = (c: CsvColumn) => Object.prototype.hasOwnProperty.call(rec, c);
   const num = (c: CsvColumn, min = 0) => {

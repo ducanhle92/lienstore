@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { optimizeCostSourcesAction, savePurchaseSourceAction } from "@/app/admin/products/pricing/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { COST_SOURCE_LABEL, COST_SOURCES } from "@/lib/cost-sources";
-import { getJpyRate, getPurchaseSourceDefault, purchaseSourceStats } from "@/lib/db";
+import { getJpyRate, getPurchaseSourceDefault, listPurchaseSources, purchaseSourceStats } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
 import { adminInput, adminLabel, btnPrimary, Card } from "./ui";
 
 /** Công thức giá › "Nguồn mua hàng": preferred source + one-click "buy from the cheapest source" for every product. */
 export async function PurchaseSourceCard() {
-  const [rate, preferred] = await Promise.all([getJpyRate(), getPurchaseSourceDefault()]);
+  const [rate, preferred, sources] = await Promise.all([getJpyRate(), getPurchaseSourceDefault(), listPurchaseSources()]);
   const stats = await purchaseSourceStats(preferred);
   return (
     <Card className="mb-6" title="Nguồn mua hàng (tham số giá vốn ¥)">
@@ -20,13 +19,19 @@ export async function PurchaseSourceCard() {
                 Nguồn mua mặc định
               </label>
               <select id="purchaseSource" name="source" defaultValue={preferred} className={adminInput}>
-                {COST_SOURCES.map((s) => (
-                  <option key={s} value={s}>
-                    {COST_SOURCE_LABEL[s]}
+                {sources.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.name}
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-[12px] leading-5 text-lien-muted">Nguồn gợi ý khi nhập giá mới cho sản phẩm và ưu tiên khi hai nguồn bằng giá.</p>
+              <p className="mt-1 text-[12px] leading-5 text-lien-muted">
+                Nguồn gợi ý khi nhập giá mới cho sản phẩm và ưu tiên khi hai nguồn bằng giá. Thêm cửa hàng / sàn ở{" "}
+                <Link href="/admin/products/sources/" className="text-lien-blue hover:underline">
+                  Nguồn nhập
+                </Link>
+                .
+              </p>
             </div>
             <button type="submit" className={`${btnPrimary} sm:mb-7`}>
               <Fa name="check" /> Lưu

@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
   ProductGroup,
+  PurchaseSource,
   CustomerAddress,
   Banner,
   BlogPost,
@@ -45,6 +46,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
+import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
 import { makePayCode } from "./pay-code";
 
 /** Synchronous category list for use inside transactions. */
@@ -491,6 +493,11 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         now,
         input.weightG,
         input.dimsCm,
+        input.dimsConfidence,
+        input.dimsSource ?? "",
+        input.nameJa ?? "",
+        input.shortDescriptionJa ?? "",
+        input.descriptionJa ?? "",
       );
       id = Number(res.lastInsertRowid);
     }
@@ -2475,6 +2482,63 @@ export async function replaceCostSources(productId: number, rows: Array<{ source
     const now = new Date().toISOString();
     for (const r of rows) ins.run(productId, r.source || "manual", Math.round(r.priceJpy), r.url ?? "", r.note ?? "", now, now);
   });
+}
+
+// ---------- Purchase sources registry (Nguồn nhập) ----------
+
+interface PurchaseSourceRow {
+  id: number;
+  key: string;
+  kind: string;
+  name: string;
+  url: string;
+  address: string;
+  branch: string;
+  note: string;
+  builtin: number;
+  active: number;
+  created_at: string;
+}
+const rowToPurchaseSource = (r: PurchaseSourceRow): PurchaseSource => ({ id: r.id, key: r.key, kind: isPurchaseSourceKind(r.kind) ? r.kind : "other", name: r.name, url: r.url ?? "", address: r.address ?? "", branch: r.branch ?? "", note: r.note ?? "", builtin: r.builtin === 1, active: r.active === 1, createdAt: r.created_at });
+
+/** Active sources by default (built-ins first, then the owner's, by name). */
+export async function listPurchaseSources(includeInactive = false): Promise<PurchaseSource[]> {
+  const rows = getDb().prepare(`SELECT * FROM purchase_sources ${includeInactive ? "" : "WHERE active = 1"} ORDER BY builtin DESC, CASE key WHEN 'unknown' THEN 1 ELSE 0 END, name COLLATE NOCASE`).all() as unknown as PurchaseSourceRow[];
+  return rows.map(rowToPurchaseSource);
+}
+export async function savePurchaseSource(input: { id?: number; name: string; kind: PurchaseSource["kind"]; url: string; address: string; branch: string; note: string; active?: boolean }): Promise<PurchaseSource> {
+  const db = getDb();
+  const name = input.name.trim();
+  if (input.id) {
+    db.prepare("UPDATE purchase_sources SET name = ?, kind = ?, url = ?, address = ?, branch = ?, note = ?, active = ? WHERE id = ?").run(name, input.kind, input.url, input.address, input.branch, input.note, input.active === false ? 0 : 1, input.id);
+    return rowToPurchaseSource(db.prepare("SELECT * FROM purchase_sources WHERE id = ?").get(input.id) as unknown as PurchaseSourceRow);
+  }
+  let key = sourceKeyFromName(name) || `nguon-${Date.now()}`;
+  for (let i = 2; db.prepare("SELECT 1 FROM purchase_sources WHERE key = ?").get(key); i++) key = `${sourceKeyFromName(name)}-${i}`;
+  const res = db.prepare("INSERT INTO purchase_sources (key, kind, name, url, address, branch, note, builtin, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)").run(key, input.kind, name, input.url, input.address, input.branch, input.note, new Date().toISOString());
+  return rowToPurchaseSource(db.prepare("SELECT * FROM purchase_sources WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as PurchaseSourceRow);
+}
+/** Delete an owner-added source; its quotes / products fall back to "unknown". Built-ins cannot be deleted. */
+export async function deletePurchaseSource(id: number): Promise<{ moved: number } | null> {
+  const db = getDb();
+  const r = db.prepare("SELECT key, builtin FROM purchase_sources WHERE id = ?").get(id) as { key: string; builtin: number } | undefined;
+  if (!r || r.builtin === 1) return null;
+  return withTransaction(db, () => {
+    const moved = Number(db.prepare("UPDATE product_cost_sources SET source = ? WHERE source = ?").run(UNKNOWN_SOURCE, r.key).changes);
+    db.prepare("UPDATE products SET cost_source = ? WHERE cost_source = ?").run(UNKNOWN_SOURCE, r.key);
+    if ((getSetting(db, "purchase_source_default") ?? "") === r.key) setSetting(db, "purchase_source_default", "amazon");
+    db.prepare("DELETE FROM purchase_sources WHERE id = ?").run(id);
+    return { moved };
+  });
+}
+/** Quotes per source key (product_cost_sources). */
+export async function purchaseSourceUsage(): Promise<Map<string, number>> {
+  const rows = getDb().prepare("SELECT source, COUNT(*) AS n FROM product_cost_sources GROUP BY source").all() as unknown as Array<{ source: string; n: number }>;
+  return new Map(rows.map((r) => [r.source, Number(r.n)]));
+}
+/** Keys accepted for a quote's source (active registry entries). */
+export async function purchaseSourceKeys(): Promise<Set<string>> {
+  return new Set((await listPurchaseSources(true)).map((s) => s.key));
 }
 
 export async function getPurchaseSourceDefault(): Promise<string> {

@@ -6,7 +6,8 @@ import { isDimsConfidence } from "@/lib/shipping";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getJpyRate, getProductById, getProductGroupById, replaceCostSources, saveProduct, saveProductGroup, slugExists } from "@/lib/db";
+import { deleteProduct, getCategories, getJpyRate, getProductById, getProductGroupById, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists } from "@/lib/db";
+import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
 import { normalizeAttrLabels } from "@/lib/variants";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
@@ -54,6 +55,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const csPrices = formData.getAll("cs_price").map(String);
   const csUrls = formData.getAll("cs_url").map(String);
   const primaryRaw = Number.parseInt(get("cs_primary"), 10);
+  const sourceKeys = await purchaseSourceKeys();
   const costRows: Array<{ source: string; priceJpy: number; url: string; primary: boolean }> = [];
   for (let i = 0; i < csSources.length; i++) {
     const priceRaw = (csPrices[i] ?? "").trim();
@@ -62,7 +64,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     const priceJpy = parseIntField(priceRaw);
     if (priceJpy === null || priceJpy <= 0) fields.costJpy = "Giá ¥ của mỗi nguồn phải là số nguyên > 0.";
     else if (url && !/^https?:\/\//i.test(url)) fields.costJpy = "Link giá phải bắt đầu bằng http(s)://";
-    else costRows.push({ source: isCostSourceKind(csSources[i]) ? csSources[i] : sourceFromUrl(url), priceJpy, url, primary: i === primaryRaw });
+    else costRows.push({ source: sourceKeys.has(csSources[i]) || isCostSourceKind(csSources[i]) ? csSources[i] : sourceFromUrl(url), priceJpy, url, primary: i === primaryRaw });
   }
   const primaryRow = costRows.find((r) => r.primary) ?? costRows[0];
   const costJpy = primaryRow?.priceJpy ?? null;
@@ -250,15 +252,87 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
   if (rows.length < 2) fail("File CSV trống hoặc thiếu dòng tiêu đề.");
   const header = rows[0].map((h) => h.trim());
   const idCol = header.findIndex((h) => h.toUpperCase() === "ID");
-  if (idCol < 0) fail('Thiếu cột "ID" — xuất CSV từ trang này rồi sửa trên đó.');
+  const nameCol = header.findIndex((h) => h === "Tên sản phẩm");
+  if (idCol < 0 && nameCol < 0) fail('Thiếu cột "ID" (sửa sản phẩm) hoặc "Tên sản phẩm" (tạo mới) — xuất CSV từ trang này để lấy mẫu.');
   const rate = await getJpyRate();
+  const [sources, categories] = await Promise.all([listPurchaseSources(true), getCategories()]);
+  const catSlugs = new Set(categories.map((c) => c.slug));
+  const catByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.slug]));
   let updated = 0;
+  let created = 0;
   let unchanged = 0;
   const errors: string[] = [];
   for (let i = 1; i < rows.length; i++) {
     const rec: Record<string, string> = {};
     header.forEach((h, j) => (rec[h] = rows[i][j] ?? ""));
-    const id = Number.parseInt(rec.ID, 10);
+    // "Nguồn giá": key or display name from Kho hàng › Nguồn nhập; unknown text → "Chưa xác định"
+    const sourceRaw = (rec["Nguồn giá"] ?? "").trim();
+    const sourceKey = sourceRaw ? (resolvePurchaseSourceKey(sourceRaw, sources) ?? UNKNOWN_SOURCE) : undefined;
+    const idText = (rec.ID ?? "").trim();
+    if (!idText || /^(new|mới|moi)$/i.test(idText)) {
+      // ---- create a new product from the row (photos are added later in admin, so it starts as a draft) ----
+      const { patch, errors: rowErrors } = csvRowToPatch(rec);
+      if (!patch.name) {
+        errors.push(`Dòng ${i + 1}: thiếu Tên sản phẩm`);
+        continue;
+      }
+      if (rowErrors.length) {
+        errors.push(`Dòng ${i + 1}: ${rowErrors.join("; ")}`);
+        continue;
+      }
+      const cats = (patch.categories ?? []).map((c) => (catSlugs.has(c) ? c : catByName.get(c.toLowerCase()) ?? "")).filter(Boolean);
+      if (!cats.length) {
+        errors.push(`Dòng ${i + 1} (${patch.name}): Danh mục không hợp lệ — dùng slug hoặc tên danh mục có trong shop`);
+        continue;
+      }
+      let slug = slugify(patch.name);
+      for (let k = 2; await slugExists(slug); k++) slug = `${slugify(patch.name)}-${k}`;
+      const costJpy = patch.costJpy ?? null;
+      try {
+        const saved = await saveProduct({
+          slug,
+          name: patch.name,
+          nameJa: patch.nameJa ?? "",
+          price: patch.price ?? 0,
+          regularPrice: patch.regularPrice ?? null,
+          costPrice: patch.costPrice ?? (costJpy ? Math.round(costJpy * rate) : null),
+          supplierUrl: patch.supplierUrl ?? null,
+          minStock: patch.minStock ?? null,
+          weightG: patch.weightG ?? null,
+          dimsCm: patch.dimsCm ?? null,
+          dimsConfidence: patch.dimsConfidence ?? null,
+          dimsSource: rec["Nguồn kích thước"]?.trim() ?? "",
+          currency: "VNĐ",
+          sku: patch.sku ?? null,
+          stock: patch.stock ?? null,
+          stockStatus: patch.stockStatus ?? "instock",
+          fulfillment: patch.fulfillment ?? "order",
+          costJpy,
+          costSource: costJpy ? (sourceKey ?? UNKNOWN_SOURCE) : "",
+          costUrl: patch.costUrl ?? "",
+          costCheckedAt: costJpy ? new Date().toISOString() : null,
+          marginPct: patch.marginPct ?? null,
+          categories: cats,
+          tags: patch.tags ?? [],
+          images: [],
+          thumb: "",
+          shortDescription: rec["Mô tả ngắn"]?.trim() ?? "",
+          description: rec["Mô tả"]?.trim() ?? "",
+          shortDescriptionJa: "",
+          descriptionJa: "",
+          related: [],
+          rating: null,
+          reviewCount: 0,
+          status: "draft", // no photo yet → hidden until the owner adds one and publishes
+        });
+        if (costJpy) await replaceCostSources(saved.id, [{ source: sourceKey ?? UNKNOWN_SOURCE, priceJpy: costJpy, url: patch.costUrl ?? "" }]);
+        created++;
+      } catch (e) {
+        errors.push(`Dòng ${i + 1} (${patch.name}): ${e instanceof Error ? e.message : "không tạo được"}`);
+      }
+      continue;
+    }
+    const id = Number.parseInt(idText, 10);
     if (!Number.isInteger(id)) {
       errors.push(`Dòng ${i + 1}: ID "${rec.ID}" không hợp lệ`);
       continue;
@@ -273,7 +347,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
       errors.push(`#${id}: ${rowErrors.join("; ")}`);
       continue;
     }
-    const next = { ...existing, ...patch } as CatalogProduct;
+    const next = { ...existing, ...patch, ...(sourceKey ? { costSource: sourceKey } : {}) } as CatalogProduct;
     // an empty VND cost next to a ¥ cost means "derive it from the rate" (never wipes the cost); a changed ¥ also re-derives it
     if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy))) next.costPrice = Math.round(next.costJpy * rate);
     if (patch.costJpy && patch.costJpy !== existing.costJpy) next.costCheckedAt = new Date().toISOString();
@@ -290,6 +364,6 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
     }
   }
   revalidatePath("/", "layout");
-  const msg = `csv:${updated}:${unchanged}:${errors.length}:${errors.slice(0, 8).join(" | ").slice(0, 900)}`;
+  const msg = `csv:${updated}:${unchanged}:${errors.length}:${created ? `Tạo mới ${created} sản phẩm (bản nháp — thêm ảnh rồi bật Đang bán). ` : ""}${errors.slice(0, 8).join(" | ").slice(0, 900)}`;
   redirect(`/admin/products/?saved=${encodeURIComponent(msg)}`);
 }

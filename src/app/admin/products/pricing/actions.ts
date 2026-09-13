@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, getPurchaseSourceDefault, getShippingMethods, optimizeCostSources, setPricingConfig, setPurchaseSourceDefault, setQuoteDefaults, updateProductPricing } from "@/lib/db";
-import { COST_SOURCE_LABEL, isCostSourceKind } from "@/lib/cost-sources";
+import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, getPurchaseSourceDefault, getShippingMethods, listPurchaseSources, optimizeCostSources, setPricingConfig, setPurchaseSourceDefault, setQuoteDefaults, updateProductPricing } from "@/lib/db";
 import { IMPORT_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { MARGIN_RANGE } from "@/lib/pricing";
 import { refreshDcomRate, runPricingJob, setAutoSell, setDcomRate, setFxMode } from "@/lib/fx";
@@ -29,10 +28,11 @@ export async function savePricingConfigAction(formData: FormData): Promise<void>
 export async function savePurchaseSourceAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
   const v = text(formData, "source");
-  if (!isCostSourceKind(v)) back("error", "Nguồn mua không hợp lệ.");
+  const src = (await listPurchaseSources()).find((s) => s.key === v);
+  if (!src) return back("error", "Nguồn mua không hợp lệ.");
   await setPurchaseSourceDefault(v);
   revalidatePath("/admin", "layout");
-  back("saved", `Đã đặt nguồn mua mặc định: ${COST_SOURCE_LABEL[v as keyof typeof COST_SOURCE_LABEL]}.`);
+  back("saved", `Đã đặt nguồn mua mặc định: ${src.name}.`);
 }
 
 /** "Tối ưu giá vốn theo nguồn rẻ nhất" — every product switches to its cheapest ¥ quote; VND cost follows the rate. */

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { COST_SOURCE_LABEL, COST_SOURCES, type CostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
+import { sourceFromUrl } from "@/lib/cost-sources";
+import { BUILTIN_SOURCES, matchSourceByUrl, PURCHASE_KIND_LABEL } from "@/lib/purchase-sources";
+import type { PurchaseSource } from "@/types/shop";
 import { cn } from "@/lib/utils";
 import { adminInput } from "./ui";
 
@@ -16,6 +18,8 @@ interface Props {
   initial: CostSourceDraft[];
   primaryIndex: number;
   defaultSource: string;
+  /** Registry of purchase sources (Kho hàng › Nguồn nhập); falls back to the built-ins. */
+  sources?: Array<Pick<PurchaseSource, "key" | "name" | "kind" | "url">>;
   error?: string;
   /** Primary quote (¥ + link) whenever it changes, for the live cost / price hints. */
   onPrimaryChange?: (primary: { priceJpy: number | null; url: string; source: string } | null) => void;
@@ -31,7 +35,10 @@ const priceOf = (r: CostSourceDraft | undefined) => {
  * "Chọn nguồn rẻ nhất" moves it to the cheapest row. Plain repeated inputs (cs_source / cs_price / cs_url + cs_primary)
  * so the server action reads them in order with formData.getAll.
  */
-export function CostSourcesEditor({ initial, primaryIndex, defaultSource, error, onPrimaryChange }: Props) {
+export function CostSourcesEditor({ initial, primaryIndex, defaultSource, sources, error, onPrimaryChange }: Props) {
+  const registry = sources && sources.length ? sources : BUILTIN_SOURCES.map((s) => ({ ...s }));
+  // group the dropdown by kind so a long list of stores stays readable
+  const kinds = Array.from(new Set(registry.map((s) => s.kind)));
   const [rows, setRows] = useState<CostSourceDraft[]>(initial.length ? initial : [{ source: defaultSource, priceJpy: "", url: "" }]);
   const [primary, setPrimary] = useState(Math.min(Math.max(0, primaryIndex), Math.max(0, initial.length - 1)));
   useEffect(() => {
@@ -42,7 +49,7 @@ export function CostSourcesEditor({ initial, primaryIndex, defaultSource, error,
   const update = (i: number, patch: Partial<CostSourceDraft>) => {
     const next = rows.map((r, k) => (k === i ? { ...r, ...patch } : r));
     // a pasted link fills the source automatically
-    if (patch.url !== undefined && patch.url && (rows[i].source === defaultSource || rows[i].source === "manual")) next[i].source = sourceFromUrl(patch.url);
+    if (patch.url !== undefined && patch.url && (rows[i].source === defaultSource || rows[i].source === "manual" || rows[i].source === "unknown")) next[i].source = matchSourceByUrl(patch.url, registry)?.key ?? sourceFromUrl(patch.url);
     setRows(next);
   };
   const remove = (i: number) => {
@@ -69,11 +76,20 @@ export function CostSourcesEditor({ initial, primaryIndex, defaultSource, error,
                 Giá vốn
               </label>
               <select name="cs_source" value={r.source} onChange={(e) => update(i, { source: e.target.value })} className={cn(adminInput, "!mb-0 min-w-0 flex-1")} aria-label="Nguồn mua">
-                {COST_SOURCES.map((s: CostSourceKind) => (
-                  <option key={s} value={s}>
-                    {COST_SOURCE_LABEL[s]}
-                  </option>
+                {kinds.map((k) => (
+                  <optgroup key={k} label={PURCHASE_KIND_LABEL[k]}>
+                    {registry
+                      .filter((s) => s.kind === k)
+                      .map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </optgroup>
                 ))}
+                {registry.some((s) => s.key === r.source) ? null : (
+                  <option value={r.source}>{r.source}</option>
+                )}
               </select>
               <input name="cs_price" value={r.priceJpy} onChange={(e) => update(i, { priceJpy: e.target.value })} inputMode="numeric" placeholder="¥" className={cn(adminInput, "!mb-0 !w-[96px] shrink-0", error && i === primary && "border-red-500")} aria-label="Giá ¥" />
               <button type="button" onClick={() => remove(i)} className="shrink-0 rounded-md border border-[#d1d5db] px-2 py-1.5 text-[12px] text-red-600 hover:bg-red-50" title="Bỏ nguồn này" aria-label="Bỏ nguồn">

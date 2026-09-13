@@ -72,6 +72,25 @@ export interface CatalogProduct {
   variantSummary?: { count: number; minPrice: number; maxPrice: number; groupName?: string; variants: Array<{ id: number; slug: string; thumb: string; name: string }> };
 }
 
+export type PurchaseSourceKind = "website" | "store" | "auction" | "secondhand" | "other";
+
+/** A place products are bought from (Kho hàng › Nguồn nhập): web shop, physical store, auction, second-hand… */
+export interface PurchaseSource {
+  id: number;
+  /** Stable key stored on quotes (product_cost_sources.source): "amazon", "don-quijote-shibuya"… */
+  key: string;
+  kind: PurchaseSourceKind;
+  name: string;
+  url: string;
+  address: string;
+  branch: string;
+  note: string;
+  /** Shipped with the system; cannot be deleted (only switched off). */
+  builtin: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
 /** A family of variants: one shelf card, one picker; members are ordinary products with `groupId` set. */
 export interface ProductGroup {
   id: number;
