@@ -29,6 +29,17 @@ export async function groupProductsAction(formData: FormData): Promise<void> {
   redirect(`${PAGE}${groupId}/?saved=${encodeURIComponent(`Đã gộp ${n} sản phẩm vào nhóm.`)}`);
 }
 
+/** Group page › search box: add (or move) the ticked products into this family. */
+export async function addToGroupAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const groupId = Number.parseInt(text(formData, "groupId"), 10);
+  const selected = ids(formData, "ids");
+  if (!Number.isInteger(groupId) || !selected.length) back("error", "Chọn ít nhất một sản phẩm.", `${PAGE}${groupId}/`);
+  const n = await assignProductsToGroup(groupId, selected);
+  revalidatePath("/", "layout");
+  back("saved", `Đã thêm ${n} sản phẩm vào nhóm. Điền giá trị các cấp ở bảng bên để phân nhánh.`, `${PAGE}${groupId}/`);
+}
+
 export async function saveGroupAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
   const id = Number.parseInt(text(formData, "id"), 10);
