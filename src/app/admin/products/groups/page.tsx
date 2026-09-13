@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { deleteGroupAction, saveGroupAction } from "@/app/admin/products/groups/actions";
+import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -76,10 +77,8 @@ export default async function AdminProductGroups({ searchParams }: Props) {
               <input id="g-name" name="name" required placeholder="VD: SAVAS Whey Protein 100" className={adminInput} />
             </div>
             <div>
-              <label className={adminLabel} htmlFor="g-attrs">
-                Thuộc tính phân biệt <span className="font-normal text-lien-muted">(tối đa 3, cách nhau dấu phẩy)</span>
-              </label>
-              <input id="g-attrs" name="attrLabels" placeholder="VD: Vị, Khối lượng" className={adminInput} />
+              <p className={adminLabel}>Thuộc tính phân biệt (cha → con)</p>
+              <AttrLabelsEditor initial={[]} />
             </div>
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
               <Fa name="plus" /> Tạo nhóm

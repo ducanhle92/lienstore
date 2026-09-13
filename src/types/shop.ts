@@ -69,7 +69,7 @@ export interface CatalogProduct {
   /** Order inside the family; the lowest is the card shown on the shelf. */
   variantPosition: number;
   /** Set by listings when several variants were collapsed into this card. */
-  variantSummary?: { count: number; minPrice: number; maxPrice: number; groupName?: string };
+  variantSummary?: { count: number; minPrice: number; maxPrice: number; groupName?: string; variants: Array<{ id: number; slug: string; thumb: string; name: string }> };
 }
 
 /** A family of variants: one shelf card, one picker; members are ordinary products with `groupId` set. */

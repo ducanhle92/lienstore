@@ -11,9 +11,12 @@ export interface VariantSummary {
   count: number;
   minPrice: number;
   maxPrice: number;
+  groupName?: string;
+  /** The family members in picker order (thumbnail strip on the shelf card). */
+  variants: Array<{ id: number; slug: string; thumb: string; name: string }>;
 }
 
-export const MAX_VARIANT_ATTRS = 3;
+export const MAX_VARIANT_ATTRS = 4;
 
 /** Attribute labels of a group, cleaned: trimmed, unique, at most MAX_VARIANT_ATTRS. */
 export function normalizeAttrLabels(raw: string | string[]): string[] {
@@ -88,7 +91,8 @@ export function variantLabel(p: Pick<CatalogProduct, "name" | "variantAttrs">, l
 export function collapseVariants<T extends CatalogProduct>(products: T[], groupNames?: Map<number, string>): T[] {
   const firstIndex = new Map<number, number>();
   const rep = new Map<number, T>();
-  const summary = new Map<number, VariantSummary & { groupName?: string }>();
+  const summary = new Map<number, VariantSummary>();
+  const members = new Map<number, T[]>();
   const out: Array<T | null> = [];
   for (const p of products) {
     if (p.groupId === null) {
@@ -98,19 +102,25 @@ export function collapseVariants<T extends CatalogProduct>(products: T[], groupN
     const g = p.groupId;
     const s = summary.get(g);
     if (!s) {
-      summary.set(g, { count: 1, minPrice: p.price, maxPrice: p.price, ...(groupNames?.get(g) ? { groupName: groupNames.get(g) } : {}) });
+      summary.set(g, { count: 1, minPrice: p.price, maxPrice: p.price, ...(groupNames?.get(g) ? { groupName: groupNames.get(g) } : {}), variants: [] });
       firstIndex.set(g, out.length);
       rep.set(g, p);
+      members.set(g, [p]);
       out.push(null); // placeholder; filled once the representative is known
     } else {
       s.count++;
       s.minPrice = Math.min(s.minPrice, p.price);
       s.maxPrice = Math.max(s.maxPrice, p.price);
+      members.get(g)!.push(p);
       const cur = rep.get(g)!;
       if (p.variantPosition < cur.variantPosition || (p.variantPosition === cur.variantPosition && p.id < cur.id)) rep.set(g, p);
     }
   }
-  for (const [g, idx] of firstIndex) out[idx] = { ...rep.get(g)!, variantSummary: summary.get(g)! };
+  for (const [g, idx] of firstIndex) {
+    const s = summary.get(g)!;
+    s.variants = sortVariants(members.get(g)!).map((v) => ({ id: v.id, slug: v.slug, thumb: v.thumb || v.images[0] || "", name: v.name }));
+    out[idx] = { ...rep.get(g)!, variantSummary: s };
+  }
   return out.filter((p): p is T => p !== null);
 }
 

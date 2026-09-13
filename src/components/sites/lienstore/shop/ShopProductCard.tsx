@@ -74,7 +74,8 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
   const range = fam && fam.minPrice !== fam.maxPrice;
   // a collapsed family is titled after the family, not after whichever variant happens to be the representative
   const title = fam?.groupName || product.name;
-  const second = product.images.find((src) => src && src !== primary && src !== product.images[0]) ?? (product.images[0] && product.images[0] !== primary ? product.images[0] : null);
+  const siblingThumb = fam?.variants.find((v) => v.id !== product.id && v.thumb)?.thumb ?? null;
+  const second = siblingThumb ?? product.images.find((src) => src && src !== primary && src !== product.images[0]) ?? (product.images[0] && product.images[0] !== primary ? product.images[0] : null);
   return (
     <li className={cn("group relative flex flex-col rounded-md border border-lien-line bg-white transition-shadow hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]", className)}>
       <div className="relative overflow-hidden rounded-t-md">
@@ -122,6 +123,18 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
         <Link href={productHref(product)} className="no-underline">
           <h2 className="m-0 line-clamp-2 min-h-[36px] text-[12px] font-medium leading-[18px] text-lien-heading hover:text-lien-blue sm:min-h-[42px] sm:text-[14px] sm:leading-[21px]">{title}</h2>
         </Link>
+        {fam ? (
+          <ul className="mx-auto mt-1.5 mb-0 flex list-none justify-center gap-1 p-0" aria-label={`${fam.count} lựa chọn`} data-testid="variant-strip">
+            {fam.variants.slice(0, 5).map((v) => (
+              <li key={v.id}>
+                <Link href={`/product/${v.slug}/`} title={v.name} className={cn("block h-7 w-7 overflow-hidden rounded border bg-white sm:h-8 sm:w-8", v.id === product.id ? "border-lien-blue ring-1 ring-lien-blue" : "border-lien-line hover:border-lien-blue")}>
+                  {v.thumb ? <Image src={v.thumb} alt={v.name} width={32} height={32} className="h-full w-full object-contain" /> : null}
+                </Link>
+              </li>
+            ))}
+            {fam.variants.length > 5 ? <li className="flex h-7 w-7 items-center justify-center rounded border border-lien-line text-[10px] text-lien-muted sm:h-8 sm:w-8">+{fam.variants.length - 5}</li> : null}
+          </ul>
+        ) : null}
         {product.rating ? (
           <span className="mt-1 block">
             <StarRating rating={product.rating} className="text-[11px] sm:text-[13.7px]" size={0} />

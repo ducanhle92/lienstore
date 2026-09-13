@@ -91,15 +91,14 @@ export default async function ProductPage({ params }: PageProps) {
       <main id="main" className="mx-auto max-w-[1300px] px-4 py-6">
         <ProductPageNotice product={toCartProduct(product)} />
         <div id={`product-${product.id}`} className="product type-product grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
-          <div className="min-w-0">
-            <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" watermark={(await getSiteTheme()).logoLight} />
-            {/* SKU · tags · share live under the photos, out of the way of the buying column */}
-            <div className="mt-3 text-[13px] leading-6 text-lien-muted [&_.product_meta]:!pt-0 [&_.product_meta]:!text-[13px]">
+          <ProductGallery images={product.images.length ? product.images : [product.thumb]} alt={product.name} className="!float-none !mb-0 !w-full" watermark={(await getSiteTheme()).logoLight} />
+          <ProductInfo2 product={product} categoryNames={categoryNames} group={group ? { name: group.name, attrLabels: group.attrLabels } : null} variants={variants}>
+            {/* SKU · tags · share: bottom-right of the buying column, out of the way */}
+            <div className="mt-2 border-t border-lien-line pt-3 text-right text-[13px] leading-6 text-lien-muted [&_.product_meta]:!pt-0 [&_.product_meta]:!text-[13px] [&_.heateor_sss_sharing_container]:justify-end">
               <ProductMeta product={product} categoryNames={categoryNames} />
               <ProductShare name={product.name} slug={product.slug} />
             </div>
-          </div>
-          <ProductInfo2 product={product} categoryNames={categoryNames} group={group ? { name: group.name, attrLabels: group.attrLabels } : null} variants={variants} />
+          </ProductInfo2>
         </div>
 
         <div className="mt-10">

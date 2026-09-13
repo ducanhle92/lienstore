@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { saveGroupAction, saveVariantAction } from "@/app/admin/products/groups/actions";
+import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -43,11 +44,9 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
               <input id="name" name="name" defaultValue={group.name} required className={adminInput} />
             </div>
             <div>
-              <label className={adminLabel} htmlFor="attrLabels">
-                Thuộc tính phân biệt <span className="font-normal text-lien-muted">(tối đa 3, cách nhau dấu phẩy)</span>
-              </label>
-              <input id="attrLabels" name="attrLabels" defaultValue={group.attrLabels.join(", ")} placeholder="VD: Vị, Khối lượng" className={adminInput} />
-              <p className="mt-1 text-[12px] leading-5 text-lien-muted">Để trống thì trang sản phẩm hiện chip theo ảnh + phần tên khác nhau. Đặt thuộc tính (ví dụ “Vị”) rồi điền giá trị cho từng biến thể ở bảng bên để khách chọn theo hàng như trên kệ.</p>
+              <p className={adminLabel}>Thuộc tính phân biệt (cha → con)</p>
+              <AttrLabelsEditor initial={group.attrLabels} />
+              <p className="mt-1 text-[12px] leading-5 text-lien-muted">Lưu nhóm rồi điền giá trị cho từng biến thể ở bảng bên. Biến thể chưa điền giá trị sẽ hiện chip theo ảnh + phần tên khác nhau.</p>
             </div>
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
               <Fa name="check" /> Lưu nhóm
@@ -76,14 +75,14 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                   const fid = `v-${p.id}`;
                   return (
                     <tr key={p.id}>
-                      <td className={tdClass}>
+                      <td className={`${tdClass} min-w-[280px]`}>
                         <form id={fid} action={saveVariantAction}>
                           <input type="hidden" name="groupId" value={group.id} />
                           <input type="hidden" name="productId" value={p.id} />
                         </form>
                         <div className="flex items-center gap-2">
-                          {p.thumb ? <Image src={p.thumb} alt="" width={40} height={40} className="h-10 w-10 rounded border border-[#e5e7eb] object-contain" /> : null}
-                          <span className="flex flex-col leading-4">
+                          {p.thumb ? <Image src={p.thumb} alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
+                          <span className="flex min-w-0 flex-col leading-4">
                             <Link href={`/admin/products/${p.id}/`} className="text-[13px] font-semibold text-lien-heading hover:text-lien-blue">
                               {p.name}
                             </Link>
@@ -126,7 +125,7 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”). Giá hiển thị “Từ … ” khi các biến thể khác giá.</p>
+          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Khách chọn cấp 1 trước, cấp 2 chỉ hiện các mức có trong cấp 1 đã chọn. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”). Giá hiển thị “Từ … ” khi các biến thể khác giá.</p>
         </Card>
       </div>
     </>

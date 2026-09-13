@@ -34,19 +34,24 @@ export function VariantPicker({ group, variants, currentId }: Props) {
       disabled && "opacity-50 line-through",
     );
 
-  // With attribute labels: a row per attribute; the chip for value V links to the variant that matches V and keeps
-  // the other attributes of the current product (falling back to any variant with V).
+  // With attribute labels: a row per attribute, parent → child. Level i only offers the values that exist under the
+  // current choice of levels 0..i-1 (e.g. "Số viên" shows 420 / 840 only for the chosen "Loại"). The chip for value V
+  // links to the variant matching the parent chain + V, keeping the current child values when such a sibling exists.
   if (labels.length) {
     return (
       <div className="mt-4 space-y-3" data-testid="variant-picker">
-        {labels.map((label) => {
-          const values = attrValues(variants, label);
+        {labels.map((label, li) => {
+          const parents = labels.slice(0, li);
+          const pool = variants.filter((v) => parents.every((l) => !current.variantAttrs[l] || v.variantAttrs[l] === current.variantAttrs[l]));
+          const values = attrValues(pool.length ? pool : variants, label);
+          if (values.length === 0) return null;
           return (
             <div key={label} className="flex flex-wrap items-center gap-2">
               <span className="min-w-[72px] text-[13px] text-lien-muted">{label}:</span>
               {values.map((value) => {
-                const others = labels.filter((l) => l !== label);
-                const target = variants.find((v) => v.variantAttrs[label] === value && others.every((l) => !current.variantAttrs[l] || v.variantAttrs[l] === current.variantAttrs[l])) ?? variants.find((v) => v.variantAttrs[label] === value)!;
+                const children = labels.slice(li + 1);
+                const inPool = (pool.length ? pool : variants).filter((v) => v.variantAttrs[label] === value);
+                const target = inPool.find((v) => children.every((l) => !current.variantAttrs[l] || v.variantAttrs[l] === current.variantAttrs[l])) ?? inPool[0] ?? variants.find((v) => v.variantAttrs[label] === value)!;
                 const active = current.variantAttrs[label] === value;
                 const disabled = availabilityOf(target) === "discontinued";
                 return (

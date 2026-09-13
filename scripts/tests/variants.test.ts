@@ -11,7 +11,7 @@ const base = (over: Partial<CatalogProduct>): CatalogProduct =>
   }) as CatalogProduct;
 
 describe("normalizeAttrLabels / parseVariantAttrs", () => {
-  it("splits, trims, dedupes and caps at 3", () => assert.deepEqual(normalizeAttrLabels(" Vị, khối lượng ,vị, Hương, Size "), ["Vị", "khối lượng", "Hương"]));
+  it("splits, trims, dedupes and caps at 4", () => assert.deepEqual(normalizeAttrLabels(" Vị, khối lượng ,vị, Hương, Size, Màu "), ["Vị", "khối lượng", "Hương", "Size"]));
   it("parses only string values", () => assert.deepEqual(parseVariantAttrs('{"Vị":"Dâu","x":1,"y":" "}'), { Vị: "Dâu" }));
   it("tolerates garbage", () => assert.deepEqual(parseVariantAttrs("nope"), {}));
 });
@@ -24,7 +24,8 @@ describe("collapseVariants", () => {
     const out = collapseVariants([a, c, b]);
     assert.equal(out.length, 2);
     assert.equal(out[0].id, 2, "representative = lowest variantPosition");
-    assert.deepEqual(out[0].variantSummary, { count: 2, minPrice: 363000, maxPrice: 401000 });
+    assert.deepEqual(out[0].variantSummary, { count: 2, minPrice: 363000, maxPrice: 401000, variants: [{ id: 2, slug: "b", thumb: "", name: "Nama Socola Au Lait" }, { id: 1, slug: "a", thumb: "", name: "Nama Socola Matcha" }] });
+    assert.equal(collapseVariants([a, b], new Map([[7, "Nama Socola"]]))[0].variantSummary?.groupName, "Nama Socola");
     assert.equal(out[1].id, 3);
     assert.equal(out[1].variantSummary, undefined);
   });

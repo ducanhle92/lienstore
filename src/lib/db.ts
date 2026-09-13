@@ -533,7 +533,8 @@ export async function getProductGroupById(id: number): Promise<ProductGroup | nu
 export async function saveProductGroup(input: { id?: number; name: string; attrLabels: string[] }): Promise<ProductGroup> {
   const db = getDb();
   const name = input.name.trim().slice(0, 120);
-  const labels = JSON.stringify(normalizeAttrLabels(input.attrLabels));
+  const cleaned = normalizeAttrLabels(input.attrLabels);
+  const labels = JSON.stringify(cleaned.length ? cleaned : ["Loại"]);
   if (input.id) {
     db.prepare("UPDATE product_groups SET name = ?, attr_labels = ? WHERE id = ?").run(name, labels, input.id);
     return (await getProductGroupById(input.id))!;

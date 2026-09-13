@@ -370,7 +370,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor="groupAttrLabels">
-                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(tối đa 3, cách nhau dấu phẩy)</span>
+                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(cha → con, tối đa 4, cách nhau dấu phẩy; để trống = “Loại”)</span>
                     </label>
                     <input id="groupAttrLabels" name="groupAttrLabels" value={newLabels} onChange={(e) => setNewLabels(e.target.value)} placeholder="VD: Vị, Khối lượng" className={adminInput} />
                   </div>
