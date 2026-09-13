@@ -140,8 +140,19 @@ for (const t of theirs) {
   else if (diff > 0) verdict = `LienStore đắt hơn ${pct}%`;
   else verdict = `LienStore rẻ hơn ${Math.abs(pct)}%`;
   if (o && costVnd && t.price !== null && t.price < costVnd) verdict += " · j86 bán dưới giá vốn của mình";
+  // recommendation: keep / lower towards j86 / raise / re-check the ¥ cost match
+  let advice = "";
+  if (o && t.price !== null && ourPrice) {
+    if (!costVnd) advice = "Chưa có giá vốn — nhập giá vốn ¥ rồi xét lại";
+    else if (t.price < costVnd) advice = `Kiểm tra lại giá vốn ¥ (${o.cost_jpy ?? "?"}¥): j86 bán ${t.price.toLocaleString("vi-VN")}đ < vốn ${costVnd.toLocaleString("vi-VN")}đ → khả năng khớp sai sản phẩm/dung tích`;
+    else if (pct > 15 && marginIfMatch >= 20) advice = `Có thể giảm về ~${t.price.toLocaleString("vi-VN")}đ (lãi còn ${marginIfMatch}%)`;
+    else if (pct > 15 && marginIfMatch >= 10) advice = `Giảm một phần (về giá j86 lãi chỉ ${marginIfMatch}%)`;
+    else if (pct > 15) advice = `Giữ giá — bằng giá j86 lãi chỉ ${marginIfMatch}%`;
+    else if (pct < -10) advice = `Có thể tăng ~${Math.round(Math.abs(diff) / 1000)}k lên gần giá j86`;
+    else advice = "Giữ giá (chênh ≤ 15%)";
+  } else if (!o) advice = "Xem có nên nhập bán";
   out.push({
-    verdict, how, conf: Math.round(conf * 100),
+    verdict, advice, how, conf: Math.round(conf * 100),
     j86_ten: t.name, j86_gia: t.price, j86_gia_goc: t.regular, j86_tinh_trang: t.stock, j86_danh_muc: t.cat, j86_url: t.url || (t.slug ? `https://j86store.com/product/${t.slug}/` : ""),
     ls_ten: o?.name ?? "", ls_sku: o?.sku ?? "", ls_gia: ourPrice ?? "", ls_gia_goc: o?.regular_price ?? "", ls_trang_thai: o ? `${o.status}${o.stock_status === "outofstock" ? " · ngừng bán" : ""}` : "", ls_danh_muc: o?.cats ?? "",
     chenh_lech_d: diff ?? "", chenh_lech_pct: pct ?? "",
@@ -152,7 +163,7 @@ for (const t of theirs) {
 // ours that j86 does not sell
 for (const o of ours) {
   if (used.has(o.id) || o.status !== "publish") continue;
-  out.push({ verdict: "Chỉ LienStore có", how: "", conf: "", j86_ten: "", j86_gia: "", j86_gia_goc: "", j86_tinh_trang: "", j86_danh_muc: "", j86_url: "", ls_ten: o.name, ls_sku: o.sku, ls_gia: o.price, ls_gia_goc: o.regular_price ?? "", ls_trang_thai: o.status, ls_danh_muc: o.cats ?? "", chenh_lech_d: "", chenh_lech_pct: "", ls_gia_von_vnd: o.cost_price ?? "", ls_lai_pct: "", lai_neu_ban_bang_gia_j86_pct: "", ls_url: `https://linconnn.io.vn/product/${o.slug}/` });
+  out.push({ verdict: "Chỉ LienStore có", advice: "", how: "", conf: "", j86_ten: "", j86_gia: "", j86_gia_goc: "", j86_tinh_trang: "", j86_danh_muc: "", j86_url: "", ls_ten: o.name, ls_sku: o.sku, ls_gia: o.price, ls_gia_goc: o.regular_price ?? "", ls_trang_thai: o.status, ls_danh_muc: o.cats ?? "", chenh_lech_d: "", chenh_lech_pct: "", ls_gia_von_vnd: o.cost_price ?? "", ls_lai_pct: "", lai_neu_ban_bang_gia_j86_pct: "", ls_url: `https://linconnn.io.vn/product/${o.slug}/` });
 }
 const order = { 0: 0 };
 const rank = (v) => (v.startsWith("LienStore đắt") ? 0 : v.startsWith("LienStore rẻ") ? 1 : v === "Ngang giá" ? 2 : v.startsWith("Không có") ? 3 : v.startsWith("j86") || v.startsWith("LienStore chưa") ? 4 : 5);
@@ -161,7 +172,7 @@ void order;
 
 // ---------- write ----------
 const COLS = [
-  ["verdict", "Kết luận"], ["how", "Cách khớp"], ["conf", "Độ tin cậy %"],
+  ["verdict", "Kết luận"], ["advice", "Đề xuất"], ["how", "Cách khớp"], ["conf", "Độ tin cậy %"],
   ["j86_ten", "J86 · tên"], ["j86_gia", "J86 · giá bán"], ["j86_gia_goc", "J86 · giá gốc"], ["j86_tinh_trang", "J86 · tình trạng"], ["j86_danh_muc", "J86 · danh mục"], ["j86_url", "J86 · URL"],
   ["ls_ten", "LienStore · tên"], ["ls_sku", "LienStore · SKU"], ["ls_gia", "LienStore · giá bán"], ["ls_gia_goc", "LienStore · giá gốc"], ["ls_trang_thai", "LienStore · trạng thái"], ["ls_danh_muc", "LienStore · danh mục"],
   ["chenh_lech_d", "Chênh lệch (đ) = LS − J86"], ["chenh_lech_pct", "Chênh lệch %"],
