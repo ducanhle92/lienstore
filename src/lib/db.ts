@@ -42,6 +42,7 @@ import { cheapestQuote } from "./cost-sources";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
+import { liveGhnTransferMethod } from "./carriers/ghn-transfer";
 import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
@@ -2224,11 +2225,18 @@ export async function setQuoteDefaults(defaults: Partial<Record<ShippingLeg, num
   setSetting(getDb(), "pricing_default_methods", JSON.stringify(defaults));
 }
 
-/** Active methods of the import legs + current ¥ rate, for the selling-price formula (independent of the checkout pricing mode). */
+/**
+ * Active methods of the import legs + current ¥ rate, for the selling-price formula (independent of the checkout
+ * pricing mode). Chặng ③ (kho ĐVVC → kho shop) prefers a live GHN quote for the whole lot over the static rate card
+ * when GHN is connected; falls back to the static method automatically if GHN is not configured or the call fails.
+ */
 export async function getImportQuoteConfig(): Promise<ShippingQuoteConfig> {
   const db = getDb();
   const rate = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
-  return buildQuoteConfig(loadShippingMethods(db, true), "per_order", Number.isFinite(rate) && rate > 0 ? rate : 175, loadQuoteDefaults(db));
+  const cfg = buildQuoteConfig(loadShippingMethods(db, true), "per_order", Number.isFinite(rate) && rate > 0 ? rate : 175, loadQuoteDefaults(db));
+  const lotWeightG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
+  const liveVnTransfer = await liveGhnTransferMethod(lotWeightG);
+  return liveVnTransfer ? { ...cfg, vnTransfer: liveVnTransfer } : cfg;
 }
 
 /** Free-text notes shown under the shipping tables (one per line in admin). */

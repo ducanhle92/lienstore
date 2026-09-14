@@ -24,6 +24,8 @@ export interface PricingConfig {
 
 export const DEFAULT_PRICING: PricingConfig = { marginPct: 25, roundTo: 1000, lotWeightG: 10000, marginByCategory: {}, categoryParent: {} };
 export const MARGIN_RANGE = { min: 0, max: 100, suggestedMin: 20, suggestedMax: 32 };
+/** A single product may need a much higher margin than the shop average (accessories, rare items) — wider than MARGIN_RANGE. */
+export const PRODUCT_MARGIN_RANGE = { min: 0, max: 500 };
 
 export function parsePricing(raw: string | null | undefined): PricingConfig {
   if (!raw) return { ...DEFAULT_PRICING };

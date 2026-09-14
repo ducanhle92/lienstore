@@ -1,7 +1,7 @@
 /** Selling-price formula — pure unit tests:  npm run test:pricing */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEFAULT_PRICING, effectiveMarginPct, quoteImportLegsProRata, suggestPrice } from "../../src/lib/pricing";
+import { DEFAULT_PRICING, effectiveMarginPct, PRODUCT_MARGIN_RANGE, quoteImportLegsProRata, suggestPrice } from "../../src/lib/pricing";
 import type { ShippingQuoteConfig } from "../../src/lib/shipping";
 
 /**
@@ -69,4 +69,17 @@ describe("effectiveMarginPct — override chain", () => {
   it("falls back to the product's own category", () => assert.equal(effectiveMarginPct(cfg, null, ["duong-da-mat"]), 22));
   it("falls back to the category's parent when the category itself has no override", () => assert.equal(effectiveMarginPct(cfg, null, ["sua-rua-mat"]), 30));
   it("falls back to the shop default", () => assert.equal(effectiveMarginPct(cfg, null, ["mom-and-baby"]), 25));
+});
+
+describe("PRODUCT_MARGIN_RANGE — a per-product override may go well above the shop-wide MARGIN_RANGE", () => {
+  it("allows up to 500%, wider than the shop default's 0–100", () => {
+    assert.equal(PRODUCT_MARGIN_RANGE.min, 0);
+    assert.equal(PRODUCT_MARGIN_RANGE.max, 500);
+  });
+  it("suggestPrice honours a product override above 100%", () => {
+    const s = suggestPrice({ costPrice: 100000, weightG: 2000, dimsCm: null, dimsConfidence: "high", marginPct: 200, categories: [] }, quote, pricing)!;
+    assert.equal(s.marginPct, 200);
+    // raw = 100,000 × 3 + 573,600 = 873,600
+    assert.equal(s.raw, 873600);
+  });
 });

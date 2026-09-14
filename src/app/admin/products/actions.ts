@@ -1,6 +1,7 @@
 "use server";
 
 import { isCostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
+import { PRODUCT_MARGIN_RANGE } from "@/lib/pricing";
 import { isDimsConfidence } from "@/lib/shipping";
 
 import { revalidatePath } from "next/cache";
@@ -78,7 +79,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
 
   const marginRaw = get("marginPct").replace(",", ".");
   const marginPct = marginRaw === "" ? null : Number.parseFloat(marginRaw);
-  if (marginRaw !== "" && (marginPct === null || !Number.isFinite(marginPct) || marginPct < 0 || marginPct > 100)) fields.marginPct = "Lãi riêng phải là số % từ 0 đến 100.";
+  if (marginRaw !== "" && (marginPct === null || !Number.isFinite(marginPct) || marginPct < PRODUCT_MARGIN_RANGE.min || marginPct > PRODUCT_MARGIN_RANGE.max)) fields.marginPct = `Lãi riêng phải là số % từ ${PRODUCT_MARGIN_RANGE.min} đến ${PRODUCT_MARGIN_RANGE.max}.`;
   // the supplier link is the link of the chosen purchase source
   const supplierUrl = primaryRow?.url ?? "";
   const minRaw = get("minStock");

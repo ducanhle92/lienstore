@@ -1,5 +1,6 @@
 import type { CatalogProduct } from "@/types/shop";
 import type { PriceBreakdown } from "./pricing";
+import { PRODUCT_MARGIN_RANGE } from "./pricing";
 import { isDimsConfidence } from "./shipping";
 
 /**
@@ -182,7 +183,7 @@ export function csvRowToPatch(rec: Record<string, string>): { patch: CsvPatch; e
     if (raw === "") patch.marginPct = null;
     else {
       const v = Number.parseFloat(raw);
-      if (!Number.isFinite(v) || v < 0 || v > 100) errors.push(`Tỉ lệ lãi kỳ vọng (%): "${rec["Tỉ lệ lãi kỳ vọng (%)"]}" không hợp lệ (0–100)`);
+      if (!Number.isFinite(v) || v < PRODUCT_MARGIN_RANGE.min || v > PRODUCT_MARGIN_RANGE.max) errors.push(`Tỉ lệ lãi kỳ vọng (%): "${rec["Tỉ lệ lãi kỳ vọng (%)"]}" không hợp lệ (${PRODUCT_MARGIN_RANGE.min}–${PRODUCT_MARGIN_RANGE.max})`);
       else patch.marginPct = v;
     }
   }

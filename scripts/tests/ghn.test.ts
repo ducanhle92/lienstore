@@ -36,6 +36,9 @@ describe("validateQuoteInput", () => {
   it("rejects an empty ward code", () => assert.throws(() => validateQuoteInput({ ...ok, toWardCode: " " })));
   it("keeps leading zeros of ward codes (string)", () => assert.doesNotThrow(() => validateQuoteInput({ ...ok, toWardCode: "00123" })));
   it("rejects negative cod", () => assert.throws(() => validateQuoteInput({ ...ok, codValue: -1 })));
+  it("accepts a valid custom pickup override (warehouse-to-warehouse routes)", () => assert.doesNotThrow(() => validateQuoteInput({ ...ok, fromDistrictId: 3440, fromWardCode: "13010" })));
+  it("rejects a non-positive fromDistrictId", () => assert.throws(() => validateQuoteInput({ ...ok, fromDistrictId: 0 }), (e: unknown) => e instanceof GhnApiError && e.code === "INVALID_QUOTE_INPUT"));
+  it("rejects a blank fromWardCode", () => assert.throws(() => validateQuoteInput({ ...ok, fromWardCode: "  " })));
 });
 
 describe("packageDims", () => {

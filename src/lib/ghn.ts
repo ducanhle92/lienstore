@@ -232,6 +232,9 @@ export interface GhnQuoteInput {
   height: number;
   insuranceValue?: number;
   codValue?: number;
+  /** Override the pickup point (settings) for this one quote — e.g. a warehouse-to-warehouse route that is not "from the shop". */
+  fromDistrictId?: number;
+  fromWardCode?: string;
 }
 
 export interface GhnQuote {
@@ -274,6 +277,8 @@ export function validateQuoteInput(input: GhnQuoteInput): void {
     if (!Number.isInteger(v) || v <= 0) throw new GhnApiError(`${name} không hợp lệ`, 400, "INVALID_QUOTE_INPUT");
   }
   if (!input.toWardCode?.trim()) throw new GhnApiError("toWardCode không hợp lệ", 400, "INVALID_QUOTE_INPUT");
+  if (input.fromDistrictId !== undefined && (!Number.isInteger(input.fromDistrictId) || input.fromDistrictId <= 0)) throw new GhnApiError("fromDistrictId không hợp lệ", 400, "INVALID_QUOTE_INPUT");
+  if (input.fromWardCode !== undefined && !input.fromWardCode.trim()) throw new GhnApiError("fromWardCode không hợp lệ", 400, "INVALID_QUOTE_INPUT");
   for (const [name, v] of [
     ["insuranceValue", input.insuranceValue ?? 0],
     ["codValue", input.codValue ?? 0],
@@ -282,12 +287,13 @@ export function validateQuoteInput(input: GhnQuoteInput): void {
   }
 }
 
-async function availableServices(toDistrictId: number): Promise<GhnService[]> {
+async function availableServices(toDistrictId: number, fromDistrictId?: number): Promise<GhnService[]> {
   const cfg = config();
-  return cached(`services:${cfg.shopId}:${cfg.pickupDistrictId}:${toDistrictId}`, 15 * 60 * 1000, async () => {
+  const from = fromDistrictId ?? cfg.pickupDistrictId;
+  return cached(`services:${cfg.shopId}:${from}:${toDistrictId}`, 15 * 60 * 1000, async () => {
     const rows = await request<GhnService[] | null>("/shiip/public-api/v2/shipping-order/available-services", {
       method: "POST",
-      body: JSON.stringify({ shop_id: cfg.shopId, from_district: cfg.pickupDistrictId, to_district: toDistrictId }),
+      body: JSON.stringify({ shop_id: cfg.shopId, from_district: from, to_district: toDistrictId }),
     });
     return rows ?? [];
   });
@@ -297,15 +303,17 @@ async function availableServices(toDistrictId: number): Promise<GhnService[]> {
 export async function quoteGhn(input: GhnQuoteInput): Promise<GhnQuote> {
   validateQuoteInput(input);
   const cfg = config();
-  const key = `quote:${JSON.stringify([cfg.shopId, input.toDistrictId, input.toWardCode, input.weight, input.length, input.width, input.height, input.insuranceValue ?? 0, input.codValue ?? 0])}`;
+  const fromDistrictId = input.fromDistrictId ?? cfg.pickupDistrictId;
+  const fromWardCode = (input.fromWardCode ?? cfg.pickupWardCode).trim();
+  const key = `quote:${JSON.stringify([cfg.shopId, fromDistrictId, fromWardCode, input.toDistrictId, input.toWardCode, input.weight, input.length, input.width, input.height, input.insuranceValue ?? 0, input.codValue ?? 0])}`;
   return cached(key, 5 * 60 * 1000, async () => {
-    const service = pickService(await availableServices(input.toDistrictId), input.weight);
+    const service = pickService(await availableServices(input.toDistrictId, fromDistrictId), input.weight);
     if (!service) throw new GhnApiError("GHN chưa hỗ trợ loại hàng trên tuyến này.", 422, "GHN_ROUTE_NOT_SUPPORTED");
     const fee = await request<GhnFeeRaw>("/shiip/public-api/v2/shipping-order/fee", {
       method: "POST",
       body: JSON.stringify({
-        from_district_id: cfg.pickupDistrictId,
-        from_ward_code: cfg.pickupWardCode,
+        from_district_id: fromDistrictId,
+        from_ward_code: fromWardCode,
         to_district_id: input.toDistrictId,
         to_ward_code: input.toWardCode.trim(),
         service_type_id: service.service_type_id,
@@ -324,7 +332,7 @@ export async function quoteGhn(input: GhnQuoteInput): Promise<GhnQuote> {
     try {
       const lt = await request<{ leadtime?: number }>("/shiip/public-api/v2/shipping-order/leadtime", {
         method: "POST",
-        body: JSON.stringify({ from_district_id: cfg.pickupDistrictId, from_ward_code: cfg.pickupWardCode, to_district_id: input.toDistrictId, to_ward_code: input.toWardCode.trim(), service_id: service.service_id }),
+        body: JSON.stringify({ from_district_id: fromDistrictId, from_ward_code: fromWardCode, to_district_id: input.toDistrictId, to_ward_code: input.toWardCode.trim(), service_id: service.service_id }),
       });
       if (lt?.leadtime && Number.isFinite(lt.leadtime)) expectedDelivery = new Date(lt.leadtime * 1000).toISOString();
     } catch {
