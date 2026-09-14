@@ -3,9 +3,10 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
-import { effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
+import { DEFAULT_PRICING, effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
 import { costSourceLabel, sourceFromUrl } from "@/lib/cost-sources";
 import { CostSourcesEditor } from "./CostSourcesEditor";
+import { InfoPopover } from "./InfoPopover";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
           pricing,
         )
       : null;
+  // for the "?" explanations on the expected-price breakdown (how each row was computed)
+  const lotWeightG = pricing?.lotWeightG ?? DEFAULT_PRICING.lotWeightG;
+  const vnd = (n: number) => `${Math.round(n).toLocaleString("vi-VN")}đ`;
   const fields = state?.fields ?? {};
 
   return (
@@ -254,41 +258,123 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     <table className="mt-2 w-full border-collapse text-[12px]" data-testid="expected-breakdown">
                       <tbody>
                         <tr>
-                          <td className="py-0.5 pr-2 text-lien-muted">Giá vốn tại Nhật (¥ → VNĐ)</td>
+                          <td className="py-0.5 pr-2 text-lien-muted">
+                            Giá vốn tại Nhật (¥ → VNĐ)
+                            <InfoPopover>
+                              {primaryJpy && costFromJpy ? (
+                                <>
+                                  {primaryJpy.toLocaleString("vi-VN")}¥ × tỉ giá {rate.toLocaleString("vi-VN")}đ/¥ = <strong>{vnd(costFromJpy)}</strong>
+                                  {product?.costSource ? (
+                                    <>
+                                      {" "}
+                                      (nguồn: {sources.length ? purchaseSourceName(product.costSource, sources) : costSourceLabel(product.costSource)})
+                                    </>
+                                  ) : null}
+                                  .{" "}
+                                  {suggestion.cost !== costFromJpy ? (
+                                    <>Đang dùng giá vốn đã sửa tay ở trên: {vnd(suggestion.cost)} — bấm &quot;Tính lại giá vốn&quot; để lấy lại đúng ¥ × tỉ giá.</>
+                                  ) : (
+                                    "Đây là số đang dùng làm giá vốn."
+                                  )}
+                                </>
+                              ) : (
+                                <>Giá vốn nhập tay: {vnd(suggestion.cost)} (chưa chọn nguồn ¥ ở trên, hoặc tỉ giá JPY/VND đang là 0 — kiểm tra ở Công thức giá).</>
+                              )}
+                            </InfoPopover>
+                          </td>
                           <td className="py-0.5 text-right font-medium text-lien-heading">{suggestion.cost.toLocaleString("vi-VN")}đ</td>
                         </tr>
                         {(["jp_domestic", "jp_vn", "vn_transfer"] as const).map((leg) => {
                           const l = suggestion.legs.find((x) => x.leg === leg);
+                          const share = lotWeightG > 0 ? suggestion.weightG / lotWeightG : 0;
                           return (
                             <tr key={leg}>
-                              <td className="py-0.5 pr-2 text-lien-muted">Phí {LEG_LABEL[leg]}</td>
+                              <td className="py-0.5 pr-2 text-lien-muted">
+                                Phí {LEG_LABEL[leg]}
+                                <InfoPopover>
+                                  {l ? (
+                                    <>
+                                      <strong>{l.label}</strong>.<br />
+                                      Cân tính phí của sản phẩm này: {suggestion.weightG.toLocaleString("vi-VN")} g, trên một lô gộp {(lotWeightG / 1000).toLocaleString("vi-VN")} kg → chiếm {(Math.round(share * 1000) / 10).toLocaleString("vi-VN")}% của lô.
+                                      <br />
+                                      Phí cả lô được chia theo tỉ lệ này; phần của sản phẩm này: {l.feeRaw.toLocaleString("vi-VN")}
+                                      {l.currency}
+                                      {l.currency !== "đ" ? (
+                                        <>
+                                          {" "}
+                                          × tỉ giá {rate.toLocaleString("vi-VN")}đ/¥
+                                        </>
+                                      ) : null}{" "}
+                                      = <strong>{vnd(l.fee)}</strong>.
+                                    </>
+                                  ) : (
+                                    <>Chưa có phương thức nào cho chặng này — tạm tính 0đ. Vào <strong>Vận chuyển</strong> ({LEG_LABEL[leg]}) để thêm phương thức, và <strong>Công thức giá</strong> để đặt phương thức mặc định.</>
+                                  )}
+                                </InfoPopover>
+                              </td>
                               <td className="py-0.5 text-right text-lien-text">{l ? `${l.fee.toLocaleString("vi-VN")}đ` : "— chưa có phương thức"}</td>
                             </tr>
                           );
                         })}
                         <tr className="border-t border-lien-blue/20">
-                          <td className="py-0.5 pr-2 font-medium text-lien-text">Tổng phí vận chuyển ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí)</td>
+                          <td className="py-0.5 pr-2 font-medium text-lien-text">
+                            Tổng phí vận chuyển ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí)
+                            <InfoPopover>
+                              {suggestion.legs.length ? suggestion.legs.map((l) => vnd(l.fee)).join(" + ") : "0đ"} = <strong>{vnd(suggestion.shipping)}</strong>.{" "}
+                              {suggestion.legs.length < 3 ? "Chặng còn thiếu phương thức được tính là 0đ ở trên, nên tổng này đang thấp hơn thực tế." : "Cả 3 chặng đều đã có phương thức."}
+                            </InfoPopover>
+                          </td>
                           <td className="py-0.5 text-right font-medium text-lien-heading">{suggestion.shipping.toLocaleString("vi-VN")}đ</td>
                         </tr>
                         <tr className="border-t border-lien-blue/20">
-                          <td className="py-0.5 pr-2 font-semibold text-lien-heading">Giá vốn về tới kho VN</td>
+                          <td className="py-0.5 pr-2 font-semibold text-lien-heading">
+                            Giá vốn về tới kho VN
+                            <InfoPopover>
+                              {vnd(suggestion.cost)} (giá vốn tại Nhật) + {vnd(suggestion.shipping)} (tổng phí ship 3 chặng) = <strong>{vnd(suggestion.landed)}</strong>. Đây là số tiền hàng thực sự tốn khi về tới kho shop, chưa cộng lãi.
+                            </InfoPopover>
+                          </td>
                           <td className="py-0.5 text-right font-semibold text-lien-heading">{suggestion.landed.toLocaleString("vi-VN")}đ</td>
                         </tr>
                         <tr>
-                          <td className="py-0.5 pr-2 text-lien-muted">Tỉ lệ lợi nhuận kỳ vọng (trên giá vốn tại Nhật)</td>
+                          <td className="py-0.5 pr-2 text-lien-muted">
+                            Tỉ lệ lợi nhuận kỳ vọng (trên giá vốn tại Nhật)
+                            <InfoPopover>
+                              {marginText.trim() === "" ? (
+                                <>
+                                  Đang dùng {defaultMargin}% — {pricing && defaultMargin !== pricing.marginPct ? "tỉ lệ theo danh mục sản phẩm" : "tỉ lệ mặc định của shop"} (đặt ở <strong>Công thức giá</strong>). Chưa đặt riêng cho sản phẩm này.
+                                </>
+                              ) : (
+                                <>Đang dùng {suggestion.marginPct}% đặt riêng cho sản phẩm này (ô &quot;Tỉ lệ lãi kỳ vọng&quot; ở trên) — bấm &quot;Bỏ tỉ lệ riêng&quot; để quay về mặc định.</>
+                              )}{" "}
+                              Lãi chỉ nhân vào giá vốn tại Nhật, không nhân vào phí ship.
+                            </InfoPopover>
+                          </td>
                           <td className="py-0.5 text-right text-lien-text">{suggestion.marginPct}%</td>
                         </tr>
                         <tr className="border-t border-lien-blue/30">
-                          <td className="py-1 pr-2 font-semibold text-lien-heading">Giá kỳ vọng bán ra trên website</td>
+                          <td className="py-1 pr-2 font-semibold text-lien-heading">
+                            Giá kỳ vọng bán ra trên website
+                            <InfoPopover>
+                              ({vnd(suggestion.cost)} × (1 + {suggestion.marginPct}%)) + {vnd(suggestion.shipping)} = {vnd(Math.round(suggestion.raw))}, làm tròn lên bội số của {(pricing?.roundTo ?? DEFAULT_PRICING.roundTo).toLocaleString("vi-VN")}đ (đặt ở Công thức giá) = <strong>{vnd(suggestion.suggested)}</strong>.
+                            </InfoPopover>
+                          </td>
                           <td className="py-1 text-right font-semibold text-lien-heading">{suggestion.suggested.toLocaleString("vi-VN")}đ</td>
                         </tr>
                         <tr>
-                          <td className={cn("py-0.5 pr-2 font-medium", suggestion.margin >= 0 ? "text-green-700" : "text-red-600")}>Lợi nhuận kỳ vọng</td>
+                          <td className={cn("py-0.5 pr-2 font-medium", suggestion.margin >= 0 ? "text-green-700" : "text-red-600")}>
+                            Lợi nhuận kỳ vọng
+                            <InfoPopover>
+                              {vnd(suggestion.suggested)} (giá kỳ vọng) − {vnd(suggestion.landed)} (giá vốn về tới kho VN) = <strong>{vnd(suggestion.margin)}</strong>
+                              {suggestion.suggested > 0 ? <> ({(Math.round((suggestion.margin / suggestion.suggested) * 1000) / 10).toLocaleString("vi-VN")}% trên giá bán)</> : null}.
+                            </InfoPopover>
+                          </td>
                           <td className={cn("py-0.5 text-right font-medium", suggestion.margin >= 0 ? "text-green-700" : "text-red-600")}>{suggestion.margin.toLocaleString("vi-VN")}đ</td>
                         </tr>
                       </tbody>
                     </table>
-                    <p className="m-0 mt-1.5 text-[11px] text-lien-muted">Công thức: (giá vốn tại Nhật × (1 + tỉ lệ lãi)) + phí ship 3 chặng — lãi chỉ tính trên giá vốn tại Nhật, phí ship cộng thẳng không nhân lãi.</p>
+                    <p className="m-0 mt-1.5 text-[11px] text-lien-muted">
+                      Công thức: (giá vốn tại Nhật × (1 + tỉ lệ lãi)) + phí ship 3 chặng — lãi chỉ tính trên giá vốn tại Nhật, phí ship cộng thẳng không nhân lãi. Bấm <Fa name="info-circle" className="text-lien-blue/70" /> ở mỗi dòng để xem cách tính chi tiết.
+                    </p>
                   </div>
                 ) : null}
               </div>
