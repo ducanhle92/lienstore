@@ -1,7 +1,9 @@
 /**
  * Selling-price formula (Admin › Kho hàng › Công thức giá):
- *   giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí vận chuyển 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop)
- *   giá bán trên website = giá vốn về tới VN × (1 + lãi %), rounded up to the nearest step
+ *   giá vốn tại Nhật = giá vốn (¥ × tỉ giá)
+ *   giá vốn về tới VN = giá vốn tại Nhật + phí vận chuyển 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop)
+ *   giá bán trên website = (giá vốn tại Nhật × (1 + lãi %)) + phí vận chuyển 3 chặng, rounded up to the nearest step
+ *     — lãi chỉ tính trên giá vốn hàng hoá tại Nhật; phí ship được cộng thẳng, không nhân lãi lên phí ship
  *   lợi nhuận = giá bán trên website − giá vốn về tới VN
  * The margin is the shop default (25 %) unless the product carries its own. Pure module shared by admin pages and the form.
  */
@@ -111,15 +113,19 @@ export function quoteImportLegsProRata(quote: ShippingQuoteConfig, weightG: numb
   return out;
 }
 
-/** Suggested selling price for one unit; null when the cost price is unknown. */
+/**
+ * Suggested selling price for one unit; null when the cost price is unknown. The margin marks up only the cost of
+ * the goods at Japan — the 3-leg import shipping is added afterwards at cost, never marked up — so a heavy/cheap
+ * item never gets an inflated margin just because its shipping is expensive.
+ */
 export function suggestPrice(p: PriceInput, quote: ShippingQuoteConfig, pricing: PricingConfig): PriceBreakdown | null {
   if (p.costPrice === null || !Number.isFinite(p.costPrice) || p.costPrice <= 0) return null;
   const weightG = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);
   const legs = quoteImportLegsProRata(quote, weightG, pricing.lotWeightG);
   const shipping = legs.reduce((s, l) => s + l.fee, 0);
-  const landed = p.costPrice + shipping;
+  const landed = p.costPrice + shipping; // giá vốn về tới VN — cost of goods delivered, no markup (for reporting)
   const marginPct = effectiveMarginPct(pricing, p.marginPct, p.categories ?? []);
-  const raw = landed * (1 + marginPct / 100);
+  const raw = p.costPrice * (1 + marginPct / 100) + shipping; // lãi chỉ trên giá vốn tại Nhật; phí ship cộng thẳng
   const step = Math.max(1, pricing.roundTo);
   const suggested = Math.ceil(raw / step) * step;
   return { cost: p.costPrice, marginPct, margin: suggested - landed, landed, weightG, legs, shipping, raw, suggested };

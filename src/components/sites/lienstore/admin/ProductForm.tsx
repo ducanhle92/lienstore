@@ -251,10 +251,44 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                         <Fa name="check" /> Dùng giá này
                       </button>
                     </div>
-                    <p className="m-0 mt-1 text-lien-muted">
-                      Giá vốn về tới VN {suggestion.landed.toLocaleString("vi-VN")} = vốn {suggestion.cost.toLocaleString("vi-VN")} + ship 3 chặng {suggestion.shipping.toLocaleString("vi-VN")} ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí
-                      {suggestion.legs.length ? `: ${suggestion.legs.map((l) => `${LEG_LABEL[l.leg]} ${l.fee.toLocaleString("vi-VN")}`).join(" · ")}` : " — chưa có phương thức chặng nhập hàng"}) · × (1 + {suggestion.marginPct}%) → lợi nhuận kỳ vọng {suggestion.margin.toLocaleString("vi-VN")}đ.
-                    </p>
+                    <table className="mt-2 w-full border-collapse text-[12px]" data-testid="expected-breakdown">
+                      <tbody>
+                        <tr>
+                          <td className="py-0.5 pr-2 text-lien-muted">Giá vốn tại Nhật (¥ → VNĐ)</td>
+                          <td className="py-0.5 text-right font-medium text-lien-heading">{suggestion.cost.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                        {(["jp_domestic", "jp_vn", "vn_transfer"] as const).map((leg) => {
+                          const l = suggestion.legs.find((x) => x.leg === leg);
+                          return (
+                            <tr key={leg}>
+                              <td className="py-0.5 pr-2 text-lien-muted">Phí {LEG_LABEL[leg]}</td>
+                              <td className="py-0.5 text-right text-lien-text">{l ? `${l.fee.toLocaleString("vi-VN")}đ` : "— chưa có phương thức"}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-t border-lien-blue/20">
+                          <td className="py-0.5 pr-2 font-medium text-lien-text">Tổng phí vận chuyển ({suggestion.weightG.toLocaleString("vi-VN")} g tính phí)</td>
+                          <td className="py-0.5 text-right font-medium text-lien-heading">{suggestion.shipping.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                        <tr className="border-t border-lien-blue/20">
+                          <td className="py-0.5 pr-2 font-semibold text-lien-heading">Giá vốn về tới kho VN</td>
+                          <td className="py-0.5 text-right font-semibold text-lien-heading">{suggestion.landed.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                        <tr>
+                          <td className="py-0.5 pr-2 text-lien-muted">Tỉ lệ lợi nhuận kỳ vọng (trên giá vốn tại Nhật)</td>
+                          <td className="py-0.5 text-right text-lien-text">{suggestion.marginPct}%</td>
+                        </tr>
+                        <tr className="border-t border-lien-blue/30">
+                          <td className="py-1 pr-2 font-semibold text-lien-heading">Giá kỳ vọng bán ra trên website</td>
+                          <td className="py-1 text-right font-semibold text-lien-heading">{suggestion.suggested.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                        <tr>
+                          <td className={cn("py-0.5 pr-2 font-medium", suggestion.margin >= 0 ? "text-green-700" : "text-red-600")}>Lợi nhuận kỳ vọng</td>
+                          <td className={cn("py-0.5 text-right font-medium", suggestion.margin >= 0 ? "text-green-700" : "text-red-600")}>{suggestion.margin.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p className="m-0 mt-1.5 text-[11px] text-lien-muted">Công thức: (giá vốn tại Nhật × (1 + tỉ lệ lãi)) + phí ship 3 chặng — lãi chỉ tính trên giá vốn tại Nhật, phí ship cộng thẳng không nhân lãi.</p>
                   </div>
                 ) : null}
               </div>

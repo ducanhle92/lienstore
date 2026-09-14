@@ -162,7 +162,7 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>Tổng phí về kho VN</th>
                 <th className={thClass} title="Giá vốn (VNĐ) + tổng phí vận chuyển về kho VN">Giá vốn khi về tới VN</th>
                 <th className={thClass} title="Mặc định của Công thức giá, hoặc lãi riêng đặt trong trang sản phẩm">Tỉ lệ lãi kỳ vọng</th>
-                <th className={thClass} title="Giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng), làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Giá kỳ vọng bán ra trên website</th>
+                <th className={thClass} title="(Giá vốn tại Nhật × (1 + tỉ lệ lãi kỳ vọng)) + phí ship 3 chặng, làm tròn lên — giá khách sẽ thấy nếu Áp dụng công thức">Giá kỳ vọng bán ra trên website</th>
                 <th className={thClass} title="Giá kỳ vọng − giá vốn về tới VN">Lợi nhuận kỳ vọng</th>
                 <th className={thClass} title="Giá thực tế trên website − giá vốn về tới VN">Lãi/lỗ thực tế</th>
                 <th className={thClass}>Hình thức · tồn</th>

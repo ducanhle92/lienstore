@@ -39,7 +39,7 @@ export default async function AdminPricing({ searchParams }: Props) {
     <>
       <PageHeader
         title="Công thức giá bán"
-        subtitle="Giá vốn về tới VN = giá vốn (¥ × tỉ giá) + phí 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Giá kỳ vọng bán ra trên website = giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng). Lợi nhuận kỳ vọng = giá kỳ vọng − giá vốn về VN; lãi/lỗ thực tế = giá thực tế trên website − giá vốn về VN. Khách chỉ trả thêm phí giao nội địa Việt Nam."
+        subtitle="Giá vốn về tới VN = giá vốn tại Nhật (¥ × tỉ giá) + phí 3 chặng nhập hàng (nội địa Nhật → Nhật–Việt → kho ĐVVC về kho shop). Giá kỳ vọng bán ra trên website = (giá vốn tại Nhật × (1 + tỉ lệ lãi kỳ vọng)) + phí 3 chặng — lãi chỉ tính trên giá vốn tại Nhật, không nhân lên phí ship. Lợi nhuận kỳ vọng = giá kỳ vọng − giá vốn về VN; lãi/lỗ thực tế = giá thực tế trên website − giá vốn về VN. Khách chỉ trả thêm phí giao nội địa Việt Nam."
         back={{ href: "/admin/products/", label: "Sản phẩm" }}
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
@@ -184,7 +184,7 @@ export default async function AdminPricing({ searchParams }: Props) {
           <button type="submit" className={btnPrimary}>
             <Fa name="check" /> Lưu
           </button>
-          <p className="m-0 text-[12px] leading-5 text-lien-muted">Giá kỳ vọng = giá vốn về VN × (1 + tỉ lệ lãi kỳ vọng), làm tròn lên bước này. Khuyến nghị lãi {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%.</p>
+          <p className="m-0 text-[12px] leading-5 text-lien-muted">Giá kỳ vọng = (giá vốn tại Nhật × (1 + tỉ lệ lãi kỳ vọng)) + phí ship 3 chặng, làm tròn lên bước này. Khuyến nghị lãi {MARGIN_RANGE.suggestedMin}–{MARGIN_RANGE.suggestedMax}%.</p>
         </form>
       </Card>
 
