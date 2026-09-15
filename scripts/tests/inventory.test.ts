@@ -1,7 +1,7 @@
 /** Restock-planning formula (Kho hàng › Tồn kho) — pure unit tests:  npm run test:inventory */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { computeToBuy, stockStateOf } from "../../src/lib/inventory";
+import { computeToBuy, pipelineStageOf, stockStateOf } from "../../src/lib/inventory";
 import type { CatalogProduct } from "../../src/types/shop";
 
 describe("computeToBuy — nguyên tắc 1: ưu tiên lấy từ kho / hàng đang về trước khi mua thêm", () => {
@@ -33,6 +33,24 @@ describe("computeToBuy — nguyên tắc 1: ưu tiên lấy từ kho / hàng đa
   it("untracked stock (stock === null): every unit not already bought must be sourced, no buffer concept", () => {
     assert.equal(computeToBuy(null, 200, 30, 10), 20);
     assert.equal(computeToBuy(null, 200, 5, 10), 0);
+  });
+});
+
+describe("pipelineStageOf — Trạng thái theo dõi (đang lưu kho / đang về / chưa mua)", () => {
+  it("some stock on hand → 'in_stock', even when more is also incoming", () => {
+    assert.equal(pipelineStageOf(5, 100, 0), "in_stock");
+  });
+  it("no stock but a warehouse-lot purchase is on the way → 'incoming'", () => {
+    assert.equal(pipelineStageOf(0, 20, 0), "incoming");
+    assert.equal(pipelineStageOf(null, 20, 0), "incoming");
+  });
+  it("nothing on hand, nothing incoming, but a purchase is needed → 'unbought'", () => {
+    assert.equal(pipelineStageOf(0, 0, 10), "unbought");
+    assert.equal(pipelineStageOf(null, 0, 10), "unbought");
+  });
+  it("nothing on hand, nothing incoming, nothing needed → null (no pipeline status to show)", () => {
+    assert.equal(pipelineStageOf(0, 0, 0), null);
+    assert.equal(pipelineStageOf(null, 0, 0), null);
   });
 });
 

@@ -1,4 +1,4 @@
-import type { InventoryLine, StockState } from "./inventory";
+import type { InventoryLine, PipelineStage, StockState } from "./inventory";
 
 /**
  * Filter + sort of the inventory table, shared by the admin page and the CSV export so "xuất CSV" prints exactly what
@@ -6,12 +6,15 @@ import type { InventoryLine, StockState } from "./inventory";
  */
 export type Track = "all" | "tracked" | "untracked";
 export type Need = "all" | "order" | "restock";
+export type Pstatus = "" | Exclude<PipelineStage, null>;
 export type SortKey = "id" | "sku" | "name" | "state" | "stock" | "pipeline" | "orders" | "need" | "cost" | "value" | "supplier";
 
 export interface InventoryView {
   track: Track;
   state: StockState | "";
   need: Need;
+  /** "Trạng thái theo dõi" (Đang lưu kho / Đang về / Chưa mua) — replaces the old state toggle in the UI. */
+  pstatus: Pstatus;
   q: string;
   category: string;
   sort: SortKey;
@@ -31,9 +34,10 @@ export function parseInventoryView(sp: Record<string, string | string[] | undefi
   const track = pick(first("track"), ["all", "tracked", "untracked"] as const, legacy === "tracked" || legacy === "low" || legacy === "out" ? "tracked" : legacy === "untracked" ? "untracked" : "all");
   const state = pick(first("state"), ["out", "low", "ok"] as const, legacy === "low" || legacy === "out" ? (legacy as StockState) : ("" as StockState | "")) as StockState | "";
   const need = pick(first("need"), ["all", "order", "restock"] as const, legacy === "order" ? "order" : "all");
+  const pstatus = pick(first("pstatus"), ["", "in_stock", "incoming", "unbought"] as const, "");
   const sort = pick(first("sort"), ["id", "sku", "name", "state", "stock", "pipeline", "orders", "need", "cost", "value", "supplier"] as const, "state");
   const dir = pick(first("dir"), ["asc", "desc"] as const, sort === "state" || sort === "name" || sort === "id" || sort === "sku" ? "asc" : "desc");
-  return { track, state: track === "tracked" ? state : "", need, q: first("q").trim().toLowerCase(), category: first("category"), sort, dir };
+  return { track, state: track === "tracked" ? state : "", need, pstatus, q: first("q").trim().toLowerCase(), category: first("category"), sort, dir };
 }
 
 export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {}, base = "/admin/inventory/"): string {
@@ -43,6 +47,7 @@ export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {
   if (n.track !== "all") qs.set("track", n.track);
   if (n.state) qs.set("state", n.state);
   if (n.need !== "all") qs.set("need", n.need);
+  if (n.pstatus) qs.set("pstatus", n.pstatus);
   if (n.q) qs.set("q", n.q);
   if (n.category) qs.set("category", n.category);
   if (n.sort !== "state") qs.set("sort", n.sort);
@@ -67,7 +72,8 @@ export function applyInventoryView(lines: InventoryLine[], v: InventoryView): In
     .filter((l) => !v.category || l.product.categories.includes(v.category))
     .filter((l) => (v.track === "tracked" ? l.product.stock !== null : v.track === "untracked" ? l.product.stock === null : true))
     .filter((l) => !v.state || (v.track === "tracked" && l.state === v.state))
-    .filter((l) => (v.need === "order" ? l.demand > 0 && l.toBuy > 0 : v.need === "restock" ? l.toBuy > 0 && l.demand === 0 : true));
+    .filter((l) => (v.need === "order" ? l.demand > 0 && l.toBuy > 0 : v.need === "restock" ? l.toBuy > 0 && l.demand === 0 : true))
+    .filter((l) => !v.pstatus || l.pipelineStage === v.pstatus);
   const dirMul = v.dir === "asc" ? 1 : -1;
   const cmp = (a: InventoryLine, b: InventoryLine): number => {
     switch (v.sort) {

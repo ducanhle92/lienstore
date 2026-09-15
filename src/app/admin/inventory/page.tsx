@@ -11,7 +11,7 @@ import { DEFAULT_MIN_STOCK, getInventory, SALES_PACE_DAYS, type InventoryLine, t
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { listPurchaseSources } from "@/lib/db";
-import { applyInventoryView, inventoryHref, type InventoryView, parseInventoryView, type SortKey, sortHref } from "@/lib/inventory-view";
+import { applyInventoryView, inventoryHref, type InventoryView, type Pstatus, parseInventoryView, type SortKey, sortHref } from "@/lib/inventory-view";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
   out: { label: "Hết hàng", cls: "bg-red-100 text-red-800" },
   untracked: { label: "Không theo dõi", cls: "bg-gray-200 text-gray-700" },
 };
+const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = { in_stock: "Đang lưu kho", incoming: "Đang về", unbought: "Chưa mua" };
 
 export default async function AdminInventory({ searchParams }: Props) {
   await requireAdmin("inventory");
@@ -39,11 +40,8 @@ export default async function AdminInventory({ searchParams }: Props) {
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
   const back = inventoryHref(v);
-  const tracked = lines.filter((l) => l.product.stock !== null);
-  const countState = (s: StockState) => tracked.filter((l) => l.state === s).length;
-  const radio = (active: boolean) => cn("inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[13px] no-underline", active ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]");
-  const dot = (active: boolean) => <span className={cn("h-3 w-3 rounded-full border-2", active ? "border-white bg-white" : "border-[#9ca3af]")} />;
   const csvHref = inventoryHref(v, {}, "/admin/inventory/export/").replace("/export/?", "/export/?mode=view&").replace(/\/export\/$/, "/export/?mode=view");
+  const countPstatus = (s: Exclude<Pstatus, "">) => lines.filter((l) => l.pipelineStage === s).length;
 
   return (
     <>
@@ -63,59 +61,20 @@ export default async function AdminInventory({ searchParams }: Props) {
       />
       {saved ? <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash> : null}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Stat href="/admin/purchases/" label="Đang trên đường về" value={`${summary.inTransitUnits} đv`} tone="blue" hint={`Đã mua, chưa tới kho shop (Nhật · NB→VN · kho ĐVVC) · vốn ${formatPrice(summary.inTransitValue)}`} />
-        <Stat href="/admin/purchases/" label="Sẵn tại kho shop (đã mua cho đơn)" value={`${summary.atShopUnits} đv`} tone="gray" hint={`Cộng tồn kho tự do ${summary.units} đv`} />
-        <Stat href={inventoryHref(v, { track: "tracked", state: "out" })} label="Hết hàng" value={String(summary.out)} tone="red" hint="Sản phẩm tồn 0 hoặc đánh dấu hết" />
-        <Stat href={inventoryHref(v, { track: "tracked", state: "low" })} label="Sắp hết" value={String(summary.low)} tone="amber" hint={`Tồn ≤ mức tối thiểu (mặc định ${DEFAULT_MIN_STOCK})`} />
-        <Stat href={inventoryHref(v, { need: "order" })} label="Cần đặt hàng" value={`${summary.toBuyLines} sp · ${summary.toBuyUnits} đv`} tone="blue" hint={`Ước tính vốn ${formatPrice(summary.toBuyCost)}`} />
-        <Stat href={inventoryHref(v, { track: "untracked", state: "" })} label="Không theo dõi tồn" value={String(summary.untracked)} tone="gray" hint="Mua theo đơn — mọi đơn mở đều cần đặt" />
-        <Stat href={inventoryHref(v, { track: "tracked", state: "" })} label="Hạn dùng cần chú ý" value={`${summary.expiringSoonUnits} đv sắp hết · ${summary.expiredUnits} đv hết hạn`} tone={summary.expiredUnits ? "red" : summary.expiringSoonUnits ? "amber" : "gray"} hint="Theo lô nhập kho (≤ 90 ngày = sắp hết hạn)" />
+      <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-7">
+        <Stat href="/admin/purchases/" label="Đang trên đường về" value={`${summary.inTransitUnits} đv`} tone="blue" hint={formatPrice(summary.inTransitValue)} />
+        <Stat href="/admin/purchases/" label="Tại kho shop (cho đơn)" value={`${summary.atShopUnits} đv`} tone="gray" hint={`+ tồn tự do ${summary.units}`} />
+        <Stat href={inventoryHref(v, { track: "tracked", state: "out" })} label="Hết hàng" value={String(summary.out)} tone="red" hint="Tồn 0 / đánh dấu hết" />
+        <Stat href={inventoryHref(v, { track: "tracked", state: "low" })} label="Sắp hết" value={String(summary.low)} tone="amber" hint={`≤ tối thiểu (mặc định ${DEFAULT_MIN_STOCK})`} />
+        <Stat href={inventoryHref(v, { need: "order" })} label="Cần đặt hàng" value={`${summary.toBuyLines} sp · ${summary.toBuyUnits} đv`} tone="blue" hint={formatPrice(summary.toBuyCost)} />
+        <Stat href={inventoryHref(v, { track: "untracked", state: "" })} label="Không theo dõi tồn" value={String(summary.untracked)} tone="gray" hint="Mua theo đơn" />
+        <Stat href={inventoryHref(v, { track: "tracked", state: "" })} label="Hạn dùng cần chú ý" value={`${summary.expiringSoonUnits} sắp · ${summary.expiredUnits} hết`} tone={summary.expiredUnits ? "red" : summary.expiringSoonUnits ? "amber" : "gray"} hint="≤ 90 ngày = sắp hết hạn" />
       </div>
 
       <Card>
-        <div className="mb-4 space-y-2 rounded-md border border-[#e5e7eb] bg-[#fafafa] p-3 text-[13px]">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[150px] font-semibold text-lien-heading">Trạng thái theo dõi:</span>
-            <Link href={inventoryHref(v, { track: "all", state: "" })} className={radio(v.track === "all")}>
-              {dot(v.track === "all")} Tất cả ({lines.length})
-            </Link>
-            <Link href={inventoryHref(v, { track: "tracked", state: "" })} className={radio(v.track === "tracked")}>
-              {dot(v.track === "tracked")} Theo dõi tồn ({summary.tracked})
-            </Link>
-            {v.track === "tracked" ? (
-              <span className="ml-1 flex flex-wrap gap-1.5 border-l border-[#d1d5db] pl-3">
-                {(["out", "low", "ok"] as StockState[]).map((s) => (
-                  <Link key={s} href={inventoryHref(v, { state: v.state === s ? "" : s })} className={cn("rounded-full px-2.5 py-0.5 text-[12px] font-semibold no-underline", STATE_LABEL[s].cls, v.state === s ? "ring-2 ring-lien-blue" : "opacity-80 hover:opacity-100")}>
-                    {STATE_LABEL[s].label} ({countState(s)})
-                  </Link>
-                ))}
-              </span>
-            ) : null}
-            <Link href={inventoryHref(v, { track: "untracked", state: "" })} className={radio(v.track === "untracked")}>
-              {dot(v.track === "untracked")} Không theo dõi ({summary.untracked})
-            </Link>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[150px] font-semibold text-lien-heading">Cần mua:</span>
-            <Link href={inventoryHref(v, { need: "all" })} className={radio(v.need === "all")}>
-              {dot(v.need === "all")} Tất cả
-            </Link>
-            <Link href={inventoryHref(v, { need: "order" })} className={radio(v.need === "order")}>
-              {dot(v.need === "order")} Đơn mở cần ({lines.filter((l) => l.demand > 0 && l.toBuy > 0).length})
-            </Link>
-            <Link href={inventoryHref(v, { need: "restock" })} className={radio(v.need === "restock")}>
-              {dot(v.need === "restock")} Bổ sung tồn ({lines.filter((l) => l.toBuy > 0 && l.demand === 0).length})
-            </Link>
-            <Link href="/admin/purchases/" className="ml-auto text-lien-blue hover:underline">
-              <Fa name="shopping-basket" /> Quản lý mua hàng →
-            </Link>
-          </div>
-        </div>
-        <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_260px_auto]">
+        <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_170px_160px_160px_auto] md:items-end">
           {v.track !== "all" ? <input type="hidden" name="track" value={v.track} /> : null}
           {v.state ? <input type="hidden" name="state" value={v.state} /> : null}
-          {v.need !== "all" ? <input type="hidden" name="need" value={v.need} /> : null}
           {v.sort !== "state" ? <input type="hidden" name="sort" value={v.sort} /> : null}
           {v.sort !== "state" ? <input type="hidden" name="dir" value={v.dir} /> : null}
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, slug, SKU, #id…" className={adminInput} />
@@ -127,16 +86,27 @@ export default async function AdminInventory({ searchParams }: Props) {
               </option>
             ))}
           </select>
+          <select name="pstatus" defaultValue={v.pstatus} className={adminInput} aria-label="Trạng thái theo dõi">
+            <option value="">Trạng thái: tất cả</option>
+            <option value="in_stock">{PSTATUS_LABEL.in_stock} ({countPstatus("in_stock")})</option>
+            <option value="incoming">{PSTATUS_LABEL.incoming} ({countPstatus("incoming")})</option>
+            <option value="unbought">{PSTATUS_LABEL.unbought} ({countPstatus("unbought")})</option>
+          </select>
+          <select name="need" defaultValue={v.need} className={adminInput} aria-label="Cần mua">
+            <option value="all">Cần mua: tất cả</option>
+            <option value="order">Theo đơn hàng ({lines.filter((l) => l.demand > 0 && l.toBuy > 0).length})</option>
+            <option value="restock">Để lưu kho ({lines.filter((l) => l.toBuy > 0 && l.demand === 0).length})</option>
+          </select>
           <button type="submit" className={btnPrimary}>
             Lọc
           </button>
         </form>
-
-        {v.need !== "all" ? (
-          <p className="mb-4 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[13px] leading-5 text-lien-text">
-            <strong>Cần mua</strong> = số lượng trong các đơn <em>Chờ xử lý / Đang xử lý</em> chưa được tồn kho và hàng đã mua (đang về / tại kho) bao phủ, cộng phần bù về mức tồn tối thiểu. Sản phẩm không theo dõi tồn được coi là mua theo từng đơn. Đánh dấu đã mua ở Quản lý mua hàng để dòng biến mất khỏi đây.
-          </p>
-        ) : null}
+        <p className="mb-4 text-[12px] text-lien-muted">
+          <strong>Trạng thái theo dõi</strong>: Đang lưu kho (còn tồn) · Đang về (đã đặt lô lưu kho, chưa tới) · Chưa mua (cần mua nhưng chưa đặt gì). <strong>Cần mua</strong>: theo đơn hàng đang mở, hoặc để bù về mức tồn tiêu chuẩn.{" "}
+          <Link href="/admin/purchases/" className="text-lien-blue hover:underline">
+            <Fa name="shopping-basket" /> Quản lý mua hàng →
+          </Link>
+        </p>
 
         <p className="mb-2 text-[12px] text-lien-muted">Bấm tên cột để sắp xếp tăng / giảm.</p>
         <ResizableTable id="inventory">
@@ -201,10 +171,14 @@ function Th({ v, k, label, title }: { v: InventoryView; k: SortKey; label: strin
 function Stat({ label, value, hint, tone, href }: { label: string; value: string; hint: string; tone: "red" | "amber" | "blue" | "gray"; href: string }) {
   const tones = { red: "border-red-200 bg-red-50", amber: "border-amber-200 bg-amber-50", blue: "border-lien-blue/30 bg-lien-blue-soft/60", gray: "border-[#e5e7eb] bg-[#f9fafb]" };
   return (
-    <Link href={href} className={cn("rounded-lg border p-4 no-underline hover:shadow-sm", tones[tone])}>
-      <div className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">{label}</div>
-      <div className="mt-1 font-oswald text-[24px] leading-8 text-lien-heading">{value}</div>
-      <div className="text-[12px] text-lien-muted">{hint}</div>
+    <Link href={href} className={cn("rounded-md border px-2.5 py-1.5 no-underline hover:shadow-sm", tones[tone])}>
+      <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]" title={label}>
+        {label}
+      </div>
+      <div className="font-oswald text-[16px] leading-5 text-lien-heading">{value}</div>
+      <div className="truncate text-[10px] text-lien-muted" title={hint}>
+        {hint}
+      </div>
     </Link>
   );
 }

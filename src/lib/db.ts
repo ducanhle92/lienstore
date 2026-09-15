@@ -2595,12 +2595,14 @@ export async function setOrderItemsPurchase(itemIds: number[], status: PurchaseS
 }
 
 export interface PipelineUnits {
-  /** Bought in Japan or on the way (bought · NB→VN · về kho shop). */
+  /** Bought in Japan or on the way (bought · NB→VN · về kho shop) — orders bought per-line + stock lots ordered for warehousing. */
   inTransit: number;
   /** Received at the shop warehouse, not yet handed to the customer. */
   atShop: number;
   /** inTransit + atShop — units the shop has paid for and still holds. */
   pipeline: number;
+  /** Of `inTransit`, the part ordered as a warehouse lot ("mua lưu kho") rather than tied to a specific customer order. */
+  stockIncoming: number;
 }
 
 /** Per product: units of non-cancelled orders that are bought but not yet delivered, split by where they are. */
@@ -2614,7 +2616,7 @@ export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
     .all(...PIPELINE_STATUSES) as unknown as Array<{ product_id: number; purchase_status: string; n: number }>;
   const out = new Map<number, PipelineUnits>();
   for (const r of rows) {
-    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0, stockIncoming: 0 };
     if (r.purchase_status === "at_shop") u.atShop += r.n;
     else u.inTransit += r.n;
     u.pipeline = u.inTransit + u.atShop;
@@ -2624,9 +2626,10 @@ export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
   const inTransit = IN_TRANSIT_STATUSES.map(() => "?").join(",");
   const sp = getDb().prepare(`SELECT product_id, SUM(qty) AS n FROM stock_purchases WHERE lot_id IS NULL AND status IN (${inTransit}) GROUP BY product_id`).all(...IN_TRANSIT_STATUSES) as unknown as Array<{ product_id: number; n: number }>;
   for (const r of sp) {
-    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    const u = out.get(r.product_id) ?? { inTransit: 0, atShop: 0, pipeline: 0, stockIncoming: 0 };
     u.inTransit += Number(r.n);
     u.pipeline = u.inTransit + u.atShop;
+    u.stockIncoming += Number(r.n);
     out.set(r.product_id, u);
   }
   return out;

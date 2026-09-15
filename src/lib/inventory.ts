@@ -10,6 +10,19 @@ export const SALES_PACE_DAYS = 30;
 
 export type StockState = "untracked" | "out" | "low" | "ok";
 
+/** Simplified sourcing lifecycle shown as "Trạng thái theo dõi" (Kho hàng › Tồn kho): where the product's supply
+ * currently stands. In priority order — a product with some stock already on hand reads "in_stock" even if more is
+ * also incoming, since that is the more actionable state for the owner. */
+export type PipelineStage = "in_stock" | "incoming" | "unbought" | null;
+
+/** Pure so it can be unit-tested without a database. */
+export function pipelineStageOf(stock: number | null, stockIncoming: number, toBuy: number): PipelineStage {
+  if (stock !== null && stock > 0) return "in_stock";
+  if (stockIncoming > 0) return "incoming";
+  if (toBuy > 0) return "unbought";
+  return null;
+}
+
 export interface InventoryLine {
   product: CatalogProduct;
   state: StockState;
@@ -33,6 +46,8 @@ export interface InventoryLine {
   reserveForecast: number | null;
   /** Target stock level for this product (same field as `minStock` today — see Kho hàng › Tồn kho). */
   standardStock: number;
+  /** "Đang lưu kho" / "Đang về" / "Chưa mua" / null (nothing on hand, nothing incoming, nothing needed). */
+  pipelineStage: PipelineStage;
 }
 
 export interface InventorySummary {
@@ -91,7 +106,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     const minStock = p.minStock ?? DEFAULT_MIN_STOCK;
     const state = stockStateOf(p, minStock);
     const d = demand.get(p.id);
-    const pipeline = pipe.get(p.id) ?? { inTransit: 0, atShop: 0, pipeline: 0 };
+    const pipeline = pipe.get(p.id) ?? { inTransit: 0, atShop: 0, pipeline: 0, stockIncoming: 0 };
     const rawDemand = d?.needed ?? 0;
     // open-order units still to source = demand minus what is already bought for those orders (nguyên tắc 2: chờ hàng
     // đã mua về, không gọi mua thêm cho phần đã có người lo)
@@ -112,6 +127,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
       soldRecent,
       reserveForecast: p.stock === null ? null : p.stock + pipeline.inTransit - soldRecent,
       standardStock: minStock,
+      pipelineStage: pipelineStageOf(p.stock, pipeline.stockIncoming, toBuy),
     };
   });
   const summary: InventorySummary = {
