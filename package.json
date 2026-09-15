@@ -48,7 +48,8 @@
     "test:variants": "npx -y tsx --conditions=react-server --test scripts/tests/variants.test.ts",
     "test:sources": "npx -y tsx --conditions=react-server --test scripts/tests/purchase-sources.test.ts",
     "test:lots": "npx -y tsx --conditions=react-server --test scripts/tests/lots.test.ts",
-    "test:pricing": "npx -y tsx --conditions=react-server --test scripts/tests/pricing.test.ts"
+    "test:pricing": "npx -y tsx --conditions=react-server --test scripts/tests/pricing.test.ts",
+    "test:inventory": "npx -y tsx --conditions=react-server --test scripts/tests/inventory.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

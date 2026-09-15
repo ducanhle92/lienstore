@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { can } from "@/lib/auth";
 import { getCategories } from "@/lib/db";
-import { getInventory, type InventoryLine } from "@/lib/inventory";
+import { getInventory, type InventoryLine, SALES_PACE_DAYS } from "@/lib/inventory";
 import { applyInventoryView, parseInventoryView } from "@/lib/inventory-view";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
   const rows = viewMode ? applyInventoryView(lines, parseInventoryView(sp)) : lines.filter((l) => l.toBuy > 0).sort((a, b) => b.toBuy - a.toBuy);
   const header = viewMode
     ? ["ID", "SKU", "Tên sản phẩm", "Danh mục", "Tình trạng", "Số lượng tồn", "Mức tối thiểu", "Đang về", "Tại kho shop", "Đơn mở cần", "Đơn hàng", "Cần mua", "Giá vốn (VNĐ)", "Giá trị tồn (VNĐ)", "Link mua", "Kiểm đếm thực tế", "Ghi chú"]
-    : ["ID", "Tên sản phẩm", "SKU", "Cần mua", "Đơn mở cần", "Tổng hàng mua", "Đang về", "Tại kho shop", "Đơn hàng", "Tồn hiện tại", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua"];
+    : [
+        "ID", "Tên sản phẩm", "SKU", "Cần mua", "Đơn mở cần", "Đang về", "Tại kho shop", "Tồn hiện tại", "Tồn kho tiêu chuẩn",
+        `Bán ra gần đây (${SALES_PACE_DAYS} ngày)`, "Dự trữ dự kiến sau bán", "Đơn hàng", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua",
+        "Tổng hàng mua đang lưu thông",
+      ];
   const data = rows.map((l) =>
     viewMode
       ? [
@@ -51,14 +55,17 @@ export async function GET(req: NextRequest) {
           l.product.sku ?? "",
           l.toBuy,
           l.demand,
-          l.toBuy + l.pipeline.pipeline,
           l.pipeline.inTransit,
           l.pipeline.atShop,
-          l.demandOrders.map((o) => `#${o.number}x${o.quantity}`).join(" "),
           l.product.stock ?? "",
+          l.standardStock,
+          l.soldRecent,
+          l.reserveForecast ?? "",
+          l.demandOrders.map((o) => `#${o.number}x${o.quantity}`).join(" "),
           l.product.costPrice ?? "",
           l.toBuy * (l.product.costPrice ?? 0),
           l.product.supplierUrl ?? "",
+          l.totalGoods,
         ],
   );
   const csv = "﻿" + [header, ...data].map((r) => r.map(esc).join(",")).join("\r\n");

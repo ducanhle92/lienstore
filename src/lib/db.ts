@@ -354,6 +354,15 @@ export function getUnitsSold(): Map<number, number> {
   return new Map(rows.map((r) => [r.id, Number(r.n)]));
 }
 
+/** Units sold per product in the last `days` days (non-cancelled orders) — the sales pace used for restock planning (Kho hàng › Tồn kho). */
+export function getRecentUnitsSold(days: number): Map<number, number> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const rows = getDb()
+    .prepare("SELECT oi.product_id AS id, SUM(oi.quantity) AS n FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status != 'cancelled' AND o.created_at >= ? GROUP BY oi.product_id")
+    .all(since) as unknown as Array<{ id: number; n: number }>;
+  return new Map(rows.map((r) => [r.id, Number(r.n)]));
+}
+
 export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryResult> {
   const perPage = q.perPage ?? 32;
   const page = Math.max(1, q.page ?? 1);
@@ -767,9 +776,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       if (isSpecialHandling(parseArr(row.tags ?? "[]"))) special = true;
       const qty = Math.max(1, Math.floor(it.quantity));
       // made-to-order: no tracked stock, or not enough on hand
-      if (row.stock === null || row.stock < qty) prepaidRequired = true;
+      const fromStock = row.stock !== null && row.stock >= qty;
+      if (!fromStock) prepaidRequired = true;
       weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
-      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty });
+      // fully covered by warehouse stock → the goods are already at the shop, not "chưa mua" (see lib/purchase.ts)
+      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty, purchaseStatus: fromStock ? "at_shop" : undefined });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
     if (prepaidRequired && input.paymentMethod === "cod") throw new Error("Đơn có hàng order (đặt mua theo yêu cầu) cần thanh toán trước 100% bằng chuyển khoản.");
@@ -872,11 +883,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       payAccount.id || null,
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
-    const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     // stock 0 makes the product "Hàng order" (bought to order); it never becomes "Hết hàng" (that means discontinued in Japan)
     const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?), updated_at = ? WHERE id = ? AND stock IS NOT NULL`);
     for (const it of items) {
-      insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity);
+      insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity, it.purchaseStatus ?? "not_bought", it.purchaseStatus ? now : null);
       decStock.run(it.quantity, now, it.productId);
       consumeLotsSync(db, it.productId, it.quantity, now); // FEFO: earliest expiry leaves first
     }

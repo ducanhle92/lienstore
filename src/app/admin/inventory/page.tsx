@@ -7,7 +7,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCategories } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
-import { DEFAULT_MIN_STOCK, getInventory, type InventoryLine, type StockState } from "@/lib/inventory";
+import { DEFAULT_MIN_STOCK, getInventory, SALES_PACE_DAYS, type InventoryLine, type StockState } from "@/lib/inventory";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { listPurchaseSources } from "@/lib/db";
@@ -155,6 +155,12 @@ export default async function AdminInventory({ searchParams }: Props) {
                 <Th v={v} k="pipeline" label="Đang về · tại kho" title="Đã mua tại Nhật / đang về / đã tới kho shop, chưa giao cho khách" />
                 <Th v={v} k="orders" label="Đơn hàng (đơn mở cần)" />
                 <Th v={v} k="need" label="Cần mua" />
+                <th className={cn(thClass, "whitespace-nowrap")} title={`Số lượng bán ra trong ${SALES_PACE_DAYS} ngày gần đây`}>
+                  Bán ra ({SALES_PACE_DAYS}n)
+                </th>
+                <th className={cn(thClass, "whitespace-nowrap")} title="(Tồn kho + đang về) − bán ra gần đây — ước tính còn dư bao nhiêu theo nhịp bán hiện tại">
+                  Dự trữ dự kiến
+                </th>
                 <Th v={v} k="cost" label="Giá vốn" />
                 <Th v={v} k="value" label="Giá trị tồn" title="(tồn + đang về/tại kho) × giá vốn" />
                 <th className={thClass}>Cập nhật tồn / mức tối thiểu</th>
@@ -164,7 +170,7 @@ export default async function AdminInventory({ searchParams }: Props) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={16} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -280,6 +286,10 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
         )}
       </td>
       <td className={tdClass}>{line.toBuy > 0 ? <span className="rounded bg-lien-blue px-2 py-0.5 text-[13px] font-semibold text-white">{line.toBuy}</span> : <span className="text-lien-muted">—</span>}</td>
+      <td className={`${tdClass} whitespace-nowrap`}>{line.soldRecent > 0 ? line.soldRecent : <span className="text-lien-muted">—</span>}</td>
+      <td className={`${tdClass} whitespace-nowrap`}>
+        {line.reserveForecast === null ? <span className="text-lien-muted">—</span> : <span className={cn("font-semibold", line.reserveForecast < 0 && "text-red-700")}>{line.reserveForecast}</span>}
+      </td>
       <td className={`${tdClass} whitespace-nowrap text-lien-muted`}>{p.costPrice === null ? "—" : formatPrice(p.costPrice, p.currency)}</td>
       <td className={`${tdClass} whitespace-nowrap`}>{line.stockValue ? formatPrice(line.stockValue, p.currency) : <span className="text-lien-muted">—</span>}</td>
       <td className={tdClass}>
