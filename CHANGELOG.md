@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-09-15
+
 ### Added
 - Giá "Liên hệ" cho sản phẩm chưa có giá vốn: ẩn giá số, disable nút mua, hiện nút liên hệ trên card sản phẩm, trang chi tiết và Quick View.
 - 140 sản phẩm mới từ đợt nhập hàng OS Drug Store (đối chiếu ảnh chụp kệ hàng), nguồn nhập "OS Drug Store" mới trong Kho hàng › Nguồn nhập.
