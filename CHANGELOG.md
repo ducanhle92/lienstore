@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Kho hàng › Tồn kho: bù về mức tồn tối thiểu không tính hàng đã mua đang về, khiến "Cần mua" hiện sai dù đã có lô lớn sắp về kho.
+- Kho hàng › Quản lý mua hàng: dòng đơn hàng lấy đủ từ tồn kho nay bắt đầu ở trạng thái "Tại kho" thay vì "Chưa mua".
+
+### Added
+- Kho hàng › Tồn kho + CSV cần mua: thêm cột **Tồn kho tiêu chuẩn**, **Bán ra gần đây (30 ngày)**, **Dự trữ dự kiến sau bán**; **Tổng hàng mua** chuyển ra cột cuối = tồn kho + hàng đã mua chưa giao khách.
+
 ## [1.41.2] - 2026-09-15
 
 ### Added
