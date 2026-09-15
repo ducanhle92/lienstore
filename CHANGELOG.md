@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-09-15
+
 ### Changed
 - Kho hàng: thu nhỏ 7 ô thống kê, gộp 2 dải bộ lọc "Trạng thái theo dõi"/"Cần mua" thành 2 ô chọn gọn trong hàng lọc chính — nhường diện tích cho bảng.
 - "Trạng thái theo dõi" đổi thành theo luồng nguồn hàng: **Đang lưu kho** (còn tồn) / **Đang về** (đã đặt lô lưu kho, chưa tới kho) / **Chưa mua** (cần mua, chưa có gì). "Cần mua" đổi nhãn: Theo đơn hàng / Để lưu kho.
