@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Flash Sales: mỗi sản phẩm có giờ kết thúc riêng thay vì 1 giờ chung cho cả đợt; trang chủ gộp Flash Sales vào chung khối "Giảm giá đặc biệt" (sản phẩm Flash Sales lên trước, có thêm nhãn đếm ngược + % giảm giá nếu có).
+- Admin › Sales › Flash Sales: đổi ô chọn sản phẩm dạng dropdown thành ô tìm kiếm gõ tên/SKU; mỗi dòng sản phẩm có ô sửa giờ kết thúc riêng.
+
 ## [1.44.0] - 2026-09-15
 
 ### Added
