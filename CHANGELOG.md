@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.41.1] - 2026-09-15
+
 ### Fixed
 - Dữ liệu nhập OS Drug Store (v1.41.0) không chạy trên dev/prod vì file nằm trong volume `/app/data` cũ (đã có từ trước) đè lên file mới trong image — chuyển ra `/app/seed/` như `seed.json`.
 
