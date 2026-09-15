@@ -9,7 +9,8 @@ import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductS
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, listProductGroups } from "@/lib/db";
+import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, listProductGroups, listPurchaseSources } from "@/lib/db";
+import { purchaseSourceName } from "@/lib/purchase-sources";
 import { suggestPrice } from "@/lib/pricing";
 import { formatDate, formatPrice } from "@/lib/format";
 
@@ -27,11 +28,16 @@ export default async function AdminProducts({ searchParams }: Props) {
   const status = first(sp.status);
   const category = first(sp.category);
   const stock = first(sp.stock);
+  const source = first(sp.source);
   const saved = first(sp.saved);
   const deleted = first(sp.deleted);
 
-  const [all, categories, pricing, quote, rate, groups] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate(), listProductGroups()]);
+  const [all, categories, pricing, quote, rate, groups, purchaseSources] = await Promise.all([getAllProducts(true), getCategories(), getPricingConfig(), getImportQuoteConfig(), getJpyRate(), listProductGroups(), listPurchaseSources(true)]);
   const groupName = Object.fromEntries(groups.map((g) => [g.id, g.name]));
+  // only sources actually used on a product, so the dropdown doesn't list the whole registry — sorted by display name
+  const usedSourceKeys = [...new Set(all.map((p) => p.costSource).filter(Boolean))];
+  const sourceOptions = usedSourceKeys.map((key) => ({ key, name: purchaseSourceName(key, purchaseSources) })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  const hasNoSource = all.some((p) => !p.costSource);
   // price formula per product: import legs shared per gram (same numbers as the CSV export and Công thức giá)
   const breakdown = (p: (typeof all)[number]) => suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
   const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
@@ -39,7 +45,7 @@ export default async function AdminProducts({ searchParams }: Props) {
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const items = filterProducts(all, sp);
   const fulfillment = first(sp.fulfillment);
-  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment }).filter(([, v]) => v)).toString();
+  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
   const missingPrice = items.filter((p) => p.price <= 0).length;
 
@@ -96,7 +102,7 @@ export default async function AdminProducts({ searchParams }: Props) {
       {deleted ? <Flash>Đã xoá sản phẩm.</Flash> : null}
 
       <Card>
-        <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_200px_140px_130px_130px_auto]">
+        <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_170px_120px_110px_110px_160px_auto]">
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, slug, SKU…" className={adminInput} />
           <select name="category" defaultValue={category} className={adminInput}>
             <option value="">Tất cả danh mục</option>
@@ -120,6 +126,15 @@ export default async function AdminProducts({ searchParams }: Props) {
             <option value="">Mọi hình thức</option>
             <option value="stock">Lưu kho</option>
             <option value="order">Order</option>
+          </select>
+          <select name="source" defaultValue={source} className={adminInput}>
+            <option value="">Mọi nguồn nhập</option>
+            {sourceOptions.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
+              </option>
+            ))}
+            {hasNoSource ? <option value="none">Chưa gắn nguồn</option> : null}
           </select>
           <button type="submit" className={btnPrimary}>
             Lọc

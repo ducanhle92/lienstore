@@ -11,6 +11,7 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
   const category = first("category");
   const stock = first("stock");
   const fulfillment = first("fulfillment");
+  const source = first("source");
   const sort = first("sort") || "updated";
   const dir = first("dir") === "asc" ? 1 : -1;
   const items = all
@@ -18,7 +19,8 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
     .filter((p) => !status || p.status === status)
     .filter((p) => !category || p.categories.includes(category))
     .filter((p) => !stock || (stock === "out" ? p.stockStatus === "discontinued" : p.stockStatus === "instock"))
-    .filter((p) => !fulfillment || p.fulfillment === fulfillment);
+    .filter((p) => !fulfillment || p.fulfillment === fulfillment)
+    .filter((p) => !source || (source === "none" ? !p.costSource : p.costSource === source));
   const cmp = (a: CatalogProduct, b: CatalogProduct): number => {
     switch (sort) {
       case "id":
