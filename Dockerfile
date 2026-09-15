@@ -32,10 +32,12 @@ ENV NODE_OPTIONS=--disable-warning=ExperimentalWarning
 # SQLite database (persist via volume) and the seed catalogue shipped inside the image.
 ENV LIEN_DB_PATH=/app/data/lienstore.db
 ENV LIEN_SEED_PATH=/app/seed/seed.json
+ENV LIEN_OS_DRUG_IMPORT_PATH=/app/seed/os-drug-import-2026-09-14.json
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/data/seed.json ./seed/seed.json
+COPY --from=builder --chown=node:node /app/data/os-drug-import-2026-09-14.json ./seed/os-drug-import-2026-09-14.json
 COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh && mkdir -p /app/data && chown node:node /app/data
 USER node

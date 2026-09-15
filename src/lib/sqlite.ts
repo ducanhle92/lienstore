@@ -13,6 +13,9 @@ import type { DatabaseSync } from "node:sqlite";
  *   in production to keep orders/customers across container upgrades.
  * - Schema changes are appended to `MIGRATIONS`; each entry runs once, in order, inside a transaction.
  * - On an empty database the catalogue is imported from the seed JSON (`LIEN_SEED_PATH`, default `data/seed.json`).
+ * - One-time content backfills (e.g. `applyOsDrugImport`) ship the same way: their payload must live outside
+ *   `/app/data` (an existing volume shadows anything the image places there), gated by a `LIEN_*_PATH` env var
+ *   the same way `LIEN_SEED_PATH` is, and applied exactly once per database via a `settings` flag.
  */
 
 export const DB_PATH = process.env.LIEN_DB_PATH ?? path.join(process.cwd(), "data", "lienstore.db");
@@ -1105,7 +1108,9 @@ interface OsDrugImportPayload {
 }
 
 const OS_DRUG_IMPORT_FLAG = "os_drug_import_2026_09_14_done";
-const OS_DRUG_IMPORT_PATH = path.join(process.cwd(), "data", "os-drug-import-2026-09-14.json");
+// Ships outside /app/data like SEED_PATH — that path is a persistent Docker volume, so a file only baked into the
+// image there would be shadowed by the old volume contents on every deploy and would never actually be seen.
+const OS_DRUG_IMPORT_PATH = process.env.LIEN_OS_DRUG_IMPORT_PATH ?? path.join(process.cwd(), "data", "os-drug-import-2026-09-14.json");
 
 /**
  * One-time content backfill (2026-09-14): 140 OS Drug Store products investigated from shelf-tag photos, plus two
