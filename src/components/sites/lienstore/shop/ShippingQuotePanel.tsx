@@ -236,7 +236,8 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
     );
   }
   const time = (iso: string) => new Date(iso).toLocaleTimeString(lang === "ja" ? "ja-JP" : "vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" });
-  const quotes = data?.quotes ?? [];
+  // rate-card/formula quotes (SPX, VNPost) are not accurate enough to offer — only live-API carriers are shown
+  const quotes = (data?.quotes ?? []).filter((q) => q.source !== "public_rate_card");
   return (
     <div className="space-y-3" data-testid="ship-quotes">
       {data ? (

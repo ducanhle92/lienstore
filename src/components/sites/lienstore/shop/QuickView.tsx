@@ -104,7 +104,7 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
           {out ? (
             <p className="stock mb-3 text-[14.72px] text-[#e2401c]">Hết hàng</p>
           ) : product.stock !== null ? (
-            <p className="stock mb-3 text-[14.72px] text-[#77a464]">còn {product.stock} hàng</p>
+            <p className="stock mb-3 text-[14.72px] text-[#77a464]">Có sẵn</p>
           ) : null}
           {product.excerpt ? <p className="mb-4 text-[15px] leading-6 text-lien-muted">{product.excerpt}</p> : null}
           <div className="mb-4 flex items-start gap-1">

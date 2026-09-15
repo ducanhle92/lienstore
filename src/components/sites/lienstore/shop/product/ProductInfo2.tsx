@@ -73,9 +73,9 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
       <p className="m-0 mt-3 text-[14px]">
         {t("status")}:{" "}
         {out ? (
-          <span className="font-semibold text-lien-sale-text" data-testid="avail-discontinued">{t("discontinuedNote")}</span>
+          <span className="font-semibold text-lien-sale-text" data-testid="avail-discontinued">{t("outOfStock")}</span>
         ) : avail === "available" ? (
-          <span className="font-semibold text-lien-success" data-testid="avail-available">{t("availableNow")} ({product.stock})</span>
+          <span className="font-semibold text-lien-success" data-testid="avail-available">{t("availableNow")}</span>
         ) : (
           <span className="font-semibold text-amber-700" data-testid="avail-order">{avail === "order_temp" ? t("orderTemp") : t("orderOnDemand")}</span>
         )}

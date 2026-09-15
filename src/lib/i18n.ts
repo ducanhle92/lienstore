@@ -206,7 +206,6 @@ const DICT = {
   orderBadge: ["Hàng order", "お取り寄せ"],
   orderTemp: ["Order theo yêu cầu (tạm hết tại kho VN), 7–14 ngày", "お取り寄せ（ベトナム倉庫在庫切れ）、7〜14日"],
   orderOnDemand: ["Order theo yêu cầu, 7–14 ngày", "お取り寄せ、7〜14日"],
-  discontinuedNote: ["Hết hàng — mẫu này không còn bán tại Nhật", "販売終了 — 日本での販売が終了したモデルです"],
   madeToOrder: ["Đặt hàng theo yêu cầu, 7–14 ngày", "お取り寄せ（7〜14日）"],
   weight: ["Khối lượng", "重量"],
   dims: ["Kích thước", "サイズ"],

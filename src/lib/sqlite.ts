@@ -925,6 +925,19 @@ export const MIGRATIONS: Migration[] = [
         FROM products WHERE stock IS NOT NULL AND stock > 0`,
     ],
   },
+  {
+    // Flash Sales (trang chủ): one timed campaign (endsAt in `settings`) + the hand-picked products shown in it, in
+    // order. A product drops out of the storefront section on its own once the campaign ends — no cron needed.
+    version: 40,
+    name: "flash-sale",
+    up: [
+      `CREATE TABLE IF NOT EXISTS flash_sale_products (
+        product_id INTEGER PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
+        position   INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

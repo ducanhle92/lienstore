@@ -2449,6 +2449,51 @@ export async function deleteBanner(id: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Flash Sales (trang chủ): one timed campaign — an end time in `settings` plus the hand-picked products shown while
+// it runs. A campaign with no end time, or one whose end time has passed, is simply not active; nothing needs to be
+// cleaned up when it ends. Prices are whatever the product already has (regularPrice/price) — no separate flash price.
+
+export async function getFlashSaleEndsAt(): Promise<string | null> {
+  return getSetting(getDb(), "flash_sale_ends_at");
+}
+/** Whether the campaign is currently running — a plain helper (not inlined at the call site) so pages that read the
+ * clock to decide this don't call `Date.now()` directly from component render. */
+export function isFlashSaleActive(endsAt: string | null): boolean {
+  return !!endsAt && new Date(endsAt).getTime() > Date.now();
+}
+export async function setFlashSaleEndsAt(iso: string | null): Promise<void> {
+  const db = getDb();
+  if (iso) setSetting(db, "flash_sale_ends_at", iso);
+  else db.prepare("DELETE FROM settings WHERE key = 'flash_sale_ends_at'").run();
+}
+
+/** Products in the flash sale, in display order. `includeDrafts` is for the admin picker (shows drafts too, greyed out). */
+export async function getFlashSaleProducts(includeDrafts = false): Promise<CatalogProduct[]> {
+  const db = getDb();
+  const sql = `${PRODUCT_SELECT} JOIN flash_sale_products fsp ON fsp.product_id = p.id ${includeDrafts ? "" : "WHERE p.status = 'publish'"} ORDER BY fsp.position`;
+  return (db.prepare(sql).all() as unknown as ProductRow[]).map(rowToProduct);
+}
+
+export async function addFlashSaleProduct(productId: number): Promise<void> {
+  const db = getDb();
+  const next = (db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS n FROM flash_sale_products").get() as { n: number }).n;
+  db.prepare("INSERT OR IGNORE INTO flash_sale_products (product_id, position, created_at) VALUES (?, ?, ?)").run(productId, next, new Date().toISOString());
+}
+
+export async function removeFlashSaleProduct(productId: number): Promise<void> {
+  getDb().prepare("DELETE FROM flash_sale_products WHERE product_id = ?").run(productId);
+}
+
+/** Full reorder: `productIds` is the complete new order (from the admin drag list). */
+export async function reorderFlashSaleProducts(productIds: number[]): Promise<void> {
+  const db = getDb();
+  const upd = db.prepare("UPDATE flash_sale_products SET position = ? WHERE product_id = ?");
+  withTransaction(db, () => {
+    productIds.forEach((id, i) => upd.run(i, id));
+  });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Customer address book (Trang của tôi › Thông tin cá nhân; picked at checkout)
 
 interface AddressRow {

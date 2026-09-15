@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, getProductById, resolveCustomerRefs, saveVoucher, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { addFlashSaleProduct, deleteVoucher, getFlashSaleProducts, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveVoucher, setFlashSaleEndsAt, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
+const FLASH_SALE = "/admin/promotions/flash-sale/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
@@ -114,4 +115,54 @@ export async function saveShipPolicyAction(formData: FormData): Promise<void> {
   await setShipPolicy(policy);
   revalidatePath("/", "layout");
   redirect(`${POLICY}?saved=${encodeURIComponent(policy.enabled ? "Đã lưu — chính sách đang hiển thị và áp dụng cho khách." : "Đã lưu — chính sách đang tắt.")}`);
+}
+
+/** Sales › Flash Sales: set (or clear) the campaign's end time — a <input type="datetime-local"> value, Vietnam time. */
+export async function saveFlashSaleCampaignAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const raw = text(formData, "endsAt");
+  if (!raw) {
+    await setFlashSaleEndsAt(null);
+    revalidatePath("/", "layout");
+    back(FLASH_SALE, "saved", "Đã tắt Flash Sales.");
+  }
+  const iso = new Date(`${raw}:00+07:00`).toISOString();
+  if (Number.isNaN(new Date(iso).getTime())) back(FLASH_SALE, "error", "Thời điểm kết thúc không hợp lệ.");
+  await setFlashSaleEndsAt(iso);
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", "Đã lưu thời gian Flash Sales.");
+}
+
+export async function addFlashSaleProductAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "productId"), 10);
+  const product = Number.isInteger(id) ? await getProductById(id) : null;
+  if (!product) back(FLASH_SALE, "error", "Chọn sản phẩm.");
+  await addFlashSaleProduct(id);
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", `Đã thêm "${product!.name}" vào Flash Sales.`);
+}
+
+export async function removeFlashSaleProductAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "productId"), 10);
+  if (Number.isInteger(id)) await removeFlashSaleProduct(id);
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", "Đã bỏ khỏi Flash Sales.");
+}
+
+/** Move one product up/down the flash-sale order (whole list re-saved, simplest with no drag-and-drop JS). */
+export async function moveFlashSaleProductAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "productId"), 10);
+  const dir = text(formData, "dir") === "up" ? -1 : 1;
+  const items = await getFlashSaleProducts(true);
+  const i = items.findIndex((p) => p.id === id);
+  const j = i + dir;
+  if (i >= 0 && j >= 0 && j < items.length) {
+    [items[i], items[j]] = [items[j], items[i]];
+    await reorderFlashSaleProducts(items.map((p) => p.id));
+  }
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", "Đã sắp xếp lại Flash Sales.");
 }
