@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Admin › Sản phẩm: bộ lọc theo **nguồn nhập** (chỉ liệt kê nguồn đang có sản phẩm, cộng "Chưa gắn nguồn"); áp dụng cho cả bảng và Xuất CSV.
+
 ## [1.41.1] - 2026-09-15
 
 ### Fixed
