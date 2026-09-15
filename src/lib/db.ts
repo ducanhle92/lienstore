@@ -2449,42 +2449,49 @@ export async function deleteBanner(id: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Flash Sales (trang chủ): one timed campaign — an end time in `settings` plus the hand-picked products shown while
-// it runs. A campaign with no end time, or one whose end time has passed, is simply not active; nothing needs to be
-// cleaned up when it ends. Prices are whatever the product already has (regularPrice/price) — no separate flash price.
+// Flash Sales (trang chủ): hand-picked products, each with its OWN end time (they run different lengths) — not one
+// shared campaign clock. A product drops out of the storefront section on its own once its time passes; nothing needs
+// to be cleaned up. Prices are whatever the product already has (regularPrice/price) — no separate flash price.
 
-export async function getFlashSaleEndsAt(): Promise<string | null> {
-  return getSetting(getDb(), "flash_sale_ends_at");
+export interface FlashSaleItem {
+  product: CatalogProduct;
+  endsAt: string;
+  position: number;
 }
-/** Whether the campaign is currently running — a plain helper (not inlined at the call site) so pages that read the
+
+/** Whether one item's time has not yet passed — a plain helper (not inlined at the call site) so pages that read the
  * clock to decide this don't call `Date.now()` directly from component render. */
-export function isFlashSaleActive(endsAt: string | null): boolean {
-  return !!endsAt && new Date(endsAt).getTime() > Date.now();
-}
-export async function setFlashSaleEndsAt(iso: string | null): Promise<void> {
-  const db = getDb();
-  if (iso) setSetting(db, "flash_sale_ends_at", iso);
-  else db.prepare("DELETE FROM settings WHERE key = 'flash_sale_ends_at'").run();
+export function isFlashSaleItemActive(endsAt: string): boolean {
+  return new Date(endsAt).getTime() > Date.now();
 }
 
-/** Products in the flash sale, in display order. `includeDrafts` is for the admin picker (shows drafts too, greyed out). */
-export async function getFlashSaleProducts(includeDrafts = false): Promise<CatalogProduct[]> {
+/** Flash-sale picks, in display order. `includeDrafts` + `includeExpired` are for the admin list (shows everything,
+ * greyed out); the storefront calls this with both false to get only what customers should currently see. */
+export async function getFlashSaleItems(includeDrafts = false, includeExpired = false): Promise<FlashSaleItem[]> {
   const db = getDb();
-  const sql = `${PRODUCT_SELECT} JOIN flash_sale_products fsp ON fsp.product_id = p.id ${includeDrafts ? "" : "WHERE p.status = 'publish'"} ORDER BY fsp.position`;
-  return (db.prepare(sql).all() as unknown as ProductRow[]).map(rowToProduct);
+  const sql = `SELECT p.*, fsp.ends_at AS fsp_ends_at, fsp.position AS fsp_position,
+      (SELECT json_group_array(category_slug) FROM (SELECT category_slug FROM product_categories WHERE product_id = p.id ORDER BY position)) AS categories
+    FROM products p JOIN flash_sale_products fsp ON fsp.product_id = p.id
+    ${includeDrafts ? "" : "WHERE p.status = 'publish'"} ORDER BY fsp.position`;
+  const rows = db.prepare(sql).all() as unknown as Array<ProductRow & { fsp_ends_at: string; fsp_position: number }>;
+  return rows.filter((r) => includeExpired || isFlashSaleItemActive(r.fsp_ends_at)).map((r) => ({ product: rowToProduct(r), endsAt: r.fsp_ends_at, position: r.fsp_position }));
 }
 
-export async function addFlashSaleProduct(productId: number): Promise<void> {
+export async function addFlashSaleProduct(productId: number, endsAt: string): Promise<void> {
   const db = getDb();
   const next = (db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS n FROM flash_sale_products").get() as { n: number }).n;
-  db.prepare("INSERT OR IGNORE INTO flash_sale_products (product_id, position, created_at) VALUES (?, ?, ?)").run(productId, next, new Date().toISOString());
+  db.prepare("INSERT OR REPLACE INTO flash_sale_products (product_id, position, ends_at, created_at) VALUES (?, ?, ?, ?)").run(productId, next, endsAt, new Date().toISOString());
+}
+
+export async function updateFlashSaleProductEndsAt(productId: number, endsAt: string): Promise<void> {
+  getDb().prepare("UPDATE flash_sale_products SET ends_at = ? WHERE product_id = ?").run(endsAt, productId);
 }
 
 export async function removeFlashSaleProduct(productId: number): Promise<void> {
   getDb().prepare("DELETE FROM flash_sale_products WHERE product_id = ?").run(productId);
 }
 
-/** Full reorder: `productIds` is the complete new order (from the admin drag list). */
+/** Full reorder: `productIds` is the complete new order (from the admin up/down buttons). */
 export async function reorderFlashSaleProducts(productIds: number[]): Promise<void> {
   const db = getDb();
   const upd = db.prepare("UPDATE flash_sale_products SET position = ? WHERE product_id = ?");

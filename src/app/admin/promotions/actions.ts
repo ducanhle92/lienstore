@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { addFlashSaleProduct, deleteVoucher, getFlashSaleProducts, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveVoucher, setFlashSaleEndsAt, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { addFlashSaleProduct, deleteVoucher, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveVoucher, setShipPolicy, updateFlashSaleProductEndsAt, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
 
@@ -117,30 +117,35 @@ export async function saveShipPolicyAction(formData: FormData): Promise<void> {
   redirect(`${POLICY}?saved=${encodeURIComponent(policy.enabled ? "Đã lưu — chính sách đang hiển thị và áp dụng cho khách." : "Đã lưu — chính sách đang tắt.")}`);
 }
 
-/** Sales › Flash Sales: set (or clear) the campaign's end time — a <input type="datetime-local"> value, Vietnam time. */
-export async function saveFlashSaleCampaignAction(formData: FormData): Promise<void> {
-  await requireAdmin("promotions");
-  const raw = text(formData, "endsAt");
-  if (!raw) {
-    await setFlashSaleEndsAt(null);
-    revalidatePath("/", "layout");
-    back(FLASH_SALE, "saved", "Đã tắt Flash Sales.");
-  }
+/** "2026-09-20T18:30" (Vietnam time, from <input type="datetime-local">) → ISO, or null when blank/invalid. */
+function parseVnDatetimeLocal(raw: string): string | null {
+  if (!raw) return null;
   const iso = new Date(`${raw}:00+07:00`).toISOString();
-  if (Number.isNaN(new Date(iso).getTime())) back(FLASH_SALE, "error", "Thời điểm kết thúc không hợp lệ.");
-  await setFlashSaleEndsAt(iso);
-  revalidatePath("/", "layout");
-  back(FLASH_SALE, "saved", "Đã lưu thời gian Flash Sales.");
+  return Number.isNaN(new Date(iso).getTime()) ? null : iso;
 }
 
+/** Sales › Flash Sales: add one product with its own end time — each pick runs on its own clock. */
 export async function addFlashSaleProductAction(formData: FormData): Promise<void> {
   await requireAdmin("promotions");
   const id = Number.parseInt(text(formData, "productId"), 10);
   const product = Number.isInteger(id) ? await getProductById(id) : null;
   if (!product) back(FLASH_SALE, "error", "Chọn sản phẩm.");
-  await addFlashSaleProduct(id);
+  const endsAt = parseVnDatetimeLocal(text(formData, "endsAt"));
+  if (!endsAt) back(FLASH_SALE, "error", "Chọn thời điểm kết thúc.");
+  await addFlashSaleProduct(id, endsAt!);
   revalidatePath("/", "layout");
   back(FLASH_SALE, "saved", `Đã thêm "${product!.name}" vào Flash Sales.`);
+}
+
+/** Edit one product's end time in place (per-row form on the admin list). */
+export async function setFlashSaleProductEndsAtAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "productId"), 10);
+  const endsAt = parseVnDatetimeLocal(text(formData, "endsAt"));
+  if (!Number.isInteger(id) || !endsAt) back(FLASH_SALE, "error", "Thời điểm kết thúc không hợp lệ.");
+  await updateFlashSaleProductEndsAt(id, endsAt!);
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", "Đã lưu thời gian.");
 }
 
 export async function removeFlashSaleProductAction(formData: FormData): Promise<void> {
@@ -156,12 +161,12 @@ export async function moveFlashSaleProductAction(formData: FormData): Promise<vo
   await requireAdmin("promotions");
   const id = Number.parseInt(text(formData, "productId"), 10);
   const dir = text(formData, "dir") === "up" ? -1 : 1;
-  const items = await getFlashSaleProducts(true);
-  const i = items.findIndex((p) => p.id === id);
+  const items = await getFlashSaleItems(true, true);
+  const i = items.findIndex((it) => it.product.id === id);
   const j = i + dir;
   if (i >= 0 && j >= 0 && j < items.length) {
     [items[i], items[j]] = [items[j], items[i]];
-    await reorderFlashSaleProducts(items.map((p) => p.id));
+    await reorderFlashSaleProducts(items.map((it) => it.product.id));
   }
   revalidatePath("/", "layout");
   back(FLASH_SALE, "saved", "Đã sắp xếp lại Flash Sales.");

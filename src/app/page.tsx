@@ -8,7 +8,6 @@ import { ShoppingGuideBlock } from "@/components/sites/lienstore/ui2/ShoppingGui
 import { ProductCarousel } from "@/components/sites/lienstore/shop/ProductCarousel";
 import { CAROUSEL_ITEM } from "@/components/sites/lienstore/shop/carousel-classes";
 import { CategoryCarousel } from "@/components/sites/lienstore/ui2/CategoryCarousel";
-import { FlashSaleCountdown } from "@/components/sites/lienstore/ui2/FlashSaleCountdown";
 import { VoucherStrip } from "@/components/sites/lienstore/ui2/VoucherStrip";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -16,7 +15,7 @@ import { buildCategoryTree, shortName } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { localizeProducts } from "@/lib/localize";
-import { getBanners, getFlashSaleEndsAt, getFlashSaleProducts, getHomeVouchers, isFlashSaleActive, queryProducts } from "@/lib/db";
+import { getBanners, getFlashSaleItems, getHomeVouchers, queryProducts } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +29,24 @@ export default async function Home() {
   const banners = await getBanners();
   const slides = banners.length ? banners.map((b) => ({ image: b.image, href: b.href || "/shop/", alt: b.alt })) : fallbackSlides;
   const categories = await getHeaderCategories(lang);
-  const [fresh, popular, sale, flashSaleEndsAt] = await Promise.all([
+  const [fresh, popular, sale, flashItems] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),
     queryProducts({ orderby: "rating", perPage: 12 }),
     queryProducts({ orderby: "popularity", perPage: 60 }),
-    getFlashSaleEndsAt(),
+    getFlashSaleItems(),
   ]);
-  const onSale = localizeProducts(sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price).slice(0, 6), lang);
   const freshItems = localizeProducts(fresh.items, lang);
   const popularItems = localizeProducts(popular.items, lang);
-  // active only while the campaign's end time is still in the future — nothing to clean up once it passes
-  const flashSaleActive = isFlashSaleActive(flashSaleEndsAt);
-  const flashSaleItems = flashSaleActive ? localizeProducts(await getFlashSaleProducts(), lang) : [];
+  // one merged "Sales" carousel: flash-sale picks first (each keeps its own countdown), then other discounted
+  // products not already picked for flash sale
+  const flashIds = new Set(flashItems.map((f) => f.product.id));
+  const flash = flashItems.map((f) => ({ product: localizeProducts([f.product], lang)[0], flashEndsAt: f.endsAt }));
+  const otherSale = localizeProducts(
+    sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price && !flashIds.has(p.id)).slice(0, 6),
+    lang,
+  ).map((p) => ({ product: p, flashEndsAt: undefined as string | undefined }));
+  const salesSection = [...flash, ...otherSale].slice(0, 12);
+  const showSales = flash.length > 0 || otherSale.length >= 3;
   const topCategories = buildCategoryTree(categories)
     .filter((n) => n.total > 0)
     .slice(0, CATEGORY_ROWS)
@@ -59,32 +64,12 @@ export default async function Home() {
 
         <VoucherStrip vouchers={homeVouchers.map((v) => ({ code: v.code, kind: v.kind, value: v.value, minSubtotal: v.minSubtotal, maxDiscount: v.maxDiscount, endsAt: v.endsAt, personal: v.personal, note: v.note }))} />
 
-        {flashSaleActive && flashSaleItems.length > 0 ? (
-          <section className="mt-10" aria-label="Flash Sales">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-gradient-to-r from-lien-sale to-red-600 px-4 py-3">
-              <h2 className="m-0 flex items-center gap-2 text-[20px] font-extrabold uppercase leading-7 tracking-[0.3px] text-white sm:text-[22px]">
-                <Fa name="bolt" className="text-[20px]" />
-                Flash Sales
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="hidden text-[13px] font-semibold text-white/90 sm:inline">Kết thúc sau</span>
-                <FlashSaleCountdown endsAt={flashSaleEndsAt!} />
-              </div>
-            </div>
-            <ProductCarousel ariaLabel="Flash Sales">
-              {flashSaleItems.map((p) => (
-                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} />
-              ))}
-            </ProductCarousel>
-          </section>
-        ) : null}
-
-        {onSale.length >= 3 ? (
+        {showSales ? (
           <section className="mt-10" aria-label="Giảm giá">
             <SectionHeader2 title={t(lang, "saleTitle")} icon="fire" tone="sale" href="/shop/?orderby=popularity" />
             <ProductCarousel ariaLabel="Giảm giá">
-              {onSale.map((p) => (
-                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} />
+              {salesSection.map(({ product, flashEndsAt }) => (
+                <ShopProductCard key={product.id} product={product} flashEndsAt={flashEndsAt} className={CAROUSEL_ITEM} />
               ))}
             </ProductCarousel>
           </section>

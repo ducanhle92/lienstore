@@ -938,6 +938,15 @@ export const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    // Flash Sales v2: each product gets its OWN end time (they run different lengths), not one shared campaign clock.
+    // The old `flash_sale_ends_at` setting is simply no longer read. Any row from before this migration (there
+    // should be none outside test data) falls back to an already-past date, so it reads as expired rather than
+    // silently staying visible with an undefined end time.
+    version: 41,
+    name: "flash-sale-per-product-time",
+    up: [`ALTER TABLE flash_sale_products ADD COLUMN ends_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z'`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

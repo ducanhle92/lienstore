@@ -6,6 +6,7 @@ import { availabilityGroup, availabilityOf } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
+import { FlashSaleCountdown } from "@/components/sites/lienstore/ui2/FlashSaleCountdown";
 import { CardCartButton } from "./CardCartButton";
 import { QuickViewButton, type QuickViewProduct } from "./QuickView";
 import { StarRating } from "./StarRating";
@@ -62,7 +63,7 @@ export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
  * discount / "Mới" / "Hết hàng" labels, hover actions (wishlist, quick view) and a floating round
  * "Thêm Vào Giỏ" button over the image; 2-line title and price below. Renders an `<li>`.
  */
-export function ShopProductCard({ product, className }: { product: CatalogProduct; className?: string }) {
+export function ShopProductCard({ product, className, flashEndsAt }: { product: CatalogProduct; className?: string; flashEndsAt?: string }) {
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
   const noPrice = product.price <= 0;
@@ -100,6 +101,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           ) : null}
         </Link>
         <div className="pointer-events-none absolute top-1.5 right-1.5 flex flex-col items-end gap-1 sm:top-2 sm:right-2">
+          {flashEndsAt ? <FlashSaleCountdown endsAt={flashEndsAt} compact /> : null}
           {pct ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]">-{pct}%</span> : null}
           {hot && !out ? <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="bestseller" /></span> : null}
           {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="isNew" /></span> : null}
