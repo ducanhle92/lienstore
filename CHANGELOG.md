@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Flash Sales**: khối trang chủ mới (giữa "Ưu đãi độc quyền website" và "Giảm giá đặc biệt") — sản phẩm chọn tay, có đếm ngược thời gian, quản lý ở Sales › Flash Sales.
+
+### Changed
+- Trạng thái sản phẩm cho khách: "Hết hàng" bỏ chú thích "— mẫu này không còn bán tại Nhật"; "Có sẵn" không hiện số lượng tồn cụ thể.
+- Báo giá vận chuyển ở trang sản phẩm/giỏ hàng/thanh toán: chỉ hiện hãng có API thật (GHN, qua Goship…), bỏ báo giá theo công thức/biểu phí (SPX, VNPost) vì không chính xác.
+
 ## [1.43.0] - 2026-09-15
 
 ### Changed
