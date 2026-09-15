@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Giá "Liên hệ" cho sản phẩm chưa có giá vốn: ẩn giá số, disable nút mua, hiện nút liên hệ trên card sản phẩm, trang chi tiết và Quick View.
+- 140 sản phẩm mới từ đợt nhập hàng OS Drug Store (đối chiếu ảnh chụp kệ hàng), nguồn nhập "OS Drug Store" mới trong Kho hàng › Nguồn nhập.
+
+### Fixed
+- Sửa giá vốn khớp nhầm theo giá lô/bundle trên Amazon cho 2 sản phẩm ("Vitamin C DHC 60 Ngày", "Dầu Cá Omega 3 Orihiro 180 Viên"), theo giá thực tế đối chiếu từ OS Drug Store.
+
 ## [1.40.3] - 2026-09-14
 
 ## [1.40.2] - 2026-09-14

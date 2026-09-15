@@ -132,6 +132,8 @@ const DICT = {
   addToCart: ["Thêm Vào Giỏ", "カートに入れる"],
   added: ["Đã thêm vào giỏ", "追加しました"],
   outOfStock: ["Hết hàng", "在庫切れ"],
+  contactForPrice: ["Liên hệ", "お問い合わせ"],
+  contactToOrder: ["Liên hệ đặt hàng", "お問い合わせでご注文"],
   isNew: ["Mới", "新着"],
   bestseller: ["Bán chạy", "人気"],
   boughtTogether: ["Thường được mua cùng với :", "よく一緒に購入されている商品："],

@@ -50,6 +50,7 @@ export function QuickViewButton({ product, className, iconOnly = false }: { prod
 function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClose: () => void }) {
   const [qty, setQty] = useState(1);
   const out = product.stockStatus === "discontinued";
+  const noPrice = product.price <= 0;
   const max = product.stock ?? 99;
 
   useEffect(() => {
@@ -83,16 +84,22 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
         <div className="summary w-full p-6 sm:w-1/2 sm:p-8">
           <h1 className="mb-3 text-[22px] font-bold leading-8 text-lien-heading">{product.name}</h1>
           <p className="price mb-3 text-[20px] leading-[30px] text-[#77a464]">
-            {product.regularPrice && product.regularPrice > product.price ? (
-              <del className="mr-2 opacity-50">
-                {formatAmount(product.regularPrice)}
-                <span>{product.currency}</span>
-              </del>
-            ) : null}
-            <span>
-              {formatAmount(product.price)}
-              <span>{product.currency}</span>
-            </span>
+            {noPrice ? (
+              <span>Liên hệ</span>
+            ) : (
+              <>
+                {product.regularPrice && product.regularPrice > product.price ? (
+                  <del className="mr-2 opacity-50">
+                    {formatAmount(product.regularPrice)}
+                    <span>{product.currency}</span>
+                  </del>
+                ) : null}
+                <span>
+                  {formatAmount(product.price)}
+                  <span>{product.currency}</span>
+                </span>
+              </>
+            )}
           </p>
           {out ? (
             <p className="stock mb-3 text-[14.72px] text-[#e2401c]">Hết hàng</p>
@@ -106,12 +113,19 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
               min={1}
               max={max}
               value={qty}
-              disabled={out}
+              disabled={out || noPrice}
               aria-label="Số lượng"
               onChange={(e) => setQty(Math.min(max, Math.max(1, Math.floor(e.target.valueAsNumber || 1))))}
               className="h-9 w-[58px] rounded-[3px] border border-lien-input-border p-[5px] text-center font-arial text-[16px] leading-6 text-lien-input-text"
             />
-            <AddToCartButton product={cartProduct} quantity={qty} variant="square" disabled={out} className="font-arial" />
+            <AddToCartButton
+              product={cartProduct}
+              quantity={qty}
+              variant="square"
+              disabled={out || noPrice}
+              label={noPrice ? "Liên hệ đặt hàng" : undefined}
+              className="font-arial"
+            />
           </div>
           <div className={cn("mb-4")}>
             <WishlistButton product={cartProduct} variant="button" />

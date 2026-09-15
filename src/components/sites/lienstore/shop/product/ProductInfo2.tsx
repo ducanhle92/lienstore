@@ -32,6 +32,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
   const { t } = useLang();
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
+  const noPrice = product.price <= 0;
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
   const [more, setMore] = useState(false);
@@ -55,7 +56,9 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
       <h1 className="m-0 text-[22px] font-bold leading-[30px] text-lien-heading sm:text-[26px] sm:leading-[34px]">{product.name}</h1>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        {regular ? (
+        {noPrice ? (
+          <span className="text-[26px] font-bold leading-8 text-lien-price">{t("contactForPrice")}</span>
+        ) : regular ? (
           <>
             <del className="text-[16px] text-lien-muted">{formatAmount(regular)}đ</del>
             <span className="text-[26px] font-bold leading-8 text-lien-sale-text">{formatAmount(product.price)}đ</span>
@@ -65,7 +68,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
           <span className="text-[26px] font-bold leading-8 text-lien-price">{formatAmount(product.price)}đ</span>
         )}
       </div>
-      <p className="m-0 mt-1 text-[12px] text-lien-muted">{t("priceNote")}</p>
+      {noPrice ? null : <p className="m-0 mt-1 text-[12px] text-lien-muted">{t("priceNote")}</p>}
 
       <p className="m-0 mt-3 text-[14px]">
         {t("status")}:{" "}
@@ -96,7 +99,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
 
       <form className="cart mt-5 flex flex-wrap items-center gap-3" onSubmit={(e) => e.preventDefault()}>
         <div className="inline-flex h-11 items-center overflow-hidden rounded-full border border-lien-line">
-          <button type="button" aria-label={t("decrease")} disabled={out || qty <= 1} onClick={() => setQty(clamp(qty - 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
+          <button type="button" aria-label={t("decrease")} disabled={out || noPrice || qty <= 1} onClick={() => setQty(clamp(qty - 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
             <Fa name="minus" className="text-[12px]" />
           </button>
           <input
@@ -106,16 +109,24 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
             min={1}
             max={max}
             value={qty}
-            disabled={out}
+            disabled={out || noPrice}
             onChange={(e) => setQty(clamp(e.target.valueAsNumber))}
             aria-label={`Số lượng ${product.name}`}
             className="h-full w-12 border-x border-lien-line bg-white text-center text-[15px] font-semibold text-lien-heading outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
-          <button type="button" aria-label={t("increase")} disabled={out || qty >= max} onClick={() => setQty(clamp(qty + 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
+          <button type="button" aria-label={t("increase")} disabled={out || noPrice || qty >= max} onClick={() => setQty(clamp(qty + 1))} className="flex h-full w-10 items-center justify-center text-lien-heading hover:bg-lien-cream disabled:opacity-40">
             <Fa name="plus" className="text-[12px]" />
           </button>
         </div>
-        <AddToCartButton product={toCartProduct(product)} quantity={qty} variant="primary" label={out ? t("outOfStock") : t("addToCart")} disabled={out} showViewCart linkClassName="w-full basis-full" />
+        <AddToCartButton
+          product={toCartProduct(product)}
+          quantity={qty}
+          variant="primary"
+          label={noPrice ? t("contactToOrder") : out ? t("outOfStock") : t("addToCart")}
+          disabled={out || noPrice}
+          showViewCart
+          linkClassName="w-full basis-full"
+        />
         <WishlistButton product={toCartProduct(product)} className="flex h-11 w-11 items-center justify-center rounded-full border border-lien-line text-[16px] text-lien-heading hover:border-lien-blue hover:text-lien-blue" />
       </form>
 

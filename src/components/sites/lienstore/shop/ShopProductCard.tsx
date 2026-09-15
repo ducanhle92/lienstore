@@ -65,6 +65,7 @@ export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
 export function ShopProductCard({ product, className }: { product: CatalogProduct; className?: string }) {
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
+  const noPrice = product.price <= 0;
   const group = availabilityGroup(avail);
   const pct = discountPercent(product);
   const fresh = isNewProduct(product);
@@ -117,7 +118,7 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />
           <QuickViewButton product={toQuickView(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white [@media(hover:none)]:hidden" iconOnly />
         </div>
-        <CardCartButton product={toCartProduct(product)} disabled={out} />
+        <CardCartButton product={toCartProduct(product)} disabled={out} noPrice={noPrice} />
       </div>
       <div className="flex flex-1 flex-col px-2 pt-2 pb-2.5 text-center sm:px-3 sm:pb-3">
         <Link href={productHref(product)} className="no-underline">
@@ -141,7 +142,9 @@ export function ShopProductCard({ product, className }: { product: CatalogProduc
           </span>
         ) : null}
         <p className="mt-1.5 mb-0 flex flex-wrap items-baseline justify-center gap-x-1.5 text-[13px] font-semibold leading-5 sm:gap-x-2 sm:text-[15px]">
-          {range ? (
+          {noPrice ? (
+            <span className="text-lien-price"><T k="contactForPrice" /></span>
+          ) : range ? (
             <span className="text-lien-price">
               <span className="text-[11px] font-normal text-lien-muted sm:text-[12px]"><T k="priceFrom" /> </span>
               {formatAmount(fam.minPrice)}đ

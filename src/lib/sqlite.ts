@@ -962,6 +962,7 @@ function open(): DatabaseSync {
   ensureOwnerAccounts(db);
   ensurePolicyPages(db);
   cleanPostExcerpts(db);
+  applyOsDrugImport(db);
   return db;
 }
 
@@ -1049,6 +1050,153 @@ function ensureOwnerAccounts(db: DatabaseSync) {
 function ensurePolicyPages(db: DatabaseSync) {
   const ins = db.prepare("INSERT OR IGNORE INTO pages (slug, title, content, date) VALUES (?, ?, ?, ?)");
   for (const p of POLICY_PAGES) ins.run(p.slug, p.title, p.content, "2026-09-11T00:00:00.000Z");
+}
+
+interface OsDrugCostSourceDump {
+  source: string;
+  price_jpy: number;
+  url: string;
+  note: string;
+  checked_at: string | null;
+}
+interface OsDrugProductDump {
+  id: number;
+  slug: string;
+  name: string;
+  price: number;
+  regular_price: number | null;
+  currency: string;
+  sku: string | null;
+  stock: number | null;
+  stock_status: string;
+  tags: string;
+  images: string;
+  thumb: string;
+  short_description: string;
+  description: string;
+  related: string;
+  rating: number | null;
+  review_count: number;
+  status: string;
+  weight_g: number | null;
+  dims_cm: string | null;
+  dims_confidence: string | null;
+  dims_source: string;
+  name_ja: string;
+  short_description_ja: string;
+  description_ja: string;
+  fulfillment: string;
+  cost_price: number | null;
+  supplier_url: string | null;
+  min_stock: number | null;
+  cost_jpy: number | null;
+  cost_source: string;
+  cost_url: string;
+  cost_checked_at: string | null;
+  margin_pct: number | null;
+  categories: string[];
+  costSources: OsDrugCostSourceDump[];
+}
+interface OsDrugImportPayload {
+  purchaseSource: { key: string; kind: string; name: string; url: string; address: string; branch: string; note: string } | null;
+  newProducts: OsDrugProductDump[];
+  corrections: Array<OsDrugProductDump & { oldCostJpy: number | null }>;
+  confirmingProduct: OsDrugProductDump;
+}
+
+const OS_DRUG_IMPORT_FLAG = "os_drug_import_2026_09_14_done";
+const OS_DRUG_IMPORT_PATH = path.join(process.cwd(), "data", "os-drug-import-2026-09-14.json");
+
+/**
+ * One-time content backfill (2026-09-14): 140 OS Drug Store products investigated from shelf-tag photos, plus two
+ * cost corrections on existing products whose amazon quote turned out to be a bundle-price mismatch. Ships as code
+ * (not a direct prod DB write) so it runs identically — and exactly once, guarded by a settings flag — the first
+ * time each environment's own database boots the release that contains it. Every write is parameterised (never raw
+ * string-built SQL) since the content is free-form Vietnamese/Japanese text. Never edit this once it has shipped —
+ * add a new one-time backfill instead, the same rule as MIGRATIONS.
+ */
+function applyOsDrugImport(db: DatabaseSync) {
+  if (getSetting(db, OS_DRUG_IMPORT_FLAG)) return;
+  if (!fs.existsSync(OS_DRUG_IMPORT_PATH)) {
+    console.warn(`[db] os-drug-store import payload missing at ${OS_DRUG_IMPORT_PATH} — skipping (will retry next boot)`);
+    return;
+  }
+  let payload: OsDrugImportPayload;
+  try {
+    payload = JSON.parse(fs.readFileSync(OS_DRUG_IMPORT_PATH, "utf8")) as OsDrugImportPayload;
+  } catch (e) {
+    console.warn(`[db] os-drug-store import payload is not valid JSON: ${e instanceof Error ? e.message : e} — skipping (will retry next boot)`);
+    return;
+  }
+
+  let sourceKey = payload.purchaseSource?.key ?? "os-drug-store";
+  let created = 0;
+  let skipped = 0;
+  let corrected = 0;
+  withTransaction(db, () => {
+    if (payload.purchaseSource) {
+      const existing = db.prepare("SELECT key FROM purchase_sources WHERE key = ? OR name = ? COLLATE NOCASE").get(payload.purchaseSource.key, payload.purchaseSource.name) as { key: string } | undefined;
+      if (existing) sourceKey = existing.key;
+      else {
+        db.prepare(
+          "INSERT INTO purchase_sources (key, kind, name, url, address, branch, note, builtin, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)",
+        ).run(payload.purchaseSource.key, payload.purchaseSource.kind, payload.purchaseSource.name, payload.purchaseSource.url, payload.purchaseSource.address, payload.purchaseSource.branch, payload.purchaseSource.note, new Date().toISOString());
+      }
+    }
+
+    const insProduct = db.prepare(
+      `INSERT INTO products (slug, name, price, regular_price, currency, sku, stock, stock_status, tags, images, thumb, short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja, fulfillment, cost_price, supplier_url, min_stock, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const insCat = db.prepare("INSERT OR IGNORE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
+    const insCost = db.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+    for (const p of payload.newProducts) {
+      if (db.prepare("SELECT id FROM products WHERE slug = ?").get(p.slug)) {
+        skipped++;
+        continue;
+      }
+      const now = new Date().toISOString();
+      const res = insProduct.run(
+        p.slug, p.name, p.price, p.regular_price, p.currency, p.sku, p.stock, p.stock_status, p.tags, p.images, p.thumb,
+        p.short_description, p.description, p.related, p.rating, p.review_count, p.status, now, now, p.weight_g, p.dims_cm,
+        p.dims_confidence, p.dims_source, p.name_ja, p.short_description_ja, p.description_ja, p.fulfillment, p.cost_price,
+        p.supplier_url, p.min_stock, p.cost_jpy, p.cost_jpy ? sourceKey : "", p.cost_url, p.cost_checked_at, p.margin_pct,
+      );
+      const newId = Number(res.lastInsertRowid);
+      p.categories.forEach((slug, i) => insCat.run(newId, slug, i));
+      for (const cs of p.costSources) insCost.run(newId, sourceKey, cs.price_jpy, cs.url, cs.note, cs.checked_at, now);
+      created++;
+    }
+
+    // cost corrections: only applied if the product's cost_jpy still matches what it was when the correction was
+    // investigated — if the owner already edited it since, leave it alone rather than clobber their change.
+    for (const c of payload.corrections) {
+      const cur = db.prepare("SELECT cost_jpy FROM products WHERE id = ?").get(c.id) as { cost_jpy: number | null } | undefined;
+      if (!cur || cur.cost_jpy !== c.oldCostJpy) {
+        console.warn(`[db] os-drug-store import: skipped cost correction for #${c.id} (cost_jpy drifted from the expected ${c.oldCostJpy})`);
+        continue;
+      }
+      db.prepare("UPDATE products SET cost_jpy = ?, cost_source = ?, cost_url = ?, cost_price = ?, cost_checked_at = ?, price = ? WHERE id = ?").run(
+        c.cost_jpy, sourceKey, c.cost_url, c.cost_price, c.cost_checked_at, c.price, c.id,
+      );
+      const already = db.prepare("SELECT 1 FROM product_cost_sources WHERE product_id = ? AND source = ? AND price_jpy = ?").get(c.id, sourceKey, c.cost_jpy);
+      if (!already) {
+        const cs = c.costSources.find((x) => x.source === "os-drug-store" && x.price_jpy === c.cost_jpy);
+        if (cs) insCost.run(c.id, sourceKey, cs.price_jpy, cs.url, cs.note, cs.checked_at, new Date().toISOString());
+      }
+      corrected++;
+    }
+
+    // confirming quote only (no primary-cost change) for the product whose existing amazon quote already agreed —
+    // costSources in the dump also carries that pre-existing amazon quote, which must stay untouched under its own source
+    for (const cs of (payload.confirmingProduct?.costSources ?? []).filter((x) => x.source === "os-drug-store")) {
+      const already = db.prepare("SELECT 1 FROM product_cost_sources WHERE product_id = ? AND source = ? AND price_jpy = ?").get(payload.confirmingProduct.id, sourceKey, cs.price_jpy);
+      if (!already) insCost.run(payload.confirmingProduct.id, sourceKey, cs.price_jpy, cs.url, cs.note, cs.checked_at, new Date().toISOString());
+    }
+  });
+  setSetting(db, OS_DRUG_IMPORT_FLAG, new Date().toISOString());
+  console.info(`[db] os-drug-store import: ${created} products created, ${skipped} skipped (slug already existed), ${corrected} cost corrections applied`);
 }
 
 function seedIfEmpty(db: DatabaseSync) {
