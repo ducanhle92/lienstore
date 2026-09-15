@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-09-15
+
 ### Added
 - **Flash Sales**: khối trang chủ mới (giữa "Ưu đãi độc quyền website" và "Giảm giá đặc biệt") — sản phẩm chọn tay, có đếm ngược thời gian, quản lý ở Sales › Flash Sales.
 
