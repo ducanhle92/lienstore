@@ -183,7 +183,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel} htmlFor="nameJa">
-                  Tên tiếng Nhật <span className="font-normal text-lien-muted">(hiện khi khách chọn 日本語)</span>
+                  Tên tiếng Nhật <InfoPopover>Hiện khi khách chọn 日本語 trên web.</InfoPopover>
                 </label>
                 <input id="nameJa" name="nameJa" defaultValue={product?.nameJa} placeholder="VD: 雪肌精 クリアウェルネス 140g" className={adminInput} />
               </div>
@@ -215,13 +215,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel} htmlFor="shortDescription">
-                  Mô tả ngắn <span className="font-normal text-lien-muted">— 1–2 câu, viết thường như nói với khách</span>
+                  Mô tả ngắn <InfoPopover>1–2 câu, viết thường như nói với khách — không cần HTML, hệ thống tự chia đoạn.</InfoPopover>
                 </label>
                 <PlainTextField id="shortDescription" name="shortDescription" initialHtml={product?.shortDescription ?? ""} rows={3} placeholder="VD: Viên uống vitamin nhóm B của Nhật, hỗ trợ giảm mụn và da sần từ bên trong." />
               </div>
               <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" data-testid="desc-vi">
                 <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
-                  Mô tả chi tiết <span className="font-normal text-lien-muted">— bấm để mở: giới thiệu, thông tin nhanh, công dụng, thành phần, cách dùng, lưu ý</span>
+                  Mô tả chi tiết <span className="font-normal text-lien-muted">— bấm để mở</span>
                 </summary>
                 <div className="border-t border-[#e5e7eb] p-3">
                   <DescriptionEditor name="description" lang="vi" initialHtml={product?.description ?? ""} productName={product?.name} />
@@ -229,12 +229,12 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </details>
               <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" data-testid="desc-ja">
                 <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
-                  Nội dung tiếng Nhật <span className="font-normal text-lien-muted">— bấm để mở; để trống thì khách chọn 日本語 vẫn thấy bản tiếng Việt</span>
+                  Nội dung tiếng Nhật <span className="font-normal text-lien-muted">— bấm để mở</span>
                 </summary>
                 <div className="grid gap-4 border-t border-[#e5e7eb] p-3">
                   <div>
                     <label className={adminLabel} htmlFor="shortDescriptionJa">
-                      Mô tả ngắn tiếng Nhật <span className="font-normal text-lien-muted">— viết thường, 1–2 câu</span>
+                      Mô tả ngắn tiếng Nhật <InfoPopover>Viết thường, 1–2 câu.</InfoPopover>
                     </label>
                     <PlainTextField id="shortDescriptionJa" name="shortDescriptionJa" initialHtml={product?.shortDescriptionJa ?? ""} rows={2} placeholder="例: 肌あれ・にきびを体の内側からケアするビタミン剤です。" />
                   </div>
@@ -254,7 +254,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             <div className="grid gap-3">
               <div>
                 <label className={adminLabel} htmlFor="groupId">
-                  Thuộc dòng sản phẩm <span className="font-normal text-lien-muted">(cùng loại, chỉ khác vị / dung tích / số viên…)</span>
+                  Thuộc dòng sản phẩm <InfoPopover>Cùng loại, chỉ khác vị / dung tích / số viên… Ngoài kệ mỗi nhóm hiện một thẻ “N lựa chọn”.</InfoPopover>
                 </label>
                 <select id="groupId" name="groupId" value={groupSel} onChange={(e) => setGroupSel(e.target.value)} className={adminInput}>
                   <option value="">— Sản phẩm độc lập —</option>
@@ -277,7 +277,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor="groupAttrLabels">
-                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(cha → con, tối đa 4, cách nhau dấu phẩy; để trống = “Loại”)</span>
+                      Thuộc tính phân biệt <InfoPopover>cha → con, tối đa 4, cách nhau dấu phẩy; để trống = “Loại”</InfoPopover>
                     </label>
                     <input id="groupAttrLabels" name="groupAttrLabels" value={newLabels} onChange={(e) => setNewLabels(e.target.value)} placeholder="VD: Vị, Khối lượng" className={adminInput} />
                   </div>
@@ -295,7 +295,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   ))}
                   <div>
                     <label className={adminLabel} htmlFor="variantPosition">
-                      Thứ tự trong nhóm <span className="font-normal text-lien-muted">(nhỏ nhất = thẻ đại diện ngoài kệ)</span>
+                      Thứ tự trong nhóm <InfoPopover>Số nhỏ nhất = thẻ đại diện ngoài kệ.</InfoPopover>
                     </label>
                     <input id="variantPosition" name="variantPosition" inputMode="numeric" defaultValue={product?.variantPosition ?? 0} className={adminInput} />
                   </div>
@@ -332,7 +332,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
 
           <FoldCard title="Từ khóa" summary={product?.tags.length ? `${product.tags.length} từ khoá: ${product.tags.slice(0, 4).join(", ")}${product.tags.length > 4 ? "…" : ""}` : "chưa có"} testId="fold-tags">
             <label className={adminLabel} htmlFor="tags">
-              Cách nhau bằng dấu phẩy <span className="font-normal text-lien-muted">— dùng để tìm kiếm; khách chỉ thấy từ khoá tiếng Việt</span>
+              Cách nhau bằng dấu phẩy <InfoPopover>Dùng để tìm kiếm (cả tiếng Nhật, không dấu, dung tích…); khách chỉ thấy từ khoá tiếng Việt.</InfoPopover>
             </label>
             <input id="tags" name="tags" defaultValue={product?.tags.join(", ")} className={adminInput} />
           </FoldCard>
@@ -438,14 +438,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={adminLabel} htmlFor="marketPrice">
-                      Giá thị trường <span className="font-normal text-lien-muted">(giá đối chiếu — luôn là giá bị gạch)</span>
+                      Giá thị trường <InfoPopover>Giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn.</InfoPopover>
                     </label>
                     <input id="marketPrice" name="marketPrice" inputMode="numeric" value={marketText} onChange={(e) => setMarketText(e.target.value)} placeholder="giá nơi khác bán" className={cn(adminInput, fields.marketPrice && "border-red-500")} />
                     <FieldError msg={fields.marketPrice} />
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor="promoPrice">
-                      Giá khuyến mại <span className="font-normal text-lien-muted">(khi có chương trình; cao/thấp hơn kỳ vọng đều được)</span>
+                      Giá khuyến mại <InfoPopover>Chỉ điền khi có chương trình; cao hay thấp hơn giá kỳ vọng đều được, nhưng phải thấp hơn giá thị trường. Trống = không khuyến mại.</InfoPopover>
                     </label>
                     <input id="promoPrice" name="promoPrice" inputMode="numeric" value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="trống = không KM" className={cn(adminInput, fields.promoPrice && "border-red-500")} />
                     <FieldError msg={fields.promoPrice} />
@@ -494,7 +494,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel} htmlFor="costPrice">
-                  Giá vốn (VNĐ) <span className="font-normal text-lien-muted">(tự tính từ ¥ nếu để trống)</span>
+                  Giá vốn (VNĐ) <InfoPopover>Tự tính từ giá ¥ của nguồn đã chọn (+ phụ phí nguồn) × tỉ giá nếu để trống; mỗi đêm hệ thống cũng tính lại theo tỉ giá.</InfoPopover>
                 </label>
                 <div className="flex gap-2">
                   <input id="costPrice" name="costPrice" inputMode="numeric" value={costText} onChange={(e) => setCostText(e.target.value)} placeholder="Chỉ hiển thị trong quản trị" className={cn(adminInput, "!mb-0 flex-1", fields.costPrice && "border-red-500")} />
@@ -523,8 +523,10 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               <Section n={3} title="Tỉ lệ lãi & giá kỳ vọng" info="Giá kỳ vọng = giá vốn × (1 + tỉ lệ lãi) + phí vận chuyển ba chặng về kho VN, làm tròn theo Công thức giá. Bấm “Dùng giá này” để đưa vào ô Giá kỳ vọng bán ra ở mục 1." testId="sec-margin">
               <div>
                 <label className={adminLabel} htmlFor="marginPct">
-                  Tỉ lệ lãi kỳ vọng (%){" "}
-                  <span className="font-normal text-lien-muted">{marginText.trim() === "" ? `— đang dùng ${defaultMargin}% ${pricing && defaultMargin !== pricing.marginPct ? "theo danh mục" : "mặc định của shop"}; sửa số để đặt riêng cho sản phẩm` : "— tỉ lệ riêng của sản phẩm"}</span>
+                  Tỉ lệ lãi kỳ vọng (%)
+                  <InfoPopover>
+                    {marginText.trim() === "" ? `Đang dùng ${defaultMargin}% ${pricing && defaultMargin !== pricing.marginPct ? "theo danh mục" : "mặc định của shop"}. Gõ số để đặt tỉ lệ riêng cho sản phẩm (0–500).` : "Tỉ lệ riêng của sản phẩm này (0–500). Bấm “Bỏ tỉ lệ riêng” để quay về mặc định."} Bấm “Lưu thay đổi” để ghi.
+                  </InfoPopover>
                 </label>
                 {/* the hidden field carries the override ("" = follow category / shop default); the visible box always shows the number in force */}
                 <input type="hidden" name="marginPct" value={marginText} readOnly />
@@ -535,7 +537,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                       Bỏ tỉ lệ riêng, theo {defaultMargin}%
                     </button>
                   ) : null}
-                  <span className="text-[12px] text-lien-muted">Bấm &quot;Lưu thay đổi&quot; để ghi. Nhập từ 0 đến 500.</span>
+
                 </div>
                 <FieldError msg={fields.marginPct} />
                 {suggestion ? (
@@ -716,7 +718,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             <div className="grid gap-4">
               <div>
                 <label className={adminLabel} htmlFor="sku">
-                  Mã SKU <span className="font-normal text-lien-muted">(THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP)</span>
+                  Mã SKU <InfoPopover>Quy ước: THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP. Bấm “Dùng mã đề xuất” nếu chưa có.</InfoPopover>
                 </label>
                 <input id="sku" name="sku" value={skuText} onChange={(e) => setSkuText(e.target.value.toUpperCase())} placeholder={skuSuggestion ?? "VD: LION-TM-2609-0173"} className={cn(adminInput, "font-mono uppercase")} />
                 {skuSuggestion && skuText !== skuSuggestion ? (
@@ -764,14 +766,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={adminLabel} htmlFor="minStock">
-                      Lưu kho bao nhiêu? <span className="font-normal text-lien-muted">(mức tồn tiêu chuẩn)</span>
+                      Lưu kho bao nhiêu? <InfoPopover>Mức tồn tiêu chuẩn — Kho hàng nhắc mua bù khi tồn xuống dưới mức này.</InfoPopover>
                     </label>
                     <input id="minStock" name="minStock" inputMode="numeric" value={minStockText} onChange={(e) => setMinStockText(e.target.value)} placeholder="VD: 10" className={cn(adminInput, fields.minStock && "border-red-500")} data-testid="min-stock" />
                     <FieldError msg={fields.minStock} />
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor="stock">
-                      Tồn hiện tại <span className="font-normal text-lien-muted">(tất cả kho)</span>
+                      Tồn hiện tại <InfoPopover>Tổng của cả ba kho (Nhật / ĐVVC / Việt Nam); chi tiết từng lô ở Kho hàng › Quản lý lô.</InfoPopover>
                     </label>
                     <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? 0} className={cn(adminInput, fields.stock && "border-red-500")} />
                     <FieldError msg={fields.stock} />

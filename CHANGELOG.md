@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Kho hàng › **Địa chỉ kho** (tab mới): sửa 4 địa chỉ — kho shop tại Nhật, kho ĐVVC tại Nhật (Kiến Express), kho ĐVVC tại Việt Nam (Kiến Express Hà Nội), kho shop tại Việt Nam (đồng bộ với địa chỉ "Nhận tại kho" ở thanh toán).
+- Kho hàng: bộ lọc **Lưu kho** thêm "Sản phẩm lưu kho (có theo dõi tồn)" và "Không lưu kho — hàng order"; bỏ cột SKU khỏi bảng (vẫn có trong CSV).
+
+### Changed
+- Theo xác nhận của Kiến Express: kho ĐVVC tại Việt Nam là **Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm, Hà Nội**; chặng ③ mặc định **Viettel Post** từ kho đó về kho shop — áp cho công thức giá (giá kỳ vọng mọi sản phẩm tính lại khi lên bản này), ô chặng ③ của đơn mới, và các đơn đang mở chưa gửi chặng ③ được chuyển sang Viettel Post với phí theo cân của đơn. Nút "Báo giá chặng ③" dùng địa chỉ này làm điểm gửi.
+- Trang sửa sản phẩm: mọi chú thích còn lại (tên Nhật, mô tả, nhóm biến thể, giá thị trường / khuyến mại, giá vốn, tỉ lệ lãi, SKU, kho, ảnh) chuyển vào nút ⓘ.
+
 ## [1.56.0] - 2026-09-17
 
 ### Added

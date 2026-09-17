@@ -114,7 +114,6 @@ export default async function AdminInventory({ searchParams }: Props) {
 
       <Card>
         <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_160px_150px_150px_170px_auto] md:items-end">
-          {v.track !== "all" ? <input type="hidden" name="track" value={v.track} /> : null}
           {v.state ? <input type="hidden" name="state" value={v.state} /> : null}
           {v.need !== "all" ? <input type="hidden" name="need" value={v.need} /> : null}
           {first(sp.sort) ? <input type="hidden" name="sort" value={v.sort} /> : null}
@@ -151,8 +150,10 @@ export default async function AdminInventory({ searchParams }: Props) {
             <option value="6m">Còn ≤ 6 tháng ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["6m"]).length})</option>
             <option value="1y">Còn ≤ 1 năm ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["1y"]).length})</option>
           </select>
-          <select name="advice" defaultValue={v.advice} className={adminInput} aria-label="Nên lưu kho">
+          <select name="mode" defaultValue={v.advice === "suggest" ? "suggest" : v.track !== "all" ? v.track : ""} className={adminInput} aria-label="Lưu kho">
             <option value="">Lưu kho: tất cả</option>
+            <option value="tracked">Sản phẩm lưu kho — có theo dõi tồn ({summary.tracked})</option>
+            <option value="untracked">Không lưu kho — hàng order ({summary.untracked})</option>
             <option value="suggest">Nên lưu kho — bán ≥ {STOCK_SUGGEST_MIN_SOLD}/{SALES_PACE_DAYS} ngày ({lines.filter((l) => l.soldRecent >= STOCK_SUGGEST_MIN_SOLD).length})</option>
           </select>
           <button type="submit" className={btnPrimary}>
@@ -172,7 +173,6 @@ export default async function AdminInventory({ searchParams }: Props) {
             <thead>
               <tr>
                 <Th v={v} k="id" label="ID" />
-                <Th v={v} k="sku" label="SKU" />
                 <th className={thClass} />
                 <Th v={v} k="name" label="Sản phẩm" />
                 <Th v={v} k="state" label="Tình trạng" />
@@ -194,7 +194,7 @@ export default async function AdminInventory({ searchParams }: Props) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={16} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={15} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -245,7 +245,6 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
   return (
     <tr className="hover:bg-[#fafafa]">
       <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>#{p.id}</td>
-      <td className={`${tdClass} whitespace-nowrap font-mono text-[12px]`}>{p.sku ? p.sku : <span className="text-lien-muted">—</span>}</td>
       <td className={`${tdClass} w-14`}>{p.thumb ? <Image src={p.thumb} alt="" width={40} height={40} className="h-10 w-10 rounded border border-[#e5e7eb] object-cover" unoptimized /> : null}</td>
       <td className={`${tdClass} min-w-[220px]`}>
         <Link href={`/admin/products/${p.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">

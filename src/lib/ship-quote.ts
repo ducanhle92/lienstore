@@ -149,7 +149,7 @@ export interface TransferQuote {
 /** Origin of leg ③: the "Từ: …" part of the default ③ method's warehouse text, else the Kiến Express ward in Hà Nội. */
 export function transferOrigin(db: DatabaseSync = getDb()): AddressInput | null {
   const m = loadShippingMethods(db, true).find((x) => x.leg === "vn_transfer");
-  const fromText = (m?.warehouse.match(/Từ:\s*([^·]+)/)?.[1] ?? "").trim();
+  const fromText = (getSetting(db, "wh_vn_carrier") || m?.warehouse.match(/Từ:\s*([^·]+)/)?.[1] || "").trim();
   const parsed = fromText ? parseAddressToCodes(fromText) : null;
   if (parsed) return destinationAddress({ provinceCode: parsed.provinceCode, wardCode: parsed.wardCode, street: parsed.street || "Kho Kiến Express" });
   // Kiến Express Hà Nội: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm → Phường Xuân Phương (Hà Nội) after the 2025 merger

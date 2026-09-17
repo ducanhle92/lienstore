@@ -54,12 +54,14 @@ export function parseInventoryView(sp: Record<string, string | string[] | undefi
     return (Array.isArray(v) ? v[0] : v) ?? "";
   };
   const legacy = first("view");
-  const track = pick(first("track"), ["all", "tracked", "untracked"] as const, legacy === "tracked" || legacy === "low" || legacy === "out" ? "tracked" : legacy === "untracked" ? "untracked" : "all");
+  const track = pick(first("track") || (first("mode") === "tracked" || first("mode") === "untracked" ? first("mode") : ""), ["all", "tracked", "untracked"] as const, legacy === "tracked" || legacy === "low" || legacy === "out" ? "tracked" : legacy === "untracked" ? "untracked" : "all");
   const state = pick(first("state"), ["out", "low", "ok"] as const, legacy === "low" || legacy === "out" ? (legacy as StockState) : ("" as StockState | "")) as StockState | "";
   const need = pick(first("need"), ["all", "order", "restock"] as const, legacy === "order" ? "order" : "all");
   const pstatus = pick(first("pstatus"), PSTATUS_VALUES, "");
   const expiry = pick(first("expiry"), ["", "1m", "3m", "6m", "1y"] as const, "");
-  const advice = pick(first("advice"), ["", "suggest"] as const, "");
+  // "Lưu kho" select alias: mode=tracked|untracked → track, mode=suggest → advice
+  const mode = first("mode");
+  const advice = pick(first("advice") || (mode === "suggest" ? "suggest" : ""), ["", "suggest"] as const, "");
   // "nên lưu kho" reads best fastest-selling first; an expiry filter reads soonest-expiring first
   const defaultSort: SortKey = advice === "suggest" ? "sold" : expiry ? "expiry" : "state";
   const sort = pick(first("sort"), ["id", "sku", "name", "state", "stock", "pipeline", "orders", "need", "cost", "value", "supplier", "sold", "expiry"] as const, defaultSort);

@@ -94,6 +94,16 @@ export async function register() {
       console.warn(`[flow] default flow job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 18_000);
+  // one-time: leg ③ default → Viettel Post from Kiến Express Hà Nội, warehouse addresses, re-price (see lib/default-flow-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyDefaultFlowV2Once } = await import("./lib/default-flow-job");
+      const r = await applyDefaultFlowV2Once();
+      if (r) console.info(`[flow] v2: leg 3 default → method ${r.methodId} · ${r.ordersMoved} orders moved · ${r.pricesUpdated} prices updated`);
+    } catch (e) {
+      console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 20_000);
   // one-time: Reihaku Hatomugi High Moisture body soap is the 800 ml bottle, not 600 ml (see lib/hatomugi-fix-job.ts)
   setTimeout(async () => {
     try {

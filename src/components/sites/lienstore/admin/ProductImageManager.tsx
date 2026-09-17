@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { InfoPopover } from "./InfoPopover";
 import { uploadImage } from "./image-upload";
 import { adminInput, adminLabel, btnSecondary } from "./ui";
 
@@ -154,9 +155,7 @@ export function ProductImageManager({ initial, initialThumbs = {}, error }: Prop
           ))}
         </ul>
       )}
-      <p className="mt-3 text-[12px] leading-4 text-lien-muted">
-        Ảnh tải lên được lưu trong thư mục dữ liệu của cửa hàng (cùng nơi với cơ sở dữ liệu) và giữ nguyên khi cập nhật phiên bản. Ảnh đã xoá khỏi danh sách sẽ được dọn khỏi đĩa khi lưu sản phẩm nếu không còn sản phẩm nào dùng.
-      </p>
+      <p className="mt-2 mb-0 flex items-center gap-1 text-[12px] text-lien-muted">Ảnh đầu = ảnh đại diện; kéo thứ tự bằng mũi tên.<InfoPopover>Ảnh tải lên được lưu trong thư mục dữ liệu của cửa hàng (cùng nơi với cơ sở dữ liệu) và giữ nguyên khi cập nhật phiên bản. Ảnh đã xoá khỏi danh sách sẽ được dọn khỏi đĩa khi lưu sản phẩm nếu không còn sản phẩm nào dùng.</InfoPopover></p>
     </div>
   );
 }
