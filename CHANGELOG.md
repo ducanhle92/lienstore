@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.66.0] - 2026-09-17
+
 ### Changed
 - Giỏ hàng (ngăn trượt) › “Thường được mua cùng với”: hiện 3 sản phẩm một lượt, kéo chuột / vuốt như các dải sản phẩm ở trang chủ, dùng đúng thẻ sản phẩm chuẩn (rê chuột hiện nút giỏ xanh, rê vào nút thì chuyển cam “Thêm vào giỏ”; hết hàng / chưa có giá hiện đúng nhãn).
 - Trạng thái “Liên hệ” (sản phẩm chưa có giá) đổi sang màu xanh nước biển thống nhất ở thẻ sản phẩm, nút điện thoại trên thẻ, xem nhanh và trang sản phẩm; “Hết hàng” vẫn màu xám.
