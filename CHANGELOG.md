@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.58.1] - 2026-09-17
+
 ### Changed
 - Tên gọi giá thống nhất: ô “Giá kỳ vọng bán ra trên website” trong chi tiết sản phẩm và “Giá kỳ vọng” ở Bán hàng › Giảm giá sản phẩm đổi thành **Giá bán trên web**; “Giá kỳ vọng” chỉ còn là giá gợi ý theo công thức ở mục 3.
 - Chi tiết sản phẩm › mục 1: Giá khuyến mại đứng trước Giá thị trường; bỏ dòng “Khách thấy …”.
