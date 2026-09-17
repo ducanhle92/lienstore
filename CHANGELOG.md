@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-09-17
+
 ### Changed
 - Tỉ giá ¥→đ **khóa cố định 170** (ghi ở ô "Tỉ giá cố định — nhập tay" trong Công thức giá; xóa ô đó và Lưu để quay về tỉ giá DCOM tự lấy). Khi lên bản này, hệ thống tự tính lại giá vốn và giá bán theo công thức cho toàn bộ sản phẩm có giá ¥ một lần (bỏ qua sản phẩm đang giảm giá / Flash Sales) — không cần bấm tay từng sản phẩm.
 - Mô tả 137 sản phẩm đợt OS Drug Store được tách từ một đoạn thành các mục **Công dụng / Thành phần / Hướng dẫn sử dụng / Lưu ý & bảo quản** (giữ nguyên nội dung đã tra cứu), nên trang sản phẩm và ô "Soạn theo mục" trong admin hiện đủ các mục.
