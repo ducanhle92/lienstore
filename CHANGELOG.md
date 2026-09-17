@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.55.2] - 2026-09-17
+
 ### Changed
 - Trang sửa sản phẩm sắp lại cho dễ nhìn: **Thông tin cơ bản** chỉ hiện Tên và Tên tiếng Nhật, phần đường dẫn / mô tả / nội dung Nhật và **Nhóm biến thể** nằm trong mục bấm để mở ngay bên dưới. **Bán hàng** tách thành 3 khối đánh số từ trên xuống — ① Giá bán cho khách · ② Giá vốn (mua tại Nhật) · ③ Tỉ lệ lãi & giá kỳ vọng — mọi chú thích dài chuyển vào nút ⓘ. Kích thước & khối lượng, Mã SKU & trạng thái, Kho hàng thành các khung gấp gọn bên phải (dòng tóm tắt hiện giá trị hiện tại). **Xu hướng mua** chuyển xuống cột trái, ngay trên Lịch sử thay đổi.
 
