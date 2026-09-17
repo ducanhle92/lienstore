@@ -30,6 +30,13 @@ describe("collapseVariants", () => {
     assert.equal(out[1].variantSummary, undefined);
   });
   it("leaves ungrouped lists untouched", () => assert.deepEqual(collapseVariants([c]).map((p) => p.id), [3]));
+  it("ignores 'Liên hệ' (price 0) variants for the 'Từ …' price, and reports 0 only when none has a price", () => {
+    const z = base({ id: 4, slug: "z", name: "Nama Socola Khác", price: 0, groupId: 7, variantPosition: 2 });
+    const s = collapseVariants([a, b, z])[0].variantSummary!;
+    assert.equal(s.minPrice, 363000);
+    assert.equal(s.count, 3, "the unpriced variant is still one of the choices");
+    assert.equal(collapseVariants([z, base({ ...z, id: 5, slug: "z2" })])[0].variantSummary?.minPrice, 0);
+  });
 });
 
 describe("picker helpers", () => {

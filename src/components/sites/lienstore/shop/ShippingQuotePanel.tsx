@@ -393,11 +393,10 @@ export function ShippingQuoteTab({ items, compact = true, useCart = false }: { i
   useEffect(() => {
     // read this browser's remembered address / cart after mount (deferred: the first client render must match the server)
     const h = window.setTimeout(() => {
+      // prefill the last address typed in this browser, but never quote on the visitor's behalf — they confirm the
+      // address and press "Xem cước" first (no login required, no silent carrier calls on page load)
       const stored = loadStoredAddress();
-      if (stored) {
-        setAddr(stored);
-        setEditing(!isCompleteAddress(stored));
-      }
+      if (stored) setAddr(stored);
       if (useCart) {
         try {
           const raw = window.localStorage.getItem("lienstore:cart");

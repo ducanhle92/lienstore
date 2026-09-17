@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { updateStockAction } from "@/app/admin/inventory/actions";
+import { importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
+import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -11,7 +12,7 @@ import { DEFAULT_MIN_STOCK, getInventory, SALES_PACE_DAYS, type InventoryLine, t
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { listPurchaseSources } from "@/lib/db";
-import { applyInventoryView, inventoryHref, type InventoryView, type Pstatus, parseInventoryView, type SortKey, sortHref } from "@/lib/inventory-view";
+import { applyInventoryView, EXPIRY_DAYS, inventoryHref, type InventoryView, type Pstatus, parseInventoryView, type SortKey, sortHref, STOCK_SUGGEST_MIN_SOLD } from "@/lib/inventory-view";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -57,10 +58,28 @@ export default async function AdminInventory({ searchParams }: Props) {
             <Link href="/admin/inventory/export/" className={btnSecondary}>
               <Fa name="download" /> CSV cần mua
             </Link>
+            <form action={importStocktakeCsvAction} className="flex items-center gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-2 py-1" title="File CSV xuất từ 'Xuất CSV bảng này' với cột 'Kiểm đếm thực tế' đã điền — dòng để trống bị bỏ qua">
+              <FilePicker name="csv" accept=".csv,text/csv" label="Chọn CSV" className="!gap-1 [&_span]:hidden" />
+              <button type="submit" className={btnSecondary}>
+                <Fa name="upload" /> Nhập CSV kiểm kê
+              </button>
+            </form>
           </>
         }
       />
-      {saved ? <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash> : null}
+      {saved.startsWith("kiemke:")
+        ? (() => {
+            const [, updated, skipped, nerr, ...rest] = saved.split(":");
+            return (
+              <Flash kind={Number(nerr) ? "warning" : "success"}>
+                Kiểm kê: cập nhật tồn <strong>{updated}</strong> sản phẩm, {skipped} dòng để trống bỏ qua{Number(nerr) ? `, ${nerr} dòng lỗi` : ""}.{rest.length ? <span className="mt-1 block text-[12px]">{rest.join(":")}</span> : null}
+              </Flash>
+            );
+          })()
+        : saved ? (
+            <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash>
+          ) : null}
+      {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -73,11 +92,12 @@ export default async function AdminInventory({ searchParams }: Props) {
       </div>
 
       <Card>
-        <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_170px_160px_160px_auto] md:items-end">
+        <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_160px_150px_150px_170px_auto] md:items-end">
           {v.track !== "all" ? <input type="hidden" name="track" value={v.track} /> : null}
           {v.state ? <input type="hidden" name="state" value={v.state} /> : null}
-          {v.sort !== "state" ? <input type="hidden" name="sort" value={v.sort} /> : null}
-          {v.sort !== "state" ? <input type="hidden" name="dir" value={v.dir} /> : null}
+          {v.need !== "all" ? <input type="hidden" name="need" value={v.need} /> : null}
+          {first(sp.sort) ? <input type="hidden" name="sort" value={v.sort} /> : null}
+          {first(sp.sort) ? <input type="hidden" name="dir" value={v.dir} /> : null}
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, slug, SKU, #id…" className={adminInput} />
           <select name="category" defaultValue={v.category} className={adminInput}>
             <option value="">Tất cả danh mục</option>
@@ -93,17 +113,23 @@ export default async function AdminInventory({ searchParams }: Props) {
             <option value="incoming">{PSTATUS_LABEL.incoming} ({countPstatus("incoming")})</option>
             <option value="unbought">{PSTATUS_LABEL.unbought} ({countPstatus("unbought")})</option>
           </select>
-          <select name="need" defaultValue={v.need} className={adminInput} aria-label="Cần mua">
-            <option value="all">Cần mua: tất cả</option>
-            <option value="order">Theo đơn hàng ({lines.filter((l) => l.demand > 0 && l.toBuy > 0).length})</option>
-            <option value="restock">Để lưu kho ({lines.filter((l) => l.toBuy > 0 && l.demand === 0).length})</option>
+          <select name="expiry" defaultValue={v.expiry} className={adminInput} aria-label="Hạn dùng">
+            <option value="">Hạn dùng: tất cả</option>
+            <option value="1m">Còn ≤ 1 tháng ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["1m"]).length})</option>
+            <option value="3m">Còn ≤ 3 tháng ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["3m"]).length})</option>
+            <option value="6m">Còn ≤ 6 tháng ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["6m"]).length})</option>
+            <option value="1y">Còn ≤ 1 năm ({lines.filter((l) => l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS["1y"]).length})</option>
+          </select>
+          <select name="advice" defaultValue={v.advice} className={adminInput} aria-label="Nên lưu kho">
+            <option value="">Lưu kho: tất cả</option>
+            <option value="suggest">Nên lưu kho — bán ≥ {STOCK_SUGGEST_MIN_SOLD}/{SALES_PACE_DAYS} ngày ({lines.filter((l) => l.soldRecent >= STOCK_SUGGEST_MIN_SOLD).length})</option>
           </select>
           <button type="submit" className={btnPrimary}>
             Lọc
           </button>
         </form>
         <p className="mb-4 text-[12px] text-lien-muted">
-          <strong>Trạng thái theo dõi</strong>: Đang lưu kho (còn tồn) · Đang về (đã đặt lô lưu kho, chưa tới) · Chưa mua (cần mua nhưng chưa đặt gì). <strong>Cần mua</strong>: theo đơn hàng đang mở, hoặc để bù về mức tồn tiêu chuẩn.{" "}
+          <strong>Trạng thái</strong>: Đang lưu kho (còn tồn) · Đang về (đã đặt lô lưu kho, chưa tới) · Chưa mua (cần mua nhưng chưa đặt gì). <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.{" "}
           <Link href="/admin/purchases/" className="text-lien-blue hover:underline">
             <Fa name="shopping-basket" /> Quản lý mua hàng →
           </Link>
@@ -120,15 +146,11 @@ export default async function AdminInventory({ searchParams }: Props) {
                 <Th v={v} k="name" label="Sản phẩm" />
                 <Th v={v} k="state" label="Tình trạng" />
                 <Th v={v} k="stock" label="Số lượng tồn hiện tại" />
-                <th className={cn(thClass, "whitespace-nowrap")} title="Từng lần nhập kho: ngày nhập · còn/nhập · nguồn · hạn dùng · vị trí">
-                  Lô hàng (ngày nhập · SL · nguồn · HSD · vị trí)
-                </th>
+                <Th v={v} k="expiry" label="Lô hàng (ngày nhập · SL · nguồn · HSD · vị trí)" title="Từng lần nhập kho: ngày nhập · còn/nhập · nguồn · hạn dùng · vị trí — sắp xếp theo lô gần hết hạn nhất" />
                 <Th v={v} k="pipeline" label="Đang về · tại kho" title="Đã mua tại Nhật / đang về / đã tới kho shop, chưa giao cho khách" />
                 <Th v={v} k="orders" label="Đơn hàng (đơn mở cần)" />
                 <Th v={v} k="need" label="Cần mua" />
-                <th className={cn(thClass, "whitespace-nowrap")} title={`Số lượng bán ra trong ${SALES_PACE_DAYS} ngày gần đây`}>
-                  Bán ra ({SALES_PACE_DAYS}n)
-                </th>
+                <Th v={v} k="sold" label={`Bán ra (${SALES_PACE_DAYS}n)`} title={`Số lượng bán ra trong ${SALES_PACE_DAYS} ngày gần đây`} />
                 <th className={cn(thClass, "whitespace-nowrap")} title="(Tồn kho + đang về) − bán ra gần đây — ước tính còn dư bao nhiêu theo nhịp bán hiện tại">
                   Dự trữ dự kiến
                 </th>

@@ -66,13 +66,14 @@ export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
 export function ShopProductCard({ product, className, flashEndsAt }: { product: CatalogProduct; className?: string; flashEndsAt?: string }) {
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
-  const noPrice = product.price <= 0;
   const group = availabilityGroup(avail);
   const pct = discountPercent(product);
   const fresh = isNewProduct(product);
   const hot = product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
   const primary = product.thumb || product.images[0];
   const fam = product.variantSummary && product.variantSummary.count > 1 ? product.variantSummary : null;
+  // a family is "Liên hệ" only when none of its variants has a price; otherwise it shows the lowest priced one
+  const noPrice = fam ? fam.minPrice <= 0 : product.price <= 0;
   const range = fam && fam.minPrice !== fam.maxPrice;
   // a collapsed family is titled after the family, not after whichever variant happens to be the representative
   const title = fam?.groupName || product.name;
@@ -151,6 +152,8 @@ export function ShopProductCard({ product, className, flashEndsAt }: { product: 
               <span className="text-[11px] font-normal text-lien-muted sm:text-[12px]"><T k="priceFrom" /> </span>
               {formatAmount(fam.minPrice)}đ
             </span>
+          ) : fam ? (
+            <span className="text-lien-price">{formatAmount(fam.minPrice)}đ</span>
           ) : product.regularPrice && product.regularPrice > product.price ? (
             <>
               <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]">{formatAmount(product.regularPrice)}đ</del>

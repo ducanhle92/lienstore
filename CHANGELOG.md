@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Thẻ nhóm biến thể hiện "Từ 0đ" khi có một biến thể giá "Liên hệ" — nay giá "Từ …" lấy biến thể có giá thấp nhất, chỉ hiện "Liên hệ" khi cả nhóm chưa có giá; số lựa chọn = số biến thể đang bán.
+- Tab "Chi phí vận chuyển" trên trang sản phẩm không còn tự tính cước theo địa chỉ nhớ trong trình duyệt — khách xác nhận địa chỉ và bấm "Xem cước" thì mới tính.
+
+### Added
+- Kho hàng › **Nhập CSV kiểm kê**: xuất "CSV bảng này", điền cột "Kiểm đếm thực tế", nhập lại để cập nhật tồn hàng loạt (dòng để trống bỏ qua, lô hàng tự điều chỉnh theo số đếm).
+- Kho hàng: bộ lọc **Hạn dùng** (còn ≤ 1 / 3 / 6 tháng / 1 năm theo lô gần hết hạn nhất) và **Nên lưu kho** (bán ≥ 3 trong 30 ngày) thay cho lọc "Cần mua"; cột Bán ra và Lô hàng sắp xếp được.
+
+### Changed
+- Quản lý mua hàng: ô thống kê trạng thái thu gọn một hàng để bảng bên dưới có nhiều diện tích hơn (giống Kho hàng).
+
 ## [1.48.1] - 2026-09-17
 
 ### Fixed

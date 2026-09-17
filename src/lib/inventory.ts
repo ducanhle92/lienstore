@@ -1,7 +1,7 @@
 import "server-only";
 import type { CatalogProduct, StockLot } from "@/types/shop";
 import { getAllProducts, getOpenOrderDemand, getPipelineUnits, getPlannedLotUnits, getRecentUnitsSold, listStockLots, type DemandLine, type PipelineUnits } from "./db";
-import { expiryState } from "./lots";
+import { daysToExpiry, expiryState } from "./lots";
 
 /** Default reorder threshold when a product has no `minStock`. */
 export const DEFAULT_MIN_STOCK = Number.parseInt(process.env.LIEN_MIN_STOCK ?? "0", 10) || 0;
@@ -50,6 +50,8 @@ export interface InventoryLine {
   pipelineStage: PipelineStage;
   /** Units on "mua lưu kho" slips not bought yet — planned lots the Japan-side buyer still has to purchase. */
   plannedLot: number;
+  /** Days until the earliest-expiring lot with units left; null when no lot carries an expiry. */
+  minExpiryDays: number | null;
 }
 
 export interface InventorySummary {
@@ -128,7 +130,9 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     const need = Math.max(0, rawDemand - pipeline.pipeline);
     const toBuy = computeToBuy(p.stock, minStock, rawDemand, pipeline.pipeline);
     const soldRecent = soldRecentMap.get(p.id) ?? 0;
+    const lotDays = (lotsByProduct.get(p.id) ?? []).map((l) => daysToExpiry(l.expiry)).filter((d): d is number => d !== null);
     return {
+      minExpiryDays: lotDays.length ? Math.min(...lotDays) : null,
       product: p,
       state,
       minStock,

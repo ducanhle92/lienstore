@@ -80,12 +80,14 @@ export default async function AdminPurchases({ searchParams }: Props) {
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
 
-      <div className={cn("mb-5 grid gap-2 sm:grid-cols-4 lg:grid-cols-7", tab === "stock" && "hidden")}>
+      {/* compact stage counters (same density as Kho hàng) — the table below is the working view */}
+      <div className={cn("mb-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9", tab === "stock" && "hidden")}>
         {PURCHASE_STAGES.map((s) => (
-          <Link key={s.key} href={`/admin/purchases/?status=${s.key}${includeDone || s.key === "delivered" ? "&done=1" : ""}`} className={cn("rounded-lg border p-3 no-underline", status === s.key ? "border-lien-blue bg-lien-blue-soft/60" : "border-[#e5e7eb] bg-white hover:border-lien-blue/50")}>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280]">{s.short}</div>
-            <div className="font-oswald text-[22px] leading-7 text-lien-heading">{counts[s.key]}</div>
-            <div className="text-[11px] text-lien-muted">đơn vị</div>
+          <Link key={s.key} href={`/admin/purchases/?status=${s.key}${includeDone || s.key === "delivered" ? "&done=1" : ""}`} className={cn("rounded-md border px-2 py-1.5 no-underline", status === s.key ? "border-lien-blue bg-lien-blue-soft/60" : "border-[#e5e7eb] bg-white hover:border-lien-blue/50")} title={s.label}>
+            <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">{s.short}</div>
+            <div className="font-oswald text-[16px] leading-5 text-lien-heading">
+              {counts[s.key]} <span className="text-[10px] font-sans font-normal text-lien-muted">đv</span>
+            </div>
           </Link>
         ))}
       </div>

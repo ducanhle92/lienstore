@@ -7,7 +7,13 @@ import type { InventoryLine, PipelineStage, StockState } from "./inventory";
 export type Track = "all" | "tracked" | "untracked";
 export type Need = "all" | "order" | "restock";
 export type Pstatus = "" | Exclude<PipelineStage, null>;
-export type SortKey = "id" | "sku" | "name" | "state" | "stock" | "pipeline" | "orders" | "need" | "cost" | "value" | "supplier";
+/** Earliest lot expiry within … (from today). */
+export type Expiry = "" | "1m" | "3m" | "6m" | "1y";
+export const EXPIRY_DAYS: Record<Exclude<Expiry, "">, number> = { "1m": 30, "3m": 90, "6m": 180, "1y": 365 };
+/** "Nên lưu kho": sells often enough that buying a lot for the warehouse (instead of per order) is worth considering. */
+export type Advice = "" | "suggest";
+export const STOCK_SUGGEST_MIN_SOLD = 3;
+export type SortKey = "id" | "sku" | "name" | "state" | "stock" | "pipeline" | "orders" | "need" | "cost" | "value" | "supplier" | "sold" | "expiry";
 
 export interface InventoryView {
   track: Track;
@@ -15,6 +21,8 @@ export interface InventoryView {
   need: Need;
   /** "Trạng thái theo dõi" (Đang lưu kho / Đang về / Chưa mua) — replaces the old state toggle in the UI. */
   pstatus: Pstatus;
+  expiry: Expiry;
+  advice: Advice;
   q: string;
   category: string;
   sort: SortKey;
@@ -35,9 +43,13 @@ export function parseInventoryView(sp: Record<string, string | string[] | undefi
   const state = pick(first("state"), ["out", "low", "ok"] as const, legacy === "low" || legacy === "out" ? (legacy as StockState) : ("" as StockState | "")) as StockState | "";
   const need = pick(first("need"), ["all", "order", "restock"] as const, legacy === "order" ? "order" : "all");
   const pstatus = pick(first("pstatus"), ["", "in_stock", "incoming", "unbought"] as const, "");
-  const sort = pick(first("sort"), ["id", "sku", "name", "state", "stock", "pipeline", "orders", "need", "cost", "value", "supplier"] as const, "state");
-  const dir = pick(first("dir"), ["asc", "desc"] as const, sort === "state" || sort === "name" || sort === "id" || sort === "sku" ? "asc" : "desc");
-  return { track, state: track === "tracked" ? state : "", need, pstatus, q: first("q").trim().toLowerCase(), category: first("category"), sort, dir };
+  const expiry = pick(first("expiry"), ["", "1m", "3m", "6m", "1y"] as const, "");
+  const advice = pick(first("advice"), ["", "suggest"] as const, "");
+  // "nên lưu kho" reads best fastest-selling first; an expiry filter reads soonest-expiring first
+  const defaultSort: SortKey = advice === "suggest" ? "sold" : expiry ? "expiry" : "state";
+  const sort = pick(first("sort"), ["id", "sku", "name", "state", "stock", "pipeline", "orders", "need", "cost", "value", "supplier", "sold", "expiry"] as const, defaultSort);
+  const dir = pick(first("dir"), ["asc", "desc"] as const, sort === "state" || sort === "name" || sort === "id" || sort === "sku" || sort === "expiry" ? "asc" : "desc");
+  return { track, state: track === "tracked" ? state : "", need, pstatus, expiry, advice, q: first("q").trim().toLowerCase(), category: first("category"), sort, dir };
 }
 
 export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {}, base = "/admin/inventory/"): string {
@@ -48,6 +60,8 @@ export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {
   if (n.state) qs.set("state", n.state);
   if (n.need !== "all") qs.set("need", n.need);
   if (n.pstatus) qs.set("pstatus", n.pstatus);
+  if (n.expiry) qs.set("expiry", n.expiry);
+  if (n.advice) qs.set("advice", n.advice);
   if (n.q) qs.set("q", n.q);
   if (n.category) qs.set("category", n.category);
   if (n.sort !== "state") qs.set("sort", n.sort);
@@ -58,7 +72,7 @@ export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {
 
 /** Link for a header click: same column → flip direction, other column → that column with its natural direction. */
 export function sortHref(v: InventoryView, key: SortKey): string {
-  const natural: "asc" | "desc" = key === "name" || key === "id" || key === "sku" || key === "state" || key === "supplier" ? "asc" : "desc";
+  const natural: "asc" | "desc" = key === "name" || key === "id" || key === "sku" || key === "state" || key === "supplier" || key === "expiry" ? "asc" : "desc";
   const dir = v.sort === key ? (v.dir === "asc" ? "desc" : "asc") : natural;
   return inventoryHref(v, { sort: key, dir });
 }
@@ -73,7 +87,9 @@ export function applyInventoryView(lines: InventoryLine[], v: InventoryView): In
     .filter((l) => (v.track === "tracked" ? l.product.stock !== null : v.track === "untracked" ? l.product.stock === null : true))
     .filter((l) => !v.state || (v.track === "tracked" && l.state === v.state))
     .filter((l) => (v.need === "order" ? l.demand > 0 && l.toBuy > 0 : v.need === "restock" ? l.toBuy > 0 && l.demand === 0 : true))
-    .filter((l) => !v.pstatus || l.pipelineStage === v.pstatus);
+    .filter((l) => !v.pstatus || l.pipelineStage === v.pstatus)
+    .filter((l) => !v.expiry || (l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS[v.expiry]))
+    .filter((l) => v.advice !== "suggest" || l.soldRecent >= STOCK_SUGGEST_MIN_SOLD);
   const dirMul = v.dir === "asc" ? 1 : -1;
   const cmp = (a: InventoryLine, b: InventoryLine): number => {
     switch (v.sort) {
@@ -97,6 +113,11 @@ export function applyInventoryView(lines: InventoryLine[], v: InventoryView): In
         return a.stockValue - b.stockValue;
       case "supplier":
         return cmpStr(a.product.supplierUrl ?? "￿", b.product.supplierUrl ?? "￿");
+      case "sold":
+        return a.soldRecent - b.soldRecent;
+      case "expiry":
+        // products without a dated lot sort after every dated one in the natural (ascending) order
+        return (a.minExpiryDays ?? Number.POSITIVE_INFINITY) - (b.minExpiryDays ?? Number.POSITIVE_INFINITY);
       case "state":
       default:
         return STATE_RANK[a.state] - STATE_RANK[b.state];

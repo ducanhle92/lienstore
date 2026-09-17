@@ -102,14 +102,15 @@ export function collapseVariants<T extends CatalogProduct>(products: T[], groupN
     const g = p.groupId;
     const s = summary.get(g);
     if (!s) {
-      summary.set(g, { count: 1, minPrice: p.price, maxPrice: p.price, ...(groupNames?.get(g) ? { groupName: groupNames.get(g) } : {}), variants: [] });
+      // a "Liên hệ" variant (price 0) must not drag the family's "Từ …" down to 0đ
+      summary.set(g, { count: 1, minPrice: p.price > 0 ? p.price : Number.POSITIVE_INFINITY, maxPrice: p.price, ...(groupNames?.get(g) ? { groupName: groupNames.get(g) } : {}), variants: [] });
       firstIndex.set(g, out.length);
       rep.set(g, p);
       members.set(g, [p]);
       out.push(null); // placeholder; filled once the representative is known
     } else {
       s.count++;
-      s.minPrice = Math.min(s.minPrice, p.price);
+      if (p.price > 0) s.minPrice = Math.min(s.minPrice, p.price);
       s.maxPrice = Math.max(s.maxPrice, p.price);
       members.get(g)!.push(p);
       const cur = rep.get(g)!;
@@ -118,6 +119,7 @@ export function collapseVariants<T extends CatalogProduct>(products: T[], groupN
   }
   for (const [g, idx] of firstIndex) {
     const s = summary.get(g)!;
+    if (!Number.isFinite(s.minPrice)) s.minPrice = 0; // every variant is "Liên hệ"
     s.variants = sortVariants(members.get(g)!).map((v) => ({ id: v.id, slug: v.slug, thumb: v.thumb || v.images[0] || "", name: v.name }));
     out[idx] = { ...rep.get(g)!, variantSummary: s };
   }
