@@ -506,7 +506,23 @@ export interface OrderLeg {
   fee: number;
   tracking: string;
   note: string;
+  /** Shipment status of this leg: chưa gửi → đã gửi → đã đến. */
+  status: import("@/lib/leg-status").LegStatus;
+  sentAt: string | null;
+  arrivedAt: string | null;
   updatedAt: string;
+}
+
+/** One entry of a leg's history (status changes, tracking numbers). */
+export interface OrderLegEvent {
+  id: number;
+  orderId: string;
+  leg: OrderLeg["leg"];
+  status: import("@/lib/leg-status").LegStatus;
+  tracking: string;
+  note: string;
+  actor: string;
+  createdAt: string;
 }
 
 export interface ShippingCarrier {

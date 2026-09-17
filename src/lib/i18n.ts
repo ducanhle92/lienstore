@@ -142,7 +142,7 @@ const DICT = {
   fSupport: ["Hỗ trợ khách hàng", "カスタマーサポート"],
   fCategories: ["Danh mục chính", "主なカテゴリー"],
   fPolicies: ["Chính sách chung", "各種ポリシー"],
-  fConnect: ["Kết nối với LienStore", "LienStoreとつながる"],
+  fConnect: ["Kết nối với {shop}", "{shop}とつながる"],
   fTagline: ["chuyên hàng Nhật nội địa", "日本国内商品専門店"],
   fConnectText: ["Nhắn Zalo hoặc Messenger để được tư vấn và báo giá mua hộ hàng Nhật.", "ZaloまたはMessengerでご相談・購入代行のお見積りを承ります。"],
   fBillNote1: ["Mỗi đơn đều có", "すべての注文に"],

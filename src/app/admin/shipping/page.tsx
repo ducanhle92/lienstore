@@ -4,7 +4,11 @@ import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
-import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode, listShipmentBatches } from "@/lib/db";
+import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode, listOrderLegEvents, listShipmentBatches } from "@/lib/db";
+import { setOrderLegStatusAction } from "@/app/admin/shipping/order-actions";
+import { formatDateTime } from "@/lib/format";
+import { GOODS_WHERE, goodsWhere, isGoodsWhere, isLegStatus, LEG_STATUS_CLS, LEG_STATUS_LABEL, LEG_STATUSES, type LegStatus } from "@/lib/leg-status";
+import type { Order, OrderLeg, OrderLegEvent } from "@/types/shop";
 import { BATCH_FORM_ID, BatchShipmentCard } from "@/components/sites/lienstore/admin/BatchShipmentCard";
 import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
@@ -429,8 +433,16 @@ export default async function AdminShipping({ searchParams }: Props) {
   const error = first(sp.error);
   const [methods, notes, carriers, pickupAddress, allOrders, pricingMode, jpyRate, quoteDefaults] = await Promise.all([getShippingMethods(false), getShippingNotes(), getShippingCarriers(), getPickupAddress(), getOrders(), getShippingPricingMode(), getJpyRate(), getQuoteDefaults()]);
   const quoteCfg = buildQuoteConfig(methods, pricingMode, jpyRate, quoteDefaults);
-  const orders = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
-  const legMap = await getOrderLegs(orders.map((o) => o.id));
+  const recent = allOrders.filter((o) => o.status !== "cancelled").slice(0, 60);
+  const legMap = await getOrderLegs(recent.map((o) => o.id));
+  const eventMap = await listOrderLegEvents(recent.map((o) => o.id));
+  // "Hàng đang ở" — derived from the furthest leg that moved; the filter narrows the 4-leg table to one location
+  const whereOf = (o: Order) => goodsWhere(legMap.get(o.id) ?? []);
+  const whereRaw = first(sp.where);
+  const whereFilter = isGoodsWhere(whereRaw) ? whereRaw : "";
+  const orders = whereFilter ? recent.filter((o) => whereOf(o) === whereFilter) : recent;
+  const stRaw = first(sp.st);
+  const legStatusFilter: LegStatus | "" = isLegStatus(stRaw) ? stRaw : "";
   const batches = await listShipmentBatches(20);
   const weightMap = new Map(await Promise.all(orders.map(async (o) => [o.id, await getOrderChargeableWeightG(o.id)] as const)));
   const visible = methods.filter((m) => m.active).map((m) => ({ ...m, zones: m.zones.filter((z) => z.active) }));
@@ -528,7 +540,27 @@ export default async function AdminShipping({ searchParams }: Props) {
       ) : !tab ? (
         <>
         <BatchShipmentCard methods={methods} batches={batches} defaultMethodIds={{ jp_domestic: quoteCfg.jpDomestic?.id, jp_vn: quoteCfg.jpVn?.id, vn_transfer: quoteCfg.vnTransfer?.id }} />
-        <Card title={`Đơn hàng & vận chuyển theo 4 chặng (${orders.length} đơn gần nhất, trừ đơn đã huỷ)`}>
+        <Card
+          title={`Đơn hàng & vận chuyển theo 4 chặng (${orders.length}${whereFilter ? `/${recent.length}` : ""} đơn gần nhất, trừ đơn đã huỷ)`}
+          actions={
+            <form method="get" className="flex items-center gap-2 text-[13px]">
+              <label htmlFor="where-filter" className="text-lien-muted">
+                Hàng đang ở:
+              </label>
+              <select id="where-filter" name="where" defaultValue={whereFilter} className={`${adminInput} !mb-0 !w-auto !py-1 !text-[13px]`}>
+                <option value="">tất cả</option>
+                {GOODS_WHERE.map((w) => (
+                  <option key={w.key} value={w.key}>
+                    {w.label} ({recent.filter((o) => whereOf(o) === w.key).length})
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className={`${btnSecondary} !py-1 !text-[13px]`}>
+                Lọc
+              </button>
+            </form>
+          }
+        >
           <p className="mb-4 text-[13px] text-lien-muted">
             Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.
           </p>
@@ -538,6 +570,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                 <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
                   <th className="px-2 py-2" title="Tick để gom lô">Lô</th>
                   <th className="px-2 py-2">Đơn</th>
+                  <th className="px-2 py-2" title="Vị trí hàng suy ra từ chặng xa nhất đã đi; bấm 'Lịch sử' để xem từng lần đổi trạng thái">Hàng đang ở</th>
                   {SHIPPING_LEGS.map((l) => (
                     <th key={l.key} className="px-2 py-2">
                       <Fa name={LEG_ICON[l.key]} className="mr-1" />
@@ -549,6 +582,7 @@ export default async function AdminShipping({ searchParams }: Props) {
               <tbody>
                 {orders.map((o) => {
                   const legs = legMap.get(o.id) ?? [];
+                  const where = GOODS_WHERE.find((w) => w.key === whereOf(o)) ?? GOODS_WHERE[0];
                   return (
                     <tr key={o.id} id={`order-${o.id}`} className="align-top odd:bg-white even:bg-[#fafafa]">
                       <td className="border-b border-[#f0f0f0] px-2 py-3">
@@ -566,6 +600,12 @@ export default async function AdminShipping({ searchParams }: Props) {
                           {o.delivery === "pickup" ? "Nhận tại kho" : o.shippingLabel || "Giao tận nhà"} · phí khách {formatAmount(o.shippingFee)}đ
                         </div>
                       </td>
+                      <td className="min-w-[150px] border-b border-[#f0f0f0] px-2 py-3">
+                        <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", where.cls)} data-testid="goods-where">
+                          {where.label}
+                        </span>
+                        <LegHistory events={eventMap.get(o.id) ?? []} />
+                      </td>
                       {SHIPPING_LEGS.map((l) => (
                         <td key={l.key} className="border-b border-[#f0f0f0] px-2 py-3">
                           <OrderLegCell order={o} leg={l.key} current={legs.find((x) => x.leg === l.key)} methods={methods} back="/admin/shipping/" weightG={weightMap.get(o.id)} quote={quoteCfg} />
@@ -576,8 +616,8 @@ export default async function AdminShipping({ searchParams }: Props) {
                 })}
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-2 py-6 text-center text-lien-muted">
-                      Chưa có đơn hàng.
+                    <td colSpan={7} className="px-2 py-6 text-center text-lien-muted">
+                      {whereFilter ? "Không có đơn nào ở vị trí này." : "Chưa có đơn hàng."}
                     </td>
                   </tr>
                 ) : null}
@@ -601,6 +641,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                   <p className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[12px] leading-5 text-lien-text">{LEG_API_NOTE[leg.key]}</p>
                 </div>
                 {leg.key === "vn_domestic" ? <CarrierStatusPanel /> : null}
+                <LegShipmentsCard leg={leg.key} orders={recent} legMap={legMap} eventMap={eventMap} filter={legStatusFilter} />
                 {list.map((m) => (
                   <MethodCard key={m.id} m={m} carriers={carriers} tab={tab} />
                 ))}
@@ -634,5 +675,137 @@ export default async function AdminShipping({ searchParams }: Props) {
         </div>
       )}
     </>
+  );
+}
+
+/** "Lịch sử" of an order's legs: every status change with time, tracking number and who did it. */
+function LegHistory({ events }: { events: OrderLegEvent[] }) {
+  if (!events.length) return <p className="m-0 mt-1 text-[11px] text-lien-muted">Chưa có cập nhật chặng.</p>;
+  return (
+    <details className="mt-1 text-[11px]">
+      <summary className="cursor-pointer select-none text-lien-blue">Lịch sử ({events.length})</summary>
+      <ul className="m-0 mt-1 list-none space-y-0.5 p-0 text-lien-muted">
+        {events.slice(0, 12).map((e) => (
+          <li key={e.id}>
+            {formatDateTime(e.createdAt)} · {LEG_LABEL[e.leg]}: <span className="font-semibold text-lien-text">{LEG_STATUS_LABEL[e.status]}</span>
+            {e.tracking ? ` · ${e.tracking}` : ""}
+            {e.note ? ` · ${e.note}` : ""}
+            {e.actor ? ` · ${e.actor}` : ""}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/**
+ * Sheet của một chặng › "Đơn hàng qua chặng này": every recent order with this leg's status (chưa gửi / đã gửi / đã đến),
+ * tracking number and history — filter by status, change it in place. Delivered orders drop out once the last leg arrived.
+ */
+function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: ShippingLeg; orders: Order[]; legMap: Map<string, OrderLeg[]>; eventMap: Map<string, OrderLegEvent[]>; filter: LegStatus | "" }) {
+  const rows = orders
+    .map((o) => ({ o, l: (legMap.get(o.id) ?? []).find((x) => x.leg === leg) }))
+    .filter(({ o }) => o.shipStage !== "delivered" || leg === "vn_domestic")
+    .filter(({ l }) => !filter || (l?.status ?? "pending") === filter);
+  const count = (s: LegStatus) => orders.filter((o) => ((legMap.get(o.id) ?? []).find((x) => x.leg === leg)?.status ?? "pending") === s).length;
+  const back = `/admin/shipping/?leg=${leg}${filter ? `&st=${filter}` : ""}`;
+  return (
+    <Card
+      title={`Đơn hàng qua chặng này (${rows.length})`}
+      actions={
+        <form method="get" className="flex items-center gap-2 text-[13px]">
+          <input type="hidden" name="leg" value={leg} />
+          <select name="st" defaultValue={filter} className={`${adminInput} !mb-0 !w-auto !py-1 !text-[13px]`} aria-label="Lọc theo trạng thái chặng">
+            <option value="">Trạng thái: tất cả</option>
+            {LEG_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {LEG_STATUS_LABEL[s]} ({count(s)})
+              </option>
+            ))}
+          </select>
+          <button type="submit" className={`${btnSecondary} !py-1 !text-[13px]`}>
+            Lọc
+          </button>
+        </form>
+      }
+    >
+      <p className="mb-3 text-[13px] text-lien-muted">Mỗi đơn một dòng: đổi trạng thái của chặng {LEG_LABEL[leg].toLowerCase()} (chưa gửi → đã gửi → đã đến), thêm mã vận đơn / ghi chú rồi bấm ✓. Sản phẩm trong đơn và tiến độ đơn cho khách tự nhích theo; &ldquo;Lịch sử&rdquo; ghi lại từng lần đổi.</p>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
+              <th className="px-2 py-2">Đơn</th>
+              <th className="px-2 py-2">Phương thức · phí</th>
+              <th className="px-2 py-2">Trạng thái chặng</th>
+              <th className="px-2 py-2">Mã vận đơn · ghi chú</th>
+              <th className="px-2 py-2">Thời gian</th>
+              <th className="px-2 py-2">Hàng đang ở</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ o, l }) => {
+              const fid = `ls-${o.id}-${leg}`;
+              const st = l?.status ?? "pending";
+              const where = GOODS_WHERE.find((w) => w.key === goodsWhere(legMap.get(o.id) ?? [])) ?? GOODS_WHERE[0];
+              return (
+                <tr key={o.id} id={`order-${o.id}`} className="align-top odd:bg-white even:bg-[#fafafa]" data-testid={`leg-row-${o.id}`}>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2">
+                    <form id={fid} action={setOrderLegStatusAction}>
+                      <input type="hidden" name="orderId" value={o.id} />
+                      <input type="hidden" name="leg" value={leg} />
+                      <input type="hidden" name="back" value={back} />
+                    </form>
+                    <Link href={`/admin/orders/${o.id}/`} className="font-semibold text-lien-blue hover:underline">
+                      #{o.number}
+                    </Link>
+                    <div className="text-[12px] text-lien-muted">
+                      {o.customer.lastName} {o.customer.firstName} · {o.items.reduce((n, it) => n + it.quantity, 0)} sp
+                    </div>
+                  </td>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2 text-[12px]">
+                    {l?.label || <span className="text-lien-muted">mặc định theo luồng nhập hàng</span>}
+                    {l?.fee ? <span className="block text-lien-muted">{formatAmount(l.fee)}đ</span> : null}
+                  </td>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2">
+                    <div className="flex items-center gap-1">
+                      <select name="status" form={fid} defaultValue={st} className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[12px] font-semibold", LEG_STATUS_CLS[st])} aria-label="Trạng thái chặng">
+                        {LEG_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {LEG_STATUS_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" form={fid} className={`${btnSecondary} !px-2 !py-1 !text-[12px]`} title="Lưu trạng thái">
+                        <Fa name="check" />
+                      </button>
+                    </div>
+                  </td>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2">
+                    <input name="tracking" form={fid} defaultValue={l?.tracking ?? ""} placeholder="Mã vận đơn" className={cn(adminInput, "!mb-1 !w-[160px] !py-1 !text-[12px]")} aria-label="Mã vận đơn" />
+                    <input name="note" form={fid} placeholder="Ghi chú lần này" className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[12px]")} aria-label="Ghi chú" />
+                  </td>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2 text-[12px] text-lien-muted">
+                    {l?.sentAt ? <span className="block">Gửi {formatDateTime(l.sentAt)}</span> : null}
+                    {l?.arrivedAt ? <span className="block">Đến {formatDateTime(l.arrivedAt)}</span> : null}
+                    {!l?.sentAt && !l?.arrivedAt ? "—" : null}
+                  </td>
+                  <td className="border-b border-[#f0f0f0] px-2 py-2">
+                    <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", where.cls)}>{where.label}</span>
+                    <LegHistory events={(eventMap.get(o.id) ?? []).filter((e) => e.leg === leg)} />
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-2 py-6 text-center text-lien-muted">
+                  Không có đơn nào{filter ? ` ở trạng thái "${LEG_STATUS_LABEL[filter]}"` : ""}.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

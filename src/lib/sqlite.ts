@@ -972,6 +972,28 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE purchase_sources ADD COLUMN extra_fee_note TEXT NOT NULL DEFAULT ''`,
     ],
   },
+  {
+    // Per-leg shipment status of every order (chưa gửi → đã gửi → đã đến) with a history, so "where are the goods"
+    // can be answered per leg / per warehouse instead of one overall stage.
+    version: 44,
+    name: "order-leg-status",
+    up: [
+      `ALTER TABLE order_legs ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`,
+      `ALTER TABLE order_legs ADD COLUMN sent_at TEXT`,
+      `ALTER TABLE order_legs ADD COLUMN arrived_at TEXT`,
+      `CREATE TABLE IF NOT EXISTS order_leg_events (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id   TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        leg        TEXT NOT NULL,
+        status     TEXT NOT NULL,
+        tracking   TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        actor      TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_order_leg_events_order ON order_leg_events(order_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

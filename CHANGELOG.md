@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Vận chuyển › **trạng thái theo từng chặng**: mỗi chặng của đơn (nội địa Nhật · Nhật → Việt · kho ĐVVC → kho shop · nội địa VN) có trạng thái riêng *Chưa gửi → Đã gửi → Đã đến* với thời điểm và **lịch sử** từng lần đổi (ai, lúc nào, mã vận đơn). Đổi trạng thái chặng thì sản phẩm trong đơn (Quản lý mua hàng) và tiến độ đơn cho khách tự nhích theo.
+- Vận chuyển: cột **"Hàng đang ở"** (Chưa gửi tại Nhật · Đang tới kho ĐVVC Nhật · Kho ĐVVC Nhật · Đang bay NB → VN · Kho ĐVVC Việt Nam · Đang về kho shop · Kho Việt Nam · Đang giao · Khách đã nhận) suy từ chặng xa nhất đã đi, kèm bộ lọc theo vị trí; sheet của từng chặng có bảng **"Đơn hàng qua chặng này"** để lọc theo trạng thái, nhập mã vận đơn / ghi chú và đổi trạng thái ngay tại chỗ.
+
+### Changed
+- Luồng nhập hàng mặc định: chặng ① **LienStore gom tại nhà** thay cho Japan Post ゆうパック — áp cho công thức giá của mọi sản phẩm (kể cả nháp, giá bán tính lại khi lên bản này), cho ô chặng ① của đơn mới, và chuyển các đơn đang mở còn để Japan Post (chưa có mã vận đơn, chưa gửi) sang phương thức mới. Cột giá của phương thức này được coi là **phí trọn một lần gom** (đơn vị "/kg" nếu có bị bỏ) để không nhân theo cân.
+- Chân trang: "Kết nối với …" và dòng bản quyền lấy tên cửa hàng theo Giao diện & Logo.
+
+### Fixed
+- Sữa tắm Reihaku Hatomugi High Moisture: bản sửa 800ml nay áp cả khi đường dẫn đã đổi trước đó (tên, từ khoá, thuộc tính "Thể tích" 600ml → 800ml).
+
 ## [1.50.0] - 2026-09-17
 
 ### Added

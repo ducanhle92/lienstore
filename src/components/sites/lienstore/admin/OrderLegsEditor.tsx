@@ -1,7 +1,8 @@
 import { requoteOrderAction } from "@/app/admin/shipping/carrier-actions";
 import { saveOrderLegAction } from "@/app/admin/shipping/order-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, formatDateTime } from "@/lib/format";
+import { LEG_STATUS_CLS, LEG_STATUS_LABEL, LEG_STATUSES } from "@/lib/leg-status";
 import { quoteMethod, SHIPPING_LEGS, type ShippingLeg, type ShippingQuoteConfig, zoneFeeForWeight } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { Order, OrderLeg, ShippingMethod } from "@/types/shop";
@@ -67,11 +68,25 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG, quot
         <input name="tracking" defaultValue={current?.tracking ?? ""} placeholder="Mã vận đơn" className={cn(tiny, "flex-1")} aria-label="Mã vận đơn" />
       </div>
       <div className="flex items-center gap-1.5">
+        <select name="status" defaultValue={current?.status ?? "pending"} className={cn(tiny, "w-[104px] shrink-0 font-semibold", LEG_STATUS_CLS[current?.status ?? "pending"])} aria-label="Trạng thái chặng" title="Trạng thái của chặng này: chưa gửi → đã gửi → đã đến. Đổi rồi bấm ✓ — sản phẩm trong đơn và tiến độ đơn tự cập nhật theo.">
+          {LEG_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {LEG_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
         <input name="note" defaultValue={current?.note ?? ""} placeholder="Ghi chú" className={cn(tiny, "flex-1")} aria-label="Ghi chú" />
         <button type="submit" className={`${btnSecondary} !px-2 !py-1 !text-[12px]`} title="Lưu">
           <Fa name="check" />
         </button>
       </div>
+      {current?.sentAt || current?.arrivedAt ? (
+        <p className="m-0 text-[11px] text-lien-muted">
+          {current.sentAt ? `Gửi ${formatDateTime(current.sentAt)}` : ""}
+          {current.sentAt && current.arrivedAt ? " · " : ""}
+          {current.arrivedAt ? `Đến ${formatDateTime(current.arrivedAt)}` : ""}
+        </p>
+      ) : null}
       {leg === "vn_domestic" && weightG ? <p className="m-0 text-[11px] text-lien-muted">Cân tính phí của đơn: {formatAmount(weightG)} g (đã nhân hệ số an toàn theo độ tin cậy kích thước)</p> : null}
       {leg === "vn_domestic" ? (
         <label className="flex items-center gap-1.5 text-[11px] text-lien-muted">

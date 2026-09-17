@@ -16,6 +16,7 @@ import type {
   OrderFile,
   OrderFileKind,
   OrderLeg,
+  OrderLegEvent,
   OrderMessage,
   OrderStatus,
   PaymentMethod,
@@ -40,6 +41,7 @@ import { quoteCart } from "./ship-quote";
 import { coarseRegionOf } from "./vn-address";
 import { cheapestQuote } from "./cost-sources";
 import { DEFAULT_WAREHOUSE, emptyByTransit, isWarehouse, type TransitWhere, transitWhereOf, type Warehouse } from "./warehouses";
+import { isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
@@ -1119,6 +1121,9 @@ interface OrderLegRow {
   fee: number;
   tracking: string;
   note: string;
+  status: string | null;
+  sent_at: string | null;
+  arrived_at: string | null;
   updated_at: string;
 }
 const rowToOrderLeg = (r: OrderLegRow): OrderLeg => ({
@@ -1130,8 +1135,76 @@ const rowToOrderLeg = (r: OrderLegRow): OrderLeg => ({
   fee: r.fee,
   tracking: r.tracking,
   note: r.note,
+  status: isLegStatus(r.status) ? r.status : "pending",
+  sentAt: r.sent_at ?? null,
+  arrivedAt: r.arrived_at ?? null,
   updatedAt: r.updated_at,
 });
+
+interface OrderLegEventRow {
+  id: number;
+  order_id: string;
+  leg: string;
+  status: string;
+  tracking: string;
+  note: string;
+  actor: string;
+  created_at: string;
+}
+const rowToLegEvent = (r: OrderLegEventRow): OrderLegEvent => ({ id: r.id, orderId: r.order_id, leg: isShippingLeg(r.leg) ? r.leg : "jp_vn", status: isLegStatus(r.status) ? r.status : "pending", tracking: r.tracking ?? "", note: r.note ?? "", actor: r.actor ?? "", createdAt: r.created_at });
+
+/** Leg history of many orders, newest first per order. */
+export async function listOrderLegEvents(orderIds: string[]): Promise<Map<string, OrderLegEvent[]>> {
+  const out = new Map<string, OrderLegEvent[]>();
+  if (!orderIds.length) return out;
+  const rows = getDb().prepare(`SELECT * FROM order_leg_events WHERE order_id IN (${orderIds.map(() => "?").join(",")}) ORDER BY id DESC`).all(...orderIds) as unknown as OrderLegEventRow[];
+  for (const r of rows) {
+    const e = rowToLegEvent(r);
+    out.set(e.orderId, [...(out.get(e.orderId) ?? []), e]);
+  }
+  return out;
+}
+
+/**
+ * Move one leg of an order to a status (chưa gửi / đã gửi / đã đến), log it, and let the rest follow: every line of
+ * the order reaches at least the matching purchase status, and the customer-facing stage moves when the leg implies it
+ * (never lowered). A leg the admin never assigned a method to gets a row too, so the status can be tracked anyway.
+ */
+export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, status: LegStatus, opts: { tracking?: string; note?: string; actor?: string } = {}): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const order = db.prepare("SELECT id, ship_stage FROM orders WHERE id = ?").get(orderId) as { id: string; ship_stage: string | null } | undefined;
+    if (!order) return false;
+    const cur = db.prepare("SELECT status, tracking, note FROM order_legs WHERE order_id = ? AND leg = ?").get(orderId, leg) as { status: string | null; tracking: string; note: string } | undefined;
+    const tracking = opts.tracking ?? cur?.tracking ?? "";
+    if (!cur) db.prepare("INSERT INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, status, updated_at) VALUES (?, ?, NULL, NULL, '', 0, ?, ?, ?, ?)").run(orderId, leg, tracking, opts.note ?? "", status, now);
+    db.prepare(`UPDATE order_legs SET status = ?, tracking = ?, sent_at = CASE WHEN ? = 'pending' THEN NULL WHEN ? IN ('sent','arrived') AND sent_at IS NULL THEN ? ELSE sent_at END, arrived_at = CASE WHEN ? = 'arrived' THEN COALESCE(arrived_at, ?) ELSE NULL END, updated_at = ? WHERE order_id = ? AND leg = ?`).run(status, tracking, status, status, now, status, now, now, orderId, leg);
+    db.prepare("INSERT INTO order_leg_events (order_id, leg, status, tracking, note, actor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(orderId, leg, status, tracking, opts.note ?? "", opts.actor ?? "", now);
+    if (status !== "pending") {
+      const minStatus = LEG_PURCHASE[leg][status];
+      if (minStatus) {
+        const lines = db.prepare("SELECT id, purchase_status FROM order_items WHERE order_id = ?").all(orderId) as unknown as Array<{ id: number; purchase_status: string | null }>;
+        const upd = db.prepare("UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id = ?");
+        for (const l of lines) {
+          const c = isPurchaseStatus(l.purchase_status) ? l.purchase_status : "not_bought";
+          if (purchaseIndex(c) < purchaseIndex(minStatus)) upd.run(minStatus, now, l.id);
+        }
+      }
+      const stage = LEG_ORDER_STAGE[leg][status];
+      const curStage: ShipStage = isShipStage(order.ship_stage) ? order.ship_stage : "ordered";
+      if (stage && stageRank(stage) > stageRank(curStage)) {
+        db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, orderId);
+        db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(orderId, stage, `Theo chặng vận chuyển${tracking ? ` · ${tracking}` : ""}`, now);
+        if (stage === "delivered") db.prepare("UPDATE orders SET status = 'completed' WHERE id = ? AND status <> 'cancelled'").run(orderId);
+        else db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(orderId);
+      }
+    }
+    return true;
+  });
+}
+/** Status rank helper for callers that compare before/after. */
+export const legStatusRank = (s: LegStatus) => LEG_STATUS_RANK[s];
 
 /** Leg assignments for many orders at once (admin tables). */
 export async function getOrderLegs(orderIds: string[]): Promise<Map<string, OrderLeg[]>> {
@@ -1145,7 +1218,8 @@ export async function getOrderLegs(orderIds: string[]): Promise<Map<string, Orde
   return out;
 }
 
-export async function saveOrderLeg(input: Omit<OrderLeg, "updatedAt">): Promise<void> {
+/** Save method / zone / fee / tracking / note of a leg; the shipment status is kept (see setOrderLegStatus). */
+export async function saveOrderLeg(input: Omit<OrderLeg, "updatedAt" | "status" | "sentAt" | "arrivedAt">): Promise<void> {
   getDb()
     .prepare(
       `INSERT INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

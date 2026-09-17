@@ -67,6 +67,16 @@ export async function register() {
       console.warn(`[desc] restructure failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 12_000);
+  // one-time: leg ① default → LienStore gom tại nhà, re-price products, move open orders (see lib/default-flow-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyDefaultFlowOnce } = await import("./lib/default-flow-job");
+      const r = await applyDefaultFlowOnce();
+      if (r) console.info(`[flow] leg 1 default → method ${r.methodId} (unit fixed: ${r.unitFixed}) · ${r.ordersMoved} orders moved · ${r.pricesUpdated} prices updated`);
+    } catch (e) {
+      console.warn(`[flow] default flow job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 18_000);
   // one-time: Reihaku Hatomugi High Moisture body soap is the 800 ml bottle, not 600 ml (see lib/hatomugi-fix-job.ts)
   setTimeout(async () => {
     try {

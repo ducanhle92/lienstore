@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { can } from "@/lib/auth";
-import { getOrderById, getOrderChargeableWeightG, getShippingMethods, saveOrderLeg, updateOrderShipping } from "@/lib/db";
+import { can, getAdminSession } from "@/lib/auth";
+import { getOrderById, getOrderChargeableWeightG, getOrderLegs, getShippingMethods, saveOrderLeg, setOrderLegStatus, updateOrderShipping } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
-import { isShippingLeg, zoneFeeForWeight } from "@/lib/shipping";
+import { isLegStatus, LEG_STATUS_LABEL } from "@/lib/leg-status";
+import { isShippingLeg, LEG_LABEL, zoneFeeForWeight } from "@/lib/shipping";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -59,6 +60,30 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
   if (leg === "vn_domestic" && formData.get("applyToCustomer") === "on") {
     await updateOrderShipping(orderId, { fee: fee ?? 0, label: label || order.shippingLabel, delivery: methodId ? "ship" : order.delivery });
   }
+  // shipment status of the leg (chưa gửi / đã gửi / đã đến) — logged, and the order's lines + stage follow
+  const statusRaw = text(formData, "status");
+  const before = (await getOrderLegs([orderId])).get(orderId)?.find((l) => l.leg === leg)?.status ?? "pending";
+  if (isLegStatus(statusRaw) && statusRaw !== before) {
+    const who = (await getAdminSession())?.label ?? "";
+    await setOrderLegStatus(orderId, leg, statusRaw, { tracking: text(formData, "tracking"), note: text(formData, "note"), actor: who });
+  }
   revalidatePath("/admin", "layout");
   redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đã lưu vận chuyển đơn #${order.number}.`)}#order-${orderId}`);
+}
+
+/** Quick status change of one leg (Vận chuyển › sheet của từng chặng): status + optional tracking / note. */
+export async function setOrderLegStatusAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping")) && !(await can("orders"))) redirect("/admin/login/");
+  const orderId = text(formData, "orderId");
+  const legRaw = formData.get("leg");
+  const statusRaw = text(formData, "status");
+  const back = text(formData, "back") || "/admin/shipping/";
+  if (!orderId || !isShippingLeg(legRaw) || !isLegStatus(statusRaw)) redirect(back);
+  const order = await getOrderById(orderId);
+  if (!order) redirect(back);
+  const who = (await getAdminSession())?.label ?? "";
+  const trackingRaw = formData.get("tracking");
+  await setOrderLegStatus(orderId, legRaw, statusRaw, { tracking: trackingRaw === null ? undefined : String(trackingRaw).trim(), note: text(formData, "note"), actor: who });
+  revalidatePath("/admin", "layout");
+  redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đơn #${order.number} · ${LEG_LABEL[legRaw]}: ${LEG_STATUS_LABEL[statusRaw]}.`)}#order-${orderId}`);
 }

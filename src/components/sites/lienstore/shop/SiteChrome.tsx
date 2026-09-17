@@ -76,7 +76,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <TopBar2 contact={contact} lang={lang} loggedIn={!!customer} />
       <Header2 logo={logo} slogan={theme.slogan} categories={categories} supportLinks={pickLang(SUPPORT, lang)} newsLinks={pickLang(NEWS, lang)} aboutHref="/ve-chung-toi/" newsHref="/category/goc-chia-se/" customer={customer} />
       <div className="flex-1">{children}</div>
-      <Footer2 logo={footerLogo} shopName={theme.shopName} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} policyLinks={pickLang(POLICIES, lang)} copyright={footerCopyright} lang={lang} />
+      <Footer2 logo={footerLogo} shopName={theme.shopName} contact={contact} categories={categories} accountLinks={pickLang(ACCOUNT, lang)} supportLinks={pickLang(SUPPORT, lang)} policyLinks={pickLang(POLICIES, lang)} copyright={footerCopyright.replace("LienStore", theme.shopName)} lang={lang} />
       <CartDrawer />
       <SalesPopup />
       <FloatingWidgets contact={contact} />

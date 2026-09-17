@@ -83,7 +83,7 @@ export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, s
           ))}
         </div>
         <div>
-          <h3 className={colTitle}>{t(lang, "fConnect")}</h3>
+          <h3 className={colTitle}>{t(lang, "fConnect").replace("{shop}", shopName)}</h3>
           <p className="mb-3 text-[14px] leading-6 text-lien-muted">{t(lang, "fConnectText")}</p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {contact.socials.map((s) => (
