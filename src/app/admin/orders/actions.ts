@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { can, getAdminSession } from "@/lib/auth";
-import { addOrderMessage, setOrderStage, updateOrderStatus } from "@/lib/db";
+import { addOrderMessage, deleteOrder, setOrderStage, updateOrderStatus } from "@/lib/db";
+import { deleteUpload } from "@/lib/uploads";
 import { isShipStage } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
 
@@ -21,6 +22,20 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     revalidatePath("/admin");
   }
   redirect(`/admin/orders/${id}/?updated=1`);
+}
+
+/** Delete an order permanently (list and detail "Xóa đơn" buttons, confirmed in the browser first). */
+export async function deleteOrderAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const back = String(formData.get("back") ?? "/admin/orders/");
+  const r = id ? await deleteOrder(id) : null;
+  if (!r) redirect(`${back}${back.includes("?") ? "&" : "?"}error=${encodeURIComponent("Không tìm thấy đơn để xóa.")}`);
+  for (const p of r.filePaths) await deleteUpload(p);
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+  redirect(`${back}${back.includes("?") ? "&" : "?"}deleted=${encodeURIComponent(`Đã xóa đơn #${r.number}${r.filePaths.length ? ` cùng ${r.filePaths.length} file đính kèm` : ""}.`)}`);
 }
 
 /** Move the order along the logistics steps (Đã mua tại Nhật → Kho Nhật → … → Đã nhận hàng). */

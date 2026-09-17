@@ -1498,6 +1498,22 @@ export async function deleteOrderFile(id: number): Promise<OrderFile | null> {
   return rowToOrderFile(row);
 }
 
+/**
+ * Delete an order for good. FK cascades remove items, legs, leg events, messages, files rows; payment events keep
+ * their row but lose the link. Returns the attachment paths so the caller can unlink them, or null when not found.
+ */
+export async function deleteOrder(id: string): Promise<{ number: number; filePaths: string[] } | null> {
+  const db = getDb();
+  const row = db.prepare("SELECT number FROM orders WHERE id = ?").get(id) as { number: number } | undefined;
+  if (!row) return null;
+  const files = (db.prepare("SELECT path FROM order_files WHERE order_id = ?").all(id) as unknown as Array<{ path: string }>).map((f) => f.path);
+  withTransaction(db, () => {
+    db.prepare("UPDATE payment_events SET order_id = NULL WHERE order_id = ?").run(id);
+    db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+  });
+  return { number: row.number, filePaths: files };
+}
+
 /** Number of attached files per order (for list badges). */
 export async function countOrderFiles(): Promise<Map<string, number>> {
   const rows = getDb().prepare("SELECT order_id, COUNT(*) AS n FROM order_files GROUP BY order_id").all() as unknown as Array<{ order_id: string; n: number }>;

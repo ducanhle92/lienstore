@@ -1,14 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { SHIP_STAGES, stageIndex } from "@/lib/shipping";
 import { deleteOrderFileAction, saveAdminNoteAction, uploadOrderFilesAction } from "@/app/admin/orders/files-actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
@@ -243,6 +243,14 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               <button type="submit" className={btnPrimary}>
                 Cập nhật
               </button>
+            </form>
+            <form action={deleteOrderAction} className="mt-3 border-t border-[#f0f0f0] pt-3" data-testid="delete-order-form">
+              <input type="hidden" name="id" value={order.id} />
+              <input type="hidden" name="back" value="/admin/orders/" />
+              <ConfirmSubmit message={`Xóa hẳn đơn #${order.number}? Sản phẩm, chặng vận chuyển, tin nhắn và bill đính kèm của đơn sẽ bị xóa, không khôi phục được. Nếu chỉ muốn dừng đơn, hãy chọn trạng thái “Đã hủy”.`} className={`${btnDanger} w-full`}>
+                <Fa name="trash" /> Xóa đơn hàng
+              </ConfirmSubmit>
+              <p className="m-0 mt-1 text-[11px] leading-4 text-lien-muted">Xóa vĩnh viễn, không tính vào doanh thu / lãi lỗ. Muốn giữ lịch sử thì dùng “Đã hủy”.</p>
             </form>
           </Card>
           <Card

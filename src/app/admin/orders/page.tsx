@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { deleteOrderAction } from "@/app/admin/orders/actions";
+import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
@@ -76,6 +78,8 @@ export default async function AdminOrders({ searchParams }: Props) {
   return (
     <>
       <PageHeader title="Đơn hàng" subtitle={`${items.length} / ${all.length} đơn · doanh thu bộ lọc ${formatPrice(total)}`} />
+      {first(sp.deleted) ? <Flash>{first(sp.deleted)}</Flash> : null}
+      {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       <Card className="mb-5">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="w-[130px] text-[13px] font-semibold text-lien-heading">Trạng thái đơn:</span>
@@ -176,9 +180,17 @@ export default async function AdminOrders({ searchParams }: Props) {
                         <StatusBadge status={o.status} />
                       </td>
                       <td className={`${tdClass} text-right`}>
-                        <Link href={`/admin/orders/${o.id}/`} className="text-lien-blue hover:underline">
-                          Chi tiết
-                        </Link>
+                        <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                          <Link href={`/admin/orders/${o.id}/`} className="text-lien-blue hover:underline">
+                            Chi tiết
+                          </Link>
+                          <form action={deleteOrderAction} className="inline">
+                            <input type="hidden" name="id" value={o.id} />
+                            <ConfirmSubmit message={`Xóa hẳn đơn #${o.number} của ${`${o.customer.lastName} ${o.customer.firstName}`.trim()}? Không khôi phục được. Nếu chỉ muốn dừng đơn, mở chi tiết và chọn “Đã hủy”.`} className="text-lien-sale-text hover:underline" >
+                              Xóa
+                            </ConfirmSubmit>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );
