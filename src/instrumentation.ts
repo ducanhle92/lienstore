@@ -27,6 +27,23 @@ export async function register() {
   };
   setTimeout(tick, 15_000); // catch-up shortly after start
   setInterval(tick, 60_000);
+  // Facebook Page posts: plan today's auto slots and publish whatever is due (see lib/fanpage.ts)
+  let fbRunning = false;
+  const fanpageTick = async () => {
+    if (fbRunning) return;
+    fbRunning = true;
+    try {
+      const { runFanpageScheduler } = await import("./lib/fanpage");
+      const r = await runFanpageScheduler();
+      if (r.planned || r.posted || r.failed) console.info(`[fanpage] planned ${r.planned} · posted ${r.posted} · failed ${r.failed}`);
+    } catch (e) {
+      console.warn(`[fanpage] scheduler failed: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      fbRunning = false;
+    }
+  };
+  setTimeout(fanpageTick, 25_000);
+  setInterval(fanpageTick, 60_000);
   // one-time: re-price default import legs written with the whole-parcel tariff (see lib/leg-fix-job.ts)
   setTimeout(async () => {
     try {

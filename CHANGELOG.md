@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Tổng quan › Đăng bài fanpage** (module quyền mới `fanpage`): chọn sản phẩm → hệ thống soạn bài Facebook (câu mở, công dụng từ mô tả, cách dùng, giá / giảm giá, link đặt hàng, hotline, hashtag tiếng Việt; 3 cách viết luân phiên), đính kèm ảnh sản phẩm (chọn ảnh), sửa tuỳ ý rồi **Đăng ngay** hoặc **Lên lịch** giờ cụ thể. Chế độ **tự động đăng theo lịch** (giờ trong ngày, ưu tiên sản phẩm chưa đăng / mới nhất / ngẫu nhiên, hashtag chung); hàng chờ & lịch sử (trạng thái, link bài trên Facebook, lỗi, thử lại, huỷ). Kết nối bằng Page ID + Page access token (lưu trên máy chủ, có nút kiểm tra; hướng dẫn lấy token ngay trong trang). Bộ lập lịch chạy nền mỗi phút.
+
 ## [1.52.2] - 2026-09-17
 
 ### Changed

@@ -1007,6 +1007,29 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE shipping_methods SET sub_leg = CASE WHEN name LIKE 'LienStore gom%' OR name LIKE 'Tự mang%' THEN 'to_carrier' ELSE 'to_jp_wh' END WHERE leg = 'jp_domestic'`,
     ],
   },
+  {
+    // Facebook Page posts (Tổng quan › Đăng bài fanpage): drafts, the queue (now / scheduled / auto) and what was posted.
+    version: 46,
+    name: "fanpage-posts",
+    up: [
+      `CREATE TABLE IF NOT EXISTS fanpage_posts (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id   INTEGER REFERENCES products(id) ON DELETE SET NULL,
+        message      TEXT NOT NULL DEFAULT '',
+        images       TEXT NOT NULL DEFAULT '[]',
+        link         TEXT NOT NULL DEFAULT '',
+        scheduled_at TEXT,
+        status       TEXT NOT NULL DEFAULT 'draft',
+        fb_post_id   TEXT NOT NULL DEFAULT '',
+        error        TEXT NOT NULL DEFAULT '',
+        auto         INTEGER NOT NULL DEFAULT 0,
+        variant      INTEGER NOT NULL DEFAULT 0,
+        created_at   TEXT NOT NULL,
+        posted_at    TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_fanpage_posts_status ON fanpage_posts(status, scheduled_at)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
