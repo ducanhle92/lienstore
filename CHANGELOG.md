@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.51.0] - 2026-09-17
+
 ### Added
 - Vận chuyển › **trạng thái theo từng chặng**: mỗi chặng của đơn (nội địa Nhật · Nhật → Việt · kho ĐVVC → kho shop · nội địa VN) có trạng thái riêng *Chưa gửi → Đã gửi → Đã đến* với thời điểm và **lịch sử** từng lần đổi (ai, lúc nào, mã vận đơn). Đổi trạng thái chặng thì sản phẩm trong đơn (Quản lý mua hàng) và tiến độ đơn cho khách tự nhích theo.
 - Vận chuyển: cột **"Hàng đang ở"** (Chưa gửi tại Nhật · Đang tới kho ĐVVC Nhật · Kho ĐVVC Nhật · Đang bay NB → VN · Kho ĐVVC Việt Nam · Đang về kho shop · Kho Việt Nam · Đang giao · Khách đã nhận) suy từ chặng xa nhất đã đi, kèm bộ lọc theo vị trí; sheet của từng chặng có bảng **"Đơn hàng qua chặng này"** để lọc theo trạng thái, nhập mã vận đơn / ghi chú và đổi trạng thái ngay tại chỗ.
