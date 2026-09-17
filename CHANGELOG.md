@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-09-17
+
 ### Fixed
 - Trang chủ › "Giảm giá đặc biệt" chỉ lấy sản phẩm giảm giá nằm trong top 60 bán chạy, nên sản phẩm mới giảm giá chưa bán được lần nào không hiện; nay lấy toàn bộ sản phẩm đang giảm giá (bán chạy xếp trước), "Xem thêm" mở danh sách đang giảm giá.
 
