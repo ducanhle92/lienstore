@@ -11,8 +11,11 @@ describe("priceView", () => {
     assert.deepEqual(priceView({ price: 152000, regularPrice: null, marketPrice: 200000 }), { current: 152000, strike: 200000, pct: 24, kind: "market" });
     assert.equal(priceView({ price: 152000, regularPrice: null, marketPrice: 150000 }).strike, null);
   });
-  it("promotion → expected price crossed out, market ignored", () => {
-    assert.deepEqual(priceView({ price: 152000, regularPrice: 275000, marketPrice: 300000 }), { current: 152000, strike: 275000, pct: 45, kind: "promo" });
+  it("promotion → market price still crossed out (% vs market); expected price only when there is no market price", () => {
+    assert.deepEqual(priceView({ price: 152000, regularPrice: 175000, marketPrice: 275000 }), { current: 152000, strike: 275000, pct: 45, kind: "market" });
+    assert.deepEqual(priceView({ price: 152000, regularPrice: 275000, marketPrice: null }), { current: 152000, strike: 275000, pct: 45, kind: "promo" });
+    // a promo above the expected price is still shown against the market price
+    assert.deepEqual(priceView({ price: 180000, regularPrice: 175000, marketPrice: 275000 }), { current: 180000, strike: 275000, pct: 35, kind: "market" });
   });
   it("expected / promo helpers and the stored mapping", () => {
     assert.equal(expectedPriceOf({ price: 152000, regularPrice: 275000 }), 275000);
@@ -20,7 +23,8 @@ describe("priceView", () => {
     assert.equal(promoPriceOf({ price: 275000, regularPrice: null }), null);
     assert.deepEqual(storedPrices(275000, 152000), { price: 152000, regularPrice: 275000 });
     assert.deepEqual(storedPrices(275000, null), { price: 275000, regularPrice: null });
-    assert.deepEqual(storedPrices(275000, 300000), { price: 275000, regularPrice: null }); // not lower → ignored
+    assert.deepEqual(storedPrices(275000, 300000), { price: 300000, regularPrice: 275000 }); // a promo may sit above the expected price
+    assert.deepEqual(storedPrices(275000, 275000), { price: 275000, regularPrice: null }); // same as expected → no promotion
   });
 });
 

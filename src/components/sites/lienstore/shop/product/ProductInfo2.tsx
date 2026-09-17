@@ -63,7 +63,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
         ) : regular ? (
           <>
             <del className="text-[16px] text-lien-muted" title={pv.kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>{formatAmount(regular)}đ</del>
-            <span className={cn("text-[26px] font-bold leading-8", pv.kind === "promo" ? "text-lien-sale-text" : "text-lien-price")}>{formatAmount(product.price)}đ</span>
+            <span className="text-[26px] font-bold leading-8 text-lien-sale-text">{formatAmount(product.price)}đ</span>
             <span className="rounded bg-lien-sale px-2 py-0.5 text-[12px] font-semibold text-white">{t("save")} {formatAmount(regular - product.price)}đ{pct ? ` (${pct}%)` : ""}</span>
             {pv.kind === "market" ? <span className="text-[12px] text-lien-muted">{t("vsMarket")}</span> : null}
           </>

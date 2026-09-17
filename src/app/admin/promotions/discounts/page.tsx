@@ -7,6 +7,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts } from "@/lib/db";
 import { formatAmount, formatPrice } from "@/lib/format";
+import { isPromoActive, priceView } from "@/lib/price-display";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,8 @@ export default async function AdminDiscounts({ searchParams }: Props) {
   await requireAdmin("promotions");
   const sp = await searchParams;
   const products = await getAllProducts(true);
-  const onSale = products.filter((p) => p.regularPrice !== null && p.regularPrice > p.price).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const pct = (p: (typeof onSale)[number]) => (p.regularPrice ? Math.round(100 - (p.price / p.regularPrice) * 100) : 0);
+  const onSale = products.filter((p) => isPromoActive(p)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const pct = (p: (typeof onSale)[number]) => priceView(p).pct ?? 0;
   // ?edit=<id> pre-fills the form with that product's current prices
   const editId = Number.parseInt(first(sp.edit), 10);
   const editing = Number.isInteger(editId) ? products.find((p) => p.id === editId) : undefined;
@@ -42,7 +43,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <ProductSearchSelect key={editing?.id ?? "new"} products={pickable} initial={editing ? toPick(editing) : null} placeholder="Gõ tên, SKU hoặc #id sản phẩm…" />
           </div>
           <div>
-            <label className={adminLabel}>Giá kỳ vọng — giá gạch (đ)</label>
+            <label className={adminLabel}>Giá kỳ vọng (đ)</label>
             <input name="regularPrice" inputMode="numeric" placeholder="giữ giá hiện tại" defaultValue={editing?.regularPrice ? formatAmount(editing.regularPrice) : ""} key={`r-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
@@ -68,6 +69,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
                 <th className={thClass}>Sản phẩm</th>
                 <th className={`${thClass} text-right`}>Giá kỳ vọng</th>
                 <th className={`${thClass} text-right`}>Giá KM</th>
+                <th className={`${thClass} text-right`}>Giá thị trường (gạch)</th>
                 <th className={`${thClass} text-right`}>Giảm</th>
                 <th className={thClass}>Tồn</th>
                 <th className={thClass} />
@@ -89,10 +91,11 @@ export default async function AdminDiscounts({ searchParams }: Props) {
                       </div>
                     </div>
                   </td>
-                  <td className={`${tdClass} text-right text-lien-muted line-through`}>{formatPrice(p.regularPrice ?? 0)}</td>
+                  <td className={`${tdClass} text-right text-lien-muted`}>{formatPrice(p.regularPrice ?? 0)}</td>
                   <td className={`${tdClass} text-right font-semibold text-lien-sale-text`}>{formatPrice(p.price)}</td>
+                  <td className={`${tdClass} text-right text-lien-muted line-through`}>{p.marketPrice ? formatPrice(p.marketPrice) : <span className="no-underline">— chưa có</span>}</td>
                   <td className={`${tdClass} text-right`}>
-                    <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white">-{pct(p)}%</span>
+                    {pct(p) ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white">-{pct(p)}%</span> : <span className="text-[11px] text-lien-muted">không gạch</span>}
                   </td>
                   <td className={tdClass}>{p.stock === null ? "—" : p.stock}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>
@@ -110,7 +113,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
               ))}
               {onSale.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có sản phẩm nào giảm giá.
                   </td>
                 </tr>

@@ -1087,6 +1087,19 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_product_changes_product ON product_changes(product_id, id)`,
     ],
   },
+  {
+    // The old crossed-out price ("giá gốc") was in practice the market reference: move it to market_price and let the
+    // current price stand as the expected web price. Products inside a running flash sale keep their pricing pair
+    // (their regular_price is the pre-flash price the revert restores).
+    version: 49,
+    name: "strike-price-is-market-price",
+    up: [
+      `UPDATE products SET market_price = regular_price WHERE regular_price IS NOT NULL AND regular_price > price AND market_price IS NULL
+         AND id NOT IN (SELECT product_id FROM flash_sale_products WHERE sale_price IS NOT NULL)`,
+      `UPDATE products SET regular_price = NULL WHERE regular_price IS NOT NULL AND regular_price > price AND market_price = regular_price
+         AND id NOT IN (SELECT product_id FROM flash_sale_products WHERE sale_price IS NOT NULL)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

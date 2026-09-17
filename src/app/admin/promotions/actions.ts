@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expectedPriceOf } from "@/lib/price-display";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { deleteVoucher, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, setShipPolicy, updateProductPricing } from "@/lib/db";
@@ -20,16 +21,20 @@ export async function setSaleAction(formData: FormData): Promise<void> {
   const id = Number.parseInt(text(formData, "productId"), 10);
   const product = Number.isInteger(id) ? await getProductById(id) : null;
   if (!product) return back(DISCOUNTS, "error", "Chọn sản phẩm.");
+  // expected web price stays in regular_price while the promo price is charged; the crossed-out price customers see
+  // is the market price (Giá thị trường), so "% giảm" here is relative to the market price when the product has one
   const sale = parseAmount(text(formData, "price"));
   const regularRaw = text(formData, "regularPrice");
-  const regular = regularRaw ? parseAmount(regularRaw) : product.regularPrice ?? product.price;
+  const regular = regularRaw ? parseAmount(regularRaw) : expectedPriceOf(product);
+  const reference = product.marketPrice && product.marketPrice > 0 ? product.marketPrice : regular;
   const percentRaw = text(formData, "percent");
-  const finalSale = !sale && percentRaw ? Math.round((regular * (100 - Math.min(99, Math.max(1, parseAmount(percentRaw))))) / 100) : sale;
-  if (!finalSale || finalSale <= 0) back(DISCOUNTS, "error", "Nhập giá khuyến mãi hoặc % giảm.");
-  if (finalSale >= regular) back(DISCOUNTS, "error", `Giá khuyến mãi (${finalSale.toLocaleString("vi-VN")}đ) phải thấp hơn giá gốc (${regular.toLocaleString("vi-VN")}đ).`);
+  const finalSale = !sale && percentRaw ? Math.round((reference * (100 - Math.min(99, Math.max(1, parseAmount(percentRaw))))) / 100) : sale;
+  if (!finalSale || finalSale <= 0) back(DISCOUNTS, "error", "Nhập giá khuyến mại hoặc % giảm.");
+  if (product.marketPrice && finalSale >= product.marketPrice) back(DISCOUNTS, "error", `Giá khuyến mại (${finalSale.toLocaleString("vi-VN")}đ) phải thấp hơn giá thị trường (${product.marketPrice.toLocaleString("vi-VN")}đ).`);
+  if (finalSale === regular) back(DISCOUNTS, "error", "Giá khuyến mại đang bằng giá kỳ vọng — không có gì thay đổi.");
   await updateProductPricing(id, finalSale, regular);
   revalidatePath("/", "layout");
-  back(DISCOUNTS, "saved", `Đã giảm giá "${product.name}": ${regular.toLocaleString("vi-VN")}đ → ${finalSale.toLocaleString("vi-VN")}đ.`);
+  back(DISCOUNTS, "saved", `Đã đặt khuyến mại "${product.name}": ${regular.toLocaleString("vi-VN")}đ → ${finalSale.toLocaleString("vi-VN")}đ${product.marketPrice ? ` (giá thị trường ${product.marketPrice.toLocaleString("vi-VN")}đ bị gạch)` : ""}.`);
 }
 
 /** End a sale: the regular price becomes the price again. */
@@ -38,7 +43,7 @@ export async function clearSaleAction(formData: FormData): Promise<void> {
   const id = Number.parseInt(text(formData, "productId"), 10);
   const product = Number.isInteger(id) ? await getProductById(id) : null;
   if (!product) return back(DISCOUNTS, "error", "Không tìm thấy sản phẩm.");
-  await updateProductPricing(id, product.regularPrice ?? product.price, null);
+  await updateProductPricing(id, expectedPriceOf(product), null);
   revalidatePath("/", "layout");
   back(DISCOUNTS, "saved", `Đã bỏ giảm giá "${product.name}".`);
 }

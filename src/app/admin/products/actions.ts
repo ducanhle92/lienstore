@@ -53,10 +53,10 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const promoRaw = get("expectedPrice") ? get("promoPrice") : get("regularPrice") ? get("price") : "";
   const promo = promoRaw ? parseIntField(promoRaw) : null;
   if (promoRaw && promo === null) fields.promoPrice = "Giá khuyến mại không hợp lệ.";
-  if (promo !== null && expected !== null && promo >= expected) fields.promoPrice = "Giá khuyến mại phải thấp hơn giá kỳ vọng (để trống nếu không khuyến mại).";
   const marketRaw = get("marketPrice");
   const marketPrice = marketRaw ? parseIntField(marketRaw) : null;
   if (marketRaw && marketPrice === null) fields.marketPrice = "Giá thị trường không hợp lệ.";
+  if (promo !== null && marketPrice !== null && promo >= marketPrice) fields.promoPrice = "Giá khuyến mại phải thấp hơn giá thị trường.";
   const { price, regularPrice } = storedPrices(expected ?? 0, promo);
 
   // ¥ quotes per purchase source (cs_* repeated); the primary row feeds cost_jpy / cost_source / cost_url

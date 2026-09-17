@@ -302,14 +302,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={adminLabel} htmlFor="marketPrice">
-                      Giá thị trường <span className="font-normal text-lien-muted">(tham khảo)</span>
+                      Giá thị trường <span className="font-normal text-lien-muted">(giá đối chiếu — luôn là giá bị gạch)</span>
                     </label>
                     <input id="marketPrice" name="marketPrice" inputMode="numeric" value={marketText} onChange={(e) => setMarketText(e.target.value)} placeholder="giá nơi khác bán" className={cn(adminInput, fields.marketPrice && "border-red-500")} />
                     <FieldError msg={fields.marketPrice} />
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor="promoPrice">
-                      Giá khuyến mại <span className="font-normal text-lien-muted">(khi có chương trình)</span>
+                      Giá khuyến mại <span className="font-normal text-lien-muted">(khi có chương trình; cao/thấp hơn kỳ vọng đều được)</span>
                     </label>
                     <input id="promoPrice" name="promoPrice" inputMode="numeric" value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="trống = không KM" className={cn(adminInput, fields.promoPrice && "border-red-500")} />
                     <FieldError msg={fields.promoPrice} />
@@ -319,15 +319,15 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   Khách thấy:{" "}
                   {preview.current > 0 ? (
                     <>
-                      {preview.strike ? <del className="text-lien-muted">{preview.strike.toLocaleString("vi-VN")}đ</del> : null} <strong className={preview.kind === "promo" ? "text-lien-sale-text" : "text-lien-heading"}>{preview.current.toLocaleString("vi-VN")}đ</strong>
+                      {preview.strike ? <del className="text-lien-muted">{preview.strike.toLocaleString("vi-VN")}đ</del> : null} <strong className={preview.strike ? "text-lien-sale-text" : "text-lien-heading"}>{preview.current.toLocaleString("vi-VN")}đ</strong>
                       {preview.pct ? <span className="ml-1 rounded bg-lien-sale px-1 text-[11px] font-bold text-white">-{preview.pct}%</span> : null}
-                      <span className="ml-1 text-lien-muted">{preview.kind === "promo" ? "— đang khuyến mại (gạch giá kỳ vọng)" : preview.kind === "market" ? "— rẻ hơn giá thị trường (gạch giá thị trường)" : "— không gạch giá"}</span>
+                      <span className="ml-1 text-lien-muted">{preview.kind === "market" ? `— gạch giá thị trường${stored.regularPrice ? ", đang khuyến mại" : ""}` : preview.kind === "promo" ? "— chưa có giá thị trường: gạch giá kỳ vọng" : stored.regularPrice ? "— đang khuyến mại, chưa có giá thị trường để gạch" : "— không gạch giá"}</span>
                     </>
                   ) : (
                     <span className="text-lien-muted">Liên hệ (chưa có giá)</span>
                   )}
                 </p>
-                <p className="m-0 text-[11px] leading-4 text-lien-muted">Giá kỳ vọng là giá bán bình thường trên web. Có giá thị trường cao hơn thì web gạch giá thị trường và hiện % rẻ hơn. Khi chạy khuyến mại, khách trả giá khuyến mại và giá kỳ vọng bị gạch — không “tăng rồi giảm” nên khách xem hôm trước không thấy giá bị đẩy lên.</p>
+                <p className="m-0 text-[11px] leading-4 text-lien-muted">Giá thị trường là giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn. Giá kỳ vọng là giá bán bình thường (tính theo công thức bên dưới). Khi chạy khuyến mại, khách trả giá khuyến mại thay cho giá kỳ vọng; giá gạch vẫn là giá thị trường nên không có chuyện “tăng rồi giảm”.</p>
               </div>
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>

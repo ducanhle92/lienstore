@@ -160,7 +160,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
           ) : pv.strike ? (
             <>
               <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]" title={pv.kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>{formatAmount(pv.strike)}đ</del>
-              <span className={pv.kind === "promo" ? "text-lien-sale-text" : "text-lien-price"}>{formatAmount(product.price)}đ</span>
+              <span className="text-lien-sale-text">{formatAmount(product.price)}đ</span>
             </>
           ) : (
             <span className="text-lien-price">{formatAmount(product.price)}đ</span>
