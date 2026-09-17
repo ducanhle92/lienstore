@@ -9,7 +9,7 @@ import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode } from "@/lib/carrier
 import { GOSHIP_PROD, GOSHIP_SANDBOX, GOSHIP_SETTING_KEYS, GoshipError, goshipCheck, goshipResetCache } from "@/lib/carriers/goship";
 import { getOrderById, saveOrderLeg } from "@/lib/db";
 import { quoteCart, quoteTransferLeg, warehouseAddress } from "@/lib/ship-quote";
-import { getDb, getSetting, setSetting } from "@/lib/sqlite";
+import { getDb, setSetting } from "@/lib/sqlite";
 import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces, ghnResetCache, ghnWards } from "@/lib/ghn";
 import { SPX_SETTING_KEYS } from "@/lib/carriers/spx-api";
 import { VTP_SETTING_KEYS, ViettelApiError, viettelCheck, viettelResetCache } from "@/lib/carriers/viettel";

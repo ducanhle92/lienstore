@@ -10,7 +10,6 @@ import { ROLE_LABELS } from "@/lib/permissions";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const theme = await getSiteTheme();
   return { title: "Quản trị", robots: { index: false, follow: false } };
 }
 
