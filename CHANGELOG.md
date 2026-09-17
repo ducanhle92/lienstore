@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.59.2] - 2026-09-17
+
 ### Changed
 - Viettel Post: kiểm chứng API getPriceAll/getPrice của hãng là công khai (trả cùng kết quả có/không có token), nên cước Viettel Post ở trang sản phẩm, thanh toán và “Báo giá chặng ③” lấy thẳng từ API mà **không cần token**; thẻ ④ đổi thành “Viettel Post — cước lấy từ API công khai”, token chỉ còn là tùy chọn (dùng khi tạo vận đơn), “Lưu & kiểm tra” báo rõ Viettel có nhận token ở API tài khoản hay không và không chặn lưu.
 
