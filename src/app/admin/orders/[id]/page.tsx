@@ -31,7 +31,8 @@ const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản ngân hàng", 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
-  await requireAdmin("orders");
+  const session = await requireAdmin("orders");
+  const isOwner = session.role === "owner";
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [order, files, overview, legMap, shippingMethods, messages, orderWeightG, importQuote, theme] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id), getImportQuoteConfig(), getSiteTheme()]);
   let transferQuotes: TransferQuotesView | null = null;
@@ -244,14 +245,22 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 Cập nhật
               </button>
             </form>
-            <form action={deleteOrderAction} className="mt-3 border-t border-[#f0f0f0] pt-3" data-testid="delete-order-form">
-              <input type="hidden" name="id" value={order.id} />
-              <input type="hidden" name="back" value="/admin/orders/" />
-              <ConfirmSubmit message={`Xóa hẳn đơn #${order.number}? Sản phẩm, chặng vận chuyển, tin nhắn và bill đính kèm của đơn sẽ bị xóa, không khôi phục được. Nếu chỉ muốn dừng đơn, hãy chọn trạng thái “Đã hủy”.`} className={`${btnDanger} w-full`}>
-                <Fa name="trash" /> Xóa đơn hàng
-              </ConfirmSubmit>
-              <p className="m-0 mt-1 text-[11px] leading-4 text-lien-muted">Xóa vĩnh viễn, không tính vào doanh thu / lãi lỗ. Muốn giữ lịch sử thì dùng “Đã hủy”.</p>
-            </form>
+            {isOwner ? (
+              <form action={deleteOrderAction} className="mt-3 border-t border-[#f0f0f0] pt-3" data-testid="delete-order-form">
+                <input type="hidden" name="id" value={order.id} />
+                <input type="hidden" name="back" value="/admin/orders/" />
+                <ConfirmSubmit
+                  title={`Xóa đơn #${order.number}?`}
+                  message="Đơn sẽ bị xóa vĩnh viễn, không khôi phục được."
+                  details={["Sản phẩm, 4 chặng vận chuyển, tin nhắn và bill đính kèm của đơn cũng bị xóa.", "Không tính vào doanh thu / lãi lỗ.", "Chỉ muốn dừng đơn mà giữ lịch sử thì dùng trạng thái “Đã hủy”."]}
+                  confirmLabel="Xóa đơn"
+                  className={`${btnDanger} w-full`}
+                >
+                  <Fa name="trash" /> Xóa đơn hàng
+                </ConfirmSubmit>
+                <p className="m-0 mt-1 text-[11px] leading-4 text-lien-muted">Chỉ chủ cửa hàng thấy nút này. Xóa vĩnh viễn, không tính vào doanh thu / lãi lỗ.</p>
+              </form>
+            ) : null}
           </Card>
           <Card
             title="Khách hàng"

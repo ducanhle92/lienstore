@@ -25,10 +25,17 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
 }
 
 /** Delete an order permanently (list and detail "Xóa đơn" buttons, confirmed in the browser first). */
+const OWNER_ONLY = "Chỉ chủ cửa hàng mới được xóa đơn hàng.";
+async function requireOwner(back: string): Promise<void> {
+  const s = await getAdminSession();
+  if (!s) redirect("/admin/login/");
+  if (s.role !== "owner") redirect(`${back}${back.includes("?") ? "&" : "?"}error=${encodeURIComponent(OWNER_ONLY)}`);
+}
+
 export async function deleteOrderAction(formData: FormData): Promise<void> {
-  if (!(await can("orders"))) redirect("/admin/login/");
   const id = String(formData.get("id") ?? "");
   const back = String(formData.get("back") ?? "/admin/orders/");
+  await requireOwner(id ? `/admin/orders/${id}/` : back);
   const r = id ? await deleteOrder(id) : null;
   if (!r) redirect(`${back}${back.includes("?") ? "&" : "?"}error=${encodeURIComponent("Không tìm thấy đơn để xóa.")}`);
   for (const p of r.filePaths) await deleteUpload(p);
@@ -40,7 +47,7 @@ export async function deleteOrderAction(formData: FormData): Promise<void> {
 
 /** Delete every ticked order in the list (the bulk form posts `ids`; one id = just that row). */
 export async function deleteOrdersAction(formData: FormData): Promise<void> {
-  if (!(await can("orders"))) redirect("/admin/login/");
+  await requireOwner("/admin/orders/");
   const ids = [...new Set(formData.getAll("ids").map(String).filter(Boolean))];
   if (!ids.length) redirect(`/admin/orders/?error=${encodeURIComponent("Chưa chọn đơn nào để xóa.")}`);
   const numbers: number[] = [];

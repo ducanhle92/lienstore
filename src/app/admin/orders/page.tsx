@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { deleteOrderAction, deleteOrdersAction } from "@/app/admin/orders/actions";
-import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { deleteOrdersAction } from "@/app/admin/orders/actions";
 import { BULK_FORM_ID, BulkDeleteButton, SelectAllOrders } from "@/components/sites/lienstore/admin/OrdersBulk";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -19,10 +18,7 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
-/** Framed row actions (Chi tiết / Xóa) and the bulk delete button share one shape. */
-const rowBtn = "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1 text-[12px] font-semibold no-underline transition-colors";
-const rowBtnBlue = `${rowBtn} border-lien-blue/60 text-lien-blue hover:bg-lien-blue-soft`;
-const rowBtnRed = `${rowBtn} border-lien-sale-text/60 text-lien-sale-text hover:bg-red-50`;
+const bulkBtn = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-lien-sale-text/60 bg-white px-3 py-1.5 text-[13px] font-semibold text-lien-sale-text transition-colors hover:bg-red-50";
 
 const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản", cod: "COD" };
 const STAGE_CLS: Record<ShipStage, string> = {
@@ -36,7 +32,8 @@ const STAGE_CLS: Record<ShipStage, string> = {
 
 /** Admin › Đơn hàng: filters by day, payment method and logistics stage (the 6 customer-facing statuses). */
 export default async function AdminOrders({ searchParams }: Props) {
-  await requireAdmin("orders");
+  const session = await requireAdmin("orders");
+  const isOwner = session.role === "owner"; // only the owner may delete orders (selection column + button)
   const sp = await searchParams;
   const raw = first(sp.status);
   const status = ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;
@@ -128,17 +125,21 @@ export default async function AdminOrders({ searchParams }: Props) {
           <p className="text-[14px] text-lien-muted">Không có đơn hàng phù hợp.</p>
         ) : (
           <>
-          <form id={BULK_FORM_ID} action={deleteOrdersAction} className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-[12px] text-lien-muted" data-testid="orders-bulk-bar">
-            <span>Tích ô đầu dòng để chọn nhiều đơn; chọn một dòng thì chỉ xóa dòng đó.</span>
-            <BulkDeleteButton className={rowBtnRed} />
-          </form>
+          {isOwner ? (
+            <form id={BULK_FORM_ID} action={deleteOrdersAction} className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-[12px] text-lien-muted" data-testid="orders-bulk-bar">
+              <span>Bấm mã đơn để xem chi tiết. Tích ô đầu dòng để chọn đơn cần xóa (một hay nhiều dòng).</span>
+              <BulkDeleteButton className={bulkBtn} />
+            </form>
+          ) : null}
           <ResizableTable id="orders">
             <table className={tableClass}>
               <thead>
                 <tr>
-                  <th className={`${thClass} w-8`}>
-                    <SelectAllOrders />
-                  </th>
+                  {isOwner ? (
+                    <th className={`${thClass} w-8`}>
+                      <SelectAllOrders />
+                    </th>
+                  ) : null}
                   <th className={thClass}>Mã</th>
                   <th className={thClass}>Ngày</th>
                   <th className={thClass}>Khách hàng</th>
@@ -148,7 +149,6 @@ export default async function AdminOrders({ searchParams }: Props) {
                   <th className={thClass} title="Doanh thu + ship khách trả − giá vốn − phí 3 chặng nhập − phí giao nội địa (cùng cách tính với Kế toán)">Lãi / lỗ</th>
                   <th className={thClass}>Trạng thái đơn</th>
                   <th className={thClass}>Xử lý</th>
-                  <th className={thClass} />
                 </tr>
               </thead>
               <tbody>
@@ -156,9 +156,11 @@ export default async function AdminOrders({ searchParams }: Props) {
                   const s = SHIP_STAGES[stageIndex(o.shipStage)];
                   return (
                     <tr key={o.id} className="hover:bg-[#fafafa]">
-                      <td className={tdClass}>
-                        <input type="checkbox" name="ids" value={o.id} form={BULK_FORM_ID} data-number={o.number} aria-label={`Chọn đơn #${o.number}`} className="h-4 w-4" />
-                      </td>
+                      {isOwner ? (
+                        <td className={tdClass}>
+                          <input type="checkbox" name="ids" value={o.id} form={BULK_FORM_ID} data-number={o.number} aria-label={`Chọn đơn #${o.number}`} className="h-4 w-4" />
+                        </td>
+                      ) : null}
                       <td className={`${tdClass} font-semibold`}>
                         <Link href={`/admin/orders/${o.id}/`} className="text-lien-heading hover:text-lien-blue">
                           #{o.number}
@@ -195,26 +197,13 @@ export default async function AdminOrders({ searchParams }: Props) {
                       <td className={tdClass}>
                         <StatusBadge status={o.status} />
                       </td>
-                      <td className={`${tdClass} text-right`}>
-                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                          <Link href={`/admin/orders/${o.id}/`} className={rowBtnBlue}>
-                            <Fa name="eye" /> Chi tiết
-                          </Link>
-                          <form action={deleteOrderAction} className="inline">
-                            <input type="hidden" name="id" value={o.id} />
-                            <ConfirmSubmit message={`Xóa hẳn đơn #${o.number} của ${`${o.customer.lastName} ${o.customer.firstName}`.trim()}? Không khôi phục được. Nếu chỉ muốn dừng đơn, mở chi tiết và chọn “Đã hủy”.`} className={rowBtnRed}>
-                              <Fa name="trash" /> Xóa
-                            </ConfirmSubmit>
-                          </form>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="bg-[#f9fafb] text-[13px] font-semibold" data-testid="orders-totals">
-                  <td className={tdClass} colSpan={6}>
+                  <td className={tdClass} colSpan={isOwner ? 6 : 5}>
                     Tổng theo bộ lọc ({pnl.size} đơn, trừ đã huỷ)
                     <span className="ml-2 font-normal text-lien-muted">
                       doanh thu {formatPrice(sum.revenue)} · giá vốn {formatPrice(sum.cogs)} · vận chuyển {formatPrice(sum.ship)}
@@ -225,7 +214,7 @@ export default async function AdminOrders({ searchParams }: Props) {
                   </td>
                   <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(total)}</td>
                   <td className={`${tdClass} whitespace-nowrap`}>{signed(sum.profit)}</td>
-                  <td className={tdClass} colSpan={3} />
+                  <td className={tdClass} colSpan={2} />
                 </tr>
               </tfoot>
             </table>

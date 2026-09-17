@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export const BULK_FORM_ID = "orders-bulk";
 const boxes = () => Array.from(document.querySelectorAll<HTMLInputElement>(`input[name="ids"][form="${BULK_FORM_ID}"]`));
@@ -35,9 +37,10 @@ export function SelectAllOrders() {
   );
 }
 
-/** "Xóa đã chọn (n)" — disabled until a row is ticked; one row ticked deletes just that row. */
+/** "Xóa đơn hàng" — disabled until a row is ticked; one row ticked deletes just that row. Owner only (page hides it). */
 export function BulkDeleteButton({ className }: { className: string }) {
   const [n, setN] = useState(0);
+  const [picked, setPicked] = useState<string[]>([]);
   useEffect(() => {
     const sync = () => setN(boxes().filter((b) => b.checked).length);
     document.addEventListener("change", sync);
@@ -45,23 +48,35 @@ export function BulkDeleteButton({ className }: { className: string }) {
     return () => document.removeEventListener("change", sync);
   }, []);
   return (
-    <button
-      type="submit"
-      form={BULK_FORM_ID}
-      disabled={n === 0}
-      className={`${className} disabled:cursor-not-allowed disabled:opacity-40`}
-      data-testid="bulk-delete"
-      onClick={(e) => {
-        const picked = boxes().filter((b) => b.checked);
-        if (!picked.length) {
+    <>
+      <button
+        type="submit"
+        form={BULK_FORM_ID}
+        disabled={n === 0}
+        className={`${className} disabled:cursor-not-allowed disabled:opacity-40`}
+        data-testid="bulk-delete"
+        onClick={(e) => {
           e.preventDefault();
-          return;
-        }
-        const label = picked.length === 1 ? `đơn #${picked[0].dataset.number ?? ""}` : `${picked.length} đơn đã chọn`;
-        if (!window.confirm(`Xóa hẳn ${label}? Sản phẩm, chặng vận chuyển, tin nhắn và bill đính kèm sẽ bị xóa, không khôi phục được. Nếu chỉ muốn dừng đơn, hãy chọn trạng thái “Đã hủy”.`)) e.preventDefault();
-      }}
-    >
-      Xóa đã chọn{n ? ` (${n})` : ""}
-    </button>
+          const list = boxes()
+            .filter((b) => b.checked)
+            .map((b) => `#${b.dataset.number ?? ""}`);
+          if (list.length) setPicked(list);
+        }}
+      >
+        <Fa name="trash" /> Xóa đơn hàng{n ? ` (${n})` : ""}
+      </button>
+      <ConfirmDialog
+        open={picked.length > 0}
+        title={picked.length === 1 ? `Xóa đơn ${picked[0]}?` : `Xóa ${picked.length} đơn hàng?`}
+        message={picked.length === 1 ? "Đơn sẽ bị xóa vĩnh viễn, không khôi phục được." : `Các đơn ${picked.join(", ")} sẽ bị xóa vĩnh viễn, không khôi phục được.`}
+        details={["Sản phẩm, 4 chặng vận chuyển, tin nhắn và bill đính kèm của đơn cũng bị xóa.", "Không tính vào doanh thu / lãi lỗ.", "Chỉ muốn dừng đơn mà giữ lịch sử thì dùng trạng thái “Đã hủy”."]}
+        confirmLabel={picked.length === 1 ? "Xóa đơn" : `Xóa ${picked.length} đơn`}
+        onCancel={() => setPicked([])}
+        onConfirm={() => {
+          setPicked([]);
+          (document.getElementById(BULK_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
+        }}
+      />
+    </>
   );
 }
