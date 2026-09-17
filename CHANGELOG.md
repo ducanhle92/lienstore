@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.56.0] - 2026-09-17
+
 ### Added
 - Kế toán: hai ô mới **Chi phí voucher** (mã giảm giá khách dùng) và **Chi phí giảm giá sản phẩm** (Σ (giá kỳ vọng − giá khuyến mại) × số lượng); bảng theo tháng và CSV có thêm hai cột này. Dòng đơn hàng nay ghi lại giá kỳ vọng lúc đặt để tính đúng phần giảm.
 - Đơn hàng (danh sách): cột **Lãi / lỗ** cho từng đơn (cùng cách tính với Kế toán, rê chuột xem doanh thu / vốn / ship) và **dòng tổng theo bộ lọc** ở cuối bảng (doanh thu, giá vốn, vận chuyển, voucher, giảm giá, lãi) — tự tính theo khoảng thời gian đang lọc.
