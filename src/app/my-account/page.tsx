@@ -23,15 +23,14 @@ import type { Order } from "@/types/shop";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Trang của tôi" };
 
-type Tab = "overview" | "orders" | "profile" | "account" | "vouchers";
+type Tab = "orders" | "account" | "vouchers";
+// "Tài khoản & mật khẩu" carries the personal details too (name, phone, addresses, avatar, password)
 const TABS: Array<{ key: Tab; label: I18nKey; icon: "user-circle" | "shopping-bag" | "pencil" | "shield" | "gift" }> = [
-  { key: "overview", label: "myPage", icon: "user-circle" },
-  { key: "orders", label: "purchasedTab", icon: "shopping-bag" },
-  { key: "profile", label: "profileTab", icon: "pencil" },
   { key: "account", label: "accountSecurityTab", icon: "shield" },
+  { key: "orders", label: "purchasedTab", icon: "shopping-bag" },
   { key: "vouchers", label: "vouchersTab", icon: "gift" },
 ];
-const LEGACY: Record<string, Tab> = { dashboard: "overview", details: "profile", address: "profile" };
+const LEGACY: Record<string, Tab> = { dashboard: "account", overview: "account", details: "account", address: "account", profile: "account" };
 
 interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -39,7 +38,6 @@ interface Props {
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 const LABEL = "mb-1.5 block text-[15px] font-semibold leading-6 text-lien-input-text";
-const rowLink = "flex items-center justify-between gap-3 border-b border-lien-line py-3.5 text-[15px] text-lien-heading no-underline hover:text-lien-blue";
 
 function Avatar({ customer, size = 64 }: { customer: PublicCustomer; size?: number }) {
   const name = `${customer.lastName} ${customer.firstName}`.trim() || customer.username || customer.email;
@@ -67,7 +65,7 @@ export default async function MyAccount({ searchParams }: Props) {
   if (!customer) redirect("/?login=1");
   const sp = await searchParams;
   const tabRaw = first(sp.tab);
-  const tab: Tab = TABS.some((x) => x.key === tabRaw) ? (tabRaw as Tab) : (LEGACY[tabRaw] ?? "overview");
+  const tab: Tab = TABS.some((x) => x.key === tabRaw) ? (tabRaw as Tab) : (LEGACY[tabRaw] ?? "account");
   // legacy deep links to one order → the order page
   if (tab === "orders" && first(sp.view)) redirect(`/checkout/order-received/${encodeURIComponent(first(sp.view))}/`);
   const [orders, addresses] = await Promise.all([getOrdersForCustomer({ id: customer.id, email: customer.email }), listAddresses(customer.id)]);
@@ -95,7 +93,7 @@ export default async function MyAccount({ searchParams }: Props) {
               <ul className="m-0 list-none border-t border-lien-line p-0">
                 {TABS.map((x) => (
                   <li key={x.key} className="border-b border-lien-line">
-                    <Link href={x.key === "overview" ? "/my-account/" : `/my-account/?tab=${x.key}`} className={cn("flex items-center justify-between px-2 py-3 text-[15px] no-underline", tab === x.key ? "bg-lien-blue-soft/70 font-bold text-lien-blue" : "text-lien-text hover:text-lien-blue")}>
+                    <Link href={x.key === "account" ? "/my-account/" : `/my-account/?tab=${x.key}`} className={cn("flex items-center justify-between px-2 py-3 text-[15px] no-underline", tab === x.key ? "bg-lien-blue-soft/70 font-bold text-lien-blue" : "text-lien-text hover:text-lien-blue")}>
                       <span className="flex items-center gap-2">
                         <Fa name={x.icon} className="w-4 text-center text-lien-muted" />
                         {t(lang, x.label)}
@@ -128,66 +126,6 @@ export default async function MyAccount({ searchParams }: Props) {
             <div className="min-w-0 flex-1">
               {saved ? <WooNotice kind="message">{saved}</WooNotice> : null}
               {error ? <WooNotice kind="error">{error}</WooNotice> : null}
-
-              {tab === "overview" ? (
-                <>
-                  <div className="mb-6 flex items-center gap-4">
-                    <Avatar customer={customer} size={72} />
-                    <div>
-                      <h2 className="m-0 text-[22px] font-bold text-lien-heading">{name}</h2>
-                      <p className="m-0 text-[13px] text-lien-muted">
-                        {customer.username ? `ID: ${customer.username} · ` : ""}
-                        {displayEmail(customer.email) || "chưa có email"}
-                        {customer.phone ? ` · ${customer.phone}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="m-0 list-none border-t border-lien-line p-0">
-                    <li>
-                      <Link href="/my-account/?tab=orders" className={rowLink}>
-                        <span>
-                          {t(lang, "purchasedTab")} <span className="text-[13px] font-normal text-lien-muted">({orders.length})</span>
-                        </span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/my-account/?tab=orders&active=1" className={rowLink}>
-                        <span>
-                          {t(lang, "activeOrdersOnly")} <span className="text-[13px] font-normal text-lien-muted">({orders.filter((o) => !orderStatus(o, lang).done).length})</span>
-                        </span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/my-account/?tab=profile" className={rowLink}>
-                        <span>
-                          {t(lang, "profileTab")} <span className="text-[13px] font-normal text-lien-muted">({addresses.length} {lang === "ja" ? "住所" : "địa chỉ"})</span>
-                        </span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/my-account/?tab=account" className={rowLink}>
-                        <span>{t(lang, "accountSecurityTab")}</span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/my-account/?tab=vouchers" className={rowLink}>
-                        <span>{t(lang, "vouchersTab")}</span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/wishlist/" className={rowLink}>
-                        <span>{t(lang, "wishlist")}</span>
-                        <Fa name="angle-right" className="text-lien-muted" />
-                      </Link>
-                    </li>
-                  </ul>
-                </>
-              ) : null}
 
               {tab === "orders" ? (
                 <>
@@ -245,9 +183,10 @@ export default async function MyAccount({ searchParams }: Props) {
                 </>
               ) : null}
 
-              {tab === "profile" ? (
+              {tab === "account" ? (
                 <>
-                  <h2 className="m-0 mb-4 text-[20px] font-bold text-lien-heading">{t(lang, "profileTab")}</h2>
+                  <h2 className="m-0 mb-4 text-[20px] font-bold text-lien-heading">{t(lang, "accountSecurityTab")}</h2>
+                  <h3 className="m-0 mb-3 text-[16px] font-bold text-lien-heading">{t(lang, "profileTab")}</h3>
                   <form action={updateProfile} className="mb-8 rounded-md border border-lien-line bg-white p-4 sm:p-5">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <p className="m-0">
@@ -369,7 +308,7 @@ export default async function MyAccount({ searchParams }: Props) {
 
               {tab === "account" ? (
                 <>
-                  <h2 className="m-0 mb-4 text-[20px] font-bold text-lien-heading">{t(lang, "accountSecurityTab")}</h2>
+                  <h3 className="m-0 mb-3 text-[16px] font-bold text-lien-heading">{lang === "ja" ? "プロフィール画像とパスワード" : "Ảnh đại diện & mật khẩu"}</h3>
                   <form action={uploadAvatarAction} className="mb-6 rounded-md border border-lien-line bg-white p-4 sm:p-5">
                     <h3 className="m-0 mb-3 text-[15px] font-bold text-lien-heading">Ảnh đại diện</h3>
                     <div className="flex flex-wrap items-center gap-4">

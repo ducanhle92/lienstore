@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Giỏ hàng nhanh: khối "Thường được mua cùng với" có nhãn "Gợi ý", viền đứt màu xanh và nền riêng để không lẫn với sản phẩm trong giỏ.
+- Trang của tôi: bỏ mục "Trang của tôi" thừa; **Thông tin cá nhân gộp vào "Tài khoản & mật khẩu"** (họ tên, điện thoại, địa chỉ, ảnh đại diện, mật khẩu ở cùng một trang); thứ tự menu: Tài khoản & mật khẩu → Đơn hàng đã mua → Voucher → Yêu thích → Đăng xuất (menu tài khoản trên header cũng vậy). Link cũ `?tab=profile` vẫn mở đúng.
+- Bỏ khối "Lọc theo giá" ở mọi màn hình.
+- Chân trang gọn hơn: cột liên hệ chỉ còn địa chỉ, hotline VN/JP, email, giờ làm việc với icon tròn; khối "Kết nối" bỏ hai nút gọi trùng lặp.
+- Thanh trên: hotline và email thành các thẻ tròn có icon; chuyển ngữ VI/JP hiện cờ nhỏ và tô màu ngôn ngữ đang dùng.
+- Ô tìm kiếm trên header rộng hơn, kéo dài về phía menu để khách dễ gõ tìm.
+
 ## [1.55.2] - 2026-09-17
 
 ### Changed

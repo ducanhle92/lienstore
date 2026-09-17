@@ -29,33 +29,28 @@ export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, s
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">
           <Image src={logo.src} alt={shopName} width={logo.width} height={logo.height} unoptimized className="mb-4 h-auto w-[150px]" />
-          <ul className="m-0 list-none space-y-2 p-0 text-[14px] leading-6">
-            <li className="flex gap-2">
-              <Fa name="map-marker" className="mt-1.5 w-4 text-center text-lien-muted" />
-              <span>
-                <strong>{shopName}</strong> · {t(lang, "fTagline")}
-                <br />
-                {lang === "ja" && contact.addressJa ? contact.addressJa : contact.address}
-              </span>
-            </li>
-            {contact.phones.map((p) => (
-              <li key={p.label} className="flex gap-2">
-                <Fa name="phone" className="mt-1.5 w-4 text-center text-lien-muted" />
-                <span>
-                  {t(lang, "hotline")} {p.label}: {p.href ? <a href={p.href} className="text-lien-text no-underline hover:text-lien-blue">{p.number}</a> : p.number}
+          <ul className="m-0 list-none space-y-2.5 p-0 text-[13px] leading-5" data-testid="footer-contact">
+            {[
+              { icon: "map-marker" as const, node: <span>{lang === "ja" && contact.addressJa ? contact.addressJa : contact.address}</span> },
+              ...contact.phones.map((p) => ({
+                icon: "phone" as const,
+                node: (
+                  <span>
+                    <span className="mr-1 rounded bg-lien-blue-soft px-1 text-[11px] font-bold text-lien-blue">{p.label}</span>
+                    {p.href ? <a href={p.href} className="font-semibold text-lien-heading no-underline hover:text-lien-blue">{p.number}</a> : p.number}
+                  </span>
+                ),
+              })),
+              { icon: "envelope" as const, node: <a href={`mailto:${contact.email}`} className="text-lien-text no-underline hover:text-lien-blue">{contact.email}</a> },
+              { icon: "clock-o" as const, node: <span>{contact.hours}</span> },
+            ].map((row, i) => (
+              <li key={i} className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[12px] text-lien-blue shadow-sm">
+                  <Fa name={row.icon} />
                 </span>
+                {row.node}
               </li>
             ))}
-            <li className="flex gap-2">
-              <Fa name="envelope" className="mt-1.5 w-4 text-center text-lien-muted" />
-              <a href={`mailto:${contact.email}`} className="text-lien-text no-underline hover:text-lien-blue">
-                {contact.email}
-              </a>
-            </li>
-            <li className="flex gap-2">
-              <Fa name="clock-o" className="mt-1.5 w-4 text-center text-lien-muted" />
-              <span>{contact.hours}</span>
-            </li>
           </ul>
         </div>
         <div>
@@ -98,13 +93,6 @@ export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, s
                   style={{ backgroundColor: SOCIAL_COLORS[s.kind] }}
                 >
                   {s.kind === "zalo" ? <span className="text-[13px] font-extrabold tracking-tight">Zalo</span> : <SocialIcon kind={s.kind} className="text-[20px]" />}
-                </a>
-              </li>
-            ))}
-            {contact.phones.map((p) => (
-              <li key={p.href}>
-                <a href={p.href} aria-label={`Gọi ${p.number}`} title={`Gọi ${p.label}: ${p.number}`} className="flex h-11 items-center gap-2 rounded-full bg-lien-success px-3.5 text-[13px] font-bold text-white no-underline shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)] transition-transform hover:scale-105">
-                  <Fa name="phone" className="text-[16px]" /> {p.number}
                 </a>
               </li>
             ))}

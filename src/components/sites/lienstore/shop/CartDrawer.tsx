@@ -171,8 +171,11 @@ function Suggestions({ ids }: { ids: number[] }) {
   const cartProduct = { id: p.id, slug: p.slug, name: p.name, price: p.price, image: p.thumb || p.image };
 
   return (
-    <section className="mx-5 my-4 rounded-md border border-lien-line bg-lien-footer2" aria-label="Thường được mua cùng với">
-      <h3 className="m-0 border-b border-lien-line px-4 py-2.5 text-center text-[13px] font-bold text-lien-heading">Thường được mua cùng với :</h3>
+    <section className="mx-5 my-4 rounded-md border-2 border-dashed border-lien-blue/40 bg-lien-blue-soft/40" aria-label="Thường được mua cùng với" data-testid="cart-upsell">
+      <h3 className="m-0 flex items-center justify-center gap-2 border-b border-dashed border-lien-blue/30 px-4 py-2.5 text-center text-[13px] font-bold text-lien-heading">
+        <span className="rounded-full bg-lien-blue px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Gợi ý</span>
+        Thường được mua cùng với
+      </h3>
       {/* plain upsell: centred picture + name + price, one small "add" link — no action buttons like the cart rows above */}
       <div className="flex flex-col items-center gap-2 bg-white px-4 py-4 text-center">
         <Link href={`/product/${p.slug}/`} className="shrink-0">

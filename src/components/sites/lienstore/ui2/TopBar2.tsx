@@ -9,25 +9,23 @@ export function TopBar2({ contact, lang = "vi", loggedIn = false }: { contact: C
   return (
     <div className="hidden border-b border-lien-line bg-lien-cream text-[13px] leading-5 text-lien-text md:block">
       <div className="mx-auto flex h-10 max-w-[1300px] items-center gap-6 px-4">
-        <ul className="m-0 flex list-none items-center gap-5 p-0">
+        <ul className="m-0 flex list-none items-center gap-2 p-0" data-testid="topbar-contact">
           {contact.phones.map((p) => (
-            <li key={p.label} className="flex items-center gap-1.5 whitespace-nowrap">
-              <Fa name="phone" className="text-lien-muted" />
-              <span>
-                {t(lang, "hotline")} {p.label}:{" "}
-                {p.href ? (
-                  <a href={p.href} className="font-medium text-lien-text no-underline hover:text-lien-blue">
-                    {p.number}
-                  </a>
-                ) : (
-                  <span className="text-lien-muted">{p.number}</span>
-                )}
-              </span>
+            <li key={p.label}>
+              <a href={p.href || undefined} className="inline-flex h-7 items-center gap-1.5 rounded-full bg-white pr-2.5 pl-1 text-[12px] text-lien-text no-underline shadow-sm ring-1 ring-lien-line hover:ring-lien-blue" title={`${t(lang, "hotline")} ${p.label}`}>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lien-blue text-[10px] text-white">
+                  <Fa name="phone" />
+                </span>
+                <span className="font-bold text-lien-blue">{p.label}</span>
+                <span className="font-semibold">{p.number}</span>
+              </a>
             </li>
           ))}
-          <li className="hidden items-center gap-1.5 lg:flex">
-            <Fa name="envelope" className="text-lien-muted" />
-            <a href={`mailto:${contact.email}`} className="text-lien-text no-underline hover:text-lien-blue">
+          <li className="hidden lg:block">
+            <a href={`mailto:${contact.email}`} className="inline-flex h-7 items-center gap-1.5 rounded-full bg-white pr-2.5 pl-1 text-[12px] text-lien-text no-underline shadow-sm ring-1 ring-lien-line hover:ring-lien-blue">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lien-heading text-[10px] text-white">
+                <Fa name="envelope" />
+              </span>
               {contact.email}
             </a>
           </li>
