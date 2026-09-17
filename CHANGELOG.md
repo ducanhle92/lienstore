@@ -5,6 +5,15 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Trang chủ › "Giảm giá đặc biệt" chỉ lấy sản phẩm giảm giá nằm trong top 60 bán chạy, nên sản phẩm mới giảm giá chưa bán được lần nào không hiện; nay lấy toàn bộ sản phẩm đang giảm giá (bán chạy xếp trước), "Xem thêm" mở danh sách đang giảm giá.
+
+### Added
+- Flash Sales: mỗi sản phẩm có thể đặt **giá flash hoặc % giảm riêng** — áp thẳng vào giá bán nên badge -%, giỏ hàng, thanh toán đều khớp; hết giờ hoặc bỏ khỏi Flash Sales thì giá cũ tự trở lại.
+
+### Changed
+- Admin › Flash Sales: ô chọn giờ mặc định là giờ hiện tại; dòng chưa đặt giờ (còn mốc 1970 từ bản trước) hiện "chưa đặt giờ" và mở ở giờ hiện tại; sửa giờ và giá flash trên cùng một dòng.
+
 ## [1.45.0] - 2026-09-15
 
 ### Changed
