@@ -7,10 +7,13 @@ import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracke
 import { SHIP_STAGES, stageIndex } from "@/lib/shipping";
 import { deleteOrderFileAction, saveAdminNoteAction, uploadOrderFilesAction } from "@/app/admin/orders/files-actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, markOrderMessagesRead } from "@/lib/db";
+import { getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
+import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
+import { getDb, getSetting } from "@/lib/sqlite";
 import { setPurchaseAction } from "@/app/admin/purchases/actions";
 import { PURCHASE_STAGES } from "@/lib/purchase";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
@@ -30,7 +33,15 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
   await requireAdmin("orders");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [order, files, overview, legMap, shippingMethods, messages, orderWeightG, importQuote] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id), getImportQuoteConfig()]);
+  const [order, files, overview, legMap, shippingMethods, messages, orderWeightG, importQuote, theme] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id), getImportQuoteConfig(), getSiteTheme()]);
+  let transferQuotes: TransferQuotesView | null = null;
+  try {
+    const raw = getSetting(getDb(), `leg3_quotes:${id}`);
+    transferQuotes = raw ? (JSON.parse(raw) as TransferQuotesView) : null;
+  } catch {
+    transferQuotes = null;
+  }
+  const shop = theme.shopName;
   if (!order) notFound();
   await markOrderMessagesRead(order.id, "admin");
   const curStage = stageIndex(order.shipStage);
@@ -149,8 +160,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           </Card>
 
         <Card title="Vận chuyển đơn này (3 chặng)">
-          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} />
-          <p className="mt-3 text-[12px] text-lien-muted">Chọn phương thức · cột cho từng chặng; để trống phí thì tự tính theo cột và khối lượng đơn. Chặng nội địa Việt Nam có thể áp lại phí vào tổng tiền khách trả.</p>
+          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
+          <p className="mt-3 text-[12px] text-lien-muted">
+            Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
+            <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>
+          </p>
         </Card>
 
           <Card title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}>
@@ -159,15 +173,21 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               messages={messages}
               me="admin"
               action={adminSendMessageAction}
+              shopName={shop}
               quickReplies={[
-                "LienStore đã nhận đơn, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.",
+                `Cảm ơn anh/chị đã mua hàng của ${shop}! Đơn #${order.number} đã được xác nhận thanh toán và đang được xử lý để gửi tới anh/chị. Bên em sẽ nhắn ngay khi hàng lên đường ạ.`,
+                `Đơn #${order.number} của anh/chị đã thanh toán xong, bên em đang đặt mua tại Nhật. Dự kiến 7–14 ngày hàng về tới kho Việt Nam; có tiến độ mới em báo liền nhé.`,
+                `${shop} đã nhận đơn #${order.number}, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.`,
                 "Đã mua hàng tại Nhật, bill đính kèm trong đơn. Hàng về kho Nhật trong 2–4 ngày.",
                 "Kiện hàng đã lên đường về Việt Nam, dự kiến 5–7 ngày nữa tới kho.",
-                "Hàng đã về kho Thanh Hóa, LienStore giao cho đơn vị vận chuyển hôm nay.",
+                `Hàng đã về kho Thanh Hóa, ${shop} giao cho đơn vị vận chuyển hôm nay. Anh/chị để ý điện thoại giúp em nhé.`,
+                `Đơn #${order.number} đã giao thành công. Cảm ơn anh/chị đã ủng hộ ${shop}, có gì cần hỗ trợ cứ nhắn em ạ!`,
               ]}
             />
           </Card>
+        </div>
 
+        <div className="space-y-6">
           <Card title="Ghi chú nội bộ">
             <form action={saveAdminNoteAction} className="grid gap-3">
               <input type="hidden" name="orderId" value={order.id} />
@@ -179,9 +199,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </div>
             </form>
           </Card>
-        </div>
 
-        <div className="space-y-6">
           <Card title="Tiến độ vận chuyển">
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact />

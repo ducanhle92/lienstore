@@ -35,7 +35,8 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
   }
   const feeRaw = text(formData, "fee");
   let fee = feeRaw ? Math.max(0, parseAmount(feeRaw)) : null;
-  let label = "";
+  // a carrier quote picked from the API list has no static method: keep its label as typed
+  let label = methodId ? "" : text(formData, "label").slice(0, 120);
   if (methodId) {
     const method = (await getShippingMethods(false)).find((x) => x.id === methodId && x.leg === leg);
     if (method) {

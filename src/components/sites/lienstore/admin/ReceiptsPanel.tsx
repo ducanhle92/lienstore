@@ -10,6 +10,7 @@ import type { Receipt } from "@/lib/receipts-db";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
+import { InfoPopover } from "./InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
@@ -225,7 +226,10 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
               Đọc bill → tạo phiếu nháp
             </button>
           </form>
-          <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Hệ thống tách từng dòng sản phẩm (tên, số lượng, giá ¥), đọc mã đơn và ngày mua, khớp với sản phẩm trên web theo mã ASIN trong link mua hoặc theo tên (Việt / Nhật). Bạn kiểm tra rồi Xác nhận — số lượng mua tự gán cho các đơn khách đang chờ, phần dư thành phiếu mua lưu kho.</p>
+          <p className="mt-3 mb-0 flex items-center gap-1 text-[12px] text-lien-muted">
+            Tự tách sản phẩm · số lượng · giá ¥, khớp với sản phẩm trên web.
+            <InfoPopover>Hệ thống tách từng dòng sản phẩm (tên, số lượng, giá ¥), đọc mã đơn và ngày mua, khớp với sản phẩm trên web theo mã ASIN trong link mua hoặc theo tên (Việt / Nhật). Bạn kiểm tra rồi Xác nhận — số lượng mua tự gán cho các đơn khách đang chờ, phần dư thành phiếu mua lưu kho.</InfoPopover>
+          </p>
         </Card>
         <Card title="Phiếu mua là gì?">
           <p className="m-0 text-[13px] leading-6 text-lien-text">Mỗi lần mua một lố hàng tại một nguồn = một phiếu với mã tự sinh <strong>PM-ngày-số</strong>. Phiếu ghi ngày mua, mã đơn của nguồn, các sản phẩm × số lượng × giá, và sau đó ngày gửi cho đơn vị vận chuyển + mã vận đơn. Từ dòng đơn của khách hay phiếu mua lưu kho đều thấy nó thuộc phiếu nào — nên biết hàng của đơn nào đã mua lúc nào, đi cùng lố nào.</p>

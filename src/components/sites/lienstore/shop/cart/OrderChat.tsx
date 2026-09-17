@@ -86,21 +86,26 @@ export function OrderChat({ orderId, messages, me, action, hidden = {}, quickRep
 
       {quickReplies.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          {quickReplies.map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => {
-                if (textRef.current) {
-                  textRef.current.value = q;
-                  textRef.current.focus();
-                }
-              }}
-              className="rounded-full border border-lien-line bg-white px-3 py-1 text-[12px] text-lien-text hover:border-lien-blue hover:text-lien-blue"
-            >
-              {q}
-            </button>
-          ))}
+          <select
+            aria-label="Mẫu tin nhắn"
+            defaultValue=""
+            onChange={(e) => {
+              if (textRef.current && e.target.value) {
+                textRef.current.value = e.target.value;
+                textRef.current.focus();
+              }
+              e.target.value = "";
+            }}
+            className="max-w-full rounded-md border border-lien-line bg-white px-2 py-1 text-[12px] text-lien-text"
+            data-testid="chat-templates"
+          >
+            <option value="">Chèn mẫu tin nhắn…</option>
+            {quickReplies.map((q) => (
+              <option key={q} value={q}>
+                {q.length > 90 ? `${q.slice(0, 87)}…` : q}
+              </option>
+            ))}
+          </select>
         </div>
       ) : null}
 

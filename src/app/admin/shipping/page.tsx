@@ -14,6 +14,7 @@ import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
+import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { describeMethodFormula, isJpSubLeg, isShippingLeg, JP_SUB_LEG_LABEL, JP_SUB_LEGS, type JpSubLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
@@ -575,8 +576,9 @@ export default async function AdminShipping({ searchParams }: Props) {
             </form>
           }
         >
-          <p className="mb-4 text-[13px] text-lien-muted">
-            Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.
+          <p className="mb-4 flex items-center gap-1 text-[13px] text-lien-muted">
+            Mỗi đơn một dòng, mỗi chặng một ô — chọn, điền rồi bấm ✓.
+            <InfoPopover>Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.</InfoPopover>
           </p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-[13px]">

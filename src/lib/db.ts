@@ -232,6 +232,7 @@ interface OrderItemRow {
   price: number;
   image: string;
   quantity: number;
+  list_price: number | null;
 }
 
 function hydrateOrders(rows: OrderRow[]): Order[] {
@@ -239,12 +240,12 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
   const db = getDb();
   const placeholders = rows.map(() => "?").join(",");
   const items = db
-    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
+    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note, list_price FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
     .all(...rows.map((r) => r.id)) as unknown as OrderItemRow[];
   const byOrder = new Map<string, CartItem[]>();
   for (const it of items) {
     const list = byOrder.get(it.order_id) ?? [];
-    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
+    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity, listPrice: it.list_price ?? null, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
     byOrder.set(it.order_id, list);
   }
   return rows.map((r) => ({
@@ -803,8 +804,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let weightG = 0;
     let special = false;
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
+      const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
         | undefined;
       if (!row) continue;
       if (isSpecialHandling(parseArr(row.tags ?? "[]"))) special = true;
@@ -814,7 +815,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       if (!fromStock) prepaidRequired = true;
       weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
       // fully covered by warehouse stock → the goods are already at the shop, not "chưa mua" (see lib/purchase.ts)
-      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty, purchaseStatus: fromStock ? "at_shop" : undefined });
+      // expected web price at this moment (regular_price holds it while a promotion runs) — Kế toán reads promo cost from it
+      const listPrice = row.regular_price && row.regular_price > 0 && row.regular_price !== row.price ? row.regular_price : row.price;
+      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty, listPrice, purchaseStatus: fromStock ? "at_shop" : undefined });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
     if (prepaidRequired && input.paymentMethod === "cod") throw new Error("Đơn có hàng order (đặt mua theo yêu cầu) cần thanh toán trước 100% bằng chuyển khoản.");
@@ -917,11 +920,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       payAccount.id || null,
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
-    const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_updated_at, list_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     // stock 0 makes the product "Hàng order" (bought to order); it never becomes "Hết hàng" (that means discontinued in Japan)
     const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?), updated_at = ? WHERE id = ? AND stock IS NOT NULL`);
     for (const it of items) {
-      insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity, it.purchaseStatus ?? "not_bought", it.purchaseStatus ? now : null);
+      insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity, it.purchaseStatus ?? "not_bought", it.purchaseStatus ? now : null, it.listPrice ?? null);
       decStock.run(it.quantity, now, it.productId);
       consumeLotsSync(db, it.productId, it.quantity, now); // FEFO: earliest expiry leaves first
     }

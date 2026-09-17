@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cancelPostAction, clearFanpageTokenAction, composeDraftAction, postNowAction, regenerateDraftAction, saveDraftAction, saveFanpageAutoAction, saveFanpageConnectionAction } from "@/app/admin/fanpage/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -77,7 +78,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
                 <Fa name="pencil" /> Tạo nội dung
               </button>
             </form>
-            <p className="mt-2 mb-0 text-[12px] leading-5 text-lien-muted">Nội dung tự soạn từ mô tả sản phẩm (câu mở, công dụng, giá, link đặt hàng, hotline, hashtag tiếng Việt). Sửa tuỳ ý trước khi đăng; &ldquo;Tạo lại nội dung&rdquo; đổi cách viết.</p>
+            <p className="mt-2 mb-0 flex items-center gap-1 text-[12px] text-lien-muted">Nội dung soạn tự động từ mô tả sản phẩm; sửa tuỳ ý trước khi đăng.<InfoPopover>Nội dung tự soạn từ mô tả sản phẩm (câu mở, công dụng, giá, link đặt hàng, hotline, hashtag tiếng Việt). Sửa tuỳ ý trước khi đăng; &ldquo;Tạo lại nội dung&rdquo; đổi cách viết.</InfoPopover></p>
           </Card>
 
           {draft ? (
@@ -295,7 +296,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
                 <Fa name="check" /> Lưu lịch
               </button>
             </form>
-            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Đến giờ, hệ thống tự chọn sản phẩm đang bán (có ảnh, có giá), soạn bài với cách viết đổi luân phiên, đính kèm ảnh + link và đăng. Bài tự động hiện trong hàng chờ vài phút trước giờ đăng — có thể sửa hoặc huỷ. Bỏ lỡ giờ quá 90 phút (máy chủ tắt) thì bỏ qua lượt đó.</p>
+            <p className="mt-2 mb-0 flex items-center gap-1 text-[12px] text-lien-muted">Đến giờ, hệ thống tự chọn sản phẩm, soạn bài và đăng.<InfoPopover>Đến giờ, hệ thống tự chọn sản phẩm đang bán (có ảnh, có giá), soạn bài với cách viết đổi luân phiên, đính kèm ảnh + link và đăng. Bài tự động hiện trong hàng chờ vài phút trước giờ đăng — có thể sửa hoặc huỷ. Bỏ lỡ giờ quá 90 phút (máy chủ tắt) thì bỏ qua lượt đó.</InfoPopover></p>
           </Card>
         </div>
       </div>

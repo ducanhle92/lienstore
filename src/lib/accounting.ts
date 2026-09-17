@@ -1,7 +1,8 @@
 import "server-only";
 import { getAllProducts, getOrderLegs, getOrders } from "./db";
+import { expectedPriceOf } from "./price-display";
 import { IMPORT_LEGS, stageIndex } from "./shipping";
-import type { Order } from "@/types/shop";
+import type { CatalogProduct, Order, OrderLeg } from "@/types/shop";
 
 /**
  * Kế toán › lãi/lỗ theo đơn: revenue (items − discount) + shipping collected from the customer, minus cost of goods
@@ -26,6 +27,10 @@ export interface AccountingRow {
   importFees: number;
   vnCarrierFee: number;
   profit: number;
+  /** Voucher taken off this order (orders.discount). */
+  voucher: number;
+  /** What product promotions cost on this order: Σ (expected web price − price charged) × qty. */
+  promoDiscount: number;
 }
 
 export interface AccountingTotals {
@@ -38,13 +43,15 @@ export interface AccountingTotals {
   vnCarrierFee: number;
   profit: number;
   missingCost: number;
+  voucher: number;
+  promoDiscount: number;
 }
 
 export interface MonthRow extends AccountingTotals {
   month: string;
 }
 
-export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0 });
+export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0 });
 
 function add(t: AccountingTotals, r: AccountingRow): void {
   t.orders++;
@@ -56,27 +63,30 @@ function add(t: AccountingTotals, r: AccountingRow): void {
   t.vnCarrierFee += r.vnCarrierFee;
   t.profit += r.profit;
   t.missingCost += r.missingCost;
+  t.voucher += r.voucher;
+  t.promoDiscount += r.promoDiscount;
 }
 
 /** Shop-local month key (Asia/Ho_Chi_Minh) of an ISO date. */
 export const monthKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).slice(0, 7);
 export const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
-export async function getAccounting(fromDay: string, toDay: string): Promise<{ rows: AccountingRow[]; totals: AccountingTotals; byMonth: MonthRow[] }> {
-  const [orders, products] = await Promise.all([getOrders(), getAllProducts(true)]);
-  const cost = new Map(products.map((p) => [p.id, p.costPrice]));
-  const inRange = orders.filter((o) => o.status !== "cancelled" && dayKey(o.createdAt) >= fromDay && dayKey(o.createdAt) <= toDay);
-  const legMap = await getOrderLegs(inRange.map((o) => o.id));
-  const rows: AccountingRow[] = inRange.map((o) => {
-    const legs = legMap.get(o.id) ?? [];
+/** One order → its P&L line (pure given the products and the order's legs). */
+export function accountingRow(o: Order, products: Map<number, CatalogProduct>, legs: OrderLeg[]): AccountingRow {
+  {
     const importFees = legs.filter((l) => (IMPORT_LEGS as string[]).includes(l.leg)).reduce((s, l) => s + l.fee, 0);
     const vnCarrierFee = legs.find((l) => l.leg === "vn_domestic")?.fee ?? 0;
     let cogs = 0;
     let missingCost = 0;
+    let promoDiscount = 0;
     for (const it of o.items) {
-      const c = cost.get(it.productId);
+      const p = products.get(it.productId);
+      const c = p?.costPrice;
       if (c === null || c === undefined) missingCost++;
       else cogs += c * it.quantity;
+      // promotion cost: expected price at order time (old orders: the product's current expected price if it is on promotion now)
+      const list = it.listPrice ?? (p ? expectedPriceOf(p) : it.price);
+      if (list > it.price) promoDiscount += (list - it.price) * it.quantity;
     }
     const revenue = Math.max(0, o.subtotal - o.discount);
     const shipOnDelivery = o.shipFeePayment === "on_delivery";
@@ -99,8 +109,26 @@ export async function getAccounting(fromDay: string, toDay: string): Promise<{ r
       importFees,
       vnCarrierFee: vnPaid,
       profit: revenue + shipCollected - cogs - importFees - vnPaid,
+      voucher: o.discount,
+      promoDiscount,
     };
-  });
+  }
+}
+
+/** P&L lines for an arbitrary list of orders (admin order list); cancelled orders are skipped. */
+export async function accountingRowsFor(orders: Order[]): Promise<Map<string, AccountingRow>> {
+  const live = orders.filter((o) => o.status !== "cancelled");
+  const [products, legMap] = await Promise.all([getAllProducts(true), getOrderLegs(live.map((o) => o.id))]);
+  const byId = new Map(products.map((p) => [p.id, p]));
+  return new Map(live.map((o) => [o.id, accountingRow(o, byId, legMap.get(o.id) ?? [])]));
+}
+
+export async function getAccounting(fromDay: string, toDay: string): Promise<{ rows: AccountingRow[]; totals: AccountingTotals; byMonth: MonthRow[] }> {
+  const [orders, products] = await Promise.all([getOrders(), getAllProducts(true)]);
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const inRange = orders.filter((o) => o.status !== "cancelled" && dayKey(o.createdAt) >= fromDay && dayKey(o.createdAt) <= toDay);
+  const legMap = await getOrderLegs(inRange.map((o) => o.id));
+  const rows: AccountingRow[] = inRange.map((o) => accountingRow(o, byId, legMap.get(o.id) ?? []));
   const totals = emptyTotals();
   const months = new Map<string, MonthRow>();
   for (const r of rows) {

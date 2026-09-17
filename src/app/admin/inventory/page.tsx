@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
+import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -158,14 +159,14 @@ export default async function AdminInventory({ searchParams }: Props) {
             Lọc
           </button>
         </form>
-        <p className="mb-4 text-[12px] text-lien-muted">
-          <strong>Trạng thái</strong>: Đang lưu kho (còn tồn — chọn kho: Kho Nhật / Kho ĐVVC / Kho Việt Nam) · Đang về (đã đặt lô lưu kho, chưa tới — còn tại Nhật / NB → VN / tại kho ĐVVC VN) · Chưa mua (cần mua nhưng chưa đặt gì). Mỗi lô ghi rõ kho; sửa ở &ldquo;Quản lý lô&rdquo;. <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.{" "}
-          <Link href="/admin/purchases/" className="text-lien-blue hover:underline">
+        <p className="mb-4 flex flex-wrap items-center gap-1 text-[12px] text-lien-muted">
+          Lọc theo trạng thái / kho / hạn dùng / nên lưu kho; kiểm kê bằng CSV.
+          <InfoPopover><strong>Trạng thái</strong>: Đang lưu kho (còn tồn — chọn kho: Kho Nhật / Kho ĐVVC / Kho Việt Nam) · Đang về (đã đặt lô lưu kho, chưa tới — còn tại Nhật / NB → VN / tại kho ĐVVC VN) · Chưa mua (cần mua nhưng chưa đặt gì). Mỗi lô ghi rõ kho; sửa ở &ldquo;Quản lý lô&rdquo;. <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.</InfoPopover>
+          <Link href="/admin/purchases/" className="ml-auto text-lien-blue hover:underline">
             <Fa name="shopping-basket" /> Quản lý mua hàng →
           </Link>
         </p>
 
-        <p className="mb-2 text-[12px] text-lien-muted">Bấm tên cột để sắp xếp tăng / giảm.</p>
         <ResizableTable id="inventory">
           <table className={tableClass}>
             <thead>

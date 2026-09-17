@@ -1100,6 +1100,13 @@ export const MIGRATIONS: Migration[] = [
          AND id NOT IN (SELECT product_id FROM flash_sale_products WHERE sale_price IS NOT NULL)`,
     ],
   },
+  {
+    // Order lines remember the expected web price at the time of the order, so Kế toán can show what promotions cost
+    // (list_price − price) next to what vouchers cost (orders.discount).
+    version: 50,
+    name: "order-item-list-price",
+    up: [`ALTER TABLE order_items ADD COLUMN list_price INTEGER`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

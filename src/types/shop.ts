@@ -173,6 +173,8 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  /** Expected web price when the order was placed (null on old orders); price < listPrice = sold on promotion. */
+  listPrice?: number | null;
   /** Order lines only: row id + purchase / logistics status (see lib/purchase.ts). */
   itemId?: number;
   purchaseStatus?: PurchaseStatus;

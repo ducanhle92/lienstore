@@ -7,7 +7,7 @@ import { isCarrierCode } from "@/lib/carriers";
 import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { GOSHIP_PROD, GOSHIP_SANDBOX, GOSHIP_SETTING_KEYS, GoshipError, goshipCheck, goshipResetCache } from "@/lib/carriers/goship";
 import { getOrderById, saveOrderLeg } from "@/lib/db";
-import { quoteCart } from "@/lib/ship-quote";
+import { quoteCart, quoteTransferLeg } from "@/lib/ship-quote";
 import { getDb, getSetting, setSetting } from "@/lib/sqlite";
 import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces, ghnResetCache, ghnWards } from "@/lib/ghn";
 import { SPX_SETTING_KEYS } from "@/lib/carriers/spx-api";
@@ -184,4 +184,21 @@ export async function requoteOrderAction(formData: FormData): Promise<void> {
   await saveOrderLeg({ orderId: order.id, leg: "vn_domestic", methodId: cur?.methodId ?? null, zoneId: cur?.zoneId ?? null, label: cur?.label ?? order.shippingLabel, fee: cur?.fee ?? order.shippingFee, tracking: cur?.tracking ?? "", note: `${cur?.note ? `${cur.note} | ` : ""}${note}`.slice(0, 1000) });
   revalidatePath("/admin", "layout");
   redirect(`${back}${sep}saved=${encodeURIComponent(`Đơn #${order.number} — ${note}${diff !== null && diff > 0 ? " (không tự tăng tiền khách; liên hệ khách nếu vượt dung sai)" : ""}`)}#order-${order.id}`);
+}
+
+/** Leg ③ (kho ĐVVC Hà Nội → kho shop): ask every carrier API for this order's parcel and keep the answers for the order page. */
+export async function requoteTransferAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping")) && !(await can("orders"))) redirect("/admin/login/");
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const back = String(formData.get("back") ?? "").trim() || "/admin/shipping/";
+  const sep = back.includes("?") ? "&" : "?";
+  const order = orderId ? await getOrderById(orderId) : null;
+  if (!order) redirect(back);
+  const { getOrderChargeableWeightG } = await import("@/lib/db");
+  const r = await quoteTransferLeg(order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })), { weightG: await getOrderChargeableWeightG(order.id), subtotal: order.subtotal });
+  if ("error" in r) redirect(`${back}${sep}error=${encodeURIComponent(`Đơn #${order.number}: ${r.error}`)}`);
+  setSetting(getDb(), `leg3_quotes:${order.id}`, JSON.stringify({ at: new Date().toISOString(), from: r.from, to: r.to, quotes: r.quotes }));
+  revalidatePath("/admin", "layout");
+  const ok = r.quotes.filter((q) => q.available).length;
+  redirect(`${back}${sep}saved=${encodeURIComponent(`Đơn #${order.number}: ${ok} hãng báo được cước chặng ③ (${r.from.split(",")[0]} → kho shop). Bấm “Chọn” ở phương án muốn dùng.`)}#order-${order.id}`);
 }

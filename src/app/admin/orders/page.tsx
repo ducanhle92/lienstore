@@ -3,6 +3,7 @@ import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTabl
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
+import { accountingRowsFor } from "@/lib/accounting";
 import { getOrders, getUnreadMessageCounts } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { isShipStage, SHIP_STAGES, type ShipStage, stageIndex } from "@/lib/shipping";
@@ -62,6 +63,15 @@ export default async function AdminOrders({ searchParams }: Props) {
     </Link>
   );
   const total = items.reduce((s, o) => s + (o.status === "cancelled" ? 0 : o.total), 0);
+  // P&L per order (same maths as Kế toán) + totals of what is on screen
+  const pnl = await accountingRowsFor(items);
+  const sum = [...pnl.values()].reduce((t, r) => ({ revenue: t.revenue + r.revenue + r.shipCollected, cogs: t.cogs + r.cogs, ship: t.ship + r.importFees + r.vnCarrierFee, profit: t.profit + r.profit, voucher: t.voucher + r.voucher, promo: t.promo + r.promoDiscount, missing: t.missing + r.missingCost }), { revenue: 0, cogs: 0, ship: 0, profit: 0, voucher: 0, promo: 0, missing: 0 });
+  const signed = (n: number) => (
+    <span className={n >= 0 ? "text-green-700" : "text-red-600"}>
+      {n < 0 ? "−" : ""}
+      {formatPrice(Math.abs(n))}
+    </span>
+  );
 
   return (
     <>
@@ -118,6 +128,7 @@ export default async function AdminOrders({ searchParams }: Props) {
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Thanh toán</th>
                   <th className={thClass}>Tổng</th>
+                  <th className={thClass} title="Doanh thu + ship khách trả − giá vốn − phí 3 chặng nhập − phí giao nội địa (cùng cách tính với Kế toán)">Lãi / lỗ</th>
                   <th className={thClass}>Trạng thái đơn</th>
                   <th className={thClass}>Xử lý</th>
                   <th className={thClass} />
@@ -146,6 +157,18 @@ export default async function AdminOrders({ searchParams }: Props) {
                       <td className={tdClass}>{o.items.reduce((n, it) => n + it.quantity, 0)}</td>
                       <td className={`${tdClass} whitespace-nowrap`}>{PAYMENT[o.paymentMethod]}</td>
                       <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(o.total, o.currency)}</td>
+                      <td className={`${tdClass} whitespace-nowrap font-semibold`}>
+                        {(() => {
+                          const r = pnl.get(o.id);
+                          if (!r) return <span className="text-lien-muted">—</span>;
+                          return (
+                            <span title={`Doanh thu ${formatPrice(r.revenue + r.shipCollected)} · vốn ${formatPrice(r.cogs)} · ship ${formatPrice(r.importFees + r.vnCarrierFee)}${r.voucher ? ` · voucher ${formatPrice(r.voucher)}` : ""}${r.promoDiscount ? ` · giảm giá SP ${formatPrice(r.promoDiscount)}` : ""}${r.missingCost ? ` · ${r.missingCost} dòng chưa có giá vốn` : ""}`}>
+                              {signed(r.profit)}
+                              {r.missingCost ? <span className="ml-1 text-[11px] font-normal text-amber-700">*</span> : null}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className={tdClass}>
                         {o.status === "cancelled" ? <StatusBadge status="cancelled" /> : <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold", STAGE_CLS[s.key])}>{s.label}</span>}
                       </td>
@@ -161,6 +184,22 @@ export default async function AdminOrders({ searchParams }: Props) {
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr className="bg-[#f9fafb] text-[13px] font-semibold" data-testid="orders-totals">
+                  <td className={tdClass} colSpan={5}>
+                    Tổng theo bộ lọc ({pnl.size} đơn, trừ đã huỷ)
+                    <span className="ml-2 font-normal text-lien-muted">
+                      doanh thu {formatPrice(sum.revenue)} · giá vốn {formatPrice(sum.cogs)} · vận chuyển {formatPrice(sum.ship)}
+                      {sum.voucher ? ` · voucher ${formatPrice(sum.voucher)}` : ""}
+                      {sum.promo ? ` · giảm giá SP ${formatPrice(sum.promo)}` : ""}
+                      {sum.missing ? ` · * ${sum.missing} dòng chưa có giá vốn` : ""}
+                    </span>
+                  </td>
+                  <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(total)}</td>
+                  <td className={`${tdClass} whitespace-nowrap`}>{signed(sum.profit)}</td>
+                  <td className={tdClass} colSpan={3} />
+                </tr>
+              </tfoot>
             </table>
           </ResizableTable>
         )}

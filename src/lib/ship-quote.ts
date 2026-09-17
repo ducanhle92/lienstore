@@ -5,7 +5,7 @@ import { goshipAdapter, goshipConfigured } from "./carriers/goship";
 import { ALL_CARRIER_CODES, type AddressInput, type CarrierCode, type ShippingQuoteRequest } from "./carriers/types";
 import { loadShippingMethods, parcelOf } from "./db";
 import { getDb, getSetting } from "./sqlite";
-import { composeAddress, findProvince, findWard, findWardByName, legacyCode, legacyProvincesOf, wardsOf } from "./vn-address";
+import { composeAddress, findProvince, findProvinceByName, findWard, findWardByName, legacyCode, legacyProvincesOf, parseAddressToCodes, wardsOf } from "./vn-address";
 
 /**
  * Server glue between the storefront (address codes + cart lines) and the carrier adapters: the parcel is rebuilt from
@@ -128,4 +128,62 @@ export async function quoteCart(input: CartQuoteInput, opts: Pick<QuoteOptions, 
     bundle = { ...fallback, quotes: fallback.quotes.map((q) => ({ ...q, warnings: [`${note} — dùng nguồn dự phòng.`, ...q.warnings] })) };
   }
   return { ...bundle, request, parcel: { weightG: parcel.weightG, length: parcel.dims.length, width: parcel.dims.width, height: parcel.dims.height, subtotal: parcel.subtotal, quantity: parcel.quantity } };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Leg ③: carrier warehouse in Hà Nội → shop warehouse in Thanh Hóa, quoted by the same carrier APIs as checkout so the
+// admin can pick the cheapest option for the parcel of one order.
+
+export interface TransferQuote {
+  carrier: string;
+  carrierName: string;
+  serviceName: string;
+  serviceCode: string;
+  fee: number | null;
+  eta: string | null;
+  available: boolean;
+  statusText: string;
+  fromPrice: boolean;
+}
+
+/** Origin of leg ③: the "Từ: …" part of the default ③ method's warehouse text, else the Kiến Express ward in Hà Nội. */
+export function transferOrigin(db: DatabaseSync = getDb()): AddressInput | null {
+  const m = loadShippingMethods(db, true).find((x) => x.leg === "vn_transfer");
+  const fromText = (m?.warehouse.match(/Từ:\s*([^·]+)/)?.[1] ?? "").trim();
+  const parsed = fromText ? parseAddressToCodes(fromText) : null;
+  if (parsed) return destinationAddress({ provinceCode: parsed.provinceCode, wardCode: parsed.wardCode, street: parsed.street || "Kho Kiến Express" });
+  // Kiến Express Hà Nội: OV3.15 XP5 Khu đô thị Xuân Phương Viglacera, Nam Từ Liêm → Phường Xuân Phương (Hà Nội) after the 2025 merger
+  const hn = findProvinceByName("Hà Nội") ?? findProvinceByName("Thành phố Hà Nội");
+  if (!hn) return null;
+  const ward = findWardByName(hn.code, "Xuân Phương") ?? findWardByName(hn.code, "Phường Xuân Phương") ?? findWardByName(hn.code, "Tây Mỗ") ?? wardsOf(hn.code)[0];
+  if (!ward) return null;
+  return destinationAddress({ provinceCode: hn.code, wardCode: ward.code, street: "Kho Kiến Express, OV3.15 XP5 KĐT Xuân Phương Viglacera" });
+}
+
+export async function quoteTransferLeg(lines: Array<{ productId: number; quantity: number }>, fallback?: { weightG: number; subtotal: number }): Promise<{ quotes: TransferQuote[]; from: string; to: string } | { error: string }> {
+  const db = getDb();
+  const origin = transferOrigin(db);
+  if (!origin) return { error: "Không xác định được địa chỉ kho ĐVVC ở Hà Nội để báo giá." };
+  const destination = warehouseAddress(db);
+  let parcel = parcelOf(db, lines);
+  // products since hidden / deleted: size the parcel from the order's own weight instead of refusing
+  if (parcel.quantity === 0 && fallback && fallback.weightG > 0) {
+    const qty = lines.reduce((n, l) => n + Math.max(1, l.quantity), 0) || 1;
+    parcel = { weightG: fallback.weightG, dims: { length: 25, width: 20, height: 12 } as typeof parcel.dims, subtotal: fallback.subtotal, quantity: qty, special: false };
+  }
+  if (parcel.quantity === 0) return { error: "Đơn không có sản phẩm." };
+  const request: ShippingQuoteRequest = {
+    originWarehouseId: "kien-express-ha-noi",
+    origin,
+    destination,
+    parcel: { actualWeightG: parcel.weightG, lengthCm: parcel.dims.length, widthCm: parcel.dims.width, heightCm: parcel.dims.height, orderValueVnd: parcel.subtotal, declaredValueVnd: parcel.subtotal, codAmountVnd: 0, quantity: parcel.quantity, flags: parcel.special ? { fragile: true } : undefined },
+    paymentMethod: "bank_transfer",
+  };
+  const disabled = disabledCarriers(db);
+  let bundle = await quoteAllCarriers(request, { disabled, fresh: true, adapters: goshipConfigured() ? [goshipAdapter] : ALL_ADAPTERS });
+  if (goshipConfigured() && !bundle.quotes.some((q) => q.available)) bundle = await quoteAllCarriers(request, { disabled, fresh: true, adapters: ALL_ADAPTERS });
+  const quotes: TransferQuote[] = bundle.quotes
+    .map((q) => ({ carrier: q.carrier, carrierName: q.carrierName, serviceName: q.serviceName ?? "", serviceCode: q.serviceCode, fee: q.totalFeeVnd, eta: q.etaText ?? null, available: q.available, statusText: q.statusText, fromPrice: q.accuracy === "from_price" }))
+    .sort((a, b) => (a.available === b.available ? (a.fee ?? Infinity) - (b.fee ?? Infinity) : a.available ? -1 : 1));
+  return { quotes, from: origin.fullAddress, to: destination.fullAddress };
 }

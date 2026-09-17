@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Kế toán: hai ô mới **Chi phí voucher** (mã giảm giá khách dùng) và **Chi phí giảm giá sản phẩm** (Σ (giá kỳ vọng − giá khuyến mại) × số lượng); bảng theo tháng và CSV có thêm hai cột này. Dòng đơn hàng nay ghi lại giá kỳ vọng lúc đặt để tính đúng phần giảm.
+- Đơn hàng (danh sách): cột **Lãi / lỗ** cho từng đơn (cùng cách tính với Kế toán, rê chuột xem doanh thu / vốn / ship) và **dòng tổng theo bộ lọc** ở cuối bảng (doanh thu, giá vốn, vận chuyển, voucher, giảm giá, lãi) — tự tính theo khoảng thời gian đang lọc.
+- Chi tiết đơn › chặng ③ Kho ĐVVC → kho shop: nút **"Báo giá chặng ③"** hỏi cước các hãng qua API (Goship / GHN…) cho kiện của đơn từ kho ĐVVC Hà Nội về kho shop, hiện danh sách giá như bước thanh toán của khách, bấm **Chọn** để ghi vào đơn.
+- Trao đổi với khách: hộp **"Chèn mẫu tin nhắn…"** thay các chip gợi ý; thêm mẫu "Cảm ơn anh/chị đã mua hàng… đơn đã xác nhận thanh toán, đang xử lý", "đang đặt mua tại Nhật, dự kiến 7–14 ngày", "đã giao thành công"; mẫu dùng tên cửa hàng và số đơn.
+
+### Changed
+- Chi tiết đơn › chặng ④ Nội địa Việt Nam mặc định theo **phương án khách đã chọn khi thanh toán** (hãng, gói, phí) — admin chỉ đổi khi khách yêu cầu.
+- Chi tiết đơn: khung "Ghi chú nội bộ" chuyển lên cột phải.
+- Gọn chú thích trong admin: Kho hàng, Vận chuyển (bảng 4 chặng), Phiếu mua / nhập bill, Đăng bài fanpage, chi tiết đơn — dòng ngắn + nút ⓘ mở phần giải thích dài.
+
 ## [1.55.3] - 2026-09-17
 
 ### Changed

@@ -96,10 +96,12 @@ export default async function AdminAccounting({ searchParams }: Props) {
         </form>
       </Card>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="acc-kpis">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" data-testid="acc-kpis">
         <Kpi label="Doanh thu" value={money(totals.revenue)} hint={`${totals.orders} đơn · ${totals.paidOrders} đã thanh toán · phí ship khách trả ${money(totals.shipCollected)}`} tone="blue" />
         <Kpi label="Giá vốn hàng bán" value={money(totals.cogs)} hint={totals.missingCost ? `${totals.missingCost} dòng chưa có giá vốn` : "Theo giá vốn hiện tại của sản phẩm"} tone="gray" />
         <Kpi label="Chi phí vận chuyển" value={money(totals.importFees + totals.vnCarrierFee)} hint={`Nhập hàng 3 chặng ${money(totals.importFees)} · giao nội địa trả hãng ${money(totals.vnCarrierFee)}`} tone="amber" />
+        <Kpi label="Chi phí voucher" value={money(totals.voucher)} hint={totals.voucher ? "Mã giảm giá khách nhập ở thanh toán — đã trừ khỏi doanh thu" : "Chưa có đơn dùng voucher"} tone={totals.voucher ? "amber" : "gray"} />
+        <Kpi label="Chi phí giảm giá sản phẩm" value={money(totals.promoDiscount)} hint={totals.promoDiscount ? "Σ (giá kỳ vọng − giá khuyến mại) × SL — đã nằm trong doanh thu thấp hơn" : "Không bán dưới giá kỳ vọng"} tone={totals.promoDiscount ? "amber" : "gray"} />
         <Kpi label="Lợi nhuận" value={`${totals.profit < 0 ? "−" : ""}${money(Math.abs(totals.profit))}`} hint={`${marginPct}% doanh thu`} tone={totals.profit >= 0 ? "green" : "red"} />
       </div>
 
@@ -113,6 +115,8 @@ export default async function AdminAccounting({ searchParams }: Props) {
                 <th className={`${thClass} text-right`}>Doanh thu</th>
                 <th className={`${thClass} text-right`}>Giá vốn</th>
                 <th className={`${thClass} text-right`}>Vận chuyển</th>
+                <th className={`${thClass} text-right`} title="Mã giảm giá khách dùng">Voucher</th>
+                <th className={`${thClass} text-right`} title="Giá kỳ vọng − giá khuyến mại, nhân số lượng">Giảm giá SP</th>
                 <th className={`${thClass} text-right`}>Lợi nhuận</th>
               </tr>
             </thead>
@@ -124,6 +128,8 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right`}>{money(m.revenue + m.shipCollected)}</td>
                   <td className={`${tdClass} text-right`}>{money(m.cogs)}</td>
                   <td className={`${tdClass} text-right`}>{money(m.importFees + m.vnCarrierFee)}</td>
+                  <td className={`${tdClass} text-right text-amber-700`}>{m.voucher ? money(m.voucher) : "—"}</td>
+                  <td className={`${tdClass} text-right text-amber-700`}>{m.promoDiscount ? money(m.promoDiscount) : "—"}</td>
                   <td className={`${tdClass} text-right font-semibold`}>{signed(m.profit)}</td>
                 </tr>
               ))}
