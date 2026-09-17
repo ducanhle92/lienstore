@@ -1030,6 +1030,44 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_fanpage_posts_status ON fanpage_posts(status, scheduled_at)`,
     ],
   },
+  {
+    // Purchase receipts (phiếu mua hàng): one per shopping run at a source — auto code, date, source order number,
+    // items × qty × ¥, later the ship-out date / tracking. Order lines and lot purchases point at their receipt; each
+    // order line also remembers where it was bought (Mua ở).
+    version: 47,
+    name: "purchase-receipts",
+    up: [
+      `ALTER TABLE order_items ADD COLUMN source_key TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE order_items ADD COLUMN receipt_id INTEGER`,
+      `ALTER TABLE stock_purchases ADD COLUMN receipt_id INTEGER`,
+      `CREATE TABLE IF NOT EXISTS purchase_receipts (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        code       TEXT NOT NULL UNIQUE,
+        source_key TEXT NOT NULL DEFAULT 'unknown',
+        bought_at  TEXT NOT NULL,
+        order_ref  TEXT NOT NULL DEFAULT '',
+        total_jpy  INTEGER,
+        shipped_at TEXT,
+        tracking   TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        status     TEXT NOT NULL DEFAULT 'bought',
+        raw_text   TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS purchase_receipt_items (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        receipt_id  INTEGER NOT NULL REFERENCES purchase_receipts(id) ON DELETE CASCADE,
+        product_id  INTEGER,
+        raw_name    TEXT NOT NULL DEFAULT '',
+        qty         INTEGER NOT NULL,
+        unit_jpy    INTEGER,
+        asin        TEXT NOT NULL DEFAULT '',
+        match_score REAL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_receipt_items_receipt ON purchase_receipt_items(receipt_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

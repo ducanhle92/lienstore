@@ -54,7 +54,8 @@
     "test:stocktake": "npx -y tsx --conditions=react-server --test scripts/tests/stocktake.test.ts",
     "test:warehouses": "npx -y tsx --conditions=react-server --test scripts/tests/warehouses.test.ts",
     "test:legs": "npx -y tsx --conditions=react-server --test scripts/tests/leg-status.test.ts",
-    "test:fanpage": "npx -y tsx --conditions=react-server --test scripts/tests/fanpage.test.ts"
+    "test:fanpage": "npx -y tsx --conditions=react-server --test scripts/tests/fanpage.test.ts",
+    "test:receipts": "npx -y tsx --conditions=react-server --test scripts/tests/receipts.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

@@ -2778,6 +2778,10 @@ export interface PurchaseLine {
   thumb: string | null;
   costPrice: number | null;
   supplierUrl: string | null;
+  /** Where this line was / will be bought (purchase_sources.key); "" = not decided. */
+  sourceKey: string;
+  receiptId: number | null;
+  receiptCode: string;
 }
 
 /** Every line of the open orders (pending / processing); `includeDone` adds completed orders. Cancelled orders never. */
@@ -2786,13 +2790,13 @@ export async function getPurchaseLines(includeDone = false): Promise<PurchaseLin
   const rows = getDb()
     .prepare(
       `SELECT oi.id, oi.order_id, o.number, o.status, o.created_at, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity,
-              oi.purchase_status, oi.purchase_note, oi.purchase_updated_at, p.sku, p.thumb, p.cost_price, p.supplier_url
-       FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id
+              oi.purchase_status, oi.purchase_note, oi.purchase_updated_at, oi.source_key, oi.receipt_id, pr.code AS receipt_code, p.sku, p.thumb, p.cost_price, p.supplier_url
+       FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id LEFT JOIN purchase_receipts pr ON pr.id = oi.receipt_id
        WHERE o.status IN ${statuses} ORDER BY o.created_at DESC, oi.id`,
     )
     .all() as unknown as Array<{
     id: number; order_id: string; number: number; status: OrderStatus; created_at: string; first_name: string; last_name: string; product_id: number; name: string; quantity: number;
-    purchase_status: string | null; purchase_note: string | null; purchase_updated_at: string | null; sku: string | null; thumb: string | null; cost_price: number | null; supplier_url: string | null;
+    purchase_status: string | null; purchase_note: string | null; purchase_updated_at: string | null; source_key: string | null; receipt_id: number | null; receipt_code: string | null; sku: string | null; thumb: string | null; cost_price: number | null; supplier_url: string | null;
   }>;
   return rows.map((r) => ({
     itemId: r.id,
@@ -2811,7 +2815,15 @@ export async function getPurchaseLines(includeDone = false): Promise<PurchaseLin
     thumb: r.thumb,
     costPrice: r.cost_price,
     supplierUrl: r.supplier_url,
+    sourceKey: r.source_key ?? "",
+    receiptId: r.receipt_id ?? null,
+    receiptCode: r.receipt_code ?? "",
   }));
+}
+
+/** "Mua ở" of one order line. */
+export async function setOrderItemSource(itemId: number, sourceKey: string): Promise<void> {
+  getDb().prepare("UPDATE order_items SET source_key = ? WHERE id = ?").run(sourceKey, itemId);
 }
 
 /** Set the purchase status (and optionally the note) of order lines; returns the number of rows changed. */

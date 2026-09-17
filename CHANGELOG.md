@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Quản lý mua hàng › **Phiếu mua hàng** (tab mới): mỗi lần mua một lố tại một nguồn là một phiếu mã tự sinh **PM-YYMMDD-NN** — ngày mua, nguồn, mã đơn của nguồn, sản phẩm × số lượng × ¥, rồi ngày gửi ĐVVC + mã vận đơn. Tạo phiếu từ các dòng đơn đã tick (dòng chuyển sang "Đã mua", ghi nguồn); điền ngày gửi thì mọi dòng đơn / phiếu lưu kho trong phiếu chuyển sang "Tới ĐVVC Nhật". Dòng đơn hiện mã phiếu; tìm được theo mã phiếu.
+- Quản lý mua hàng › **Nhập bill**: dán email đặt hàng Amazon / Rakuten hoặc danh sách tay (tên · số lượng · giá) → hệ thống đọc mã đơn, ngày mua, từng dòng sản phẩm (số lượng, giá ¥), khớp sản phẩm trên web theo mã ASIN trong link mua hoặc theo tên (Việt / Nhật) → phiếu nháp để kiểm tra, sửa khớp rồi **Xác nhận**: số lượng mua gán cho các đơn khách đang chờ (đơn cũ trước), phần dư thành phiếu mua lưu kho (kho Nhật) cùng phiếu.
+
+### Changed
+- Quản lý mua hàng: lọc thêm theo **khoảng ngày đặt đơn** và **nơi mua**; cột "Mua ở" là ô chọn nguồn nhập cho từng dòng (lưu cùng nút ✓), link mua và mã phiếu hiện bên dưới.
+
 ## [1.53.0] - 2026-09-17
 
 ### Added

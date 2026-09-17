@@ -1,6 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
+import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
+import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
+import { todayIso } from "@/lib/lots";
+import { purchaseSourceName } from "@/lib/purchase-sources";
+import { listReceipts } from "@/lib/receipts-db";
+import type { PurchaseSource } from "@/types/shop";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -30,15 +36,25 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const view = first(sp.view) === "product" ? "product" : "line";
   const includeDone = first(sp.done) === "1";
-  const tab = first(sp.tab) === "stock" ? "stock" : "orders";
-  const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab === "stock" ? getAllProducts(true) : Promise.resolve([])]);
+  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "receipts" ? "receipts" : "orders";
+  // date range on the order's creation time (shop day, inclusive) + purchase source
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
+  const source = first(sp.source);
+  const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
+  const receipts = tab === "receipts" ? listReceipts(80) : [];
+  const draftId = Number.parseInt(first(sp.draft), 10);
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
   const lines = all
     .filter((l) => !status || l.purchaseStatus === status)
-    .filter((l) => !q || `${l.name} ${l.sku ?? ""} #${l.orderNumber} ${l.customerName}`.toLowerCase().includes(q));
+    .filter((l) => !q || `${l.name} ${l.sku ?? ""} #${l.orderNumber} ${l.customerName} ${l.receiptCode}`.toLowerCase().includes(q))
+    .filter((l) => !from || shopDayOf(l.orderCreatedAt) >= from)
+    .filter((l) => !to || shopDayOf(l.orderCreatedAt) <= to)
+    .filter((l) => !source || (source === "-" ? !l.sourceKey : l.sourceKey === source));
   const counts = Object.fromEntries(PURCHASE_STAGES.map((s) => [s.key, all.filter((l) => l.purchaseStatus === s.key).reduce((n, l) => n + l.quantity, 0)])) as Record<PurchaseStatus, number>;
-  const self = `/admin/purchases/?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), ...(view !== "line" ? { view } : {}), ...(includeDone ? { done: "1" } : {}) }).toString()}`;
+  const self = `/admin/purchases/?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), ...(view !== "line" ? { view } : {}), ...(includeDone ? { done: "1" } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}), ...(source ? { source } : {}) }).toString()}`;
 
   // per-product roll-up
   const byProduct = new Map<number, { name: string; sku: string | null; thumb: string | null; costPrice: number | null; supplierUrl: string | null; total: number; per: Record<PurchaseStatus, number>; orders: string[] }>();
@@ -76,12 +92,16 @@ export default async function AdminPurchases({ searchParams }: Props) {
         <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
         </Link>
+        <Link href="/admin/purchases/?tab=receipts" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "receipts" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-receipts">
+          Phiếu mua hàng · nhập bill
+        </Link>
       </div>
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
+      {tab === "receipts" ? <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} /> : null}
 
       {/* compact stage counters (same density as Kho hàng) — the table below is the working view */}
-      <div className={cn("mb-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9", tab === "stock" && "hidden")}>
+      <div className={cn("mb-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9", tab !== "orders" && "hidden")}>
         {PURCHASE_STAGES.map((s) => (
           <Link key={s.key} href={`/admin/purchases/?status=${s.key}${includeDone || s.key === "delivered" ? "&done=1" : ""}`} className={cn("rounded-md border px-2 py-1.5 no-underline", status === s.key ? "border-lien-blue bg-lien-blue-soft/60" : "border-[#e5e7eb] bg-white hover:border-lien-blue/50")} title={s.label}>
             <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#6b7280]">{s.short}</div>
@@ -92,14 +112,25 @@ export default async function AdminPurchases({ searchParams }: Props) {
         ))}
       </div>
 
-      <Card className={cn(tab === "stock" && "hidden")}>
-        <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto_auto_auto] md:items-center">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm sản phẩm, SKU, #đơn, tên khách…" className={adminInput} />
+      <Card className={cn(tab !== "orders" && "hidden")}>
+        <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_200px_150px_150px_180px_auto] md:items-center">
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm sản phẩm, SKU, #đơn, tên khách, mã phiếu…" className={adminInput} />
           <select name="status" defaultValue={status} className={adminInput}>
             <option value="">Mọi trạng thái</option>
             {PURCHASE_STAGES.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
+              </option>
+            ))}
+          </select>
+          <input type="date" name="from" defaultValue={from} className={adminInput} aria-label="Đơn từ ngày" title="Đơn đặt từ ngày" />
+          <input type="date" name="to" defaultValue={to} className={adminInput} aria-label="Đơn đến ngày" title="Đơn đặt đến ngày" />
+          <select name="source" defaultValue={source} className={adminInput} aria-label="Mua ở">
+            <option value="">Mua ở: tất cả</option>
+            <option value="-">Chưa chọn nguồn</option>
+            {sources.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
               </option>
             ))}
           </select>
@@ -112,7 +143,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
           <label className="inline-flex items-center gap-2 text-[13px]">
             <input type="checkbox" name="done" value="1" defaultChecked={includeDone} className="h-4 w-4" /> Gồm đơn đã xong
           </label>
-          <button type="submit" className={cn(btnPrimary, "md:col-start-5")}>
+          <button type="submit" className={cn(btnPrimary, "md:col-start-6")}>
             Lọc
           </button>
         </form>
@@ -191,7 +222,20 @@ export default async function AdminPurchases({ searchParams }: Props) {
               <button type="submit" className={cn(btnPrimary, "!py-1")}>
                 Áp dụng
               </button>
-              <span className="text-lien-muted">Mua trên web tự chuyển sang &quot;Đã mua&quot;? Chưa — admin đánh dấu tay sau khi đặt xong tại Nhật.</span>
+              <span className="mx-1 text-lien-muted">|</span>
+              <span className="font-semibold text-lien-heading">hoặc tạo phiếu mua:</span>
+              <select name="receiptSource" defaultValue="amazon" className={cn(adminInput, "!w-auto !py-1")} aria-label="Nguồn của phiếu">
+                {sources.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <input name="receiptDate" defaultValue={todayIso()} className={cn(adminInput, "!w-[120px] !py-1")} aria-label="Ngày mua" title="Ngày mua" />
+              <input name="receiptRef" placeholder="mã đơn nguồn" className={cn(adminInput, "!w-[170px] !py-1")} aria-label="Mã đơn nguồn" />
+              <button type="submit" formAction={createReceiptFromLinesAction} className={cn(btnSecondary, "!py-1")} title="Gom các dòng đã tick thành một phiếu mua (mã PM-…), chuyển sang Đã mua và ghi nguồn">
+                <Fa name="file-text-o" /> Tạo phiếu mua
+              </button>
             </div>
             <ResizableTable id="purchases">
               <table className={tableClass}>
@@ -216,7 +260,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
                     </tr>
                   ) : null}
                   {lines.map((l) => (
-                    <LineRow key={l.itemId} line={l} back={self} />
+                    <LineRow key={l.itemId} line={l} back={self} sources={sources} />
                   ))}
                 </tbody>
               </table>
@@ -237,9 +281,10 @@ export default async function AdminPurchases({ searchParams }: Props) {
   );
 }
 
-function LineRow({ line: l, back }: { line: PurchaseLine; back: string }) {
+function LineRow({ line: l, back, sources }: { line: PurchaseLine; back: string; sources: PurchaseSource[] }) {
   const st = PURCHASE_STAGES[purchaseIndex(l.purchaseStatus)];
   const fid = `pl-${l.itemId}`;
+  void back;
   return (
     <tr className="hover:bg-[#fafafa]">
       <td className={`${tdClass} w-8`}>
@@ -286,13 +331,27 @@ function LineRow({ line: l, back }: { line: PurchaseLine; back: string }) {
         <input name="note" form={fid} defaultValue={l.purchaseNote} placeholder="mã đơn Amazon, tracking…" className={cn(adminInput, "!w-[180px] !py-1 !text-[13px]")} aria-label="Ghi chú mua hàng" />
       </td>
       <td className={`${tdClass} whitespace-nowrap`}>
-        {l.supplierUrl ? (
-          <a href={l.supplierUrl} target="_blank" rel="noreferrer" className="text-lien-blue hover:underline">
-            <Fa name="external-link" /> {l.supplierUrl.includes("amazon") ? "Amazon JP" : "Link"}
-          </a>
-        ) : (
-          <span className="text-lien-muted">—</span>
-        )}
+        {/* where this line is bought: saved with the row's ✓ together with status / note */}
+        <select name="sourceKey" form={fid} defaultValue={l.sourceKey} className={cn(adminInput, "!w-[150px] !py-1 !text-[13px]", !l.sourceKey && "text-lien-muted")} aria-label="Mua ở" title={l.sourceKey ? purchaseSourceName(l.sourceKey, sources) : "Chưa chọn nguồn"}>
+          <option value="">— chọn nguồn —</option>
+          {sources.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+          {l.supplierUrl ? (
+            <a href={l.supplierUrl} target="_blank" rel="noreferrer" className="text-lien-blue hover:underline">
+              <Fa name="external-link" /> link mua
+            </a>
+          ) : null}
+          {l.receiptCode ? (
+            <Link href={`/admin/purchases/?tab=receipts#receipt-${l.receiptId}`} className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-mono font-semibold text-[#3730a3] no-underline hover:underline" title="Phiếu mua hàng">
+              {l.receiptCode}
+            </Link>
+          ) : null}
+        </div>
       </td>
     </tr>
   );

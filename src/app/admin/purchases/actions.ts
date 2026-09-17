@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { setOrderItemsPurchase } from "@/lib/db";
+import { setOrderItemSource, setOrderItemsPurchase } from "@/lib/db";
 import { isPurchaseStatus, PURCHASE_LABEL } from "@/lib/purchase";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -18,6 +18,7 @@ export async function setPurchaseAction(formData: FormData): Promise<void> {
   if (!Number.isInteger(id) || !isPurchaseStatus(status)) return back(url, "error", "Yêu cầu không hợp lệ.");
   const note = formData.has("note") ? text(formData, "note") : undefined;
   await setOrderItemsPurchase([id], status, note);
+  if (formData.has("sourceKey")) await setOrderItemSource(id, text(formData, "sourceKey"));
   revalidatePath("/admin", "layout");
   back(url, "saved", `Đã chuyển sang "${PURCHASE_LABEL[status]}".`);
 }
