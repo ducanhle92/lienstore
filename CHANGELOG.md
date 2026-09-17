@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.52.0] - 2026-09-17
+
 ### Added
 - Nguồn nhập: **nhiều phụ phí cho một nguồn**, mỗi dòng có cách tính riêng — ¥ / sản phẩm, ¥ / kg (theo cân tính phí của sản phẩm, đã tính thể tích) hoặc ¥ / lần gửi (một lần ship nhiều món, chia cho từng sản phẩm theo cân trên cân một lần gửi). Cộng vào giá vốn tại Nhật khi lưu sản phẩm, khi job tỉ giá hằng đêm chạy, khi nhập CSV và khi so nguồn rẻ nhất.
 - Trang sản phẩm › Giá kỳ vọng: dòng **"trong đó phụ phí nguồn"** dưới Giá vốn tại Nhật, bấm ⓘ xem từng phụ phí được tính thế nào cho sản phẩm này.
