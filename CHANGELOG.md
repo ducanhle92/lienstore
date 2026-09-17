@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.60.0] - 2026-09-17
+
 ### Changed
 - Thanh toán chỉ còn 3 hãng cho khách chọn: **GHN, J&T (qua Goship) và Viettel Post (API Viettel)** — Best, VNPost, SPX, EMS, GHTK tắt sẵn (job chạy một lần; bật lại được ở Vận chuyển › ④ › Khách được chọn). Bỏ dòng cảnh báo dài trên thẻ Viettel Post.
 
