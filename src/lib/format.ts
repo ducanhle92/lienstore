@@ -5,6 +5,16 @@ export function formatAmount(value: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+/** Short money for KPI tiles: 16.773.500 → "16,77 tr", 1.234.000.000 → "1,23 tỷ"; below 1 triệu the full amount. */
+export function formatCompactVnd(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "−" : "";
+  const fmt = (n: number, unit: string) => `${sign}${n.toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${unit}`;
+  if (abs >= 1e9) return fmt(abs / 1e9, "tỷ");
+  if (abs >= 1e6) return fmt(abs / 1e6, "tr");
+  return `${sign}${abs.toLocaleString("vi-VN")}đ`;
+}
+
 export function formatPrice(value: number, currency = "VNĐ"): string {
   return `${formatAmount(value)}${currency}`;
 }

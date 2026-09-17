@@ -2494,13 +2494,25 @@ export async function getStats() {
   const db = getDb();
   const one = <T>(sql: string) => db.prepare(sql).get() as T;
   return {
-    customers: one<{ n: number }>("SELECT COUNT(*) AS n FROM customers").n,
+    /** Shopper accounts only (owner/admin/staff rows excluded). */
+    customers: one<{ n: number }>("SELECT COUNT(*) AS n FROM customers WHERE role = 'customer'").n,
+    /** Shoppers who placed at least one non-cancelled order. */
+    buyers: one<{ n: number }>("SELECT COUNT(DISTINCT customer_id) AS n FROM orders WHERE status != 'cancelled' AND customer_id IS NOT NULL AND customer_id <> ''").n,
     products: one<{ n: number }>("SELECT COUNT(*) AS n FROM products").n,
     published: one<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status = 'publish'").n,
+    drafts: one<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE status != 'publish'").n,
     outOfStock: one<{ n: number }>("SELECT COUNT(*) AS n FROM products WHERE stock_status = 'outofstock'").n,
-    orders: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders").n,
+    /** All orders ever placed, cancelled included. */
+    ordersAll: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders").n,
+    /** Orders that count (not cancelled) — the figure the revenue below is built from. */
+    orders: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status != 'cancelled'").n,
+    cancelled: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status = 'cancelled'").n,
     pending: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status = 'pending'").n,
+    processing: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status = 'processing'").n,
+    completed: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status = 'completed'").n,
     revenue: one<{ n: number | null }>("SELECT SUM(total) AS n FROM orders WHERE status != 'cancelled'").n ?? 0,
+    revenueToday: one<{ n: number | null }>("SELECT SUM(total) AS n FROM orders WHERE status != 'cancelled' AND date(created_at, 'localtime') = date('now', 'localtime')").n ?? 0,
+    ordersToday: one<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status != 'cancelled' AND date(created_at, 'localtime') = date('now', 'localtime')").n,
     schema: getSchemaInfo(db),
   };
 }
