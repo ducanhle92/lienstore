@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-09-17
+
 ### Fixed
 - Thẻ nhóm biến thể hiện "Từ 0đ" khi có một biến thể giá "Liên hệ" — nay giá "Từ …" lấy biến thể có giá thấp nhất, chỉ hiện "Liên hệ" khi cả nhóm chưa có giá; số lựa chọn = số biến thể đang bán.
 - Tab "Chi phí vận chuyển" trên trang sản phẩm không còn tự tính cước theo địa chỉ nhớ trong trình duyệt — khách xác nhận địa chỉ và bấm "Xem cước" thì mới tính.
