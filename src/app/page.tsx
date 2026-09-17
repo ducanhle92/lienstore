@@ -32,7 +32,8 @@ export default async function Home() {
   const [fresh, popular, sale, flashItems] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),
     queryProducts({ orderby: "rating", perPage: 12 }),
-    queryProducts({ orderby: "popularity", perPage: 60 }),
+    // every discounted product, best sellers first — not "discounted ones that happen to be in the top 60"
+    queryProducts({ onSale: true, orderby: "popularity", perPage: 12 }),
     getFlashSaleItems(),
   ]);
   const freshItems = localizeProducts(fresh.items, lang);
@@ -41,12 +42,9 @@ export default async function Home() {
   // products not already picked for flash sale
   const flashIds = new Set(flashItems.map((f) => f.product.id));
   const flash = flashItems.map((f) => ({ product: localizeProducts([f.product], lang)[0], flashEndsAt: f.endsAt }));
-  const otherSale = localizeProducts(
-    sale.items.filter((p) => p.regularPrice && p.regularPrice > p.price && !flashIds.has(p.id)).slice(0, 6),
-    lang,
-  ).map((p) => ({ product: p, flashEndsAt: undefined as string | undefined }));
+  const otherSale = localizeProducts(sale.items.filter((p) => !flashIds.has(p.id)), lang).map((p) => ({ product: p, flashEndsAt: undefined as string | undefined }));
   const salesSection = [...flash, ...otherSale].slice(0, 12);
-  const showSales = flash.length > 0 || otherSale.length >= 3;
+  const showSales = salesSection.length > 0;
   const topCategories = buildCategoryTree(categories)
     .filter((n) => n.total > 0)
     .slice(0, CATEGORY_ROWS)
@@ -66,7 +64,7 @@ export default async function Home() {
 
         {showSales ? (
           <section className="mt-10" aria-label="Giảm giá">
-            <SectionHeader2 title={t(lang, "saleTitle")} icon="fire" tone="sale" href="/shop/?orderby=popularity" />
+            <SectionHeader2 title={t(lang, "saleTitle")} icon="fire" tone="sale" href="/shop/?onsale=1" />
             <ProductCarousel ariaLabel="Giảm giá">
               {salesSection.map(({ product, flashEndsAt }) => (
                 <ShopProductCard key={product.id} product={product} flashEndsAt={flashEndsAt} className={CAROUSEL_ITEM} />

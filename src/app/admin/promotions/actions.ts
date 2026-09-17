@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { addFlashSaleProduct, deleteVoucher, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveVoucher, setShipPolicy, updateFlashSaleProductEndsAt, updateProductPricing } from "@/lib/db";
+import { deleteVoucher, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
 
@@ -124,28 +124,34 @@ function parseVnDatetimeLocal(raw: string): string | null {
   return Number.isNaN(new Date(iso).getTime()) ? null : iso;
 }
 
-/** Sales › Flash Sales: add one product with its own end time — each pick runs on its own clock. */
-export async function addFlashSaleProductAction(formData: FormData): Promise<void> {
+/** Flash price typed as an amount ("199.000") or a percent ("20"); null when both blank. */
+function parseFlashDiscount(formData: FormData): FlashDiscount {
+  const priceRaw = text(formData, "salePrice");
+  const percentRaw = text(formData, "percent");
+  if (priceRaw) return { salePrice: parseAmount(priceRaw) };
+  if (percentRaw) return { percent: parseAmount(percentRaw) };
+  return null;
+}
+
+/**
+ * Sales › Flash Sales: add a product (or update one already picked) with its own end time and, optionally, its own
+ * flash price / % off — applied to the product's pricing so the % badge, cart and checkout all agree.
+ */
+export async function saveFlashSaleProductAction(formData: FormData): Promise<void> {
   await requireAdmin("promotions");
   const id = Number.parseInt(text(formData, "productId"), 10);
   const product = Number.isInteger(id) ? await getProductById(id) : null;
   if (!product) back(FLASH_SALE, "error", "Chọn sản phẩm.");
   const endsAt = parseVnDatetimeLocal(text(formData, "endsAt"));
   if (!endsAt) back(FLASH_SALE, "error", "Chọn thời điểm kết thúc.");
-  await addFlashSaleProduct(id, endsAt!);
+  try {
+    await saveFlashSaleProduct(id, endsAt!, parseFlashDiscount(formData));
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(FLASH_SALE, "error", e instanceof Error ? e.message : "Không lưu được.");
+  }
   revalidatePath("/", "layout");
-  back(FLASH_SALE, "saved", `Đã thêm "${product!.name}" vào Flash Sales.`);
-}
-
-/** Edit one product's end time in place (per-row form on the admin list). */
-export async function setFlashSaleProductEndsAtAction(formData: FormData): Promise<void> {
-  await requireAdmin("promotions");
-  const id = Number.parseInt(text(formData, "productId"), 10);
-  const endsAt = parseVnDatetimeLocal(text(formData, "endsAt"));
-  if (!Number.isInteger(id) || !endsAt) back(FLASH_SALE, "error", "Thời điểm kết thúc không hợp lệ.");
-  await updateFlashSaleProductEndsAt(id, endsAt!);
-  revalidatePath("/", "layout");
-  back(FLASH_SALE, "saved", "Đã lưu thời gian.");
+  back(FLASH_SALE, "saved", `Đã lưu "${product!.name}" trong Flash Sales.`);
 }
 
 export async function removeFlashSaleProductAction(formData: FormData): Promise<void> {

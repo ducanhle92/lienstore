@@ -2450,13 +2450,16 @@ export async function deleteBanner(id: number): Promise<void> {
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Flash Sales (trang chủ): hand-picked products, each with its OWN end time (they run different lengths) — not one
-// shared campaign clock. A product drops out of the storefront section on its own once its time passes; nothing needs
-// to be cleaned up. Prices are whatever the product already has (regularPrice/price) — no separate flash price.
+// shared campaign clock. A pick may also carry a flash price: applying it writes products.price/regular_price (so the
+// % badge, cart and checkout all agree, exactly like Sales › Giảm giá sản phẩm) and remembers the product's previous
+// pricing, which comes back when the pick is removed or its time runs out (checked lazily on every read — no cron).
 
 export interface FlashSaleItem {
   product: CatalogProduct;
   endsAt: string;
   position: number;
+  /** Flash price applied by this pick; null = the pick doesn't touch pricing (shows whatever the product has). */
+  salePrice: number | null;
 }
 
 /** Whether one item's time has not yet passed — a plain helper (not inlined at the call site) so pages that read the
@@ -2465,30 +2468,94 @@ export function isFlashSaleItemActive(endsAt: string): boolean {
   return new Date(endsAt).getTime() > Date.now();
 }
 
+/** Rows before v41 got a 1970 end time from the migration default — treat that as "no time set yet". */
+export function isFlashSaleTimeUnset(endsAt: string): boolean {
+  return new Date(endsAt).getTime() < Date.UTC(2000, 0, 1);
+}
+
+interface FlashSaleRow {
+  product_id: number;
+  position: number;
+  ends_at: string;
+  sale_price: number | null;
+  prev_price: number | null;
+  prev_regular_price: number | null;
+}
+
+/** Put a product's pricing back to what it had before its flash price was applied; clears the pick's pricing fields. */
+function revertFlashPricing(db: DatabaseSync, row: FlashSaleRow, now: string): void {
+  if (row.sale_price === null || row.prev_price === null) return;
+  db.prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(row.prev_price, row.prev_regular_price, now, row.product_id);
+  db.prepare("UPDATE flash_sale_products SET sale_price = NULL, prev_price = NULL, prev_regular_price = NULL WHERE product_id = ?").run(row.product_id);
+}
+
+/** Picks whose time has passed give their product its old pricing back. Runs at the top of every read. */
+function revertExpiredFlashSales(db: DatabaseSync): void {
+  const now = new Date().toISOString();
+  const rows = db.prepare("SELECT * FROM flash_sale_products WHERE sale_price IS NOT NULL AND ends_at <= ?").all(now) as unknown as FlashSaleRow[];
+  for (const r of rows) revertFlashPricing(db, r, now);
+}
+
+/**
+ * Apply a flash price to a product inside the pick: the first application remembers the product's current pricing in
+ * prev_*; re-applying (changing the price) keeps that original snapshot so a later revert lands on the pre-flash state.
+ * The crossed-out price customers see is the product's regular price from before the flash (or its plain price).
+ */
+function applyFlashPricing(db: DatabaseSync, row: FlashSaleRow, discount: { salePrice: number } | { percent: number }, now: string): void {
+  const p = db.prepare("SELECT price, regular_price FROM products WHERE id = ?").get(row.product_id) as { price: number; regular_price: number | null } | undefined;
+  if (!p) throw new Error("Sản phẩm không tồn tại.");
+  const prevPrice = row.sale_price === null ? p.price : row.prev_price!;
+  const prevRegular = row.sale_price === null ? p.regular_price : row.prev_regular_price;
+  const regular = prevRegular ?? prevPrice;
+  const salePrice = "salePrice" in discount ? Math.round(discount.salePrice) : Math.round((regular * (100 - Math.min(99, Math.max(1, discount.percent)))) / 100);
+  if (salePrice <= 0) throw new Error("Nhập giá flash hoặc % giảm.");
+  if (salePrice >= regular) throw new Error(`Giá flash (${salePrice.toLocaleString("vi-VN")}đ) phải thấp hơn giá gốc (${regular.toLocaleString("vi-VN")}đ).`);
+  db.prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(salePrice, regular, now, row.product_id);
+  db.prepare("UPDATE flash_sale_products SET sale_price = ?, prev_price = ?, prev_regular_price = ? WHERE product_id = ?").run(salePrice, prevPrice, prevRegular, row.product_id);
+}
+
+export type FlashDiscount = { salePrice: number } | { percent: number } | null;
+
 /** Flash-sale picks, in display order. `includeDrafts` + `includeExpired` are for the admin list (shows everything,
  * greyed out); the storefront calls this with both false to get only what customers should currently see. */
 export async function getFlashSaleItems(includeDrafts = false, includeExpired = false): Promise<FlashSaleItem[]> {
   const db = getDb();
-  const sql = `SELECT p.*, fsp.ends_at AS fsp_ends_at, fsp.position AS fsp_position,
+  revertExpiredFlashSales(db);
+  const sql = `SELECT p.*, fsp.ends_at AS fsp_ends_at, fsp.position AS fsp_position, fsp.sale_price AS fsp_sale_price,
       (SELECT json_group_array(category_slug) FROM (SELECT category_slug FROM product_categories WHERE product_id = p.id ORDER BY position)) AS categories
     FROM products p JOIN flash_sale_products fsp ON fsp.product_id = p.id
     ${includeDrafts ? "" : "WHERE p.status = 'publish'"} ORDER BY fsp.position`;
-  const rows = db.prepare(sql).all() as unknown as Array<ProductRow & { fsp_ends_at: string; fsp_position: number }>;
-  return rows.filter((r) => includeExpired || isFlashSaleItemActive(r.fsp_ends_at)).map((r) => ({ product: rowToProduct(r), endsAt: r.fsp_ends_at, position: r.fsp_position }));
+  const rows = db.prepare(sql).all() as unknown as Array<ProductRow & { fsp_ends_at: string; fsp_position: number; fsp_sale_price: number | null }>;
+  return rows.filter((r) => includeExpired || isFlashSaleItemActive(r.fsp_ends_at)).map((r) => ({ product: rowToProduct(r), endsAt: r.fsp_ends_at, position: r.fsp_position, salePrice: r.fsp_sale_price }));
 }
 
-export async function addFlashSaleProduct(productId: number, endsAt: string): Promise<void> {
+/**
+ * Add a pick, or update an existing one (same product): sets its end time and, when a discount is given, applies the
+ * flash price to the product. `discount` null leaves pricing alone (an existing flash price stays applied).
+ */
+export async function saveFlashSaleProduct(productId: number, endsAt: string, discount: FlashDiscount): Promise<void> {
   const db = getDb();
-  const next = (db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS n FROM flash_sale_products").get() as { n: number }).n;
-  db.prepare("INSERT OR REPLACE INTO flash_sale_products (product_id, position, ends_at, created_at) VALUES (?, ?, ?, ?)").run(productId, next, endsAt, new Date().toISOString());
+  const now = new Date().toISOString();
+  withTransaction(db, () => {
+    let row = db.prepare("SELECT * FROM flash_sale_products WHERE product_id = ?").get(productId) as FlashSaleRow | undefined;
+    if (row) db.prepare("UPDATE flash_sale_products SET ends_at = ? WHERE product_id = ?").run(endsAt, productId);
+    else {
+      const next = (db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS n FROM flash_sale_products").get() as { n: number }).n;
+      db.prepare("INSERT INTO flash_sale_products (product_id, position, ends_at, created_at) VALUES (?, ?, ?, ?)").run(productId, next, endsAt, now);
+      row = { product_id: productId, position: next, ends_at: endsAt, sale_price: null, prev_price: null, prev_regular_price: null };
+    }
+    if (discount) applyFlashPricing(db, { ...row, ends_at: endsAt }, discount, now);
+  });
 }
 
-export async function updateFlashSaleProductEndsAt(productId: number, endsAt: string): Promise<void> {
-  getDb().prepare("UPDATE flash_sale_products SET ends_at = ? WHERE product_id = ?").run(endsAt, productId);
-}
-
+/** Remove a pick; a flash price it applied is taken back off the product. */
 export async function removeFlashSaleProduct(productId: number): Promise<void> {
-  getDb().prepare("DELETE FROM flash_sale_products WHERE product_id = ?").run(productId);
+  const db = getDb();
+  withTransaction(db, () => {
+    const row = db.prepare("SELECT * FROM flash_sale_products WHERE product_id = ?").get(productId) as FlashSaleRow | undefined;
+    if (row) revertFlashPricing(db, row, new Date().toISOString());
+    db.prepare("DELETE FROM flash_sale_products WHERE product_id = ?").run(productId);
+  });
 }
 
 /** Full reorder: `productIds` is the complete new order (from the admin up/down buttons). */

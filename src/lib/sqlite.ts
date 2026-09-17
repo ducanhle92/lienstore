@@ -947,6 +947,18 @@ export const MIGRATIONS: Migration[] = [
     name: "flash-sale-per-product-time",
     up: [`ALTER TABLE flash_sale_products ADD COLUMN ends_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z'`],
   },
+  {
+    // Flash Sales v3: a pick may carry its own flash price. Applying it writes products.price/regular_price (so the
+    // % badge, cart and checkout all agree) and remembers what the product had before in prev_*, so removing the
+    // pick — or its time running out — puts the pricing back exactly as it was.
+    version: 42,
+    name: "flash-sale-pricing",
+    up: [
+      `ALTER TABLE flash_sale_products ADD COLUMN sale_price INTEGER`,
+      `ALTER TABLE flash_sale_products ADD COLUMN prev_price INTEGER`,
+      `ALTER TABLE flash_sale_products ADD COLUMN prev_regular_price INTEGER`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
