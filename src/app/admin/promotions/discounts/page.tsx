@@ -32,7 +32,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader title="Giảm giá sản phẩm" subtitle={`${onSale.length} sản phẩm đang giảm giá · giá gạch = giá gốc, giá bán = giá khuyến mãi`} />
+      <PageHeader title="Giảm giá sản phẩm" subtitle={`${onSale.length} sản phẩm đang giảm giá · khách trả giá khuyến mại; giá gạch = giá thị trường (chưa có thì gạch giá bán trên web)`} />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
@@ -43,22 +43,22 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <ProductSearchSelect key={editing?.id ?? "new"} products={pickable} initial={editing ? toPick(editing) : null} placeholder="Gõ tên, SKU hoặc #id sản phẩm…" />
           </div>
           <div>
-            <label className={adminLabel}>Giá kỳ vọng (đ)</label>
-            <input name="regularPrice" inputMode="numeric" placeholder="giữ giá hiện tại" defaultValue={editing?.regularPrice ? formatAmount(editing.regularPrice) : ""} key={`r-${editing?.id ?? "new"}`} className={adminInput} />
+            <label className={adminLabel}>Giá bán trên web (đ)</label>
+            <input name="regularPrice" inputMode="numeric" placeholder="giữ giá đang bán" defaultValue={editing?.regularPrice ? formatAmount(editing.regularPrice) : ""} key={`r-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
             <label className={adminLabel}>Giá khuyến mại (đ)</label>
             <input name="price" inputMode="numeric" placeholder="VD 199.000" defaultValue={editing ? formatAmount(editing.price) : ""} key={`p-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
-            <label className={adminLabel}>hoặc giảm %</label>
+            <label className={adminLabel}>hoặc giảm % so với giá thị trường</label>
             <input name="percent" inputMode="numeric" placeholder="VD 20" className={adminInput} />
           </div>
           <button type="submit" className={btnPrimary}>
             <Fa name="tag" /> {editing ? "Lưu giảm giá" : "Áp dụng"}
           </button>
         </form>
-        <p className="mt-2 text-[12px] text-lien-muted">Để trống giá gốc thì lấy giá đang bán làm giá gốc. Nhập giá khuyến mãi hoặc % giảm (một trong hai). Sửa chi tiết hơn trong Kho hàng › Sản phẩm.</p>
+        <p className="mt-2 text-[12px] text-lien-muted">Để trống giá bán trên web thì giữ giá đang bán. Nhập giá khuyến mại hoặc % giảm (một trong hai); % tính so với giá thị trường điền trong chi tiết sản phẩm — chưa có giá thị trường thì so với giá bán trên web. Giá khuyến mại lưu thẳng vào sản phẩm (Kho hàng › Sản phẩm › mục 1).</p>
       </Card>
 
       <Card title="Đang giảm giá">
@@ -67,7 +67,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <thead>
               <tr>
                 <th className={thClass}>Sản phẩm</th>
-                <th className={`${thClass} text-right`}>Giá kỳ vọng</th>
+                <th className={`${thClass} text-right`}>Giá bán trên web</th>
                 <th className={`${thClass} text-right`}>Giá KM</th>
                 <th className={`${thClass} text-right`}>Giá thị trường (gạch)</th>
                 <th className={`${thClass} text-right`}>Giảm</th>
@@ -95,7 +95,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
                   <td className={`${tdClass} text-right font-semibold text-lien-sale-text`}>{formatPrice(p.price)}</td>
                   <td className={`${tdClass} text-right text-lien-muted line-through`}>{p.marketPrice ? formatPrice(p.marketPrice) : <span className="no-underline">— chưa có</span>}</td>
                   <td className={`${tdClass} text-right`}>
-                    {pct(p) ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white">-{pct(p)}%</span> : <span className="text-[11px] text-lien-muted">không gạch</span>}
+                    {pct(p) ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white">-{pct(p)}%</span> : <span className="text-[11px] text-lien-muted">không giảm</span>}
                   </td>
                   <td className={tdClass}>{p.stock === null ? "—" : p.stock}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>

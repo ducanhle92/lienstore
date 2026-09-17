@@ -49,7 +49,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   // three prices (lib/price-display.ts): expected web price (required) · promo (optional, must be lower) · market reference
   const expectedRaw = get("expectedPrice") || get("regularPrice") || get("price");
   const expected = parseIntField(expectedRaw);
-  if (expected === null || expected < 0) fields.price = "Giá kỳ vọng bán ra phải là số nguyên ≥ 0.";
+  if (expected === null || expected < 0) fields.price = "Giá bán trên web phải là số nguyên ≥ 0.";
   const promoRaw = get("expectedPrice") ? get("promoPrice") : get("regularPrice") ? get("price") : "";
   const promo = promoRaw ? parseIntField(promoRaw) : null;
   if (promoRaw && promo === null) fields.promoPrice = "Giá khuyến mại không hợp lệ.";

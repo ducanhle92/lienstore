@@ -131,7 +131,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [primaryJpy, setPrimaryJpy] = useState<number | null>(product?.costJpy ?? null);
   const [primarySource, setPrimarySource] = useState<string>(product?.costSource ?? "");
   const stored = storedPrices(Number.isFinite(digits(priceText)) ? digits(priceText) : 0, Number.isFinite(digits(promoText)) ? digits(promoText) : null);
-  const preview = priceView({ ...stored, marketPrice: Number.isFinite(digits(marketText)) ? digits(marketText) : null });
   const margin = computeMargin(String(stored.price), costText);
   const costNum = digits(costText);
   const rate = quote?.jpyRate ?? 0;
@@ -426,43 +425,31 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
         <div className="space-y-6">
           <Card title="Bán hàng">
             <div className="grid gap-4">
-              <Section n={1} title="Giá bán cho khách" info={<>Giá thị trường là giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn. Giá kỳ vọng là giá bán bình thường (tính theo công thức bên dưới). Khi chạy khuyến mại, khách trả giá khuyến mại thay cho giá kỳ vọng; giá gạch vẫn là giá thị trường nên không có chuyện “tăng rồi giảm”.</>} testId="sec-price">
+              <Section n={1} title="Giá bán cho khách" info={<>Giá bán trên web là giá bán bình thường (gợi ý theo công thức ở mục 3). Khi chạy khuyến mại, khách trả giá khuyến mại thay cho giá bán trên web. Giá thị trường là giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn; chưa có giá thị trường thì gạch giá bán trên web khi khuyến mại rẻ hơn.</>} testId="sec-price">
               <div className="grid gap-3" data-testid="price-trio">
                 <div>
                   <label className={adminLabel} htmlFor="expectedPrice">
-                    Giá kỳ vọng bán ra trên website (VNĐ) *
+                    Giá bán trên web (VNĐ) *
                   </label>
                   <input id="expectedPrice" name="expectedPrice" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} required className={cn(adminInput, fields.price && "border-red-500")} />
                   <FieldError msg={fields.price} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={adminLabel} htmlFor="marketPrice">
-                      Giá thị trường <InfoPopover>Giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn.</InfoPopover>
-                    </label>
-                    <input id="marketPrice" name="marketPrice" inputMode="numeric" value={marketText} onChange={(e) => setMarketText(e.target.value)} placeholder="giá nơi khác bán" className={cn(adminInput, fields.marketPrice && "border-red-500")} />
-                    <FieldError msg={fields.marketPrice} />
-                  </div>
-                  <div>
                     <label className={adminLabel} htmlFor="promoPrice">
-                      Giá khuyến mại <InfoPopover>Chỉ điền khi có chương trình; cao hay thấp hơn giá kỳ vọng đều được, nhưng phải thấp hơn giá thị trường. Trống = không khuyến mại.</InfoPopover>
+                      Giá khuyến mại <InfoPopover>Chỉ điền khi có chương trình; khách trả giá này thay cho giá bán trên web. Cao hay thấp hơn giá bán trên web đều được, nhưng phải thấp hơn giá thị trường. Trống = không khuyến mại. Đặt ở Bán hàng › Giảm giá sản phẩm cũng hiện ở đây.</InfoPopover>
                     </label>
                     <input id="promoPrice" name="promoPrice" inputMode="numeric" value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="trống = không KM" className={cn(adminInput, fields.promoPrice && "border-red-500")} />
                     <FieldError msg={fields.promoPrice} />
                   </div>
+                  <div>
+                    <label className={adminLabel} htmlFor="marketPrice">
+                      Giá thị trường <InfoPopover>Giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn so với giá khách trả.</InfoPopover>
+                    </label>
+                    <input id="marketPrice" name="marketPrice" inputMode="numeric" value={marketText} onChange={(e) => setMarketText(e.target.value)} placeholder="giá nơi khác bán" className={cn(adminInput, fields.marketPrice && "border-red-500")} />
+                    <FieldError msg={fields.marketPrice} />
+                  </div>
                 </div>
-                <p className="m-0 text-[12px] leading-5 text-lien-text" data-testid="price-preview">
-                  Khách thấy:{" "}
-                  {preview.current > 0 ? (
-                    <>
-                      {preview.strike ? <del className="text-lien-muted">{preview.strike.toLocaleString("vi-VN")}đ</del> : null} <strong className={preview.strike ? "text-lien-sale-text" : "text-lien-heading"}>{preview.current.toLocaleString("vi-VN")}đ</strong>
-                      {preview.pct ? <span className="ml-1 rounded bg-lien-sale px-1 text-[11px] font-bold text-white">-{preview.pct}%</span> : null}
-                      <span className="ml-1 text-lien-muted">{preview.kind === "market" ? `— gạch giá thị trường${stored.regularPrice ? ", đang khuyến mại" : ""}` : preview.kind === "promo" ? "— chưa có giá thị trường: gạch giá kỳ vọng" : stored.regularPrice ? "— đang khuyến mại, chưa có giá thị trường để gạch" : "— không gạch giá"}</span>
-                    </>
-                  ) : (
-                    <span className="text-lien-muted">Liên hệ (chưa có giá)</span>
-                  )}
-                </p>
               </div>
               </Section>
               <Section n={2} title="Giá vốn — mua tại Nhật" info="Mỗi nguồn kèm giá ¥ và link mua; nút tròn = giá dùng làm giá vốn. Giá vốn VNĐ = (¥ + phụ phí của nguồn) × tỉ giá, hệ thống cũng tính lại mỗi đêm theo tỉ giá." testId="sec-cost">
@@ -520,7 +507,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 ) : null}
               </div>
               </Section>
-              <Section n={3} title="Tỉ lệ lãi & giá kỳ vọng" info="Giá kỳ vọng = giá vốn × (1 + tỉ lệ lãi) + phí vận chuyển ba chặng về kho VN, làm tròn theo Công thức giá. Bấm “Dùng giá này” để đưa vào ô Giá kỳ vọng bán ra ở mục 1." testId="sec-margin">
+              <Section n={3} title="Tỉ lệ lãi & giá kỳ vọng" info="Giá kỳ vọng = giá vốn × (1 + tỉ lệ lãi) + phí vận chuyển ba chặng về kho VN, làm tròn theo Công thức giá. Bấm “Dùng giá này” để đưa vào ô Giá bán trên web ở mục 1." testId="sec-margin">
               <div>
                 <label className={adminLabel} htmlFor="marginPct">
                   Tỉ lệ lãi kỳ vọng (%)
@@ -543,7 +530,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 {suggestion ? (
                   <div className="mt-3 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 p-2.5 text-[12px] leading-5 text-lien-text" data-testid="expected-box">
                     <p className="m-0 font-semibold text-lien-heading">
-                      Giá kỳ vọng bán ra trên website: <span data-testid="expected-price">{suggestion.suggested.toLocaleString("vi-VN")}đ</span>
+                      Giá kỳ vọng theo công thức: <span data-testid="expected-price">{suggestion.suggested.toLocaleString("vi-VN")}đ</span>
                       {digits(priceText) === suggestion.suggested ? <span className="ml-1 font-normal text-green-700">✓ đang dùng</span> : null}
                     </p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
@@ -649,7 +636,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                         </tr>
                         <tr className="border-t border-lien-blue/30">
                           <td className="py-1 pr-2 font-semibold text-lien-heading">
-                            Giá kỳ vọng bán ra trên website
+                            Giá kỳ vọng theo công thức
                             <InfoPopover>
                               ({vnd(suggestion.cost)} × {(1 + suggestion.marginPct / 100).toLocaleString("vi-VN")}) + {vnd(suggestion.shipping)} = {vnd(Math.round(suggestion.raw))} → làm tròn {(pricing?.roundTo ?? DEFAULT_PRICING.roundTo).toLocaleString("vi-VN")}đ = <strong>{vnd(suggestion.suggested)}</strong>
                             </InfoPopover>

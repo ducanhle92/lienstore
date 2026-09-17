@@ -31,7 +31,7 @@ export async function setSaleAction(formData: FormData): Promise<void> {
   const finalSale = !sale && percentRaw ? Math.round((reference * (100 - Math.min(99, Math.max(1, parseAmount(percentRaw))))) / 100) : sale;
   if (!finalSale || finalSale <= 0) back(DISCOUNTS, "error", "Nhập giá khuyến mại hoặc % giảm.");
   if (product.marketPrice && finalSale >= product.marketPrice) back(DISCOUNTS, "error", `Giá khuyến mại (${finalSale.toLocaleString("vi-VN")}đ) phải thấp hơn giá thị trường (${product.marketPrice.toLocaleString("vi-VN")}đ).`);
-  if (finalSale === regular) back(DISCOUNTS, "error", "Giá khuyến mại đang bằng giá kỳ vọng — không có gì thay đổi.");
+  if (finalSale === regular) back(DISCOUNTS, "error", "Giá khuyến mại đang bằng giá bán trên web — không có gì thay đổi.");
   await updateProductPricing(id, finalSale, regular);
   revalidatePath("/", "layout");
   back(DISCOUNTS, "saved", `Đã đặt khuyến mại "${product.name}": ${regular.toLocaleString("vi-VN")}đ → ${finalSale.toLocaleString("vi-VN")}đ${product.marketPrice ? ` (giá thị trường ${product.marketPrice.toLocaleString("vi-VN")}đ bị gạch)` : ""}.`);
