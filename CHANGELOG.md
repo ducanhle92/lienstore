@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.59.3] - 2026-09-17
+
 ### Changed
 - Viettel Post ở thanh toán chỉ còn **một thẻ** — Chuyển phát tiêu chuẩn (STK, giá niêm yết đã gồm VAT). Các dịch vụ “thỏa thuận” (VTK/VCN/VHT/LCOD/NCOD) chỉ áp dụng cho tài khoản có hợp đồng nên không hiện nữa; thẻ ghi rõ giá đúng khi tạo vận đơn qua app/API Viettel Post với tài khoản shop.
 - Viettel Post luôn lấy từ API Viettel Post, không lấy qua Goship dù tài khoản Goship có Viettel.
