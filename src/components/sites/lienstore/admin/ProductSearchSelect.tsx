@@ -19,14 +19,16 @@ interface Props {
   /** Called when a product is picked (to prefill ¥ etc.). */
   onPick?: (p: PickableProduct | null) => void;
   placeholder?: string;
+  /** Pre-selected product (edit forms). */
+  initial?: PickableProduct | null;
 }
 
 const strip = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase();
 
 /** Type-ahead single product picker: a text box + result list; the chosen id goes into a hidden input. */
-export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên hoặc SKU sản phẩm…" }: Props) {
+export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên hoặc SKU sản phẩm…", initial = null }: Props) {
   const [q, setQ] = useState("");
-  const [picked, setPicked] = useState<PickableProduct | null>(null);
+  const [picked, setPicked] = useState<PickableProduct | null>(initial);
   const matches = useMemo(() => {
     const terms = strip(q).split(/\s+/).filter(Boolean);
     if (!terms.length) return [];

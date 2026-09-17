@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { clearSaleAction, setSaleAction } from "@/app/admin/promotions/actions";
+import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -24,6 +25,9 @@ export default async function AdminDiscounts({ searchParams }: Props) {
   // ?edit=<id> pre-fills the form with that product's current prices
   const editId = Number.parseInt(first(sp.edit), 10);
   const editing = Number.isInteger(editId) ? products.find((p) => p.id === editId) : undefined;
+  // type-ahead picker (like Flash Sales) instead of a 500-row dropdown
+  const toPick = (p: (typeof products)[number]): PickableProduct => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock });
+  const pickable = products.map(toPick);
 
   return (
     <>
@@ -35,16 +39,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
         <form id="sale-form" action={setSaleAction} className="grid gap-3 md:grid-cols-[1fr_150px_150px_110px_auto] md:items-end">
           <div>
             <label className={adminLabel}>Sản phẩm *</label>
-            <select name="productId" required className={adminInput} defaultValue={editing ? String(editing.id) : ""} key={editing?.id ?? "new"}>
-              <option value="" disabled>
-                — Chọn sản phẩm —
-              </option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  #{p.id} · {p.name} — {formatPrice(p.regularPrice ?? p.price)}
-                </option>
-              ))}
-            </select>
+            <ProductSearchSelect key={editing?.id ?? "new"} products={pickable} initial={editing ? toPick(editing) : null} placeholder="Gõ tên, SKU hoặc #id sản phẩm…" />
           </div>
           <div>
             <label className={adminLabel}>Giá gốc (đ)</label>
