@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.57.0] - 2026-09-17
+
 ### Added
 - Kho hàng › **Địa chỉ kho** (tab mới): sửa 4 địa chỉ — kho shop tại Nhật, kho ĐVVC tại Nhật (Kiến Express), kho ĐVVC tại Việt Nam (Kiến Express Hà Nội), kho shop tại Việt Nam (đồng bộ với địa chỉ "Nhận tại kho" ở thanh toán).
 - Kho hàng: bộ lọc **Lưu kho** thêm "Sản phẩm lưu kho (có theo dõi tồn)" và "Không lưu kho — hàng order"; bỏ cột SKU khỏi bảng (vẫn có trong CSV).
