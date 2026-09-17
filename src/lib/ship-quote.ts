@@ -131,7 +131,8 @@ export async function quoteCart(input: CartQuoteInput, opts: Pick<QuoteOptions, 
 export async function quoteGoshipFirst(request: ShippingQuoteRequest, disabled: CarrierCode[], fresh?: boolean): Promise<QuoteBundle> {
   if (!goshipConfigured()) return quoteAllCarriers(request, { disabled, fresh, adapters: ALL_ADAPTERS });
   const gs = await quoteAllCarriers(request, { disabled, fresh, adapters: [goshipAdapter] });
-  const live = gs.quotes.filter((q) => q.available);
+  // the owner wants Viettel Post priced by Viettel's own API only, never by the aggregator
+  const live = gs.quotes.filter((q) => q.available && q.carrier !== "VIETTEL_POST");
   const have = new Set(live.map((q) => q.carrier));
   const rest = ALL_ADAPTERS.filter((a) => !have.has(a.carrier));
   if (!rest.length) return gs;

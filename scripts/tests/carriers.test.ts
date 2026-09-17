@@ -228,14 +228,16 @@ describe("Viettel Post", () => {
     assert.equal(hn?.ward?.WARDS_ID, 2);
     assert.equal(await matchVtpAddress(provinces, async () => [], async () => [], ["Cà Mau"], "Xã Đất Mũi"), null);
   });
-  it("keeps at most three services: two cheapest distinct plus the fastest", () => {
+  it("shows exactly one Viettel card — Chuyển phát tiêu chuẩn (STK), never the contract-only 'thỏa thuận' rows", () => {
     const req = casio(addr("Hà Nội"));
     const rows = [
       ["LCOD", 40656, "48 giờ"], ["NCOD", 47301, "36 giờ"], ["SCN", 47301, "36 giờ"], ["SHT", 139700, "24 giờ"],
       ["STK", 36301, "48 giờ"], ["VCN", 47301, "36 giờ"], ["VHT", 139700, "24 giờ"], ["VTK", 31900, "48 giờ"],
     ] as const;
     const picked = pickViettelServices(rows.map(([c, fee, t]) => viettelRowToQuote({ MA_DV_CHINH: c, TEN_DICHVU: c, GIA_CUOC: fee, THOI_GIAN: t }, req)!));
-    assert.deepEqual(picked.map((q) => [q.serviceCode, q.totalFeeVnd]), [["VTK", 31900], ["STK", 36301], ["SHT", 139700]]);
+    assert.deepEqual(picked.map((q) => [q.serviceCode, q.totalFeeVnd]), [["STK", 36301]]);
+    const noRetail = pickViettelServices([["VTK", 31900, "48 giờ"], ["VCN", 47301, "36 giờ"]].map(([c, fee, t]) => viettelRowToQuote({ MA_DV_CHINH: c as string, TEN_DICHVU: c as string, GIA_CUOC: fee as number, THOI_GIAN: t as string }, req)!));
+    assert.deepEqual(noRetail.map((q) => q.serviceCode), ["VTK"]);
   });
   it("maps a live row to an exact quote", () => {
     const q = viettelRowToQuote({ MA_DV_CHINH: "VCN", TEN_DICHVU: "Chuyển phát nhanh", GIA_CUOC: 31000, THOI_GIAN: "2 ngày", EXCHANGE_WEIGHT: 500 }, casio(addr("Hà Nội")));

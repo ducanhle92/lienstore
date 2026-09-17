@@ -13,7 +13,7 @@ import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
 
 const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; source: string }> = [
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
-  { code: "VIETTEL_POST", how: "API công khai getPriceAll của Viettel Post (giá niêm yết mọi dịch vụ, không cần token — đã kiểm chứng 17/09/2026); qua Goship nếu tài khoản Goship có Viettel. Không dùng bảng 17k/25k/30k/35k cố định.", configured: () => true, source: "live_api" },
+  { code: "VIETTEL_POST", how: "Chỉ từ API công khai getPriceAll của Viettel Post (không qua Goship, không cần token — kiểm chứng 17/09/2026). Khách thấy đúng 1 thẻ: Chuyển phát tiêu chuẩn (STK, giá niêm yết đã gồm VAT); các dịch vụ “thỏa thuận” chỉ dành cho tài khoản có hợp đồng nên không hiện. Không dùng bảng 17k/25k/30k/35k cố định.", configured: () => true, source: "live_api" },
   { code: "VNPOST", how: "Bộ tính theo biểu phí Chuyển phát tiêu chuẩn (34 tỉnh, 5 loại tuyến, nấc 50/100/250/500/1000/1500/2000 g, +1 kg). Chưa gồm VAT/xăng dầu/COD → hiển thị “Từ …”.", configured: () => true, source: "public_rate_card" },
   { code: "SPX", how: "Qua Goship khi tài khoản Goship có SPX (Kết nối tài khoản riêng); chưa có thì biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Open API trực tiếp cần tài liệu endpoint do SPX cấp.", configured: () => true, source: "public_rate_card" },
 ];
@@ -78,7 +78,7 @@ export function CarrierStatusPanel() {
       </form>
       <p className="mt-2 text-[12px] leading-5 text-lien-muted" data-testid="goship-status">
         {gsOn
-          ? "Goship là nguồn cước ưu tiên: hãng nào tài khoản Goship trả về thì khách thấy giá Goship (kèm dự kiến giao); hãng Goship không trả về (SPX, Viettel Post, VNPost…) vẫn hiện theo nguồn riêng của hãng đó — API Viettel Post, biểu phí công khai SPX/VNPost, GHN trực tiếp. Khi Goship lỗi, mọi hãng dùng nguồn riêng."
+          ? "Goship là nguồn cước ưu tiên: hãng nào tài khoản Goship trả về thì khách thấy giá Goship (kèm dự kiến giao); hãng Goship không trả về (SPX, VNPost…) vẫn hiện theo nguồn riêng của hãng đó — biểu phí công khai SPX/VNPost, GHN trực tiếp. Viettel Post luôn lấy từ API Viettel Post, không qua Goship. Khi Goship lỗi, mọi hãng dùng nguồn riêng."
           : "Chưa kết nối Goship — cước lấy từ GHN trực tiếp (nếu có token) và biểu phí công khai VNPost/SPX. Token chỉ lưu trên máy chủ. Goship dùng địa chỉ 3 cấp cũ; hệ thống tự ánh xạ xã/phường mới → quận/huyện cũ theo tên."}
       </p>
       {gsOn ? (

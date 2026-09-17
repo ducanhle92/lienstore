@@ -330,7 +330,7 @@ export function viettelRowToQuote(row: VtpPriceRow, req: ShippingQuoteRequest): 
     serviceName: row.TEN_DICHVU?.trim() || row.MA_DV_CHINH,
     available: true,
     status: "available",
-    statusText: "Cước hiện tại từ Viettel Post",
+    statusText: "Giá niêm yết từ API Viettel Post (đã gồm VAT)",
     source: "live_api",
     accuracy: "exact_now",
     totalFeeVnd: Math.round(fee),
@@ -340,35 +340,26 @@ export function viettelRowToQuote(row: VtpPriceRow, req: ShippingQuoteRequest): 
     etaText: row.THOI_GIAN?.trim() || undefined,
     quotedAt: at.toISOString(),
     expiresAt: new Date(at.getTime() + 10 * 60 * 1000).toISOString(),
-    warnings: [],
-    includes: ["Phụ phí theo hợp đồng tài khoản"],
+    warnings: ["Giá niêm yết của Viettel Post cho tài khoản thường; tạo vận đơn qua app/API Viettel Post với tài khoản shop thì đúng giá này, gửi tại bưu cục có thể khác."],
+    includes: ["VAT", "Phí dịch vụ theo biểu giá niêm yết"],
     codShipFee: true,
   };
 }
 
-const etaHours = (q: ShippingQuote): number => {
-  const m = q.etaText?.match(/(\d+)\s*(giờ|h)/i);
-  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
-};
-
 /**
- * getPriceAll lists ~8 services (VTK/STK/VCN/SCN/SHT plus the "thỏa thuận" and COD twins at the same price). Customers
- * get at most three cards: the two cheapest distinct (fee, ETA) pairs plus the fastest one when it is different.
+ * getPriceAll lists ~8 services: the retail ones (STK tiêu chuẩn, SCN nhanh, SHT hỏa tốc) and "thỏa thuận"/COD twins
+ * (VTK, VCN, VHT, LCOD, NCOD) whose price only applies to accounts with a Viettel contract. The shop has none, so the
+ * customer gets exactly ONE Viettel Post card: Chuyển phát tiêu chuẩn (STK); when STK is missing, the cheapest retail
+ * service; when no retail service exists, the cheapest row at all.
  */
+export const VTP_RETAIL_ORDER = ["STK", "SCN", "SHT"] as const;
 export function pickViettelServices(quotes: ShippingQuote[]): ShippingQuote[] {
-  const seen = new Set<string>();
-  const distinct = [...quotes]
-    .sort((a, b) => (a.totalFeeVnd ?? 0) - (b.totalFeeVnd ?? 0))
-    .filter((q) => {
-      const k = `${q.totalFeeVnd}|${etaHours(q)}`;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-  const picked = distinct.slice(0, 2);
-  const fastest = [...distinct].sort((a, b) => etaHours(a) - etaHours(b))[0];
-  if (fastest && !picked.includes(fastest) && etaHours(fastest) < Math.min(...picked.map(etaHours))) picked.push(fastest);
-  return picked;
+  const byFee = [...quotes].sort((a, b) => (a.totalFeeVnd ?? 0) - (b.totalFeeVnd ?? 0));
+  for (const code of VTP_RETAIL_ORDER) {
+    const q = byFee.find((x) => x.serviceCode === code);
+    if (q) return [q];
+  }
+  return byFee.length ? [byFee[0]] : [];
 }
 
 /**
