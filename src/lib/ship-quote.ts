@@ -2,7 +2,7 @@ import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { ALL_ADAPTERS, quoteAllCarriers, type QuoteBundle, type QuoteOptions } from "./carriers";
 import { goshipAdapter, goshipConfigured } from "./carriers/goship";
-import { ALL_CARRIER_CODES, type AddressInput, type CarrierCode, type ShippingQuoteRequest } from "./carriers/types";
+import { ALL_CARRIER_CODES, type AddressInput, type CarrierCode, type ShippingQuoteRequest, sortQuotes } from "./carriers/types";
 import { loadShippingMethods, parcelOf } from "./db";
 import { getDb, getSetting } from "./sqlite";
 import { composeAddress, findProvince, findProvinceByName, findWard, findWardByName, legacyCode, legacyProvincesOf, parseAddressToCodes, wardsOf } from "./vn-address";
@@ -118,16 +118,35 @@ export async function quoteCart(input: CartQuoteInput, opts: Pick<QuoteOptions, 
     paymentMethod: input.cod ? "cod" : "bank_transfer",
     coupon: input.coupon?.trim() || undefined,
   };
-  // Goship (one API, every carrier) is the source when connected; the per-carrier adapters (GHN direct, rate cards)
-  // only step in when Goship itself cannot answer, so the customer never sees two prices for the same carrier.
-  const disabled = disabledCarriers(db);
-  let bundle = await quoteAllCarriers(request, { disabled, fresh: opts.fresh, adapters: goshipConfigured() ? [goshipAdapter] : ALL_ADAPTERS });
-  if (goshipConfigured() && !bundle.quotes.some((q) => q.available)) {
-    const fallback = await quoteAllCarriers(request, { disabled, fresh: opts.fresh, adapters: ALL_ADAPTERS });
-    const note = bundle.quotes[0]?.statusText ?? "Goship không phản hồi";
-    bundle = { ...fallback, quotes: fallback.quotes.map((q) => ({ ...q, warnings: [`${note} — dùng nguồn dự phòng.`, ...q.warnings] })) };
-  }
+  const bundle = await quoteGoshipFirst(request, disabledCarriers(db), opts.fresh);
   return { ...bundle, request, parcel: { weightG: parcel.weightG, length: parcel.dims.length, width: parcel.dims.width, height: parcel.dims.height, subtotal: parcel.subtotal, quantity: parcel.quantity } };
+}
+
+/**
+ * Goship (one API, every carrier the shop's Goship account has enabled) answers first. Carriers Goship did not return —
+ * today SPX, Viettel Post, VNPost on this account — still get their own source (Viettel Open API, public rate cards,
+ * GHN direct), so the customer sees every carrier exactly once and Goship's contract price wins whenever it exists.
+ * When Goship itself fails, every carrier comes from its own source with a note.
+ */
+export async function quoteGoshipFirst(request: ShippingQuoteRequest, disabled: CarrierCode[], fresh?: boolean): Promise<QuoteBundle> {
+  if (!goshipConfigured()) return quoteAllCarriers(request, { disabled, fresh, adapters: ALL_ADAPTERS });
+  const gs = await quoteAllCarriers(request, { disabled, fresh, adapters: [goshipAdapter] });
+  const live = gs.quotes.filter((q) => q.available);
+  const have = new Set(live.map((q) => q.carrier));
+  const rest = ALL_ADAPTERS.filter((a) => !have.has(a.carrier));
+  if (!rest.length) return gs;
+  const own = await quoteAllCarriers(request, { disabled, fresh, adapters: rest });
+  if (!live.length) {
+    const note = gs.quotes[0]?.statusText ?? "Goship không phản hồi";
+    return { ...own, quotes: own.quotes.map((q) => ({ ...q, warnings: [`${note} — dùng nguồn dự phòng.`, ...q.warnings] })) };
+  }
+  return {
+    quotes: sortQuotes([...live, ...own.quotes]),
+    quotedAt: gs.quotedAt,
+    expiresAt: gs.expiresAt < own.expiresAt ? gs.expiresAt : own.expiresAt,
+    cacheKey: `${gs.cacheKey}+${own.cacheKey}`,
+    fromCache: gs.fromCache && own.fromCache,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -179,9 +198,7 @@ export async function quoteTransferLeg(lines: Array<{ productId: number; quantit
     parcel: { actualWeightG: parcel.weightG, lengthCm: parcel.dims.length, widthCm: parcel.dims.width, heightCm: parcel.dims.height, orderValueVnd: parcel.subtotal, declaredValueVnd: parcel.subtotal, codAmountVnd: 0, quantity: parcel.quantity, flags: parcel.special ? { fragile: true } : undefined },
     paymentMethod: "bank_transfer",
   };
-  const disabled = disabledCarriers(db);
-  let bundle = await quoteAllCarriers(request, { disabled, fresh: true, adapters: goshipConfigured() ? [goshipAdapter] : ALL_ADAPTERS });
-  if (goshipConfigured() && !bundle.quotes.some((q) => q.available)) bundle = await quoteAllCarriers(request, { disabled, fresh: true, adapters: ALL_ADAPTERS });
+  const bundle = await quoteGoshipFirst(request, disabledCarriers(db), true);
   const quotes: TransferQuote[] = bundle.quotes
     .map((q) => ({ carrier: q.carrier, carrierName: q.carrierName, serviceName: q.serviceName ?? "", serviceCode: q.serviceCode, fee: q.totalFeeVnd, eta: q.etaText ?? null, available: q.available, statusText: q.statusText, fromPrice: q.accuracy === "from_price" }))
     .sort((a, b) => (a.available === b.available ? (a.fee ?? Infinity) - (b.fee ?? Infinity) : a.available ? -1 : 1));

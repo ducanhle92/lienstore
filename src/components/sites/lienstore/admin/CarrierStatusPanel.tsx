@@ -1,5 +1,6 @@
 import { saveCarrierTogglesAction, saveGhnSettingsAction, saveGoshipSettingsAction, saveSpxSettingsAction, saveViettelSettingsAction } from "@/app/admin/shipping/carrier-actions";
-import { GOSHIP_SANDBOX, goshipConfigured, goshipCredentials } from "@/lib/carriers/goship";
+import { GOSHIP_SANDBOX, goshipConfigured, goshipCredentials, goshipSeenCarriers } from "@/lib/carriers/goship";
+import { goshipCarrierCode } from "@/lib/carriers/goship-pure";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { RATE_CARD_VERSIONS } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
@@ -14,7 +15,7 @@ const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; s
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
   { code: "VIETTEL_POST", how: "Open API đối tác Viettel Post (token dán ở thẻ “Kết nối Viettel Post” bên trên; getPriceAll trả về mọi dịch vụ). Không có bảng 17k/25k/30k/35k; chưa có token thì chỉ còn qua Goship, không thì khách thấy “Liên hệ / tra cước”.", configured: viettelConfigured, source: "live_api" },
   { code: "VNPOST", how: "Bộ tính theo biểu phí Chuyển phát tiêu chuẩn (34 tỉnh, 5 loại tuyến, nấc 50/100/250/500/1000/1500/2000 g, +1 kg). Chưa gồm VAT/xăng dầu/COD → hiển thị “Từ …”.", configured: () => true, source: "public_rate_card" },
-  { code: "SPX", how: "Biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Open API đối tác: cần Mã user + Secret Key (Hồ sơ shop) và tài liệu endpoint do SPX cấp qua CSKH.", configured: () => true, source: "public_rate_card" },
+  { code: "SPX", how: "Qua Goship khi tài khoản Goship có SPX (Kết nối tài khoản riêng); chưa có thì biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Open API trực tiếp cần tài liệu endpoint do SPX cấp.", configured: () => true, source: "public_rate_card" },
 ];
 
 /** ④ Nội địa Việt Nam: how each carrier is quoted today, what is connected, and which carriers customers may pick. */
@@ -28,6 +29,9 @@ export function CarrierStatusPanel() {
   const spxOn = spxApiConfigured();
   const gs = goshipCredentials();
   const gsOn = goshipConfigured();
+  const seen = gsOn ? goshipSeenCarriers() : null;
+  const seenCodes = new Set((seen?.carriers ?? []).map((c) => goshipCarrierCode(c.short)));
+  const viaGoship = (code: CarrierCode) => gsOn && seenCodes.has(code);
   const vtp = viettelCredentials();
   const vtpOn = viettelConfigured();
   return (
@@ -74,9 +78,21 @@ export function CarrierStatusPanel() {
       </form>
       <p className="mt-2 text-[12px] leading-5 text-lien-muted" data-testid="goship-status">
         {gsOn
-          ? "Đang dùng Goship làm nguồn cước: một lần gọi trả về giá thật của mọi hãng cho địa chỉ khách (kèm dự kiến giao, tỉ lệ giao thành công). Khi Goship lỗi, hệ thống tự dùng nguồn dự phòng (GHN trực tiếp, biểu phí VNPost/SPX)."
+          ? "Goship là nguồn cước ưu tiên: hãng nào tài khoản Goship trả về thì khách thấy giá Goship (kèm dự kiến giao); hãng Goship không trả về (SPX, Viettel Post, VNPost…) vẫn hiện theo nguồn riêng của hãng đó — API Viettel Post, biểu phí công khai SPX/VNPost, GHN trực tiếp. Khi Goship lỗi, mọi hãng dùng nguồn riêng."
           : "Chưa kết nối Goship — cước lấy từ GHN trực tiếp (nếu có token) và biểu phí công khai VNPost/SPX. Token chỉ lưu trên máy chủ. Goship dùng địa chỉ 3 cấp cũ; hệ thống tự ánh xạ xã/phường mới → quận/huyện cũ theo tên."}
       </p>
+      {gsOn ? (
+        <p className="mt-1 text-[12px] leading-5 text-lien-text" data-testid="goship-seen">
+          {seen?.carriers.length ? (
+            <>
+              <strong>Tài khoản Goship của shop hiện trả cước:</strong> {seen.carriers.map((c) => c.name).join(", ")} <span className="text-lien-muted">(lần gọi {new Date(seen.at).toLocaleString("vi-VN")})</span>.{" "}
+              {seenCodes.has("SPX") ? "SPX đã đi qua Goship." : <>SPX chưa nằm trong danh sách này: vào Goship › Tài khoản › <strong>Kết nối tài khoản riêng</strong> để nối tài khoản SPX của shop (hoặc nhờ Goship bật SPX) — nối xong là cước SPX tự đi qua Goship, không cần Secret Key SPX ở thẻ dưới.</>}
+            </>
+          ) : (
+            "Chưa có lần báo giá nào qua Goship kể từ khi kết nối — mở trang sản phẩm / thanh toán với một địa chỉ để hệ thống ghi lại danh sách hãng Goship trả về."
+          )}
+        </p>
+      ) : null}
     </Card>
     <Card className="mb-6" title="Kết nối Viettel Post (Open API đối tác) — API tính cước thật">
       <form action={saveViettelSettingsAction} className="grid gap-3 md:grid-cols-[1fr_150px_150px_auto] md:items-end" data-testid="vtp-form">
@@ -207,7 +223,7 @@ export function CarrierStatusPanel() {
           <tbody>
             {[...ROWS, ...(["EMS", "GHTK", "JNT", "BEST", "OTHER"] as CarrierCode[]).map((code) => ({ code, how: "Chỉ có qua Goship (API hãng, giá theo hợp đồng Goship).", configured: goshipConfigured, source: "live_api" }))].map((r) => {
               const on = !disabled.includes(r.code);
-              const ok = r.code === "GHN" || r.code === "VIETTEL_POST" || r.code === "VNPOST" || r.code === "SPX" ? r.configured() || gsOn : r.configured();
+              const ok = r.code === "GHN" || r.code === "VIETTEL_POST" || r.code === "VNPOST" || r.code === "SPX" ? r.configured() || viaGoship(r.code) : r.configured();
               return (
                 <tr key={r.code} className="align-top" data-testid={`carrier-row-${r.code}`}>
                   <td className="border-b border-[#f3f4f6] px-2 py-2">

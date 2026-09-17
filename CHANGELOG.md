@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Báo cước nội địa: khi đã kết nối Goship, các hãng mà tài khoản Goship không trả về (SPX, Viettel Post, VNPost) bị ẩn khỏi trang sản phẩm / thanh toán. Nay Goship vẫn ưu tiên, nhưng hãng thiếu được lấy từ nguồn riêng (API Viettel Post, biểu phí SPX/VNPost, GHN trực tiếp) nên khách luôn thấy đủ hãng, mỗi hãng một giá.
+
+### Added
+- Thẻ Kết nối Goship hiện danh sách hãng tài khoản Goship thực trả cước (ghi lại từ lần báo giá gần nhất) và hướng dẫn bật SPX qua Goship › Kết nối tài khoản riêng.
+
 ## [1.59.0] - 2026-09-17
 
 ### Added

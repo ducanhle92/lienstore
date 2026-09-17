@@ -1,6 +1,6 @@
 import "server-only";
 import { openSecret } from "@/lib/secret-store";
-import { getDb, getSetting } from "@/lib/sqlite";
+import { getDb, getSetting, setSetting } from "@/lib/sqlite";
 import { legacyProvincesOf } from "@/lib/vn-address";
 import { type GoshipAddressMatch, type GoshipCity, type GoshipDistrict, type GoshipRate, type GoshipWard, goshipRateToQuote, matchGoshipAddress } from "./goship-pure";
 import { type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "./types";
@@ -11,6 +11,34 @@ import { type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest
  * Cài đặt › Kết nối API, stored server-side (settings) with env `GOSHIP_TOKEN` as fallback. Docs: https://doc.goship.io
  */
 export const GOSHIP_SETTING_KEYS = { token: "goship_token", base: "goship_base", fromCity: "goship_from_city", fromDistrict: "goship_from_district" } as const;
+/** Carriers the shop's Goship account returned on the last rate call — `{ at, carriers: [{ short, name }] }`. */
+export const GOSHIP_LAST_CARRIERS_KEY = "goship_last_carriers";
+export interface GoshipSeenCarriers {
+  at: string;
+  carriers: Array<{ short: string; name: string }>;
+}
+export function goshipSeenCarriers(): GoshipSeenCarriers | null {
+  try {
+    const raw = getSetting(getDb(), GOSHIP_LAST_CARRIERS_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as GoshipSeenCarriers;
+    return Array.isArray(v.carriers) ? v : null;
+  } catch {
+    return null;
+  }
+}
+function rememberSeenCarriers(rows: GoshipRate[]): void {
+  try {
+    const seen = new Map<string, string>();
+    for (const r of rows) if (r.carrier_short_name) seen.set(r.carrier_short_name.toLowerCase(), r.carrier_name || r.carrier_short_name);
+    const carriers = [...seen].map(([short, name]) => ({ short, name })).sort((a, b) => a.short.localeCompare(b.short));
+    const prev = goshipSeenCarriers();
+    if (prev && JSON.stringify(prev.carriers) === JSON.stringify(carriers)) return;
+    setSetting(getDb(), GOSHIP_LAST_CARRIERS_KEY, JSON.stringify({ at: new Date().toISOString(), carriers }));
+  } catch {
+    /* display-only */
+  }
+}
 export const GOSHIP_PROD = "https://api.goship.io/api/v2";
 export const GOSHIP_SANDBOX = "https://sandbox.goship.io/api/v2";
 
@@ -182,6 +210,7 @@ export const goshipAdapter: CarrierQuoteAdapter = {
         },
       });
       if (!rows.length) return [unavailableQuote("GOSHIP", "unsupported", "Không hãng nào trên Goship phục vụ tuyến này")];
+      rememberSeenCarriers(rows);
       const now = new Date();
       // an exact ward or same-name district is a faithful mapping; only the "first district of the province" guess is flagged
       const routeNote = to.how === "first_district" ? `Xã/phường mới chưa có trong danh mục hãng — cước tính theo ${to.district.name}, ${to.city.name}; hãng xác nhận khi tạo vận đơn.` : undefined;
