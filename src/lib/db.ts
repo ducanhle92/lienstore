@@ -42,6 +42,7 @@ import { coarseRegionOf } from "./vn-address";
 import { cheapestQuote, landedFeeJpy, parseSourceFees, type SourceFee, type SourceFees } from "./cost-sources";
 import { DEFAULT_WAREHOUSE, emptyByTransit, isWarehouse, type TransitWhere, transitWhereOf, type Warehouse } from "./warehouses";
 import { isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
+import { diffProductChanges, type ProductChangeField, type ProductChangeInput } from "./price-display";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
@@ -74,6 +75,7 @@ interface ProductRow {
   name: string;
   price: number;
   regular_price: number | null;
+  market_price: number | null;
   cost_price: number | null;
   supplier_url: string | null;
   min_stock: number | null;
@@ -132,6 +134,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     name: r.name,
     price: r.price,
     regularPrice: r.regular_price,
+    marketPrice: r.market_price ?? null,
     costPrice: r.cost_price ?? null,
     costJpy: r.cost_jpy ?? null,
     costSource: r.cost_source ?? "",
@@ -424,7 +427,32 @@ export async function getRelatedProducts(product: CatalogProduct, limit = 4): Pr
   return [...explicit, ...sameCat].slice(0, limit);
 }
 
-export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number };
+export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number; /** Who is saving (for the change history). */ changedBy?: string };
+
+// ---------- Change history (lịch sử thay đổi) ----------
+
+export interface ProductChange {
+  id: number;
+  productId: number;
+  field: ProductChangeField;
+  oldValue: string;
+  newValue: string;
+  actor: string;
+  createdAt: string;
+}
+const snapshotOf = (p: Pick<CatalogProduct, "price" | "regularPrice" | "marketPrice" | "costPrice" | "costJpy" | "costSource" | "stock" | "minStock" | "status" | "name" | "fulfillment" | "marginPct" | "sku">) => ({
+  price: p.price, regularPrice: p.regularPrice, marketPrice: p.marketPrice, costPrice: p.costPrice, costJpy: p.costJpy, costSource: p.costSource, stock: p.stock, minStock: p.minStock, status: p.status, name: p.name, fulfillment: p.fulfillment, marginPct: p.marginPct, sku: p.sku,
+});
+/** Append rows to the product's history (caller decides what changed). */
+export function logProductChanges(db: DatabaseSync, productId: number, changes: ProductChangeInput[], actor: string, now = new Date().toISOString()): void {
+  if (!changes.length) return;
+  const ins = db.prepare("INSERT INTO product_changes (product_id, field, old_value, new_value, actor, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+  for (const c of changes) ins.run(productId, c.field, c.old, c.new, actor, now);
+}
+export function listProductChanges(productId: number, limit = 60): ProductChange[] {
+  const rows = getDb().prepare("SELECT * FROM product_changes WHERE product_id = ? ORDER BY id DESC LIMIT ?").all(productId, limit) as unknown as Array<{ id: number; product_id: number; field: string; old_value: string; new_value: string; actor: string; created_at: string }>;
+  return rows.map((r) => ({ id: r.id, productId: r.product_id, field: r.field as ProductChangeField, oldValue: r.old_value ?? "", newValue: r.new_value ?? "", actor: r.actor ?? "", createdAt: r.created_at }));
+}
 
 export async function saveProduct(input: ProductInput): Promise<CatalogProduct> {
   const db = getDb();
@@ -432,9 +460,10 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
     const now = new Date().toISOString();
     let id = input.id;
     if (id) {
-      const exists = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
-      if (!exists) throw new Error(`Product ${id} not found`);
-      db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
+      const before = db.prepare(`${PRODUCT_SELECT} WHERE p.id = ?`).get(id) as ProductRow | undefined;
+      if (!before) throw new Error(`Product ${id} not found`);
+      logProductChanges(db, id, diffProductChanges(snapshotOf(rowToProduct(before)), snapshotOf({ ...input, status: input.status })), input.changedBy ?? "admin", now);
+      db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, market_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
         cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, margin_pct = ?,
         tags = ?, images = ?, thumb = ?, short_description = ?, description = ?, related = ?, rating = ?, review_count = ?, status = ?, updated_at = ?, weight_g = ?, dims_cm = ?, dims_confidence = ?, dims_source = ?, name_ja = ?, short_description_ja = ?, description_ja = ?
         WHERE id = ?`).run(
@@ -442,6 +471,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.name,
         input.price,
         input.regularPrice,
+        input.marketPrice ?? null,
         input.costPrice,
         input.supplierUrl,
         input.minStock,
@@ -476,13 +506,14 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
       );
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
-      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct, tags, images, thumb,
+      const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, market_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct, tags, images, thumb,
         short_description, description, related, rating, review_count, status, created_at, updated_at, weight_g, dims_cm, dims_confidence, dims_source, name_ja, short_description_ja, description_ja)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         input.slug,
         input.name,
         input.price,
         input.regularPrice,
+        input.marketPrice ?? null,
         input.costPrice,
         input.supplierUrl,
         input.minStock,
@@ -1393,9 +1424,15 @@ export async function validateVoucher(code: string, subtotal: number, customerId
   return checkVoucher(getDb(), code, subtotal, customerId);
 }
 
-/** Set / clear a sale price. `regularPrice` null = no sale (price is the only price). */
-export async function updateProductPricing(id: number, price: number, regularPrice: number | null): Promise<boolean> {
-  const r = getDb().prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(Math.max(0, Math.round(price)), regularPrice === null ? null : Math.max(0, Math.round(regularPrice)), new Date().toISOString(), id);
+/** Set / clear a sale price. `regularPrice` null = no sale (price is the only price). Logged in the product history. */
+export async function updateProductPricing(id: number, price: number, regularPrice: number | null, actor = "Giảm giá sản phẩm"): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const before = db.prepare("SELECT price, regular_price FROM products WHERE id = ?").get(id) as { price: number; regular_price: number | null } | undefined;
+  const p = Math.max(0, Math.round(price));
+  const rp = regularPrice === null ? null : Math.max(0, Math.round(regularPrice));
+  const r = db.prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(p, rp, now, id);
+  if (before) logProductChanges(db, id, diffProductChanges({ price: before.price, regularPrice: before.regular_price }, { price: p, regularPrice: rp }), actor, now);
   return r.changes > 0;
 }
 
@@ -1466,10 +1503,12 @@ export async function countOrderFiles(): Promise<Map<string, number>> {
 
 // ---------- Inventory ----------
 
-export async function updateProductStock(id: number, stock: number | null, minStock?: number | null): Promise<boolean> {
+export async function updateProductStock(id: number, stock: number | null, minStock?: number | null, actor = "Kho hàng"): Promise<boolean> {
   const db = getDb();
   const status: string | null = null; // the sale status (còn bán / ngừng bán tại Nhật) is independent of the stock level
   const now = new Date().toISOString();
+  const before = db.prepare("SELECT stock, min_stock FROM products WHERE id = ?").get(id) as { stock: number | null; min_stock: number | null } | undefined;
+  if (before) logProductChanges(db, id, diffProductChanges({ stock: before.stock, ...(minStock === undefined ? {} : { minStock: before.min_stock }) }, { stock, ...(minStock === undefined ? {} : { minStock }) }), actor, now);
   const res =
     minStock === undefined
       ? db.prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), updated_at = ? WHERE id = ?").run(stock, status, now, id)
@@ -2599,6 +2638,8 @@ interface FlashSaleRow {
 /** Put a product's pricing back to what it had before its flash price was applied; clears the pick's pricing fields. */
 function revertFlashPricing(db: DatabaseSync, row: FlashSaleRow, now: string): void {
   if (row.sale_price === null || row.prev_price === null) return;
+  const cur = db.prepare("SELECT price, regular_price FROM products WHERE id = ?").get(row.product_id) as { price: number; regular_price: number | null } | undefined;
+  if (cur) logProductChanges(db, row.product_id, diffProductChanges({ price: cur.price, regularPrice: cur.regular_price }, { price: row.prev_price, regularPrice: row.prev_regular_price }), "Flash Sales (kết thúc)", now);
   db.prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(row.prev_price, row.prev_regular_price, now, row.product_id);
   db.prepare("UPDATE flash_sale_products SET sale_price = NULL, prev_price = NULL, prev_regular_price = NULL WHERE product_id = ?").run(row.product_id);
 }
@@ -2624,6 +2665,7 @@ function applyFlashPricing(db: DatabaseSync, row: FlashSaleRow, discount: { sale
   const salePrice = "salePrice" in discount ? Math.round(discount.salePrice) : Math.round((regular * (100 - Math.min(99, Math.max(1, discount.percent)))) / 100);
   if (salePrice <= 0) throw new Error("Nhập giá flash hoặc % giảm.");
   if (salePrice >= regular) throw new Error(`Giá flash (${salePrice.toLocaleString("vi-VN")}đ) phải thấp hơn giá gốc (${regular.toLocaleString("vi-VN")}đ).`);
+  logProductChanges(db, row.product_id, diffProductChanges({ price: p.price, regularPrice: p.regular_price }, { price: salePrice, regularPrice: regular }), "Flash Sales", now);
   db.prepare("UPDATE products SET price = ?, regular_price = ?, updated_at = ? WHERE id = ?").run(salePrice, regular, now, row.product_id);
   db.prepare("UPDATE flash_sale_products SET sale_price = ?, prev_price = ?, prev_regular_price = ? WHERE product_id = ?").run(salePrice, prevPrice, prevRegular, row.product_id);
 }

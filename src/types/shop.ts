@@ -16,6 +16,8 @@ export interface CatalogProduct {
   /** Price in VND (integer, e.g. 890000). */
   price: number;
   regularPrice: number | null;
+  /** Giá thị trường — reference price elsewhere; crossed out against the web price when higher (never charged). */
+  marketPrice: number | null;
   /** Purchase/cost price in VND used for profit reporting in admin; null = unknown. Derived from costJpy × rate when costJpy is set. */
   costPrice: number | null;
   /** Japanese retail price (¥) from Amazon / Rakuten / the brand site; null = not harvested. */

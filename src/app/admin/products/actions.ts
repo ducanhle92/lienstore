@@ -6,7 +6,8 @@ import { billableProductWeightG, isDimsConfidence } from "@/lib/shipping";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { can } from "@/lib/auth";
+import { can, getAdminSession } from "@/lib/auth";
+import { storedPrices } from "@/lib/price-display";
 import { deleteProduct, getCategories, getJpyRate, getPricingConfig, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
 import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
 import { normalizeAttrLabels } from "@/lib/variants";
@@ -45,12 +46,18 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (!slug) fields.slug = "Đường dẫn không hợp lệ.";
   else if (await slugExists(slug, id)) fields.slug = "Đường dẫn đã tồn tại, hãy chọn đường dẫn khác.";
 
-  const price = parseIntField(get("price"));
-  if (price === null || price < 0) fields.price = "Giá phải là số nguyên ≥ 0.";
-
-  const regularRaw = get("regularPrice");
-  const regularPrice = regularRaw ? parseIntField(regularRaw) : null;
-  if (regularRaw && regularPrice === null) fields.regularPrice = "Giá gốc không hợp lệ.";
+  // three prices (lib/price-display.ts): expected web price (required) · promo (optional, must be lower) · market reference
+  const expectedRaw = get("expectedPrice") || get("regularPrice") || get("price");
+  const expected = parseIntField(expectedRaw);
+  if (expected === null || expected < 0) fields.price = "Giá kỳ vọng bán ra phải là số nguyên ≥ 0.";
+  const promoRaw = get("expectedPrice") ? get("promoPrice") : get("regularPrice") ? get("price") : "";
+  const promo = promoRaw ? parseIntField(promoRaw) : null;
+  if (promoRaw && promo === null) fields.promoPrice = "Giá khuyến mại không hợp lệ.";
+  if (promo !== null && expected !== null && promo >= expected) fields.promoPrice = "Giá khuyến mại phải thấp hơn giá kỳ vọng (để trống nếu không khuyến mại).";
+  const marketRaw = get("marketPrice");
+  const marketPrice = marketRaw ? parseIntField(marketRaw) : null;
+  if (marketRaw && marketPrice === null) fields.marketPrice = "Giá thị trường không hợp lệ.";
+  const { price, regularPrice } = storedPrices(expected ?? 0, promo);
 
   // ¥ quotes per purchase source (cs_* repeated); the primary row feeds cost_jpy / cost_source / cost_url
   const csSources = formData.getAll("cs_source").map(String);
@@ -157,9 +164,11 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     id,
     slug,
     name,
-    price: price ?? 0,
-    regularPrice: regularPrice && regularPrice > (price ?? 0) ? regularPrice : null,
+    price,
+    regularPrice,
+    marketPrice,
     costPrice,
+    changedBy: (await getAdminSession())?.label ?? "admin",
     supplierUrl: supplierUrl || null,
     minStock,
     weightG,
@@ -310,6 +319,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
           nameJa: patch.nameJa ?? "",
           price: patch.price ?? 0,
           regularPrice: patch.regularPrice ?? null,
+          marketPrice: null,
           costPrice: patch.costPrice ?? (costJpy ? costPriceFromJpy(costJpy, sourceKey ?? UNKNOWN_SOURCE, rate, fees, billableProductWeightG(patch.weightG ?? null, patch.dimsCm ?? null, patch.dimsConfidence ?? null), lotG) : null),
           supplierUrl: patch.supplierUrl ?? null,
           minStock: patch.minStock ?? null,

@@ -6,7 +6,7 @@ import type { CatalogProduct } from "../../src/types/shop";
 
 const base = (over: Partial<CatalogProduct>): CatalogProduct =>
   ({
-    id: 1, slug: "p", name: "P", price: 100, regularPrice: null, costPrice: null, costJpy: null, costSource: "", costUrl: "", costCheckedAt: null, marginPct: null, supplierUrl: null, minStock: null, weightG: null, dimsConfidence: null, dimsSource: "", nameJa: "", shortDescriptionJa: "", descriptionJa: "", dimsCm: null, currency: "VNĐ", sku: null, stock: null, stockStatus: "instock", fulfillment: "order", categories: [], tags: [], images: [], thumb: "", shortDescription: "", description: "", related: [], rating: null, reviewCount: 0, status: "publish", createdAt: "", updatedAt: "", groupId: null, variantAttrs: {}, variantPosition: 0,
+    id: 1, slug: "p", name: "P", price: 100, regularPrice: null, marketPrice: null, costPrice: null, costJpy: null, costSource: "", costUrl: "", costCheckedAt: null, marginPct: null, supplierUrl: null, minStock: null, weightG: null, dimsConfidence: null, dimsSource: "", nameJa: "", shortDescriptionJa: "", descriptionJa: "", dimsCm: null, currency: "VNĐ", sku: null, stock: null, stockStatus: "instock", fulfillment: "order", categories: [], tags: [], images: [], thumb: "", shortDescription: "", description: "", related: [], rating: null, reviewCount: 0, status: "publish", createdAt: "", updatedAt: "", groupId: null, variantAttrs: {}, variantPosition: 0,
     ...over,
   }) as CatalogProduct;
 

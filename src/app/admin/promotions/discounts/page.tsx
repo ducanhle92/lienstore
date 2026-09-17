@@ -42,11 +42,11 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <ProductSearchSelect key={editing?.id ?? "new"} products={pickable} initial={editing ? toPick(editing) : null} placeholder="Gõ tên, SKU hoặc #id sản phẩm…" />
           </div>
           <div>
-            <label className={adminLabel}>Giá gốc (đ)</label>
+            <label className={adminLabel}>Giá kỳ vọng — giá gạch (đ)</label>
             <input name="regularPrice" inputMode="numeric" placeholder="giữ giá hiện tại" defaultValue={editing?.regularPrice ? formatAmount(editing.regularPrice) : ""} key={`r-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
-            <label className={adminLabel}>Giá khuyến mãi (đ)</label>
+            <label className={adminLabel}>Giá khuyến mại (đ)</label>
             <input name="price" inputMode="numeric" placeholder="VD 199.000" defaultValue={editing ? formatAmount(editing.price) : ""} key={`p-${editing?.id ?? "new"}`} className={adminInput} />
           </div>
           <div>
@@ -66,7 +66,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <thead>
               <tr>
                 <th className={thClass}>Sản phẩm</th>
-                <th className={`${thClass} text-right`}>Giá gốc</th>
+                <th className={`${thClass} text-right`}>Giá kỳ vọng</th>
                 <th className={`${thClass} text-right`}>Giá KM</th>
                 <th className={`${thClass} text-right`}>Giảm</th>
                 <th className={thClass}>Tồn</th>

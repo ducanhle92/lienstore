@@ -1068,6 +1068,25 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_receipt_items_receipt ON purchase_receipt_items(receipt_id)`,
     ],
   },
+  {
+    // Three prices per product (market / expected web price / promo — see lib/price-display.ts) and a change history
+    // of the fields that matter (prices, cost, stock, status) with who changed them.
+    version: 48,
+    name: "market-price-and-product-history",
+    up: [
+      `ALTER TABLE products ADD COLUMN market_price INTEGER`,
+      `CREATE TABLE IF NOT EXISTS product_changes (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        field      TEXT NOT NULL,
+        old_value  TEXT NOT NULL DEFAULT '',
+        new_value  TEXT NOT NULL DEFAULT '',
+        actor      TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_product_changes_product ON product_changes(product_id, id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

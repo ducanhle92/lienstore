@@ -167,7 +167,7 @@ function applyEffectiveRate(db: DatabaseSync): number {
  */
 export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySell: boolean, now = new Date().toISOString()): Promise<{ costsUpdated: number; pricesUpdated: number; skippedSale: number }> {
   // landed ¥ = quote + the source's surcharges for this item (Nguồn nhập › Phụ phí: per item / per kg / per shipment by weight)
-  const { billableOfRow, getSourceFeeMap } = await import("./db");
+  const { billableOfRow, getSourceFeeMap, logProductChanges } = await import("./db");
   const fees = getSourceFeeMap(db);
   const lotG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
   const rows = db.prepare("SELECT id, cost_jpy, cost_source, cost_price, weight_g, dims_cm, dims_confidence FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number; cost_source: string | null; cost_price: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
@@ -177,6 +177,7 @@ export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySe
     const cost = costPriceFromJpy(p.cost_jpy, p.cost_source ?? "", rate, fees, billableOfRow(p), lotG);
     if (p.cost_price !== cost) {
       updCost.run(cost, now, p.id);
+      logProductChanges(db, p.id, [{ field: "costPrice", old: p.cost_price === null ? "" : String(p.cost_price), new: String(cost) }], `Tỉ giá ${rate} đ/¥`, now);
       costsUpdated++;
     }
   }
@@ -195,6 +196,7 @@ export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySe
       const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
       if (s && s.suggested !== p.price) {
         upd.run(s.suggested, now, p.id);
+        logProductChanges(db, p.id, [{ field: "price", old: String(p.price), new: String(s.suggested) }], "Công thức giá (tự động)", now);
         pricesUpdated++;
       }
     }

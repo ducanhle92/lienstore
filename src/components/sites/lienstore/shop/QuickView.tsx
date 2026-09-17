@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatAmount } from "@/lib/format";
+import { priceView } from "@/lib/price-display";
 import { cn } from "@/lib/utils";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { AddToCartButton } from "./AddToCartButton";
@@ -16,6 +17,7 @@ export interface QuickViewProduct {
   name: string;
   price: number;
   regularPrice: number | null;
+  marketPrice?: number | null;
   currency: string;
   image: string;
   thumb: string;
@@ -88,9 +90,9 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
               <span>Liên hệ</span>
             ) : (
               <>
-                {product.regularPrice && product.regularPrice > product.price ? (
-                  <del className="mr-2 opacity-50">
-                    {formatAmount(product.regularPrice)}
+                {priceView(product).strike ? (
+                  <del className="mr-2 opacity-50" title={priceView(product).kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>
+                    {formatAmount(priceView(product).strike as number)}
                     <span>{product.currency}</span>
                   </del>
                 ) : null}

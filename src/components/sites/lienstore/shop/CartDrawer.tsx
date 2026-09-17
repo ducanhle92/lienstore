@@ -9,6 +9,7 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart } from "./CartProvider";
 import type { QuickViewProduct } from "./QuickView";
+import { priceView } from "@/lib/price-display";
 
 /**
  * Slide-in mini cart (sesofoods style): opens from the right after "Thêm vào giỏ" or the header cart icon.
@@ -165,7 +166,8 @@ function Suggestions({ ids }: { ids: number[] }) {
   if (list.length === 0) return null;
   const pages = Math.min(list.length, 5);
   const p = list[i % list.length];
-  const pct = p.regularPrice && p.regularPrice > p.price ? Math.round((1 - p.price / p.regularPrice) * 100) : 0;
+  const pv = priceView(p);
+  const pct = pv.pct ?? 0;
   const cartProduct = { id: p.id, slug: p.slug, name: p.name, price: p.price, image: p.thumb || p.image };
 
   return (
@@ -180,7 +182,7 @@ function Suggestions({ ids }: { ids: number[] }) {
           {p.name}
         </Link>
         <p className="m-0 flex flex-wrap items-center justify-center gap-1.5 text-[13px]">
-          {p.regularPrice && p.regularPrice > p.price ? <del className="text-[11px] text-lien-muted">{formatAmount(p.regularPrice)}đ</del> : null}
+          {pv.strike ? <del className="text-[11px] text-lien-muted">{formatAmount(pv.strike)}đ</del> : null}
           <span className="font-bold text-lien-sale-text">{formatAmount(p.price)}đ</span>
           {pct ? <span className="rounded bg-lien-sale px-1 text-[10px] font-bold text-white">-{pct}%</span> : null}
         </p>

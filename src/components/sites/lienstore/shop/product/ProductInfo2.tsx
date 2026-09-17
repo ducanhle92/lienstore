@@ -9,7 +9,8 @@ import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
 import { AddToCartButton } from "../AddToCartButton";
-import { discountPercent, toCartProduct } from "../ShopProductCard";
+import { toCartProduct } from "../ShopProductCard";
+import { priceView } from "@/lib/price-display";
 import { WishlistButton } from "../WishlistButton";
 import { VariantPicker, type VariantOption } from "./VariantPicker";
 
@@ -36,8 +37,9 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
   const [more, setMore] = useState(false);
-  const regular = product.regularPrice && product.regularPrice > product.price ? product.regularPrice : null;
-  const pct = discountPercent(product);
+  const pv = priceView(product);
+  const regular = pv.strike;
+  const pct = pv.pct;
   const short = stripHtml(product.shortDescription) || stripHtml(product.description).slice(0, 320);
   const clamp = (n: number) => Math.min(max, Math.max(1, Number.isFinite(n) ? Math.floor(n) : 1));
   const cats = product.categories.map((s) => ({ slug: s, name: categoryNames[s] ?? s }));
@@ -60,9 +62,10 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
           <span className="text-[26px] font-bold leading-8 text-lien-price">{t("contactForPrice")}</span>
         ) : regular ? (
           <>
-            <del className="text-[16px] text-lien-muted">{formatAmount(regular)}đ</del>
-            <span className="text-[26px] font-bold leading-8 text-lien-sale-text">{formatAmount(product.price)}đ</span>
+            <del className="text-[16px] text-lien-muted" title={pv.kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>{formatAmount(regular)}đ</del>
+            <span className={cn("text-[26px] font-bold leading-8", pv.kind === "promo" ? "text-lien-sale-text" : "text-lien-price")}>{formatAmount(product.price)}đ</span>
             <span className="rounded bg-lien-sale px-2 py-0.5 text-[12px] font-semibold text-white">{t("save")} {formatAmount(regular - product.price)}đ{pct ? ` (${pct}%)` : ""}</span>
+            {pv.kind === "market" ? <span className="text-[12px] text-lien-muted">{t("vsMarket")}</span> : null}
           </>
         ) : (
           <span className="text-[26px] font-bold leading-8 text-lien-price">{formatAmount(product.price)}đ</span>

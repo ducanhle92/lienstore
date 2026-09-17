@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Lịch sử thay đổi sản phẩm**: mọi lần đổi giá bán trên web, giá gạch, giá thị trường, giá vốn (VNĐ / ¥), nguồn mua, tồn kho, mức tồn tiêu chuẩn, trạng thái, tên, hình thức, tỉ lệ lãi, SKU đều được ghi lại kèm người / hệ thống thực hiện (admin lưu form, Giảm giá sản phẩm, Flash Sales, Kho hàng, job tỉ giá / công thức giá). Xem ở trang sửa sản phẩm › khung "Lịch sử thay đổi" (thu gọn, bấm mở).
+- **Ba mức giá** trên trang sản phẩm admin: **Giá thị trường** (tham khảo), **Giá kỳ vọng bán ra trên website** (bắt buộc — giá bán bình thường) và **Giá khuyến mại** (khi có chương trình). Ô xem trước "Khách thấy" hiện đúng cách gạch giá.
+
+### Changed
+- Quy tắc hiển thị giá cho khách: có giá thị trường cao hơn → gạch giá thị trường, hiện % rẻ hơn (kèm chữ "so với giá thị trường" trên trang sản phẩm); đang khuyến mại → khách trả giá khuyến mại, gạch giá kỳ vọng và hiện % giảm — không "tăng rồi giảm". Áp cho thẻ sản phẩm, trang sản phẩm, xem nhanh, gợi ý trong giỏ.
+- Sales › Giảm giá sản phẩm: thống nhất tên gọi "Giá kỳ vọng — giá gạch" / "Giá khuyến mại".
+
 ## [1.54.0] - 2026-09-17
 
 ### Added

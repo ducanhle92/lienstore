@@ -136,6 +136,7 @@ const DICT = {
   contactToOrder: ["Liên hệ đặt hàng", "お問い合わせでご注文"],
   isNew: ["Mới", "新着"],
   bestseller: ["Hot", "人気"],
+  vsMarket: ["so với giá thị trường", "市場価格比"],
   boughtTogether: ["Thường được mua cùng với :", "よく一緒に購入されている商品："],
   // footer
   fAccount: ["Tài khoản", "アカウント"],

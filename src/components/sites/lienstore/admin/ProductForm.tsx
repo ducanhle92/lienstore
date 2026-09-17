@@ -7,6 +7,9 @@ import { DEFAULT_PRICING, effectiveMarginPct, type PricingConfig, suggestPrice }
 import { costSourceLabel, landedFeeJpy, type SourceFees, sourceFeeLines, sourceFromUrl } from "@/lib/cost-sources";
 import { htmlToPlain, isSimpleHtml } from "@/lib/plain-html";
 import { suggestStandardStock } from "@/lib/stock-advice";
+import { expectedPriceOf, PRODUCT_CHANGE_FIELDS, priceView, promoPriceOf, storedPrices } from "@/lib/price-display";
+import { formatDateTime } from "@/lib/format";
+import type { ProductChange } from "@/lib/db";
 import { CostSourcesEditor } from "./CostSourcesEditor";
 import { InfoPopover } from "./InfoPopover";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -37,6 +40,8 @@ interface ProductFormProps {
   sources?: PurchaseSource[];
   /** Units sold per month, oldest first (existing products) — the buying trend behind "Hàng order → Lưu kho". */
   monthlySales?: Array<{ month: string; units: number }>;
+  /** Change history (newest first) for the "Lịch sử thay đổi" card. */
+  changes?: ProductChange[];
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -81,7 +86,7 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
   const [editSlug, setEditSlug] = useState(false);
   const [stockMode, setStockMode] = useState<"order" | "stock">(product ? (product.stock !== null || product.fulfillment === "stock" ? "stock" : "order") : "order");
@@ -95,7 +100,10 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url, checkedAt: c.checkedAt ?? undefined })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl, checkedAt: product.costCheckedAt ?? undefined }] : [];
   const costPrimary = Math.max(0, costDrafts.findIndex((c) => product?.costJpy !== null && product?.costJpy !== undefined && Number(c.priceJpy) === product.costJpy && (!product.costSource || c.source === product.costSource)));
   const [state, action, pending] = useActionState<ProductFormState, FormData>(saveProductAction, null);
-  const [priceText, setPriceText] = useState(String(product?.price ?? ""));
+  // three prices: expected web price (required) · promo (charged while set) · market reference
+  const [priceText, setPriceText] = useState(product ? String(expectedPriceOf(product)) : "");
+  const [promoText, setPromoText] = useState(product ? String(promoPriceOf(product) ?? "") : "");
+  const [marketText, setMarketText] = useState(String(product?.marketPrice ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
   const [skuText, setSkuText] = useState(product?.sku ?? "");
   const [marginText, setMarginText] = useState(product?.marginPct === null || product?.marginPct === undefined ? "" : String(product.marginPct));
@@ -106,7 +114,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const defaultMargin = pricing ? effectiveMarginPct(pricing, null, catSlugs) : 25;
   const [primaryJpy, setPrimaryJpy] = useState<number | null>(product?.costJpy ?? null);
   const [primarySource, setPrimarySource] = useState<string>(product?.costSource ?? "");
-  const margin = computeMargin(priceText, costText);
+  const stored = storedPrices(Number.isFinite(digits(priceText)) ? digits(priceText) : 0, Number.isFinite(digits(promoText)) ? digits(promoText) : null);
+  const preview = priceView({ ...stored, marketPrice: Number.isFinite(digits(marketText)) ? digits(marketText) : null });
+  const margin = computeMargin(String(stored.price), costText);
   const costNum = digits(costText);
   const rate = quote?.jpyRate ?? 0;
   const sourceFees: SourceFees = Object.fromEntries(sources.filter((s) => s.fees.length).map((s) => [s.key, s.fees]));
@@ -243,24 +253,81 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               error={fields.images}
             />
           </Card>
+
+          {product ? (
+            <FoldCard title="Lịch sử thay đổi" summary={changes.length ? `${changes.length} lần đổi gần đây · mới nhất ${formatDateTime(changes[0].createdAt)} (${changes[0].actor || "—"})` : "chưa có thay đổi nào được ghi"} testId="fold-history">
+              {changes.length ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-[13px]">
+                    <thead>
+                      <tr className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280]">
+                        <th className="px-2 py-1.5">Lúc</th>
+                        <th className="px-2 py-1.5">Ai</th>
+                        <th className="px-2 py-1.5">Thay đổi</th>
+                        <th className="px-2 py-1.5">Từ</th>
+                        <th className="px-2 py-1.5">Thành</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {changes.map((c) => (
+                        <tr key={c.id} className="border-t border-[#f0f0f0]">
+                          <td className="whitespace-nowrap px-2 py-1.5 text-lien-muted">{formatDateTime(c.createdAt)}</td>
+                          <td className="whitespace-nowrap px-2 py-1.5">{c.actor || "—"}</td>
+                          <td className="px-2 py-1.5 font-semibold text-lien-heading">{PRODUCT_CHANGE_FIELDS[c.field] ?? c.field}</td>
+                          <td className="px-2 py-1.5 text-lien-muted">{c.oldValue || "—"}</td>
+                          <td className="px-2 py-1.5">{c.newValue || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="m-0 text-[13px] text-lien-muted">Từ bản này, mỗi lần đổi giá bán, giá thị trường, giá vốn, tồn kho, trạng thái… đều được ghi lại kèm người / hệ thống thực hiện.</p>
+              )}
+            </FoldCard>
+          ) : null}
         </div>
 
         <div className="space-y-6">
           <Card title="Bán hàng">
             <div className="grid gap-4">
-              <div>
-                <label className={adminLabel} htmlFor="price">
-                  Giá (VNĐ) *
-                </label>
-                <input id="price" name="price" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} required className={cn(adminInput, fields.price && "border-red-500")} />
-                <FieldError msg={fields.price} />
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="regularPrice">
-                  Giá gốc (nếu đang giảm giá)
-                </label>
-                <input id="regularPrice" name="regularPrice" inputMode="numeric" defaultValue={product?.regularPrice ?? ""} className={cn(adminInput, fields.regularPrice && "border-red-500")} />
-                <FieldError msg={fields.regularPrice} />
+              <div className="grid gap-3 rounded-md border border-[#e5e7eb] p-3" data-testid="price-trio">
+                <div>
+                  <label className={adminLabel} htmlFor="expectedPrice">
+                    Giá kỳ vọng bán ra trên website (VNĐ) *
+                  </label>
+                  <input id="expectedPrice" name="expectedPrice" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} required className={cn(adminInput, fields.price && "border-red-500")} />
+                  <FieldError msg={fields.price} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={adminLabel} htmlFor="marketPrice">
+                      Giá thị trường <span className="font-normal text-lien-muted">(tham khảo)</span>
+                    </label>
+                    <input id="marketPrice" name="marketPrice" inputMode="numeric" value={marketText} onChange={(e) => setMarketText(e.target.value)} placeholder="giá nơi khác bán" className={cn(adminInput, fields.marketPrice && "border-red-500")} />
+                    <FieldError msg={fields.marketPrice} />
+                  </div>
+                  <div>
+                    <label className={adminLabel} htmlFor="promoPrice">
+                      Giá khuyến mại <span className="font-normal text-lien-muted">(khi có chương trình)</span>
+                    </label>
+                    <input id="promoPrice" name="promoPrice" inputMode="numeric" value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="trống = không KM" className={cn(adminInput, fields.promoPrice && "border-red-500")} />
+                    <FieldError msg={fields.promoPrice} />
+                  </div>
+                </div>
+                <p className="m-0 text-[12px] leading-5 text-lien-text" data-testid="price-preview">
+                  Khách thấy:{" "}
+                  {preview.current > 0 ? (
+                    <>
+                      {preview.strike ? <del className="text-lien-muted">{preview.strike.toLocaleString("vi-VN")}đ</del> : null} <strong className={preview.kind === "promo" ? "text-lien-sale-text" : "text-lien-heading"}>{preview.current.toLocaleString("vi-VN")}đ</strong>
+                      {preview.pct ? <span className="ml-1 rounded bg-lien-sale px-1 text-[11px] font-bold text-white">-{preview.pct}%</span> : null}
+                      <span className="ml-1 text-lien-muted">{preview.kind === "promo" ? "— đang khuyến mại (gạch giá kỳ vọng)" : preview.kind === "market" ? "— rẻ hơn giá thị trường (gạch giá thị trường)" : "— không gạch giá"}</span>
+                    </>
+                  ) : (
+                    <span className="text-lien-muted">Liên hệ (chưa có giá)</span>
+                  )}
+                </p>
+                <p className="m-0 text-[11px] leading-4 text-lien-muted">Giá kỳ vọng là giá bán bình thường trên web. Có giá thị trường cao hơn thì web gạch giá thị trường và hiện % rẻ hơn. Khi chạy khuyến mại, khách trả giá khuyến mại và giá kỳ vọng bị gạch — không “tăng rồi giảm” nên khách xem hôm trước không thấy giá bị đẩy lên.</p>
               </div>
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>

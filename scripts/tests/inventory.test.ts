@@ -56,7 +56,7 @@ describe("pipelineStageOf — Trạng thái theo dõi (đang lưu kho / đang v�
 
 describe("stockStateOf", () => {
   const base: CatalogProduct = {
-    id: 1, slug: "x", name: "X", price: 1000, regularPrice: null, costPrice: null, costJpy: null, costSource: "", costUrl: "",
+    id: 1, slug: "x", name: "X", price: 1000, regularPrice: null, marketPrice: null, costPrice: null, costJpy: null, costSource: "", costUrl: "",
     costCheckedAt: null, marginPct: null, supplierUrl: null, minStock: null, weightG: null, dimsConfidence: null, dimsSource: "",
     nameJa: "", shortDescriptionJa: "", descriptionJa: "", dimsCm: null, currency: "VNĐ", sku: null, stock: null, stockStatus: "instock",
     fulfillment: "order", categories: [], tags: [], images: [], thumb: "", shortDescription: "", description: "", related: [], rating: null,

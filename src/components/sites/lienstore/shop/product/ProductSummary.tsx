@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { priceView } from "@/lib/price-display";
 import Link from "next/link";
 import { formatAmount } from "@/lib/format";
 import type { CatalogProduct } from "@/types/shop";
@@ -33,7 +34,7 @@ export function ProductSummary({ product, compareCategory, children }: ProductSu
   const out = product.stockStatus === "discontinued";
   const max = product.stock ?? 99;
   const [qty, setQty] = useState(1);
-  const regular = product.regularPrice !== null && product.regularPrice > product.price ? product.regularPrice : null;
+  const regular = priceView(product).strike;
 
   const clamp = (n: number) => Math.min(max, Math.max(1, Number.isFinite(n) ? Math.floor(n) : 1));
 

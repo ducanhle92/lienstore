@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { availabilityGroup, availabilityOf } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
+import { priceView } from "@/lib/price-display";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
 import { FlashSaleCountdown } from "@/components/sites/lienstore/ui2/FlashSaleCountdown";
@@ -36,6 +37,7 @@ function toQuickView(p: CatalogProduct): QuickViewProduct {
     name: p.name,
     price: p.price,
     regularPrice: p.regularPrice,
+    marketPrice: p.marketPrice,
     currency: p.currency,
     image: p.images[0] || p.thumb,
     thumb: p.thumb || p.images[0] || "",
@@ -48,9 +50,9 @@ function toQuickView(p: CatalogProduct): QuickViewProduct {
 
 const NEW_DAYS = 45;
 
-export function discountPercent(p: Pick<CatalogProduct, "price" | "regularPrice">): number | null {
-  if (!p.regularPrice || p.regularPrice <= p.price || p.price <= 0) return null;
-  return Math.round((1 - p.price / p.regularPrice) * 100);
+/** % badge: promo below the expected price, else the web price below the market price (see lib/price-display.ts). */
+export function discountPercent(p: Pick<CatalogProduct, "price" | "regularPrice"> & { marketPrice?: number | null }): number | null {
+  return priceView(p).pct;
 }
 
 export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
@@ -67,7 +69,8 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
   const group = availabilityGroup(avail);
-  const pct = discountPercent(product);
+  const pv = priceView(product);
+  const pct = pv.pct;
   const fresh = isNewProduct(product);
   const hot = hotProp || product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
   const primary = product.thumb || product.images[0];
@@ -154,10 +157,10 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
             </span>
           ) : fam ? (
             <span className="text-lien-price">{formatAmount(fam.minPrice)}đ</span>
-          ) : product.regularPrice && product.regularPrice > product.price ? (
+          ) : pv.strike ? (
             <>
-              <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]">{formatAmount(product.regularPrice)}đ</del>
-              <span className="text-lien-sale-text">{formatAmount(product.price)}đ</span>
+              <del className="text-[11px] font-normal text-lien-muted sm:text-[12px]" title={pv.kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>{formatAmount(pv.strike)}đ</del>
+              <span className={pv.kind === "promo" ? "text-lien-sale-text" : "text-lien-price"}>{formatAmount(product.price)}đ</span>
             </>
           ) : (
             <span className="text-lien-price">{formatAmount(product.price)}đ</span>
