@@ -7,11 +7,12 @@ import { isCarrierCode } from "@/lib/carriers";
 import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { GOSHIP_PROD, GOSHIP_SANDBOX, GOSHIP_SETTING_KEYS, GoshipError, goshipCheck, goshipResetCache } from "@/lib/carriers/goship";
 import { getOrderById, saveOrderLeg } from "@/lib/db";
-import { quoteCart, quoteTransferLeg } from "@/lib/ship-quote";
+import { quoteCart, quoteTransferLeg, warehouseAddress } from "@/lib/ship-quote";
 import { getDb, getSetting, setSetting } from "@/lib/sqlite";
 import { GHN_SETTING_KEYS, GhnApiError, ghnDistricts, ghnListShops, ghnProvinces, ghnResetCache, ghnWards } from "@/lib/ghn";
 import { SPX_SETTING_KEYS } from "@/lib/carriers/spx-api";
-import { parseAddressToCodes } from "@/lib/vn-address";
+import { VTP_SETTING_KEYS, ViettelApiError, viettelCheck, viettelResetCache } from "@/lib/carriers/viettel";
+import { legacyProvincesOf, parseAddressToCodes } from "@/lib/vn-address";
 
 const ALL: CarrierCode[] = ALL_CARRIER_CODES.filter((c) => c !== "GOSHIP");
 
@@ -122,6 +123,50 @@ export async function saveGoshipSettingsAction(formData: FormData): Promise<void
   goshipResetCache();
   revalidatePath("/", "layout");
   redirect(`${back}&saved=${encodeURIComponent(`Đã kết nối Goship (${base === GOSHIP_SANDBOX ? "sandbox" : "production"}): ${check.cities} tỉnh/thành · kho gửi ${check.origin ? `${check.origin.district.name}, ${check.origin.city.name}` : `${fromDistrict}/${fromCity}`}. Khách sẽ thấy cước thật của mọi hãng qua Goship.`)}`);
+}
+
+/**
+ * ④ › Viettel Post: the owner pastes the partner token (viettelpost.vn › Quản lý token). The token is checked against
+ * the category API (listProvince) and the shop warehouse (Hoằng Hóa, Thanh Hóa) is resolved to Viettel's sender ids.
+ */
+export async function saveViettelSettingsAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping"))) redirect("/admin/login/");
+  const db = getDb();
+  const back = "/admin/shipping/?leg=vn_domestic";
+  const fail = (msg: string): never => redirect(`${back}&error=${encodeURIComponent(msg)}`);
+  if (formData.get("clear") === "1") {
+    for (const k of Object.values(VTP_SETTING_KEYS)) setSetting(db, k, "");
+    viettelResetCache();
+    revalidatePath("/", "layout");
+    redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối Viettel Post.")}`);
+  }
+  const typed = String(formData.get("token") ?? "").trim();
+  const token = typed || getSetting(db, VTP_SETTING_KEYS.token) || "";
+  if (!token) fail("Dán token Viettel Post (viettelpost.vn › Quản lý token › Tạo token / Sao chép).");
+  const wh = warehouseAddress(db);
+  let check: Awaited<ReturnType<typeof viettelCheck>>;
+  try {
+    viettelResetCache();
+    check = await viettelCheck(token, { legacyProvinceNames: legacyProvincesOf(wh.provinceCode), wardName: wh.wardName });
+  } catch (e) {
+    return fail(e instanceof ViettelApiError ? e.message : "Không kiểm tra được token Viettel Post (mạng / API không phản hồi).");
+  }
+  const provinceTyped = Number.parseInt(String(formData.get("senderProvince") ?? "").trim(), 10);
+  const districtTyped = Number.parseInt(String(formData.get("senderDistrict") ?? "").trim(), 10);
+  const senderProvince = Number.isInteger(provinceTyped) && provinceTyped > 0 ? provinceTyped : check.sender?.provinceId ?? 0;
+  const senderDistrict = Number.isInteger(districtTyped) && districtTyped > 0 ? districtTyped : check.sender?.districtId ?? 0;
+  setSetting(db, VTP_SETTING_KEYS.token, token);
+  setSetting(db, VTP_SETTING_KEYS.senderProvince, senderProvince ? String(senderProvince) : "");
+  setSetting(db, VTP_SETTING_KEYS.senderDistrict, senderDistrict ? String(senderDistrict) : "");
+  viettelResetCache();
+  revalidatePath("/", "layout");
+  const typedIds = Number.isInteger(provinceTyped) && provinceTyped > 0 && Number.isInteger(districtTyped) && districtTyped > 0;
+  const where = typedIds ? `mã ${senderProvince}/${senderDistrict} (tự điền)` : check.sender ? `${check.sender.label} · mã ${check.sender.provinceId}/${check.sender.districtId}` : "";
+  redirect(
+    `${back}&saved=${encodeURIComponent(
+      `Đã kết nối Viettel Post: token hợp lệ (tài khoản có ${check.inventories.length} kho lấy hàng đăng ký)${where ? ` · kho gửi: ${where}` : " · chưa tìm được mã kho gửi — điền Mã tỉnh/huyện gửi theo danh mục Viettel"}. Khách sẽ thấy cước Viettel Post thật khi nhập địa chỉ; chặng ③ cũng hỏi được cước Viettel trực tiếp.`,
+    )}`,
+  );
 }
 
 /** ④ › SPX Express: store User ID + Secret Key (+ fee endpoint once SPX sends the partner document). */

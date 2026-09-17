@@ -8,7 +8,7 @@ import { clearQuoteCache, quoteAllCarriers, quoteCacheKey } from "../../src/lib/
 import { ghnVolumetricWeightG } from "../../src/lib/carriers/ghn-adapter";
 import { quoteSPX, SPX_RATE_CARD, spxBillableWeightG, spxHighValueFee, spxRoutes, spxWeightFee } from "../../src/lib/carriers/spx";
 import { formatQuoteFee, sortQuotes, usableForCheckoutTotal, type AddressInput, type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "../../src/lib/carriers/types";
-import { viettelAdapter, viettelRowToQuote } from "../../src/lib/carriers/viettel";
+import { matchVtpAddress, matchVtpProvinces, viettelAdapter, viettelRowToQuote } from "../../src/lib/carriers/viettel";
 import { goshipCarrierCode, goshipRateToQuote, matchGoshipAddress, matchGoshipCities } from "../../src/lib/carriers/goship-pure";
 import { classifyVNPostRoute, quoteVNPost, vnpostBaseFee, vnpostFactor, vnpostZone } from "../../src/lib/carriers/vnpost";
 import { findProvince, findProvinceByName, findWardByName, isMergedProvince, legacyCode, legacyProvincesOf, VN_PROVINCES, wardsOf } from "../../src/lib/vn-address";
@@ -196,6 +196,32 @@ describe("Viettel Post", () => {
     assert.equal(q.available, false);
     assert.equal(q.status, "not_configured");
     assert.equal(q.totalFeeVnd, null);
+  });
+  it("resolves new-model addresses to Viettel province/district ids by name", async () => {
+    const provinces = [
+      { PROVINCE_ID: 1, PROVINCE_NAME: "Hà Nội" },
+      { PROVINCE_ID: 34, PROVINCE_NAME: "Thanh Hóa" },
+      { PROVINCE_ID: 40, PROVINCE_NAME: "Hà Tĩnh" },
+    ];
+    const districts: Record<number, Array<{ DISTRICT_ID: number; DISTRICT_NAME: string; PROVINCE_ID: number }>> = {
+      34: [
+        { DISTRICT_ID: 3401, DISTRICT_NAME: "Thành phố Thanh Hóa", PROVINCE_ID: 34 },
+        { DISTRICT_ID: 3412, DISTRICT_NAME: "Huyện Hoằng Hóa", PROVINCE_ID: 34 },
+      ],
+      1: [{ DISTRICT_ID: 101, DISTRICT_NAME: "Quận Nam Từ Liêm", PROVINCE_ID: 1 }],
+    };
+    const wards: Record<number, Array<{ WARDS_ID: number; WARDS_NAME: string; DISTRICT_ID: number }>> = {
+      3412: [{ WARDS_ID: 1, WARDS_NAME: "Thị trấn Bút Sơn", DISTRICT_ID: 3412 }],
+      101: [{ WARDS_ID: 2, WARDS_NAME: "Phường Xuân Phương", DISTRICT_ID: 101 }],
+    };
+    assert.deepEqual(matchVtpProvinces(provinces, ["Thanh Hóa"]).map((p) => p.PROVINCE_ID), [34]);
+    const th = await matchVtpAddress(provinces, async (id) => districts[id] ?? [], async (id) => wards[id] ?? [], ["Thanh Hóa"], "Xã Hoằng Hóa");
+    assert.equal(th?.district.DISTRICT_ID, 3412);
+    assert.equal(th?.how, "district");
+    const hn = await matchVtpAddress(provinces, async (id) => districts[id] ?? [], async (id) => wards[id] ?? [], ["Hà Nội"], "Phường Xuân Phương");
+    assert.equal(hn?.district.DISTRICT_ID, 101);
+    assert.equal(hn?.ward?.WARDS_ID, 2);
+    assert.equal(await matchVtpAddress(provinces, async () => [], async () => [], ["Cà Mau"], "Xã Đất Mũi"), null);
   });
   it("maps a live row to an exact quote", () => {
     const q = viettelRowToQuote({ MA_DV_CHINH: "VCN", TEN_DICHVU: "Chuyển phát nhanh", GIA_CUOC: 31000, THOI_GIAN: "2 ngày", EXCHANGE_WEIGHT: 500 }, casio(addr("Hà Nội")));
