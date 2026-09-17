@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.65.0] - 2026-09-17
+
 ### Changed
 - Đổi tên thương hiệu triệt để: mọi chỗ trên web khách còn ghi “LienStore” (tiêu đề trang, mô tả SEO, trang Hướng dẫn đặt hàng, Giới thiệu, Chính sách, Liên hệ, bài viết, mô tả sản phẩm, tên phương thức vận chuyển, ghi chú phí ship, địa chỉ kho…) nay lấy theo tên shop trong Giao diện & Logo (hiện “Store Lienanh”). Nội dung đã lưu trong CSDL được đổi một lần khi máy chủ khởi động (chữ thường “lienstore” trong đường dẫn/slug giữ nguyên); các câu cố định trong code chuyển sang “shop” để không phụ thuộc tên.
 
