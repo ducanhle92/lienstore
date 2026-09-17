@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.60.1] - 2026-09-17
+
 ### Fixed
 - Fanpage › “Lưu & kiểm tra” báo lỗi Facebook 2500 “Expected end of string instead of ?” vì URL ghép `?fields=name,link?access_token=…`; nay nối bằng `&` nên kiểm tra kết nối chạy đúng với token đã lưu.
 
