@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.51.1] - 2026-09-17
+
 ### Changed
 - Giỏ hàng nhanh › "Thường được mua cùng với": gợi ý căn giữa (ảnh, tên, giá) và chỉ còn một dòng "Thêm vào giỏ" — bỏ cột nút giỏ / xem nhanh để không lẫn với các sản phẩm đang trong giỏ.
 - Thanh liên hệ nổi bên phải: bỏ Facebook, Messenger lên đầu rồi Zalo, gọi điện; icon nhỏ hơn trên màn hình lớn.
