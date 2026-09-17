@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang Về chúng tôi: bỏ con số “hơn 149 sản phẩm” (thay đổi mỗi ngày), viết “rất nhiều sản phẩm đang bán và bổ sung liên tục”.
+
 ## [1.64.0] - 2026-09-17
 
 ### Changed

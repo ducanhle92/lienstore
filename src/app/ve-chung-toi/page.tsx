@@ -6,7 +6,7 @@ import { contact } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { Fa, type FaName } from "@/components/sites/lienstore/shared/icons";
 import { FullWidthShell, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
-import { getSiteTheme, getStats } from "@/lib/db";
+import { getSiteTheme } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ const JA = {
 export default async function AboutPage() {
   const lang = await getLang();
   const ja = lang === "ja";
-  const [stats, theme] = await Promise.all([getStats(), getSiteTheme()]);
+  const theme = await getSiteTheme();
   // the copy was written with a placeholder brand; the real name + slogan come from the theme (logo header)
   const brand = theme.shopName;
   const b = (s: string) => s.replace(/LienStore/g, brand);
@@ -77,7 +77,7 @@ export default async function AboutPage() {
                 {brand} là lời trả lời cho câu hỏi đó. Mỗi sản phẩm trên web đều do chính chúng tôi mua tại cửa hàng hoặc Amazon Nhật, chụp bill, đóng gói và gửi về. Chúng tôi không cam kết giá rẻ nhất, nhưng cam kết một điều duy nhất và không đổi: <strong>đã lên {brand} thì là hàng Nhật nội địa.</strong>
               </>}</p>
               <p className="m-0">{ja ? JA.p3 : <>
-                Cửa hàng hiện có hơn {stats.published} sản phẩm đang bán, từ thực phẩm chức năng, mỹ phẩm, mẹ & bé đến đồ gia dụng. Không thấy món cần? Nhắn Zalo, chúng tôi mua hộ.
+                Cửa hàng có rất nhiều sản phẩm đang bán và bổ sung liên tục, từ thực phẩm chức năng, mỹ phẩm, mẹ & bé đến đồ gia dụng. Không thấy món cần? Nhắn Zalo, chúng tôi mua hộ.
               </>}</p>
             </div>
             <aside className="rounded-md border border-lien-line bg-lien-cream p-5 text-[14px] leading-6">
