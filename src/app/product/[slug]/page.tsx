@@ -38,10 +38,10 @@ function metaDescription(shortDescription: string, description: string): string 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const found = await getProductBySlug(slug);
-  if (!found || found.status !== "publish") return { title: "Không tìm thấy sản phẩm – LienStore" };
+  if (!found || found.status !== "publish") return { title: "Không tìm thấy sản phẩm" };
   const product = localizeProduct(found, await getLang());
   return {
-    title: `${product.name} – LienStore`,
+    title: product.name,
     description: metaDescription(product.shortDescription, product.description),
     openGraph: {
       title: product.name,

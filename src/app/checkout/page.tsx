@@ -11,7 +11,7 @@ import { parseAddressToCodes } from "@/lib/vn-address";
 import { getBankConfig } from "@/lib/bank-config";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Thanh toán – LienStore" };
+export const metadata: Metadata = { title: "Thanh toán" };
 
 export default async function Checkout() {
   const lang = await getLang();

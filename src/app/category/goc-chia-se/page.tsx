@@ -3,13 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getPosts } from "@/lib/db";
+import { getPosts, getSiteTheme } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Góc Chia Sẻ – LienStore",
-  description: "Bài viết chia sẻ kinh nghiệm dùng mỹ phẩm và thực phẩm chức năng Nhật Bản của LienStore.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { shopName } = await getSiteTheme();
+  return { title: "Góc Chia Sẻ", description: `Bài viết chia sẻ kinh nghiệm dùng mỹ phẩm và thực phẩm chức năng Nhật Bản của ${shopName}.` };
+}
 
 export default async function BlogCategoryPage() {
   const posts = await getPosts();

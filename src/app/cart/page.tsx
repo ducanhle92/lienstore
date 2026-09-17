@@ -5,7 +5,7 @@ import { CartPage } from "@/components/sites/lienstore/shop/cart/CartPage";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 
-export const metadata: Metadata = { title: "Giỏ hàng – LienStore" };
+export const metadata: Metadata = { title: "Giỏ hàng" };
 
 export default async function Cart() {
   return (

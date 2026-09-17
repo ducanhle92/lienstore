@@ -13,7 +13,7 @@ interface CategoryListingProps {
 /** Shared `generateMetadata` for /product-category/[slug]/ and its paginated route. */
 export async function categoryMetadata(slug: string): Promise<Metadata> {
   const category = await getCategoryBySlug(slug);
-  return { title: category ? `${category.name} – LienStore` : "LienStore" };
+  return { title: category ? category.name : "Danh mục" };
 }
 
 /** Shared body of /product-category/[slug]/ and /product-category/[slug]/page/[n]/. */

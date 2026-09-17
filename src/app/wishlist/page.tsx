@@ -5,7 +5,7 @@ import { WishlistPage } from "@/components/sites/lienstore/shop/cart/WishlistPag
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { FullWidthShell, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 
-export const metadata: Metadata = { title: "Wishlist – LienStore" };
+export const metadata: Metadata = { title: "Wishlist" };
 
 export default async function Wishlist() {
   const lang = await getLang();

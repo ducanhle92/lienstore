@@ -114,6 +114,16 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
+  // one-time: stored texts still saying "LienStore" → the theme's shop name (see lib/brand-rename-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyBrandRenameOnce } = await import("./lib/brand-rename-job");
+      const r = await applyBrandRenameOnce();
+      if (r) console.info(`[brand] "LienStore" → "${r.shopName}" in ${r.rows} rows and ${r.settings} settings`);
+    } catch (e) {
+      console.warn(`[brand] rename job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 10_000);
   // one-time: customers pick only GHN / J&T / Viettel Post (see lib/carrier-trio-job.ts)
   setTimeout(async () => {
     try {

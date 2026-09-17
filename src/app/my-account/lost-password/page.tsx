@@ -4,7 +4,7 @@ import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSideba
 import { WooHeading } from "@/components/sites/lienstore/shop/cart/WooUi";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
 
-export const metadata: Metadata = { title: "Quên mật khẩu – LienStore" };
+export const metadata: Metadata = { title: "Quên mật khẩu" };
 
 export default function LostPassword() {
   return (

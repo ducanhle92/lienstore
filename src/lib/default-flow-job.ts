@@ -19,7 +19,7 @@ const REV = "1";
 export async function applyDefaultFlowOnce(): Promise<{ methodId: number; unitFixed: boolean; ordersMoved: number; pricesUpdated: number } | null> {
   const db = getDb();
   if (getSetting(db, "default_flow_rev") === REV) return null;
-  const m = db.prepare("SELECT id FROM shipping_methods WHERE leg = 'jp_domestic' AND name LIKE 'LienStore gom%' ORDER BY id LIMIT 1").get() as { id: number } | undefined;
+  const m = db.prepare("SELECT id FROM shipping_methods WHERE leg = 'jp_domestic' AND name LIKE '%gom tại nhà%' ORDER BY id LIMIT 1").get() as { id: number } | undefined;
   if (!m) {
     setSetting(db, "default_flow_rev", REV);
     return null;

@@ -23,7 +23,7 @@ const colTitle = "mb-4 text-[14px] font-bold uppercase tracking-[0.5px] text-lie
 const colLink = "block py-1 text-[14px] leading-6 text-lien-text no-underline hover:text-lien-blue";
 
 /** Light-grey 5-column footer: store info · account · support · main categories · connect. */
-export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, supportLinks, policyLinks = [], copyright, lang = "vi" }: Footer2Props) {
+export function Footer2({ logo, shopName = "Shop", contact, accountLinks, supportLinks, policyLinks = [], copyright, lang = "vi" }: Footer2Props) {
   return (
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">

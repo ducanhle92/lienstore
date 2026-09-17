@@ -6,7 +6,7 @@ import { Breadcrumb } from "@/components/sites/lienstore/shop/Breadcrumb";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { PostCommentForm } from "@/components/sites/lienstore/shop/PostCommentForm";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";
-import { getPageBySlug, getPostBySlug, getPosts } from "@/lib/db";
+import { getPageBySlug, getPostBySlug, getPosts, getSiteTheme } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 
 interface Props {
@@ -29,8 +29,8 @@ async function resolve(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const found = await resolve(slug);
-  if (!found) return { title: "Không tìm thấy trang – LienStore" };
-  return { title: `${found.entry.title} – LienStore` };
+  if (!found) return { title: "Không tìm thấy trang" };
+  return { title: found.entry.title };
 }
 
 export default async function EntryPage({ params }: Props) {
@@ -38,6 +38,7 @@ export default async function EntryPage({ params }: Props) {
   const found = await resolve(slug);
   if (!found) notFound();
   const { kind, entry } = found;
+  const theme = await getSiteTheme();
 
   // Previous (older) / next (newer) post navigation, like the original theme's post-navigation.
   let prev: { slug: string; title: string } | null = null;
@@ -60,7 +61,7 @@ export default async function EntryPage({ params }: Props) {
                 <span className="posted-on">
                   Posted on <time dateTime={entry.date}>{formatDate(entry.date)}</time>
                 </span>{" "}
-                <span className="byline">by LienStore</span>
+                <span className="byline">by {theme.shopName}</span>
               </p>
             ) : null}
             <h1 className="mb-2 text-[26px] font-bold leading-9 text-lien-heading">{entry.title}</h1>

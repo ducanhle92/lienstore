@@ -11,9 +11,9 @@ interface Step {
   detailJa: string;
 }
 
-/** The five steps of buying at LienStore (also drives the illustrated banner). */
+/** The five steps of buying at the shop (also drives the illustrated banner). */
 export const GUIDE_STEPS: Step[] = [
-  { icon: "shopping-cart", vi: "Chọn sản phẩm hoặc gửi link cần mua hộ", ja: "商品を選ぶ／購入代行のリンクを送る", detailVi: "Tìm theo danh mục, tìm kiếm hoặc bấm “Thêm vào giỏ”. Chưa có món cần? Gửi link Amazon / ảnh qua Zalo, LienStore báo giá trong ngày.", detailJa: "カテゴリーや検索から商品を選び「カートに入れる」。取り扱いのない商品はAmazonのリンクや写真をZaloで送ってください。当日中にお見積りします。" },
+  { icon: "shopping-cart", vi: "Chọn sản phẩm hoặc gửi link cần mua hộ", ja: "商品を選ぶ／購入代行のリンクを送る", detailVi: "Tìm theo danh mục, tìm kiếm hoặc bấm “Thêm vào giỏ”. Chưa có món cần? Gửi link Amazon / ảnh qua Zalo, shop báo giá trong ngày.", detailJa: "カテゴリーや検索から商品を選び「カートに入れる」。取り扱いのない商品はAmazonのリンクや写真をZaloで送ってください。当日中にお見積りします。" },
   { icon: "file-text-o", vi: "Xác nhận thông tin đặt hàng", ja: "ご注文内容の確認", detailVi: "Điền tên, số điện thoại, địa chỉ hoặc chọn nhận tại kho Thanh Hóa. Phí vận chuyển được tính tự động theo cân nặng đơn.", detailJa: "お名前・電話番号・住所を入力、またはタインホア倉庫での受け取りを選択。送料は注文の重量から自動計算されます。" },
   { icon: "credit-card", vi: "Chọn hình thức nhận hàng và thanh toán", ja: "受け取り・お支払い方法を選ぶ", detailVi: "Giao tận nhà (chọn đơn vị vận chuyển theo cước hiển thị) hoặc nhận tại kho Thanh Hóa. Thanh toán bằng chuyển khoản theo mã QR động của đơn (đã điền sẵn số tiền), hoặc khi nhận hàng. Hàng order cần thanh toán trước 100%.", detailJa: "ご自宅配送（表示された送料で配送会社を選択）またはタインホア倉庫で受け取り。注文番号入りQRコードで銀行振込、または代金引換。お取り寄せ商品は全額前払いです。" },
   { icon: "plane", vi: "Theo dõi đơn hàng dễ dàng", ja: "注文状況をかんたんに確認", detailVi: "Trang đơn hàng hiện tiến độ từng bước (đã đặt → đã thanh toán → đang vận chuyển → về kho Việt Nam → đang giao → đã nhận). Tra cứu bill đơn hàng mọi lúc và chat với shop ngay trong đơn.", detailJa: "注文ページで進捗を段階ごとに確認（注文→入金確認→輸送中→ベトナム倉庫→配達中→受取完了）。購入レシートはいつでも確認でき、注文内でショップとチャットできます。" },

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const theme = await getSiteTheme();
   return {
-    title: `Về chúng tôi & liên hệ – ${theme.shopName}`,
+    title: "Về chúng tôi & liên hệ",
     description: `${theme.shopName} – ${theme.slogan || "hàng Nhật nội địa"}, mua tận tay tại Nhật, có bill đối chiếu từng đơn. Hotline, Zalo, Facebook và địa chỉ liên hệ.`,
   };
 }

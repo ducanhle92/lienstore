@@ -33,7 +33,7 @@ export const branding = {
   logoWidth: 520,
   logoHeight: 120,
   tagline: "ĐẸP MỖI GIÂY – KHỎE MỖI NGÀY",
-  siteTitle: "LienStore",
+  siteTitle: "Store Lienanh",
   homeHref: "/",
 };
 
@@ -74,7 +74,7 @@ export const footerColumns: FooterColumn[] = [
     contact: true,
   },
   {
-    title: "Về LienStore",
+    title: "Về chúng tôi",
     links: [
       { label: "Về chúng tôi", href: "/ve-chung-toi/" },
       { label: "Liên hệ", href: "/ve-chung-toi/#lien-he" },
@@ -93,6 +93,7 @@ export const footerColumns: FooterColumn[] = [
   },
 ];
 
+/** "LienStore" is swapped for the theme's shopName where this is rendered (SiteChrome). */
 export const footerCopyright = "Copyright 2020-2026 by LienStore. All Rights Reserved.";
 
 export const sliderAssets = {

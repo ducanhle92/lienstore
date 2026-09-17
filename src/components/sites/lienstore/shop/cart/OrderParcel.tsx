@@ -34,7 +34,7 @@ export function OrderParcel({ order, legs }: { order: Order; legs: OrderLeg[] })
   const rows: Array<[string, React.ReactNode]> = [
     [
       "Hình thức",
-      order.delivery === "pickup" ? "Nhận tại kho LienStore (Hoằng Hóa, Thanh Hóa)" : `Giao tận nhà · ${vnLegLabel(order.shippingLabel) || "đơn vị vận chuyển"}${quote?.service ? ` · ${quote.service}` : ""}`,
+      order.delivery === "pickup" ? "Nhận tại kho shop (Hoằng Hóa, Thanh Hóa)" : `Giao tận nhà · ${vnLegLabel(order.shippingLabel) || "đơn vị vận chuyển"}${quote?.service ? ` · ${quote.service}` : ""}`,
     ],
     [
       "Phí giao hàng",

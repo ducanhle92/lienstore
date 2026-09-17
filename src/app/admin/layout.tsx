@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const theme = await getSiteTheme();
-  return { title: `Quản trị – ${theme.shopName}`, robots: { index: false, follow: false } };
+  return { title: "Quản trị", robots: { index: false, follow: false } };
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

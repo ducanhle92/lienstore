@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSiteTheme } from "@/lib/db";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
@@ -11,10 +12,10 @@ import { getShipPolicy, getShippingNotes } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Chi phí vận chuyển – LienStore",
-  description: "Cước giao hàng nội địa Việt Nam của LienStore được báo theo địa chỉ nhận, khối lượng và kích thước kiện hàng.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { shopName } = await getSiteTheme();
+  return { title: "Chi phí vận chuyển", description: `Cước giao hàng nội địa Việt Nam của ${shopName} được báo theo địa chỉ nhận, khối lượng và kích thước kiện hàng.` };
+}
 
 /** Shipping page: address → per-carrier quotes for the current cart (no nationwide zone table). */
 export default async function ShippingPage() {

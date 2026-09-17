@@ -6,7 +6,7 @@ export type ShippingLeg = "jp_domestic" | "jp_vn" | "vn_transfer" | "vn_domestic
 export const SHIPPING_LEGS: Array<{ key: ShippingLeg; label: string; description: string }> = [
   { key: "jp_domestic", label: "① Ship nội địa Nhật", description: "Từ nơi mua (cửa hàng, Amazon) tới kho gom hàng tại Nhật." },
   { key: "jp_vn", label: "② Ship Nhật → Việt Nam", description: "Từ kho Nhật về kho Việt Nam (đường bay / đường biển / EMS / xách tay)." },
-  { key: "vn_transfer", label: "③ Kho ĐVVC → kho shop", description: "Từ kho đơn vị vận chuyển tại Việt Nam (Hà Nội) về kho LienStore Thanh Hóa. Mặc định Kiến Express, admin chọn hãng khác nếu muốn." },
+  { key: "vn_transfer", label: "③ Kho ĐVVC → kho shop", description: "Từ kho đơn vị vận chuyển tại Việt Nam (Hà Nội) về kho shop Thanh Hóa. Mặc định Kiến Express, admin chọn hãng khác nếu muốn." },
   { key: "vn_domestic", label: "④ Ship nội địa Việt Nam", description: "Từ kho Thanh Hóa giao tới tận nhà khách. Cước báo theo địa chỉ nhận qua từng hãng (GHN API, Viettel Post API, biểu phí VNPost / SPX) — không dùng bảng vùng cố định." },
 ];
 
@@ -262,8 +262,8 @@ export function quoteJpLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal:
 export type ShipStage = "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
 
 export const SHIP_STAGES: Array<{ key: ShipStage; label: string; short: string; hint: string }> = [
-  { key: "ordered", label: "Đã đặt hàng", short: "Đặt hàng", hint: "Đơn đã được ghi nhận, LienStore sẽ xác nhận sớm." },
-  { key: "paid", label: "Đã xác nhận thanh toán", short: "Đã thanh toán", hint: "LienStore đã nhận thanh toán và tiến hành mua hàng tại Nhật." },
+  { key: "ordered", label: "Đã đặt hàng", short: "Đặt hàng", hint: "Đơn đã được ghi nhận, shop sẽ xác nhận sớm." },
+  { key: "paid", label: "Đã xác nhận thanh toán", short: "Đã thanh toán", hint: "Shop đã nhận thanh toán và tiến hành mua hàng tại Nhật." },
   { key: "in_transit", label: "Đang vận chuyển", short: "Vận chuyển", hint: "Hàng đang trên đường từ Nhật về Việt Nam." },
   { key: "vn_warehouse", label: "Đã tới kho Việt Nam", short: "Kho VN", hint: "Hàng đã về kho Thanh Hóa, chuẩn bị giao." },
   { key: "delivering", label: "Đang giao", short: "Đang giao", hint: "Đơn vị vận chuyển nội địa đang giao tới bạn." },

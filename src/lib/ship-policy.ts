@@ -16,7 +16,7 @@ export interface ShipPolicy {
 export const DEFAULT_SHIP_POLICY: ShipPolicy = {
   enabled: false,
   title: "Hỗ trợ phí vận chuyển",
-  text: "LienStore hỗ trợ toàn bộ phí giao hàng nội địa Việt Nam cho đơn đạt giá trị tối thiểu theo khu vực. Khoản hỗ trợ được trừ ngay trong đơn hàng khi thanh toán.",
+  text: "Shop hỗ trợ toàn bộ phí giao hàng nội địa Việt Nam cho đơn đạt giá trị tối thiểu theo khu vực. Khoản hỗ trợ được trừ ngay trong đơn hàng khi thanh toán.",
   thresholds: { thanh_hoa: 500000, north: 1000000, central: 1000000, south: 1000000 },
 };
 

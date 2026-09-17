@@ -12,7 +12,7 @@ const JA_PHRASES: Array<[RegExp, string]> = [
   // whole sentences first, then place names, then units
   [/Chuyển phát nội địa Nhật theo cỡ kiện \(size = dài\+rộng\+cao, cm\)\./g, "日本国内の宅配便。サイズ＝縦+横+高さ（cm）。"], [/Chuyển phát nội địa Nhật\./g, "日本国内の宅配便。"],
   [/Bưu điện Nhật, gửi tại bưu cục hoặc combini\./g, "日本郵便。郵便局またはコンビニから発送。"],
-  [/Khách \/ người mua tự mang hàng tới kho gom, không tính phí\./g, "お客様が集荷倉庫へ直接持ち込み。無料。"], [/LienStore tới tận nhà gom hàng trong bán kính 30 km, từ 20 kg trở lên\./g, "倉庫から30km圏内・20kg以上はLienStoreが集荷に伺います。"],
+  [/Khách \/ người mua tự mang hàng tới kho gom, không tính phí\./g, "お客様が集荷倉庫へ直接持ち込み。無料。"], [/\S.* tới tận nhà gom hàng trong bán kính 30 km, từ 20 kg trở lên\./g, "倉庫から30km圏内・20kg以上はLienStoreが集荷に伺います。"],
   [/Gom đơn hàng tuần và gửi về Việt Nam\. Phí tính theo cân nặng thực tế sau khi đóng gói\./g, "毎週まとめてベトナムへ発送。料金は梱包後の実重量で計算します。"],
   [/Gửi thẳng từ bưu điện Nhật về địa chỉ Việt Nam, 3–6 ngày, có mã theo dõi\./g, "日本郵便からベトナムの住所へ直送、3〜6日、追跡番号付き。"],
   [/Từ kho Thanh Hóa giao tới tận nhà qua đơn vị vận chuyển\. Phí tính theo khu vực nhận hàng\./g, "タインホア倉庫から配送業者でご自宅へ。料金は配送地域によります。"],

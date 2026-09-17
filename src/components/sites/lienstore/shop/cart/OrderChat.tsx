@@ -29,7 +29,7 @@ interface Props {
  * Mercari-style conversation attached to an order: my messages on the right (blue), the other side on the left (grey).
  * Server-rendered message list + a form posting through a server action; refreshes itself while open.
  */
-export function OrderChat({ orderId, messages, me, action, hidden = {}, quickReplies = [], shopName = "LienStore", className, pollMs = 20000 }: Props) {
+export function OrderChat({ orderId, messages, me, action, hidden = {}, quickReplies = [], shopName = "shop", className, pollMs = 20000 }: Props) {
   const [state, formAction, pending] = useActionState<ChatState, FormData>(action, null);
   const router = useRouter();
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -129,7 +129,7 @@ export function OrderChat({ orderId, messages, me, action, hidden = {}, quickRep
           required
           maxLength={2000}
           rows={3}
-          placeholder={me === "customer" ? "Nhắn cho LienStore về đơn này (giờ nhận hàng, đổi địa chỉ, hỏi tiến độ…)" : "Trả lời khách: tiến độ, bill, thay đổi phí…"}
+          placeholder={me === "customer" ? `Nhắn cho ${shopName} về đơn này (giờ nhận hàng, đổi địa chỉ, hỏi tiến độ…)` : "Trả lời khách: tiến độ, bill, thay đổi phí…"}
           className="block w-full rounded-md border border-lien-input-border bg-white px-3 py-2 text-[14px] leading-6 text-lien-text outline-none focus:border-lien-blue focus:ring-2 focus:ring-lien-blue/20"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) formRef.current?.requestSubmit();

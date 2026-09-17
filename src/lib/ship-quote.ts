@@ -32,7 +32,7 @@ export function warehouseAddress(db: DatabaseSync = getDb()): AddressInput {
     provinceName: province.name,
     wardCode: ward?.code ?? "",
     wardName: ward?.name ?? "",
-    fullAddress: composeAddress(getSetting(db, "pickup_address") || "Kho LienStore, Hoằng Hóa", ward, province),
+    fullAddress: composeAddress(getSetting(db, "pickup_address") || "Kho shop, Hoằng Hóa", ward, province),
     legacyProvinceCode: legacy.length === 1 ? legacyCode(legacy[0]) : undefined,
   };
 }

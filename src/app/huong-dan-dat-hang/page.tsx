@@ -3,26 +3,26 @@ import Link from "next/link";
 import { FullWidthShell, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
 import { GuideDetails, GuideSteps } from "@/components/sites/lienstore/ui2/ShoppingGuide";
-import { getPageBySlug } from "@/lib/db";
+import { getPageBySlug, getSiteTheme } from "@/lib/db";
 import { getLang } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "Hướng dẫn mua hàng – LienStore",
-  description: "5 bước mua hàng Nhật tại LienStore: chọn sản phẩm hoặc gửi link mua hộ, xác nhận đơn, thanh toán, theo dõi đơn và nhận hàng.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { shopName } = await getSiteTheme();
+  return { title: "Hướng dẫn mua hàng", description: `5 bước mua hàng Nhật tại ${shopName}: chọn sản phẩm hoặc gửi link mua hộ, xác nhận đơn, thanh toán, theo dõi đơn và nhận hàng.` };
+}
 
 /** /huong-dan-dat-hang/ — illustrated 5-step guide + the detailed text kept from the old site. */
 export default async function GuidePage() {
   const lang = await getLang();
   const ja = lang === "ja";
-  const legacy = await getPageBySlug("huong-dan-dat-hang");
+  const [legacy, theme] = await Promise.all([getPageBySlug("huong-dan-dat-hang"), getSiteTheme()]);
   return (
     <SiteChrome>
       <PageBand
         title={ja ? "お買い物ガイド" : "Hướng dẫn mua hàng"}
         crumbs={[{ label: ja ? "お買い物ガイド" : "Hướng dẫn mua hàng" }]}
-        description={ja ? "日本国内の商品を、5つのステップで簡単にご注文いただけます。" : "Mua hàng Nhật nội địa tại LienStore chỉ với 5 bước, có bill mua hàng cho từng đơn."}
+        description={ja ? "日本国内の商品を、5つのステップで簡単にご注文いただけます。" : `Mua hàng Nhật nội địa tại ${theme.shopName} chỉ với 5 bước, có bill mua hàng cho từng đơn.`}
       />
       <FullWidthShell>
         <div className="mx-auto max-w-[1000px]">

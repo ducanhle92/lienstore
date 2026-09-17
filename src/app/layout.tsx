@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const [theme, base] = await Promise.all([getSiteTheme(), siteUrl()]);
   return {
     metadataBase: new URL(base),
-    title: theme.slogan ? `${theme.shopName} – ${theme.slogan}` : theme.shopName,
+    title: { default: theme.slogan ? `${theme.shopName} – ${theme.slogan}` : theme.shopName, template: `%s – ${theme.shopName}` },
     description: `${theme.shopName} – Mỹ phẩm, thực phẩm chức năng, hàng tiêu dùng Nhật nội địa`,
     icons: {
       icon: [{ url: theme.icon, type: "image/png" }],
