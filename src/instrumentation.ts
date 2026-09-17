@@ -37,6 +37,26 @@ export async function register() {
       console.warn(`[legs] fix failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 8_000);
+  // one-time: pin ¥→đ at 170 and recompute costs + formula prices at that rate (see lib/fixed-rate-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyFixedRateOnce } = await import("./lib/fixed-rate-job");
+      const r = await applyFixedRateOnce();
+      if (r) console.info(`[fx] fixed rate ${r.rate}: costs ${r.costsUpdated}, prices ${r.pricesUpdated}, skipped on sale ${r.skippedSale}`);
+    } catch (e) {
+      console.warn(`[fx] fixed-rate job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 10_000);
+  // one-time: re-shape the OS Drug import descriptions into headed sections (see lib/description-fix-job.ts)
+  setTimeout(async () => {
+    try {
+      const { restructureImportedDescriptions } = await import("./lib/description-fix-job");
+      const r = await restructureImportedDescriptions();
+      if (r) console.info(`[desc] restructured ${r.updated} imported descriptions (${r.skipped} left as-is)`);
+    } catch (e) {
+      console.warn(`[desc] restructure failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 12_000);
   // one-time: even out uploaded product thumbnails (white margins trimmed) — public/ thumbs are trimmed in the repo
   setTimeout(async () => {
     try {

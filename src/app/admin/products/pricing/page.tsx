@@ -64,7 +64,7 @@ export default async function AdminPricing({ searchParams }: Props) {
                 )}
               </p>
               <label className={`${adminLabel} mt-3`} htmlFor="dcomRate">
-                Nhập tay (ghi đè, để trống = theo DCOM tự lấy)
+                Tỉ giá cố định — nhập tay (ghi đè tỉ giá tự lấy; để trống = theo DCOM tự lấy)
               </label>
               <input id="dcomRate" name="dcomRate" inputMode="decimal" defaultValue={fx.dcomManualRate ?? ""} placeholder="VD: 167,4" className={adminInput} />
               {fx.dcomManualRate ? <p className="mt-1 text-[12px] text-amber-700">Đang ghi đè bằng {formatAmount(fx.dcomManualRate)} đ/¥ (nhập lúc {fx.dcomManualUpdatedAt ? formatDateTime(fx.dcomManualUpdatedAt) : "?"}). Xóa ô này và Lưu để quay về tỉ giá tự lấy.</p> : null}

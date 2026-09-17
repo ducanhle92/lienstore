@@ -159,6 +159,36 @@ function applyEffectiveRate(db: DatabaseSync): number {
   return fx.effective;
 }
 
+/**
+ * ¥ cost → VND cost for every product with a Japanese price, then (when `applySell`) the selling price from the formula
+ * for those not on sale — a product with a crossed-out regular price keeps both its prices (Sales › Giảm giá / Flash
+ * Sales own them). Shared by the nightly job and the one-time fixed-rate job.
+ */
+export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySell: boolean, now = new Date().toISOString()): Promise<{ costsUpdated: number; pricesUpdated: number; skippedSale: number }> {
+  const r = db.prepare("UPDATE products SET cost_price = CAST(ROUND(cost_jpy * ?) AS INTEGER), updated_at = ? WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND (cost_price IS NULL OR cost_price <> CAST(ROUND(cost_jpy * ?) AS INTEGER))").run(rate, now, rate);
+  const costsUpdated = Number(r.changes);
+  let pricesUpdated = 0;
+  let skippedSale = 0;
+  if (applySell) {
+    const { getAllProducts, getImportQuoteConfig, getPricingConfig } = await import("./db");
+    const [pricing, quote, all] = await Promise.all([getPricingConfig(), getImportQuoteConfig(), getAllProducts(true)]);
+    const rows = all.filter((p) => p.costJpy && p.costJpy > 0 && p.costPrice !== null);
+    const upd = db.prepare("UPDATE products SET price = ?, updated_at = ? WHERE id = ?");
+    for (const p of rows) {
+      if (p.regularPrice !== null) {
+        skippedSale++;
+        continue;
+      }
+      const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
+      if (s && s.suggested !== p.price) {
+        upd.run(s.suggested, now, p.id);
+        pricesUpdated++;
+      }
+    }
+  }
+  return { costsUpdated, pricesUpdated, skippedSale };
+}
+
 export interface PricingRun {
   rate: number;
   rateSource: string;
@@ -183,30 +213,8 @@ export async function runPricingJob(opts: { applySell?: boolean } = {}): Promise
   const rate = applyEffectiveRate(db);
   const fx = readFx(db);
   const now = new Date().toISOString();
-  // 1) ¥ cost → VND cost for every product that has a Japanese price
-  const r = db.prepare("UPDATE products SET cost_price = CAST(ROUND(cost_jpy * ?) AS INTEGER), updated_at = ? WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND (cost_price IS NULL OR cost_price <> CAST(ROUND(cost_jpy * ?) AS INTEGER))").run(rate, now, rate);
-  const costsUpdated = Number(r.changes);
-  // 2) selling price from the formula (products with a ¥ cost, not on sale)
-  let pricesUpdated = 0;
-  let skippedSale = 0;
+  const { costsUpdated, pricesUpdated, skippedSale } = await applyFormulaPrices(db, rate, opts.applySell ?? fx.autoSell, now);
   const applySell = opts.applySell ?? fx.autoSell;
-  if (applySell) {
-    const { getAllProducts, getImportQuoteConfig, getPricingConfig } = await import("./db");
-    const [pricing, quote, all] = await Promise.all([getPricingConfig(), getImportQuoteConfig(), getAllProducts(true)]);
-    const rows = all.filter((p) => p.costJpy && p.costJpy > 0 && p.costPrice !== null);
-    const upd = db.prepare("UPDATE products SET price = ?, updated_at = ? WHERE id = ?");
-    for (const p of rows) {
-      if (p.regularPrice !== null) {
-        skippedSale++;
-        continue;
-      }
-      const s = suggestPrice({ costPrice: p.costPrice, weightG: p.weightG, dimsCm: p.dimsCm, dimsConfidence: p.dimsConfidence, marginPct: p.marginPct, categories: p.categories }, quote, pricing);
-      if (s && s.suggested !== p.price) {
-        upd.run(s.suggested, now, p.id);
-        pricesUpdated++;
-      }
-    }
-  }
   const run: PricingRun = { rate, rateSource: fx.mode === "dcom" && fx.dcomRate ? (fx.dcomManualRate ? "DCOM nhập tay" : "DCOM") : fx.marketSource || "market", marketFetched: !!market, dcomFetched: !!dcom, dcomRate: dcom?.rate ?? null, costsUpdated, pricesUpdated, skippedSale, at: now };
   setSetting(db, "pricing_last_run_at", now);
   setSetting(
