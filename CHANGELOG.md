@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.64.0] - 2026-09-17
+
 ### Changed
 - Tổng quan: ô số liệu sắp lại thành hai nhóm **Bán hàng** (Doanh thu, Lãi/lỗ, Đơn hàng, Chờ xử lý, Khách hàng) và **Sản phẩm** (Tổng, Đang bán, Hết hàng); mỗi ô có ⓘ giải thích cách tính, dòng phụ (hôm nay, đã hủy, thiếu giá vốn…), tiền hiện dạng gọn “16,77 tr” không tràn ô (số đầy đủ ở dòng dưới). Đơn hàng và doanh thu trừ đơn đã hủy; Khách hàng chỉ đếm tài khoản khách (không tính chủ shop / quản trị).
 
