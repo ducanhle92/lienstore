@@ -37,8 +37,8 @@ const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = {
 const LEG_API_NOTE: Record<ShippingLeg, string> = {
   jp_domestic: "Kết nối API: Japan Post (ゆうパック), Yamato, Sagawa không có API công khai tính cước cho khách lẻ (Yamato B2/Sagawa e飛伝 cần hợp đồng doanh nghiệp) → tính theo công thức biểu phí cỡ kiện (size = D+R+C) như bảng dưới; hoặc gom nhiều đơn thành một kiện lớn (Gom lô) để giảm phí.",
   jp_vn: "Kết nối API: Kiến Express không có API — cước theo bảng /kg do Kiến báo. Giảm phí bằng cách gom đủ lô (Gom lô ở sheet Đơn hàng) vì cước tính theo tổng cân của chuyến.",
-  vn_transfer: "Kết nối API: Viettel Post có Open API đối tác — dán token ở sheet ④ › Kết nối Viettel Post là nút “Báo giá chặng ③” lấy cước thật; Goship cũng báo được cước chặng này. SPX chỉ cấp API cho tài khoản được ủy quyền → hiện dùng biểu phí công khai. Bảng dưới là công thức đang dùng.",
-  vn_domestic: "Kết nối API: dán token ở các thẻ bên dưới (Goship, Viettel Post, GHN, SPX) — khóa được mã hóa lưu trên máy chủ, chủ cửa hàng xem lại được ở thẻ “Khóa API đã lưu”. VNPost và SPX chưa có API theo biểu phí công khai (phiên bản hóa). Cước cho khách được báo theo địa chỉ, không dùng bảng vùng bên dưới để thu tiền.",
+  vn_transfer: "Kết nối API: nút “Báo giá chặng ③” ở chi tiết đơn lấy cước thật từ API công khai của Viettel Post (không cần token) và từ Goship (Best, GHN, J&T theo tài khoản shop). SPX chỉ cấp API cho tài khoản được ủy quyền → hiện dùng biểu phí công khai. Bảng dưới là công thức đang dùng.",
+  vn_domestic: "Kết nối API: Goship (token), GHN (token), Viettel Post (API công khai, không cần token); SPX và VNPost theo biểu phí công khai (phiên bản hóa). Khóa được mã hóa lưu trên máy chủ, chủ cửa hàng xem lại ở thẻ “Khóa API đã lưu”. Cước cho khách được báo theo địa chỉ, không dùng bảng vùng bên dưới để thu tiền.",
 };
 
 /** Carriers serving a leg (a carrier may serve several). */

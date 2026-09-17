@@ -8,7 +8,7 @@ import { clearQuoteCache, quoteAllCarriers, quoteCacheKey } from "../../src/lib/
 import { ghnVolumetricWeightG } from "../../src/lib/carriers/ghn-adapter";
 import { quoteSPX, SPX_RATE_CARD, spxBillableWeightG, spxHighValueFee, spxRoutes, spxWeightFee } from "../../src/lib/carriers/spx";
 import { formatQuoteFee, sortQuotes, usableForCheckoutTotal, type AddressInput, type CarrierQuoteAdapter, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "../../src/lib/carriers/types";
-import { matchVtpAddress, matchVtpProvinces, viettelAdapter, viettelRowToQuote } from "../../src/lib/carriers/viettel";
+import { matchVtpAddress, matchVtpProvinces, pickViettelServices, viettelAdapter, viettelRowToQuote } from "../../src/lib/carriers/viettel";
 import { goshipCarrierCode, goshipRateToQuote, matchGoshipAddress, matchGoshipCities } from "../../src/lib/carriers/goship-pure";
 import { classifyVNPostRoute, quoteVNPost, vnpostBaseFee, vnpostFactor, vnpostZone } from "../../src/lib/carriers/vnpost";
 import { findProvince, findProvinceByName, findWardByName, isMergedProvince, legacyCode, legacyProvincesOf, VN_PROVINCES, wardsOf } from "../../src/lib/vn-address";
@@ -190,12 +190,17 @@ describe("GHN explanation weight", () => {
 });
 
 describe("Viettel Post", () => {
-  it("is not selectable without a token and never falls back to a static table", async () => {
+  it("needs no token (public pricing) and never falls back to a static table when the API is unreachable", async () => {
     delete process.env.VTP_TOKEN;
-    const [q] = await viettelAdapter.quote(casio(addr("Hà Nội")));
-    assert.equal(q.available, false);
-    assert.equal(q.status, "not_configured");
-    assert.equal(q.totalFeeVnd, null);
+    process.env.VTP_API_BASE = "http://127.0.0.1:9/v2";
+    try {
+      const [q] = await viettelAdapter.quote(casio(addr("Hà Nội")));
+      assert.equal(q.available, false);
+      assert.equal(q.status, "error");
+      assert.equal(q.totalFeeVnd, null);
+    } finally {
+      delete process.env.VTP_API_BASE;
+    }
   });
   it("resolves new-model addresses to Viettel province/district ids by name", async () => {
     const provinces = [
@@ -222,6 +227,15 @@ describe("Viettel Post", () => {
     assert.equal(hn?.district.DISTRICT_ID, 101);
     assert.equal(hn?.ward?.WARDS_ID, 2);
     assert.equal(await matchVtpAddress(provinces, async () => [], async () => [], ["Cà Mau"], "Xã Đất Mũi"), null);
+  });
+  it("keeps at most three services: two cheapest distinct plus the fastest", () => {
+    const req = casio(addr("Hà Nội"));
+    const rows = [
+      ["LCOD", 40656, "48 giờ"], ["NCOD", 47301, "36 giờ"], ["SCN", 47301, "36 giờ"], ["SHT", 139700, "24 giờ"],
+      ["STK", 36301, "48 giờ"], ["VCN", 47301, "36 giờ"], ["VHT", 139700, "24 giờ"], ["VTK", 31900, "48 giờ"],
+    ] as const;
+    const picked = pickViettelServices(rows.map(([c, fee, t]) => viettelRowToQuote({ MA_DV_CHINH: c, TEN_DICHVU: c, GIA_CUOC: fee, THOI_GIAN: t }, req)!));
+    assert.deepEqual(picked.map((q) => [q.serviceCode, q.totalFeeVnd]), [["VTK", 31900], ["STK", 36301], ["SHT", 139700]]);
   });
   it("maps a live row to an exact quote", () => {
     const q = viettelRowToQuote({ MA_DV_CHINH: "VCN", TEN_DICHVU: "Chuyển phát nhanh", GIA_CUOC: 31000, THOI_GIAN: "2 ngày", EXCHANGE_WEIGHT: 500 }, casio(addr("Hà Nội")));

@@ -6,14 +6,14 @@ import { RATE_CARD_VERSIONS } from "@/lib/carriers";
 import { CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { ghnConfigured, ghnCredentials } from "@/lib/ghn";
 import { spxApiConfigured, spxApiCredentials, spxKeyStored } from "@/lib/carriers/spx-api";
-import { viettelConfigured, viettelCredentials } from "@/lib/carriers/viettel";
+import { viettelCredentials, viettelTokenStored } from "@/lib/carriers/viettel";
 import { disabledCarriers, warehouseAddress } from "@/lib/ship-quote";
 import { VN_ADDRESS_VERSION } from "@/lib/vn-address";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
 
 const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; source: string }> = [
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
-  { code: "VIETTEL_POST", how: "Open API đối tác Viettel Post (token dán ở thẻ “Kết nối Viettel Post” bên trên; getPriceAll trả về mọi dịch vụ). Không có bảng 17k/25k/30k/35k; chưa có token thì chỉ còn qua Goship, không thì khách thấy “Liên hệ / tra cước”.", configured: viettelConfigured, source: "live_api" },
+  { code: "VIETTEL_POST", how: "API công khai getPriceAll của Viettel Post (giá niêm yết mọi dịch vụ, không cần token — đã kiểm chứng 17/09/2026); qua Goship nếu tài khoản Goship có Viettel. Không dùng bảng 17k/25k/30k/35k cố định.", configured: () => true, source: "live_api" },
   { code: "VNPOST", how: "Bộ tính theo biểu phí Chuyển phát tiêu chuẩn (34 tỉnh, 5 loại tuyến, nấc 50/100/250/500/1000/1500/2000 g, +1 kg). Chưa gồm VAT/xăng dầu/COD → hiển thị “Từ …”.", configured: () => true, source: "public_rate_card" },
   { code: "SPX", how: "Qua Goship khi tài khoản Goship có SPX (Kết nối tài khoản riêng); chưa có thì biểu phí gói/kiện công khai: cân quy đổi /6000, ≤17 kg & ≤60 cm, 1 kg đầu rồi mỗi 0,5 kg; +25.000đ khi giá trị ≥ 3.000.000đ. Open API trực tiếp cần tài liệu endpoint do SPX cấp.", configured: () => true, source: "public_rate_card" },
 ];
@@ -33,7 +33,7 @@ export function CarrierStatusPanel() {
   const seenCodes = new Set((seen?.carriers ?? []).map((c) => goshipCarrierCode(c.short)));
   const viaGoship = (code: CarrierCode) => gsOn && seenCodes.has(code);
   const vtp = viettelCredentials();
-  const vtpOn = viettelConfigured();
+  const vtpOn = viettelTokenStored();
   return (
     <>
     <Card className="mb-6" title="Kết nối Goship — một API cho mọi hãng (Viettel Post, VNPost, EMS, GHTK, GHN, SPX, J&T, Best…)">
@@ -94,13 +94,13 @@ export function CarrierStatusPanel() {
         </p>
       ) : null}
     </Card>
-    <Card className="mb-6" title="Kết nối Viettel Post (Open API đối tác) — API tính cước thật">
+    <Card className="mb-6" title="Viettel Post — cước lấy từ API công khai của hãng (không cần token)">
       <form action={saveViettelSettingsAction} className="grid gap-3 md:grid-cols-[1fr_150px_150px_auto] md:items-end" data-testid="vtp-form">
         <div>
           <label className={adminLabel} htmlFor="vtp-token">
-            Token API {vtpOn ? <span className="ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">đã kết nối ••••{vtp.token.slice(-4)}</span> : <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">chưa có</span>}
+            Token API <span className="font-normal text-lien-muted">(tùy chọn)</span> {vtpOn ? <span className="ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">đã lưu ••••{vtp.token.slice(-4)}</span> : <span className="ml-1 rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] font-semibold text-lien-muted">không bắt buộc</span>}
           </label>
-          <input id="vtp-token" name="token" type="password" autoComplete="off" placeholder={vtpOn ? "Để trống = giữ token hiện tại" : "viettelpost.vn › Quản lý token › Tạo token › Sao chép"} className={adminInput} />
+          <input id="vtp-token" name="token" type="password" autoComplete="off" placeholder={vtpOn ? "Để trống = giữ token hiện tại" : "viettelpost.vn › Quản lý token (chỉ cần khi tạo vận đơn)"} className={adminInput} />
         </div>
         <div>
           <label className={adminLabel} htmlFor="vtp-province">
@@ -126,9 +126,7 @@ export function CarrierStatusPanel() {
         </div>
       </form>
       <p className="mt-2 text-[12px] leading-5 text-lien-muted" data-testid="vtp-status">
-        {vtpOn
-          ? `Đang có token Viettel Post${vtp.senderProvince && vtp.senderDistrict ? ` · mã kho gửi dự phòng ${vtp.senderProvince}/${vtp.senderDistrict}` : ""}. Điểm gửi được tra theo tên từ địa chỉ kho của từng chặng (③ từ kho Kiến Express Hà Nội, ④ từ kho shop Hoằng Hóa); mã dự phòng chỉ dùng khi không tra được. Cước Viettel Post ở trang sản phẩm / thanh toán và báo giá chặng ③ lấy thẳng từ API getPriceAll của tài khoản shop (giá theo hợp đồng, đã gồm phụ phí).`
-          : "Token lấy tại viettelpost.vn (đăng nhập tài khoản shop) › Quản lý token › Tạo token rồi Sao chép và dán vào đây. Token chỉ lưu trong CSDL máy chủ, không gửi xuống trình duyệt. Khi lưu, hệ thống gọi danh mục tỉnh của Viettel để kiểm tra token và tự tìm mã tỉnh/huyện của kho gửi (Hoằng Hóa, Thanh Hóa); địa chỉ khách được ánh xạ sang mã Viettel theo tên xã/phường."}
+        Cước Viettel Post ở trang sản phẩm / thanh toán và báo giá chặng ③ lấy thẳng từ API getPriceAll của hãng — API này công khai (giá niêm yết, mọi dịch vụ), nên <strong>không cần token</strong>. Điểm gửi được tra theo tên từ địa chỉ kho của từng chặng (③ từ kho Kiến Express Hà Nội, ④ từ kho shop Hoằng Hóa); mã dự phòng chỉ dùng khi không tra được{vtp.senderProvince && vtp.senderDistrict ? ` (hiện ${vtp.senderProvince}/${vtp.senderDistrict})` : ""}. Token từ viettelpost.vn › Quản lý token chỉ cần khi sau này tạo vận đơn qua API; dán vào là được lưu mã hóa và hệ thống báo Viettel có nhận token ở API tài khoản hay không.
       </p>
     </Card>
     <Card className="mb-6" title="Kết nối SPX Express (Open API đối tác)">

@@ -127,8 +127,9 @@ export async function saveGoshipSettingsAction(formData: FormData): Promise<void
 }
 
 /**
- * ④ › Viettel Post: the owner pastes the partner token (viettelpost.vn › Quản lý token). The token is checked against
- * the category API (listProvince) and the shop warehouse (Hoằng Hóa, Thanh Hóa) is resolved to Viettel's sender ids.
+ * ④ › Viettel Post: pricing is public, so the card mainly resolves the shop warehouse to Viettel's sender ids and proves
+ * getPriceAll answers; the optional token (viettelpost.vn › Quản lý token) is stored sealed and its acceptance on the
+ * account endpoint is reported, never required.
  */
 export async function saveViettelSettingsAction(formData: FormData): Promise<void> {
   if (!(await can("shipping"))) redirect("/admin/login/");
@@ -143,7 +144,6 @@ export async function saveViettelSettingsAction(formData: FormData): Promise<voi
   }
   const typed = String(formData.get("token") ?? "").trim();
   const token = typed || getSecretSetting(db, VTP_SETTING_KEYS.token);
-  if (!token) fail("Dán token Viettel Post (viettelpost.vn › Quản lý token › Tạo token / Sao chép).");
   const wh = warehouseAddress(db);
   let check: Awaited<ReturnType<typeof viettelCheck>>;
   try {
@@ -162,12 +162,11 @@ export async function saveViettelSettingsAction(formData: FormData): Promise<voi
   viettelResetCache();
   revalidatePath("/", "layout");
   const typedIds = Number.isInteger(provinceTyped) && provinceTyped > 0 && Number.isInteger(districtTyped) && districtTyped > 0;
-  const where = typedIds ? `mã ${senderProvince}/${senderDistrict} (tự điền)` : check.sender ? `${check.sender.label} · mã ${check.sender.provinceId}/${check.sender.districtId}` : "";
-  redirect(
-    `${back}&saved=${encodeURIComponent(
-      `Đã kết nối Viettel Post: token hợp lệ (tài khoản có ${check.inventories.length} kho lấy hàng đăng ký)${where ? ` · kho gửi: ${where}` : " · chưa tìm được mã kho gửi — điền Mã tỉnh/huyện gửi theo danh mục Viettel"}. Khách sẽ thấy cước Viettel Post thật khi nhập địa chỉ; chặng ③ cũng hỏi được cước Viettel trực tiếp.`,
-    )}`,
-  );
+  const where = typedIds ? `mã ${senderProvince}/${senderDistrict} (tự điền)` : check.sender ? `${check.sender.label} · mã ${check.sender.provinceId}/${check.sender.districtId}` : "chưa tìm được — điền Mã tỉnh/huyện gửi theo danh mục Viettel";
+  const priced = check.priced ? `API công khai trả ${check.priced} mức cước cho tuyến thử kho → Hà Nội.` : "API chưa trả cước cho tuyến thử — kiểm tra mã kho gửi.";
+  const tokenMsg = check.token ? (check.token.accepted ? `Token: ${check.token.message}` : `Token đã lưu nhưng Viettel chưa nhận ở API tài khoản (${check.token.message.replace(/\.$/, "")}) — không ảnh hưởng báo cước, chỉ cần khi tạo vận đơn.`) : "Không có token — không sao, báo cước Viettel Post không cần token.";
+  const kind = check.priced ? "saved" : "error";
+  redirect(`${back}&${kind}=${encodeURIComponent(`Viettel Post: kho gửi ${where}. ${priced} ${tokenMsg}`)}`);
 }
 
 /** ④ › SPX Express: store User ID + Secret Key (+ fee endpoint once SPX sends the partner document). */

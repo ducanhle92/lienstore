@@ -1,9 +1,12 @@
 /**
- * Viettel Post — Open API (partner account) only. There is deliberately no fallback table: without a token the carrier
- * is shown as "Liên hệ / tra cước Viettel Post" and cannot be selected (spec §6).
+ * Viettel Post — partner API v2. Verified 17/09/2026 against partner.viettelpost.vn: the pricing endpoints
+ * (order/getPriceAll, order/getPrice) and the categories are PUBLIC — they answer identically with, without or with a
+ * bogus Token header — so quotes need no token at all. There is deliberately no static fallback table (spec §6).
  *
- * Credentials: settings table first (Admin › Vận chuyển › ④ › "Kết nối Viettel Post": token pasted from
- * viettelpost.vn › Quản lý token), then env VTP_TOKEN. Optional VTP_API_BASE (default https://partner.viettelpost.vn/v2)
+ * Token (optional): settings table first (Admin › Vận chuyển › ④ › "Kết nối Viettel Post": token from viettelpost.vn ›
+ * Quản lý token), then env VTP_TOKEN. It is only needed for account endpoints (user/listInventory, creating waybills);
+ * the portal token the owner generated is currently rejected there ("Account have logged in on another machine!"), so
+ * the card saves it but reports that status honestly. Optional VTP_API_BASE (default https://partner.viettelpost.vn/v2)
  * and the Viettel ids of the sending warehouse (settings vtp_sender_province/district, env VTP_SENDER_PROVINCE/DISTRICT;
  * resolved from the shop address by name when blank). Addresses use Viettel's own 3-level categories
  * (listProvince / listDistrict / listWards) matched by name from the new province → ward model, like Goship.
@@ -38,7 +41,12 @@ export function viettelCredentials(): { token: string; base: string; senderProvi
   };
 }
 
+/** Pricing is public, so Viettel Post is always quotable (spec §6 fallback table still never used). */
 export function viettelConfigured(): boolean {
+  return true;
+}
+/** A token is stored (settings or env) — shown on the admin card; not required for quotes. */
+export function viettelTokenStored(): boolean {
   return !!viettelCredentials().token;
 }
 
@@ -78,17 +86,20 @@ const AUTH_MSG = "Viettel Post từ chối token: kiểm tra lại token trong Q
 /** Viettel reports auth problems as HTTP 200 + {status:201 "Account have logged in on another machine!", 202 "No header"}. */
 const isAuthStatus = (status: number | undefined, message?: string) => status === 401 || status === 403 || status === 201 || status === 202 || /logged in|no header|token|unauthor/i.test(message ?? "");
 
-/** One call to the partner API; auth failures come both as HTTP 401/403 and as 200 + {error:true,status:201/202}. */
-async function call<T>(path: string, init: RequestInit & { token?: string; base?: string } = {}): Promise<T> {
+/**
+ * One call to the partner API. The Token header is sent when a token exists (pricing/categories work without it);
+ * auth failures come both as HTTP 401/403 and as 200 + {error:true,status:201/202}.
+ */
+async function call<T>(path: string, init: RequestInit & { token?: string; base?: string; requireToken?: boolean } = {}): Promise<T> {
   const c = viettelCredentials();
   const token = init.token ?? c.token;
   const base = init.base ?? c.base;
-  if (!token) throw new ViettelApiError("Chưa có token Viettel Post.", 401);
+  if (!token && init.requireToken) throw new ViettelApiError("Chưa có token Viettel Post.", 401);
   const res = await fetch(`${base}${path}`, {
     ...init,
     cache: "no-store",
     signal: init.signal ?? AbortSignal.timeout(8000),
-    headers: { "Content-Type": "application/json", Accept: "application/json", Token: token, ...(init.headers ?? {}) },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Token: token } : {}), ...(init.headers ?? {}) },
   });
   if (res.status === 401 || res.status === 403) throw new ViettelApiError(AUTH_MSG, 401);
   if (!res.ok) throw new ViettelApiError(`Viettel Post trả về HTTP ${res.status}.`, res.status);
@@ -221,35 +232,68 @@ export interface VtpInventory {
   wardsId?: number;
 }
 export async function vtpInventories(opts: { token?: string; base?: string } = {}): Promise<VtpInventory[]> {
-  return arr<VtpInventory>(await call<unknown>("/user/listInventory", opts));
+  return arr<VtpInventory>(await call<unknown>("/user/listInventory", { ...opts, requireToken: true }));
+}
+
+export interface ViettelCheckResult {
+  provinces: number;
+  origin: VtpAddressMatch | null;
+  sender: { provinceId: number; districtId: number; label: string } | null;
+  /** getPriceAll rows for the test route shop → Hà Nội (proves public pricing works from the resolved sender). */
+  priced: number;
+  /** Token status on the account endpoint (listInventory): null = no token given. */
+  token: { accepted: boolean; message: string; inventories: VtpInventory[] } | null;
 }
 
 /**
- * Settings card "Lưu & kiểm tra": the category endpoints are public, so the token is verified with listInventory (the
- * account's registered pick-up warehouses); sender ids come from the first warehouse, else from the shop address by name.
+ * Settings card "Lưu & kiểm tra": resolve the shop warehouse to Viettel ids, prove getPriceAll answers for it (public),
+ * and — when a token was given — report whether the account endpoint accepts it. Nothing here blocks saving.
  */
-export async function viettelCheck(
-  token: string,
-  from: { legacyProvinceNames: string[]; wardName: string },
-): Promise<{ provinces: number; inventories: VtpInventory[]; origin: VtpAddressMatch | null; sender: { provinceId: number; districtId: number; label: string } | null }> {
+export async function viettelCheck(token: string, from: { legacyProvinceNames: string[]; wardName: string }): Promise<ViettelCheckResult> {
   const base = viettelCredentials().base;
-  const inventories = await vtpInventories({ token, base });
-  const provinces = await vtpProvinces({ token, base });
+  const opts = { token: token || undefined, base };
+  const provinces = await vtpProvinces(opts);
   if (!provinces.length) throw new ViettelApiError("Viettel Post không trả về danh mục tỉnh — API đổi định dạng, thử lại sau.", 502);
   const origin = await matchVtpAddress(
     provinces,
-    (id) => vtpDistricts(id, { token, base }),
-    (id) => vtpWards(id, { token, base }),
+    (id) => vtpDistricts(id, opts),
+    (id) => vtpWards(id, opts),
     from.legacyProvinceNames,
     from.wardName,
   );
-  const inv = inventories.find((i) => Number(i.provinceId) > 0 && Number(i.districtId) > 0);
+  let tokenStatus: ViettelCheckResult["token"] = null;
+  if (token) {
+    try {
+      const inventories = await vtpInventories(opts);
+      tokenStatus = { accepted: true, message: `Viettel nhận token (${inventories.length} kho lấy hàng đăng ký).`, inventories };
+    } catch (e) {
+      tokenStatus = { accepted: false, message: e instanceof ViettelApiError ? e.message : "Không gọi được API tài khoản Viettel.", inventories: [] };
+    }
+  }
+  const inv = tokenStatus?.inventories.find((i) => Number(i.provinceId) > 0 && Number(i.districtId) > 0);
   const sender = inv
     ? { provinceId: Number(inv.provinceId), districtId: Number(inv.districtId), label: `kho đăng ký trên Viettel “${inv.name || inv.address || "kho"}”` }
     : origin
       ? { provinceId: origin.province.PROVINCE_ID, districtId: origin.district.DISTRICT_ID, label: `${origin.district.DISTRICT_NAME}, ${origin.province.PROVINCE_NAME} (tra theo địa chỉ kho)` }
       : null;
-  return { provinces: provinces.length, inventories, origin, sender };
+  let priced = 0;
+  if (sender) {
+    const hn = matchVtpProvinces(provinces, ["Hà Nội"])[0];
+    const hnDistrict = hn ? (await vtpDistricts(hn.PROVINCE_ID, opts))[0] : undefined;
+    if (hn && hnDistrict) {
+      try {
+        const rows = await call<unknown>("/order/getPriceAll", {
+          ...opts,
+          method: "POST",
+          body: JSON.stringify({ SENDER_PROVINCE: sender.provinceId, SENDER_DISTRICT: sender.districtId, RECEIVER_PROVINCE: hn.PROVINCE_ID, RECEIVER_DISTRICT: hnDistrict.DISTRICT_ID, PRODUCT_TYPE: "HH", PRODUCT_WEIGHT: 500, PRODUCT_PRICE: 300000, MONEY_COLLECTION: 0, TYPE: 1 }),
+        });
+        priced = arr<VtpPriceRow>(rows).filter((r) => Number(r.GIA_CUOC) > 0).length;
+      } catch {
+        priced = 0;
+      }
+    }
+  }
+  return { provinces: provinces.length, origin, sender, priced, token: tokenStatus };
 }
 
 // ---------------------------------------------------------------- quotes
@@ -302,6 +346,31 @@ export function viettelRowToQuote(row: VtpPriceRow, req: ShippingQuoteRequest): 
   };
 }
 
+const etaHours = (q: ShippingQuote): number => {
+  const m = q.etaText?.match(/(\d+)\s*(giờ|h)/i);
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+};
+
+/**
+ * getPriceAll lists ~8 services (VTK/STK/VCN/SCN/SHT plus the "thỏa thuận" and COD twins at the same price). Customers
+ * get at most three cards: the two cheapest distinct (fee, ETA) pairs plus the fastest one when it is different.
+ */
+export function pickViettelServices(quotes: ShippingQuote[]): ShippingQuote[] {
+  const seen = new Set<string>();
+  const distinct = [...quotes]
+    .sort((a, b) => (a.totalFeeVnd ?? 0) - (b.totalFeeVnd ?? 0))
+    .filter((q) => {
+      const k = `${q.totalFeeVnd}|${etaHours(q)}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  const picked = distinct.slice(0, 2);
+  const fastest = [...distinct].sort((a, b) => etaHours(a) - etaHours(b))[0];
+  if (fastest && !picked.includes(fastest) && etaHours(fastest) < Math.min(...picked.map(etaHours))) picked.push(fastest);
+  return picked;
+}
+
 /**
  * Sender ids: explicit request codes → the request's origin address resolved by name (leg ③ starts at the Kiến Express
  * warehouse in Hà Nội, leg ④ at the shop) → the ids saved on the settings card / env as a fallback.
@@ -321,7 +390,6 @@ export const viettelAdapter: CarrierQuoteAdapter = {
   carrier: "VIETTEL_POST",
   configured: viettelConfigured,
   async quote(req) {
-    if (!viettelConfigured()) return [viettelUnavailable("not_configured")];
     try {
       const from = await senderIds(req);
       let to = req.destination.carrierCodes?.viettelPost;
@@ -347,9 +415,11 @@ export const viettelAdapter: CarrierQuoteAdapter = {
           TYPE: 1,
         }),
       });
-      const quotes = arr<VtpPriceRow>(rows)
-        .map((r) => viettelRowToQuote(r, req))
-        .filter((q): q is ShippingQuote => q !== null);
+      const quotes = pickViettelServices(
+        arr<VtpPriceRow>(rows)
+          .map((r) => viettelRowToQuote(r, req))
+          .filter((q): q is ShippingQuote => q !== null),
+      );
       return quotes.length ? quotes : [viettelUnavailable("unsupported")];
     } catch (e) {
       if (e instanceof ViettelApiError && e.status === 401) {
