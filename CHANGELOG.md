@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.59.0] - 2026-09-17
+
 ### Added
 - Vận chuyển › ④: thẻ **Khóa API đã lưu** (chỉ chủ cửa hàng thấy) liệt kê mọi khóa đã nhập (Goship, GHN, Viettel Post, SPX, Facebook Page) dạng 4 ký tự cuối; nhập lại mật khẩu đăng nhập là hiện đầy đủ trong 3 phút để sao chép — không cần giữ khóa trong file text.
 
