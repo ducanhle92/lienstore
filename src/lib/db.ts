@@ -2754,6 +2754,12 @@ export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
   return out;
 }
 
+/** Per product: units on "mua lưu kho" slips the Japan-side buyer has not bought yet (planned lots, not in the pipeline). */
+export function getPlannedLotUnits(): Map<number, number> {
+  const rows = getDb().prepare("SELECT product_id, SUM(qty) AS n FROM stock_purchases WHERE lot_id IS NULL AND status = 'not_bought' GROUP BY product_id").all() as unknown as Array<{ product_id: number; n: number }>;
+  return new Map(rows.map((r) => [r.product_id, Number(r.n)]));
+}
+
 /** Set the SKU of one product (bulk generator). */
 export async function updateProductSku(id: number, sku: string): Promise<boolean> {
   const r = getDb().prepare("UPDATE products SET sku = ?, updated_at = ? WHERE id = ?").run(sku, new Date().toISOString(), id);

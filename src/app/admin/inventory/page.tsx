@@ -21,11 +21,12 @@ interface Props {
 }
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
+// everything is bought to order by default; a product only "has stock" when the shop chose to buy a lot for it
 const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
-  ok: { label: "Còn hàng", cls: "bg-green-100 text-green-800" },
-  low: { label: "Sắp hết", cls: "bg-amber-100 text-amber-800" },
-  out: { label: "Hết hàng", cls: "bg-red-100 text-red-800" },
-  untracked: { label: "Không theo dõi", cls: "bg-gray-200 text-gray-700" },
+  ok: { label: "Có trong kho", cls: "bg-green-100 text-green-800" },
+  low: { label: "Sắp hết kho", cls: "bg-amber-100 text-amber-800" },
+  out: { label: "Hết kho", cls: "bg-red-100 text-red-800" },
+  untracked: { label: "Hàng order", cls: "bg-amber-50 text-amber-800" },
 };
 const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = { in_stock: "Đang lưu kho", incoming: "Đang về", unbought: "Chưa mua" };
 
@@ -47,7 +48,7 @@ export default async function AdminInventory({ searchParams }: Props) {
     <>
       <PageHeader
         title="Kho hàng"
-        subtitle={`${summary.tracked} sản phẩm theo dõi tồn · ${summary.units} đơn vị · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
+        subtitle={`Mặc định hàng order · ${summary.inStockProducts} sản phẩm có tồn kho (${summary.units} đơn vị) · ${summary.stockIncomingUnits} đơn vị đang về kho · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
         actions={
           <>
             <a href={csvHref} className={btnSecondary} title="Đúng các dòng và thứ tự đang hiển thị — dùng để in kiểm kho">
@@ -61,13 +62,13 @@ export default async function AdminInventory({ searchParams }: Props) {
       />
       {saved ? <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash> : null}
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-7">
-        <Stat href="/admin/purchases/" label="Đang trên đường về" value={`${summary.inTransitUnits} đv`} tone="blue" hint={formatPrice(summary.inTransitValue)} />
-        <Stat href="/admin/purchases/" label="Tại kho shop (cho đơn)" value={`${summary.atShopUnits} đv`} tone="gray" hint={`+ tồn tự do ${summary.units}`} />
-        <Stat href={inventoryHref(v, { track: "tracked", state: "out" })} label="Hết hàng" value={String(summary.out)} tone="red" hint="Tồn 0 / đánh dấu hết" />
-        <Stat href={inventoryHref(v, { track: "tracked", state: "low" })} label="Sắp hết" value={String(summary.low)} tone="amber" hint={`≤ tối thiểu (mặc định ${DEFAULT_MIN_STOCK})`} />
-        <Stat href={inventoryHref(v, { need: "order" })} label="Cần đặt hàng" value={`${summary.toBuyLines} sp · ${summary.toBuyUnits} đv`} tone="blue" hint={formatPrice(summary.toBuyCost)} />
-        <Stat href={inventoryHref(v, { track: "untracked", state: "" })} label="Không theo dõi tồn" value={String(summary.untracked)} tone="gray" hint="Mua theo đơn" />
+      {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
+      <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <Stat href={inventoryHref(v, { pstatus: "in_stock" })} label="Đang lưu kho" value={`${summary.inStockProducts} sp · ${summary.units} đv`} tone={summary.units ? "blue" : "gray"} hint={summary.low ? `${summary.low} sp sắp hết kho` : "Bán từ kho trước khi order"} />
+        <Stat href={inventoryHref(v, { pstatus: "incoming" })} label="Đang về kho (lô)" value={`${summary.stockIncomingUnits} đv`} tone={summary.stockIncomingUnits ? "blue" : "gray"} hint={summary.stockIncomingUnits ? `vốn ${formatPrice(summary.stockIncomingValue)}` : "Mua lưu kho đã mua, chưa tới"} />
+        <Stat href="/admin/purchases/?tab=stock" label="Lô chờ mua" value={`${summary.plannedLotUnits} đv`} tone={summary.plannedLotUnits ? "amber" : "gray"} hint="Phiếu mua lưu kho chưa mua" />
+        <Stat href={inventoryHref(v, { need: "order" })} label="Cần mua theo đơn" value={`${summary.orderNeedLines} sp · ${summary.orderNeedUnits} đv`} tone={summary.orderNeedUnits ? "red" : "gray"} hint="Đơn mở chưa được kho / hàng về bao phủ" />
+        <Stat href={inventoryHref(v, { need: "restock" })} label="Cần mua bù kho" value={`${summary.restockNeedLines} sp · ${summary.restockNeedUnits} đv`} tone={summary.restockNeedUnits ? "amber" : "gray"} hint="Bù về mức tồn tiêu chuẩn" />
         <Stat href={inventoryHref(v, { track: "tracked", state: "" })} label="Hạn dùng cần chú ý" value={`${summary.expiringSoonUnits} sắp · ${summary.expiredUnits} hết`} tone={summary.expiredUnits ? "red" : summary.expiringSoonUnits ? "amber" : "gray"} hint="≤ 90 ngày = sắp hết hạn" />
       </div>
 
@@ -203,7 +204,11 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
         </div>
       </td>
       <td className={tdClass}>
-        <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold leading-5", st.cls)}>{st.label}</span>
+        {p.stock === null && line.pipeline.stockIncoming > 0 ? (
+          <span className="inline-block whitespace-nowrap rounded-full bg-sky-100 px-2.5 py-0.5 text-[12px] font-semibold leading-5 text-sky-800">Đang về kho</span>
+        ) : (
+          <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold leading-5", st.cls)}>{st.label}</span>
+        )}
       </td>
       <td className={`${tdClass} whitespace-nowrap`}>
         {p.stock === null ? <span className="text-lien-muted">—</span> : <span className={cn("font-semibold", line.state === "out" && "text-red-700", line.state === "low" && "text-amber-700")}>{p.stock}</span>}
@@ -248,6 +253,7 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
         ) : (
           <span className="text-lien-muted">—</span>
         )}
+        {line.plannedLot ? <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Phiếu mua lưu kho chưa mua">+{line.plannedLot} chờ mua</span> : null}
       </td>
       <td className={tdClass}>
         {line.demand > 0 ? (

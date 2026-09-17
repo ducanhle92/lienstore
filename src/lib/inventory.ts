@@ -1,6 +1,6 @@
 import "server-only";
 import type { CatalogProduct, StockLot } from "@/types/shop";
-import { getAllProducts, getOpenOrderDemand, getPipelineUnits, getRecentUnitsSold, listStockLots, type DemandLine, type PipelineUnits } from "./db";
+import { getAllProducts, getOpenOrderDemand, getPipelineUnits, getPlannedLotUnits, getRecentUnitsSold, listStockLots, type DemandLine, type PipelineUnits } from "./db";
 import { expiryState } from "./lots";
 
 /** Default reorder threshold when a product has no `minStock`. */
@@ -48,6 +48,8 @@ export interface InventoryLine {
   standardStock: number;
   /** "Đang lưu kho" / "Đang về" / "Chưa mua" / null (nothing on hand, nothing incoming, nothing needed). */
   pipelineStage: PipelineStage;
+  /** Units on "mua lưu kho" slips not bought yet — planned lots the Japan-side buyer still has to purchase. */
+  plannedLot: number;
 }
 
 export interface InventorySummary {
@@ -69,6 +71,18 @@ export interface InventorySummary {
   /** Lots expiring within 90 days / already expired (units). */
   expiringSoonUnits: number;
   expiredUnits: number;
+  /** Products with at least one unit in the warehouse. */
+  inStockProducts: number;
+  /** Warehouse-lot purchases on the way ("mua lưu kho", bought but not yet at the shop) and their cost. */
+  stockIncomingUnits: number;
+  stockIncomingValue: number;
+  /** "Mua lưu kho" slips not bought yet. */
+  plannedLotUnits: number;
+  /** To buy for open orders (not covered by stock / pipeline) vs. to top the warehouse back up to its minimum. */
+  orderNeedLines: number;
+  orderNeedUnits: number;
+  restockNeedLines: number;
+  restockNeedUnits: number;
 }
 
 export function stockStateOf(p: CatalogProduct, minStock: number): StockState {
@@ -100,6 +114,7 @@ export function computeToBuy(stock: number | null, minStock: number, rawDemand: 
 export async function getInventory(): Promise<{ lines: InventoryLine[]; summary: InventorySummary }> {
   const [products, demand, pipe, allLots] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits(), listStockLots()]);
   const soldRecentMap = getRecentUnitsSold(SALES_PACE_DAYS);
+  const plannedMap = getPlannedLotUnits();
   const lotsByProduct = new Map<number, StockLot[]>();
   for (const l of allLots) lotsByProduct.set(l.productId, [...(lotsByProduct.get(l.productId) ?? []), l]);
   const lines: InventoryLine[] = products.map((p) => {
@@ -128,6 +143,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
       reserveForecast: p.stock === null ? null : p.stock + pipeline.inTransit - soldRecent,
       standardStock: minStock,
       pipelineStage: pipelineStageOf(p.stock, pipeline.stockIncoming, toBuy),
+      plannedLot: plannedMap.get(p.id) ?? 0,
     };
   });
   const summary: InventorySummary = {
@@ -146,6 +162,14 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     atShopUnits: lines.reduce((s, l) => s + l.pipeline.atShop, 0),
     expiringSoonUnits: allLots.filter((l) => expiryState(l.expiry) === "soon").reduce((s, l) => s + l.qtyLeft, 0),
     expiredUnits: allLots.filter((l) => expiryState(l.expiry) === "expired").reduce((s, l) => s + l.qtyLeft, 0),
+    inStockProducts: lines.filter((l) => (l.product.stock ?? 0) > 0).length,
+    stockIncomingUnits: lines.reduce((s, l) => s + l.pipeline.stockIncoming, 0),
+    stockIncomingValue: lines.reduce((s, l) => s + l.pipeline.stockIncoming * (l.product.costPrice ?? 0), 0),
+    plannedLotUnits: lines.reduce((s, l) => s + l.plannedLot, 0),
+    orderNeedLines: lines.filter((l) => l.demand > 0 && l.toBuy > 0).length,
+    orderNeedUnits: lines.filter((l) => l.demand > 0 && l.toBuy > 0).reduce((s, l) => s + l.toBuy, 0),
+    restockNeedLines: lines.filter((l) => l.toBuy > 0 && l.demand === 0).length,
+    restockNeedUnits: lines.filter((l) => l.toBuy > 0 && l.demand === 0).reduce((s, l) => s + l.toBuy, 0),
   };
   return { lines, summary };
 }

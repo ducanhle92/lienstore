@@ -47,6 +47,16 @@ export async function register() {
       console.warn(`[fx] fixed-rate job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 10_000);
+  // one-time: iHerb source, hide products outside OS Drug / iHerb, reset warehouse data (see lib/catalog-scope-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyCatalogScopeOnce } = await import("./lib/catalog-scope-job");
+      const r = await applyCatalogScopeOnce();
+      if (r) console.info(`[catalog] iherb ${r.iherb}, hidden ${r.hidden}, lots removed ${r.lotsRemoved}, purchases removed ${r.purchasesRemoved}, untracked ${r.untracked}`);
+    } catch (e) {
+      console.warn(`[catalog] scope job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 14_000);
   // one-time: re-shape the OS Drug import descriptions into headed sections (see lib/description-fix-job.ts)
   setTimeout(async () => {
     try {

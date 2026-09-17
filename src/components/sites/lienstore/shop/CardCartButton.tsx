@@ -28,7 +28,8 @@ export function CardCartButton({ product, disabled = false, noPrice = false, cla
     <div
       className={cn(
         // pointer devices: label + big round button rise from the bottom centre on hover
-        "absolute bottom-2 left-1/2 z-[2] flex origin-bottom -translate-x-1/2 scale-[0.82] flex-col items-center gap-1.5 transition-all duration-300 sm:bottom-3 sm:scale-100",
+        // hovering the card shows a green icon-only button; hovering the button itself turns it orange and reveals the label
+        "group/cart absolute bottom-2 left-1/2 z-[2] flex origin-bottom -translate-x-1/2 scale-[0.82] flex-col items-center gap-1.5 transition-all duration-300 sm:bottom-3 sm:scale-100",
         "opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 focus-within:translate-y-0 focus-within:opacity-100",
         // touch devices (no hover): a small always-visible cart button in the bottom-right corner, no label, image stays uncovered
         "[@media(hover:none)]:bottom-1.5 [@media(hover:none)]:left-auto [@media(hover:none)]:right-1.5 [@media(hover:none)]:translate-x-0 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:scale-100 [@media(hover:none)]:opacity-100",
@@ -38,6 +39,7 @@ export function CardCartButton({ product, disabled = false, noPrice = false, cla
       <span
         className={cn(
           "relative rounded px-2.5 py-1 text-[12px] font-semibold leading-4 whitespace-nowrap text-white shadow-sm [@media(hover:none)]:hidden",
+          "opacity-0 transition-opacity group-hover/cart:opacity-100 group-focus-within/cart:opacity-100",
           "after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-x-[5px] after:border-t-[5px] after:border-x-transparent",
           isDisabled ? "bg-lien-muted after:border-t-lien-muted" : done ? "bg-lien-success after:border-t-lien-success" : "bg-lien-sale after:border-t-lien-sale",
         )}
@@ -51,7 +53,7 @@ export function CardCartButton({ product, disabled = false, noPrice = false, cla
         aria-label={noPrice ? t("contactForPrice") : disabled ? t("outOfStock") : `${t("addToCart")}: ${product.name}`}
         className={cn(
           "flex h-12 w-12 items-center justify-center rounded-full text-[19px] text-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)] transition-transform hover:scale-105 disabled:cursor-not-allowed [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:text-[14px]",
-          isDisabled ? "bg-lien-muted" : done ? "bg-lien-success" : "bg-lien-sale",
+          isDisabled ? "bg-lien-muted" : done ? "bg-lien-success" : "bg-lien-success group-hover/cart:bg-lien-sale group-focus-within/cart:bg-lien-sale",
         )}
       >
         <Fa name={noPrice ? "phone" : done ? "check" : "shopping-cart"} />

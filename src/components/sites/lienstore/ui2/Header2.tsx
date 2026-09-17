@@ -110,6 +110,9 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
               <Fa name="th-large" className="mr-1 text-[13px]" />
               {t("categories")}
               <Fa name="angle-down" className="text-[12px]" />
+              <span className="pointer-events-none absolute -top-1 right-0 rounded-full bg-lien-sale px-1.5 text-[9px] font-bold leading-4 tracking-normal text-white shadow-sm" aria-hidden="true">
+                Sale
+              </span>
             </button>
             {open === "cat" ? (
               <div className="absolute top-full left-0 z-50 mt-1 w-[860px] rounded-md border border-lien-line bg-white p-5 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">
@@ -184,6 +187,9 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
             <button type="button" onClick={() => setOpen(open === "news" ? null : "news")} className={cn(navItem, open === "news" && "bg-white/15")} aria-expanded={open === "news"}>
               {t("news")}
               <Fa name="angle-down" className="text-[12px]" />
+              <span className="pointer-events-none absolute -top-1 right-0 rounded-full bg-lien-info px-1.5 text-[9px] font-bold leading-4 tracking-normal text-white shadow-sm" aria-hidden="true">
+                New
+              </span>
             </button>
             {open === "news" ? (
               <div className="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-md border border-lien-line bg-white py-2 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)]">

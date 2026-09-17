@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Chỉ bán hàng OS Drug Store và iHerb**: thêm nguồn nhập iHerb (jp.iherb.com) và gắn cho 3 sản phẩm mua ở đó; toàn bộ sản phẩm khác chuyển về bản nháp (ẩn) khi lên bản này — danh sách id đã ẩn lưu ở cài đặt `catalog_scope_hidden_ids` để khôi phục được.
+- **Kho hàng về mô hình hàng order**: xoá dữ liệu lô / phiếu mua lưu kho chưa có thật, mọi sản phẩm về "không lưu kho — hàng order" (bản lưu dự phòng ở `inventory_clean_backup`). Có hàng trong kho hoặc lô đang về thì luôn bán từ kho trước; admin có thể lên phiếu mua lưu kho ở Quản lý mua hàng.
+- Màn Kho hàng (đổi tên tab từ "Tồn kho"): 6 ô thống kê mới — Đang lưu kho · Đang về kho (lô) · Lô chờ mua · Cần mua theo đơn · Cần mua bù kho · Hạn dùng; nhãn tình trạng: Hàng order / Đang về kho / Có trong kho / Sắp hết kho / Hết kho. CSV cần mua thêm cột **Lô lưu kho chờ mua** và liệt kê cả phiếu mua lưu kho chưa mua để admin bên Nhật đi mua.
+- Menu: nhãn nhỏ **Sale** cạnh "Danh mục", **New** cạnh "Tin tức".
+- Thẻ sản phẩm: rê vào ảnh hiện nút giỏ hàng xanh; rê tiếp vào nút mới chuyển cam và hiện "Thêm vào giỏ".
+
 ## [1.47.0] - 2026-09-17
 
 ### Changed

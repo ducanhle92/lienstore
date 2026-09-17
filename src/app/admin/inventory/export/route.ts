@@ -20,13 +20,14 @@ export async function GET(req: NextRequest) {
   const [{ lines }, categories] = await Promise.all([getInventory(), getCategories()]);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const viewMode = sp.mode === "view";
-  const rows = viewMode ? applyInventoryView(lines, parseInventoryView(sp)) : lines.filter((l) => l.toBuy > 0).sort((a, b) => b.toBuy - a.toBuy);
+  // the buyer's list: open-order / restock needs plus "mua lưu kho" slips not bought yet, biggest first
+  const rows = viewMode ? applyInventoryView(lines, parseInventoryView(sp)) : lines.filter((l) => l.toBuy > 0 || l.plannedLot > 0).sort((a, b) => b.toBuy + b.plannedLot - (a.toBuy + a.plannedLot));
   const header = viewMode
     ? ["ID", "SKU", "Tên sản phẩm", "Danh mục", "Tình trạng", "Số lượng tồn", "Mức tối thiểu", "Đang về", "Tại kho shop", "Đơn mở cần", "Đơn hàng", "Cần mua", "Giá vốn (VNĐ)", "Giá trị tồn (VNĐ)", "Link mua", "Kiểm đếm thực tế", "Ghi chú"]
     : [
         "ID", "Tên sản phẩm", "SKU", "Cần mua", "Đơn mở cần", "Đang về", "Tại kho shop", "Tồn hiện tại", "Tồn kho tiêu chuẩn",
         `Bán ra gần đây (${SALES_PACE_DAYS} ngày)`, "Dự trữ dự kiến sau bán", "Đơn hàng", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua",
-        "Tổng hàng mua đang lưu thông",
+        "Lô lưu kho chờ mua", "Tổng hàng mua đang lưu thông",
       ];
   const data = rows.map((l) =>
     viewMode
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
           l.product.costPrice ?? "",
           l.toBuy * (l.product.costPrice ?? 0),
           l.product.supplierUrl ?? "",
+          l.plannedLot || "",
           l.totalGoods,
         ],
   );
