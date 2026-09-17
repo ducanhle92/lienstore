@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.61.0] - 2026-09-17
+
 ### Added
 - Nút **Xóa đơn hàng** ở danh sách Đơn hàng (cột Xử lý) và trong chi tiết đơn (dưới thẻ Trạng thái): hỏi xác nhận, xóa vĩnh viễn đơn cùng sản phẩm, chặng vận chuyển, tin nhắn và bill đính kèm; không tính vào doanh thu / lãi lỗ. Muốn giữ lịch sử thì dùng trạng thái “Đã hủy”.
 
