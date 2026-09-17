@@ -69,3 +69,4 @@ __pycache__/
 
 # owner-supplied brand sources (copied to scripts/brand/original and public/sites/lienstore/brand)
 LienStore logo redesign/
+.scratch/

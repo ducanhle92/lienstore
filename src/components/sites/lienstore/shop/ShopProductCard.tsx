@@ -63,13 +63,13 @@ export function isNewProduct(p: Pick<CatalogProduct, "createdAt">): boolean {
  * discount / "Mới" / "Hết hàng" labels, hover actions (wishlist, quick view) and a floating round
  * "Thêm Vào Giỏ" button over the image; 2-line title and price below. Renders an `<li>`.
  */
-export function ShopProductCard({ product, className, flashEndsAt }: { product: CatalogProduct; className?: string; flashEndsAt?: string }) {
+export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp = false }: { product: CatalogProduct; className?: string; flashEndsAt?: string; /** Force the "Hot" badge (best-seller shelves). */ hot?: boolean }) {
   const avail = availabilityOf(product);
   const out = avail === "discontinued";
   const group = availabilityGroup(avail);
   const pct = discountPercent(product);
   const fresh = isNewProduct(product);
-  const hot = product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
+  const hot = hotProp || product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
   const primary = product.thumb || product.images[0];
   const fam = product.variantSummary && product.variantSummary.count > 1 ? product.variantSummary : null;
   // a family is "Liên hệ" only when none of its variants has a price; otherwise it shows the lowest priced one

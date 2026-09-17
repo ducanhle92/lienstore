@@ -959,6 +959,19 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE flash_sale_products ADD COLUMN prev_regular_price INTEGER`,
     ],
   },
+  {
+    // Warehouses (Kho hàng): every lot sits in one of the shop's Japan warehouse / the carrier's warehouse / the shop
+    // warehouse in Vietnam; a buy-for-stock slip says which warehouse it is bound for. Purchase sources may carry a
+    // per-unit surcharge in ¥ (e.g. iHerb: domestic shipping to the Japan warehouse) that is part of the cost price.
+    version: 43,
+    name: "warehouses-and-source-fees",
+    up: [
+      `ALTER TABLE stock_lots ADD COLUMN warehouse TEXT NOT NULL DEFAULT 'vn'`,
+      `ALTER TABLE stock_purchases ADD COLUMN warehouse TEXT NOT NULL DEFAULT 'vn'`,
+      `ALTER TABLE purchase_sources ADD COLUMN extra_fee_jpy INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE purchase_sources ADD COLUMN extra_fee_note TEXT NOT NULL DEFAULT ''`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

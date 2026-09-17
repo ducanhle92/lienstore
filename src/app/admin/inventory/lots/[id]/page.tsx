@@ -11,6 +11,7 @@ import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
+import { WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSES } from "@/lib/warehouses";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,15 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
   if (!product) notFound();
   const open = purchases.filter((p) => p.productId === pid);
   const left = lots.reduce((s, l) => s + l.qtyLeft, 0);
+  const whField = (value: string, id: string, cls = "!mb-0 !w-[130px] !py-1 !text-[13px]") => (
+    <select id={id} name="warehouse" defaultValue={value} className={`${adminInput} ${cls}`} aria-label="Kho">
+      {WAREHOUSES.map((w) => (
+        <option key={w} value={w} title={WAREHOUSE_HINT[w]}>
+          {WAREHOUSE_LABEL[w]}
+        </option>
+      ))}
+    </select>
+  );
   const srcField = (name: string, value: string, id: string) => (
     <select id={id} name={name} defaultValue={value} className={`${adminInput} !mb-0 !w-[170px] !py-1 !text-[13px]`} aria-label="Nguồn nhập">
       {sources.map((s) => (
@@ -67,7 +77,8 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                     <th className={thClass}>Nguồn nhập</th>
                     <th className={thClass}>Giá vốn ¥/đv</th>
                     <th className={thClass}>Hạn dùng</th>
-                    <th className={thClass}>Vị trí kho</th>
+                    <th className={thClass}>Kho</th>
+                    <th className={thClass}>Vị trí trong kho</th>
                     <th className={thClass}>Ghi chú</th>
                     <th className={thClass} />
                   </tr>
@@ -103,6 +114,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                             {days !== null ? ` · ${days < 0 ? `${-days} ngày trước` : `${days} ngày`}` : ""}
                           </span>
                         </td>
+                        <td className={tdClass}>{whField(l.warehouse, `${fid}-wh`)}</td>
                         <td className={tdClass}>
                           <input form={fid} name="location" defaultValue={l.location} placeholder="Kệ A2 / thùng 3" className={`${adminInput} !mb-0 !w-[120px] !py-1 !text-[13px]`} aria-label="Vị trí" />
                         </td>
@@ -124,7 +136,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                   })}
                   {lots.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={9} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có lô nào — nhập lô ở khung bên phải, hoặc tạo phiếu “Mua lưu kho” ở Quản lý mua hàng (khi hàng về tới kho, lô tự tạo).
                       </td>
                     </tr>
@@ -132,7 +144,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, số lượng trừ vào lô có hạn dùng gần nhất trước (FEFO). Sửa số “còn” để kiểm kho; tồn kho của sản phẩm = tổng “còn” của các lô.</p>
+            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, số lượng trừ vào lô có hạn dùng gần nhất trước (FEFO). Sửa số “còn” để kiểm kho; tồn kho của sản phẩm = tổng “còn” của các lô ở cả ba kho. Đổi cột “Kho” khi chuyển lô từ Kho Nhật → Kho ĐVVC → Kho Việt Nam.</p>
           </Card>
 
           {open.length ? (
@@ -204,11 +216,19 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                 <input id="al-exp" name="expiry" placeholder="2027-03-31 · 03/2027" className={adminInput} />
               </div>
             </div>
-            <div>
-              <label className={adminLabel} htmlFor="al-loc">
-                Vị trí kho
-              </label>
-              <input id="al-loc" name="location" placeholder="Kệ A2 · thùng 3 · tủ mát" className={adminInput} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={adminLabel} htmlFor="al-wh">
+                  Kho
+                </label>
+                {whField("vn", "al-wh", "")}
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="al-loc">
+                  Vị trí trong kho
+                </label>
+                <input id="al-loc" name="location" placeholder="Kệ A2 · thùng 3 · tủ mát" className={adminInput} />
+              </div>
             </div>
             <div>
               <label className={adminLabel} htmlFor="al-note">

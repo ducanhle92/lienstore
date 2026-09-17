@@ -67,6 +67,16 @@ export async function register() {
       console.warn(`[desc] restructure failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 12_000);
+  // one-time: Reihaku Hatomugi High Moisture body soap is the 800 ml bottle, not 600 ml (see lib/hatomugi-fix-job.ts)
+  setTimeout(async () => {
+    try {
+      const { fixHatomugiVolumeOnce } = await import("./lib/hatomugi-fix-job");
+      const r = await fixHatomugiVolumeOnce();
+      if (r) console.info(`[hatomugi] volume fix applied to ${r.updated} product(s)`);
+    } catch (e) {
+      console.warn(`[hatomugi] fix failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 16_000);
   // one-time: even out uploaded product thumbnails (white margins trimmed) — public/ thumbs are trimmed in the repo
   setTimeout(async () => {
     try {

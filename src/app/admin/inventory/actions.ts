@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { getProductById, updateProductStock } from "@/lib/db";
+import { getProductById, setProductStockInWarehouse, updateProductStock } from "@/lib/db";
 import { parseStocktakeCsv } from "@/lib/stocktake-csv";
 
 /**
@@ -28,7 +28,9 @@ export async function importStocktakeCsvAction(formData: FormData): Promise<void
       errors.push(`#${r.id}: không có sản phẩm này`);
       continue;
     }
-    if (p.stock !== r.count && (await updateProductStock(r.id, r.count))) updated++;
+    if (r.warehouse) {
+      if (await setProductStockInWarehouse(r.id, r.warehouse, r.count)) updated++;
+    } else if (p.stock !== r.count && (await updateProductStock(r.id, r.count))) updated++;
     else if (p.stock === r.count) updated++;
   }
   revalidatePath("/", "layout");

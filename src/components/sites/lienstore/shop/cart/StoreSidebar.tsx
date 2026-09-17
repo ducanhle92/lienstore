@@ -7,13 +7,13 @@ import { getLang } from "@/lib/lang-server";
 import { localizeCategories } from "@/lib/localize";
 
 /** The store sidebar (category list from the database + price filter + recently viewed). */
-export async function StoreSidebar() {
+export async function StoreSidebar({ priceFilter: showPriceFilter = true }: { priceFilter?: boolean } = {}) {
   const lang = await getLang();
   const categories = localizeCategories(await getCategories(), lang);
   const items = categories.map((c) => ({ name: c.name, count: c.count, href: `/product-category/${c.slug}/` }));
   return (
     <>
-      <Sidebar title={lang === "ja" ? t(lang, "productCategories") : sidebarTitle} categories={items} priceFilter={lang === "ja" ? { ...priceFilter, title: t(lang, "priceFilter") } : priceFilter} />
+      <Sidebar title={lang === "ja" ? t(lang, "productCategories") : sidebarTitle} categories={items} priceFilter={showPriceFilter ? (lang === "ja" ? { ...priceFilter, title: t(lang, "priceFilter") } : priceFilter) : undefined} />
       <RecentlyViewedWidget className="mb-4 rounded-md border border-lien-line bg-white p-4" />
     </>
   );

@@ -63,7 +63,6 @@ export function VariantPicker({ group, variants, currentId }: Props) {
             </div>
           );
         })}
-        <p className="m-0 text-[12px] text-lien-muted">{t("variantHint")}</p>
       </div>
     );
   }
@@ -90,7 +89,6 @@ export function VariantPicker({ group, variants, currentId }: Props) {
           );
         })}
       </div>
-      <p className="m-0 mt-2 text-[12px] text-lien-muted">{t("variantHint")}</p>
     </div>
   );
 }

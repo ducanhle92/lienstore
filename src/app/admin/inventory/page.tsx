@@ -12,8 +12,9 @@ import { DEFAULT_MIN_STOCK, getInventory, SALES_PACE_DAYS, type InventoryLine, t
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { listPurchaseSources } from "@/lib/db";
-import { applyInventoryView, EXPIRY_DAYS, inventoryHref, type InventoryView, type Pstatus, parseInventoryView, type SortKey, sortHref, STOCK_SUGGEST_MIN_SOLD } from "@/lib/inventory-view";
+import { applyInventoryView, EXPIRY_DAYS, inventoryHref, type InventoryView, matchesPstatus, type Pstatus, parseInventoryView, type SortKey, sortHref, STOCK_SUGGEST_MIN_SOLD } from "@/lib/inventory-view";
 import { cn } from "@/lib/utils";
+import { describeByWarehouse, TRANSIT_LABEL, WAREHOUSE_LABEL, WAREHOUSE_SHORT, WAREHOUSES } from "@/lib/warehouses";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,17 @@ const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
   out: { label: "Hết kho", cls: "bg-red-100 text-red-800" },
   untracked: { label: "Hàng order", cls: "bg-amber-50 text-amber-800" },
 };
-const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = { in_stock: "Đang lưu kho", incoming: "Đang về", unbought: "Chưa mua" };
+const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = {
+  in_stock: "Đang lưu kho (tất cả kho)",
+  in_stock_jp: "Lưu kho · Kho Nhật",
+  in_stock_carrier: "Lưu kho · Kho ĐVVC",
+  in_stock_vn: "Lưu kho · Kho Việt Nam",
+  incoming: "Đang về (tất cả)",
+  incoming_jp: "Đang về · còn tại Nhật",
+  incoming_transit: "Đang về · NB → VN",
+  incoming_carrier: "Đang về · tại kho ĐVVC VN",
+  unbought: "Chưa mua",
+};
 
 export default async function AdminInventory({ searchParams }: Props) {
   await requireAdmin("inventory");
@@ -43,7 +54,8 @@ export default async function AdminInventory({ searchParams }: Props) {
   const filtered = applyInventoryView(lines, v);
   const back = inventoryHref(v);
   const csvHref = inventoryHref(v, {}, "/admin/inventory/export/").replace("/export/?", "/export/?mode=view&").replace(/\/export\/$/, "/export/?mode=view");
-  const countPstatus = (s: Exclude<Pstatus, "">) => lines.filter((l) => l.pipelineStage === s).length;
+  const countPstatus = (s: Exclude<Pstatus, "">) => lines.filter((l) => matchesPstatus(l, s)).length;
+  const whCsvHref = (w: (typeof WAREHOUSES)[number]) => inventoryHref({ ...v, pstatus: `in_stock_${w}` }, {}, "/admin/inventory/export/").replace("/export/?", "/export/?mode=view&");
 
   return (
     <>
@@ -58,6 +70,14 @@ export default async function AdminInventory({ searchParams }: Props) {
             <Link href="/admin/inventory/export/" className={btnSecondary}>
               <Fa name="download" /> CSV cần mua
             </Link>
+            <span className="inline-flex items-center gap-1 rounded-md border border-[#e5e7eb] bg-white px-2 py-1 text-[12px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho: chỉ các sản phẩm có hàng ở kho đó, cột 'Kho kiểm kê' đã điền — nhập lại sẽ cập nhật tồn của đúng kho đó">
+              Kiểm kê theo kho:
+              {WAREHOUSES.map((w) => (
+                <a key={w} href={whCsvHref(w)} className="font-semibold text-lien-blue hover:underline">
+                  {WAREHOUSE_SHORT[w]} ({summary.unitsByWarehouse[w]})
+                </a>
+              ))}
+            </span>
             <form action={importStocktakeCsvAction} className="flex items-center gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-2 py-1" title="File CSV xuất từ 'Xuất CSV bảng này' với cột 'Kiểm đếm thực tế' đã điền — dòng để trống bị bỏ qua">
               <FilePicker name="csv" accept=".csv,text/csv" label="Chọn CSV" className="!gap-1 [&_span]:hidden" />
               <button type="submit" className={btnSecondary}>
@@ -83,7 +103,7 @@ export default async function AdminInventory({ searchParams }: Props) {
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat href={inventoryHref(v, { pstatus: "in_stock" })} label="Đang lưu kho" value={`${summary.inStockProducts} sp · ${summary.units} đv`} tone={summary.units ? "blue" : "gray"} hint={summary.low ? `${summary.low} sp sắp hết kho` : "Bán từ kho trước khi order"} />
+        <Stat href={inventoryHref(v, { pstatus: "in_stock" })} label="Đang lưu kho" value={`${summary.inStockProducts} sp · ${summary.units} đv`} tone={summary.units ? "blue" : "gray"} hint={summary.units ? describeByWarehouse(summary.unitsByWarehouse) : "Bán từ kho trước khi order"} />
         <Stat href={inventoryHref(v, { pstatus: "incoming" })} label="Đang về kho (lô)" value={`${summary.stockIncomingUnits} đv`} tone={summary.stockIncomingUnits ? "blue" : "gray"} hint={summary.stockIncomingUnits ? `vốn ${formatPrice(summary.stockIncomingValue)}` : "Mua lưu kho đã mua, chưa tới"} />
         <Stat href="/admin/purchases/?tab=stock" label="Lô chờ mua" value={`${summary.plannedLotUnits} đv`} tone={summary.plannedLotUnits ? "amber" : "gray"} hint="Phiếu mua lưu kho chưa mua" />
         <Stat href={inventoryHref(v, { need: "order" })} label="Cần mua theo đơn" value={`${summary.orderNeedLines} sp · ${summary.orderNeedUnits} đv`} tone={summary.orderNeedUnits ? "red" : "gray"} hint="Đơn mở chưa được kho / hàng về bao phủ" />
@@ -109,8 +129,18 @@ export default async function AdminInventory({ searchParams }: Props) {
           </select>
           <select name="pstatus" defaultValue={v.pstatus} className={adminInput} aria-label="Trạng thái theo dõi">
             <option value="">Trạng thái: tất cả</option>
-            <option value="in_stock">{PSTATUS_LABEL.in_stock} ({countPstatus("in_stock")})</option>
-            <option value="incoming">{PSTATUS_LABEL.incoming} ({countPstatus("incoming")})</option>
+            <optgroup label="Đang lưu kho — ở kho nào?">
+              <option value="in_stock">{PSTATUS_LABEL.in_stock} ({countPstatus("in_stock")})</option>
+              <option value="in_stock_jp">{PSTATUS_LABEL.in_stock_jp} ({countPstatus("in_stock_jp")})</option>
+              <option value="in_stock_carrier">{PSTATUS_LABEL.in_stock_carrier} ({countPstatus("in_stock_carrier")})</option>
+              <option value="in_stock_vn">{PSTATUS_LABEL.in_stock_vn} ({countPstatus("in_stock_vn")})</option>
+            </optgroup>
+            <optgroup label="Đang về — đang ở đâu?">
+              <option value="incoming">{PSTATUS_LABEL.incoming} ({countPstatus("incoming")})</option>
+              <option value="incoming_jp">{PSTATUS_LABEL.incoming_jp} ({countPstatus("incoming_jp")})</option>
+              <option value="incoming_transit">{PSTATUS_LABEL.incoming_transit} ({countPstatus("incoming_transit")})</option>
+              <option value="incoming_carrier">{PSTATUS_LABEL.incoming_carrier} ({countPstatus("incoming_carrier")})</option>
+            </optgroup>
             <option value="unbought">{PSTATUS_LABEL.unbought} ({countPstatus("unbought")})</option>
           </select>
           <select name="expiry" defaultValue={v.expiry} className={adminInput} aria-label="Hạn dùng">
@@ -129,7 +159,7 @@ export default async function AdminInventory({ searchParams }: Props) {
           </button>
         </form>
         <p className="mb-4 text-[12px] text-lien-muted">
-          <strong>Trạng thái</strong>: Đang lưu kho (còn tồn) · Đang về (đã đặt lô lưu kho, chưa tới) · Chưa mua (cần mua nhưng chưa đặt gì). <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.{" "}
+          <strong>Trạng thái</strong>: Đang lưu kho (còn tồn — chọn kho: Kho Nhật / Kho ĐVVC / Kho Việt Nam) · Đang về (đã đặt lô lưu kho, chưa tới — còn tại Nhật / NB → VN / tại kho ĐVVC VN) · Chưa mua (cần mua nhưng chưa đặt gì). Mỗi lô ghi rõ kho; sửa ở &ldquo;Quản lý lô&rdquo;. <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.{" "}
           <Link href="/admin/purchases/" className="text-lien-blue hover:underline">
             <Fa name="shopping-basket" /> Quản lý mua hàng →
           </Link>
@@ -231,6 +261,16 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
         ) : (
           <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold leading-5", st.cls)}>{st.label}</span>
         )}
+        {(p.stock ?? 0) > 0 ? <span className="mt-0.5 block whitespace-nowrap text-[11px] text-lien-muted">{describeByWarehouse(line.stockByWarehouse)}</span> : null}
+        {line.pipeline.stockIncoming > 0 ? (
+          <span className="mt-0.5 block whitespace-nowrap text-[11px] text-sky-800">
+            Đang về:{" "}
+            {(["jp", "transit", "carrier"] as const)
+              .filter((w) => line.incomingWhere[w] > 0)
+              .map((w) => `${TRANSIT_LABEL[w]} ${line.incomingWhere[w]}`)
+              .join(" · ")}
+          </span>
+        ) : null}
       </td>
       <td className={`${tdClass} whitespace-nowrap`}>
         {p.stock === null ? <span className="text-lien-muted">—</span> : <span className={cn("font-semibold", line.state === "out" && "text-red-700", line.state === "low" && "text-amber-700")}>{p.stock}</span>}
@@ -246,6 +286,9 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
                 <li key={lot.id} className="flex flex-wrap items-center gap-x-1.5 leading-4">
                   <span className="text-lien-muted">{lot.receivedAt.slice(5).split("-").reverse().join("/")}</span>
                   <span className="font-semibold text-lien-heading">{lot.qtyLeft}</span>
+                  <span className="rounded bg-[#eef2ff] px-1 font-semibold text-[#3730a3]" title={WAREHOUSE_LABEL[lot.warehouse]}>
+                    {WAREHOUSE_SHORT[lot.warehouse]}
+                  </span>
                   <span className="text-lien-muted">· {sourceName(lot.sourceKey)}</span>
                   {lot.expiry ? (
                     <span className={cn("rounded px-1 font-semibold", EXP_CLS[st])} title={d !== null ? `${d} ngày` : undefined}>

@@ -8,6 +8,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, listProductGroups } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -20,24 +21,52 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function AdminProductGroups({ searchParams }: Props) {
   await requireAdmin("products");
   const sp = await searchParams;
-  const [groups, all] = await Promise.all([listProductGroups(), getAllProducts(true)]);
+  const [allGroups, all] = await Promise.all([listProductGroups(), getAllProducts(true)]);
   const members = (id: number) => all.filter((p) => p.groupId === id).sort((a, b) => a.variantPosition - b.variantPosition || a.id - b.id);
+  // search by group name, attribute label, or any member's name / SKU / slug / #id
+  const q = first(sp.q).trim().toLowerCase();
+  const hay = (g: (typeof allGroups)[number]) => [g.name, ...g.attrLabels, ...members(g.id).flatMap((p) => [p.name, p.sku ?? "", p.slug, `#${p.id}`, ...Object.values(p.variantAttrs)])].join(" ").toLowerCase();
+  const groups = q ? allGroups.filter((g) => hay(g).includes(q)) : allGroups;
   return (
     <>
       <PageHeader
         title="Nhóm biến thể"
         subtitle="Cùng một dòng sản phẩm nhưng khác vị, dung tích, số viên, có/không hương… gộp vào một nhóm: ngoài kệ chỉ hiện 1 thẻ “N lựa chọn”, vào trang sản phẩm khách bấm chip để đổi loại. Mỗi biến thể vẫn là một sản phẩm riêng (ảnh, giá, SKU, mô tả)."
         back={{ href: "/admin/products/", label: "Sản phẩm" }}
+        actions={
+          <form method="get" className="flex items-center gap-2" role="search">
+            <input name="q" defaultValue={first(sp.q)} placeholder="Tìm nhóm, sản phẩm trong nhóm, SKU…" className={cn(adminInput, "!mb-0 !w-[280px] !py-1.5")} aria-label="Tìm nhóm biến thể" />
+            <button type="submit" className={`${btnPrimary} !py-1.5`}>
+              <Fa name="search" /> Tìm
+            </button>
+            {q ? (
+              <Link href="/admin/products/groups/" className="text-[13px] text-lien-muted hover:text-lien-blue">
+                Xoá lọc
+              </Link>
+            ) : null}
+          </form>
+        }
       />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
+          {q ? (
+            <p className="m-0 text-[13px] text-lien-muted">
+              {groups.length}/{allGroups.length} nhóm khớp “{first(sp.q)}”.
+            </p>
+          ) : null}
           {groups.length === 0 ? (
             <Card>
               <p className="m-0 text-[14px] text-lien-muted">
-                Chưa có nhóm nào. Vào <Link href="/admin/products/" className="text-lien-blue hover:underline">Sản phẩm</Link>, tích chọn các sản phẩm cùng dòng rồi bấm “Gộp thành nhóm biến thể”.
+                {q ? (
+                  <>Không có nhóm nào khớp “{first(sp.q)}”.</>
+                ) : (
+                  <>
+                    Chưa có nhóm nào. Vào <Link href="/admin/products/" className="text-lien-blue hover:underline">Sản phẩm</Link>, tích chọn các sản phẩm cùng dòng rồi bấm “Gộp thành nhóm biến thể”.
+                  </>
+                )}
               </p>
             </Card>
           ) : null}
@@ -85,11 +114,11 @@ export default async function AdminProductGroups({ searchParams }: Props) {
             </button>
             <p className="m-0 text-[12px] leading-5 text-lien-muted">Sau đó gán sản phẩm vào nhóm ở trang sửa từng sản phẩm (khung “Nhóm biến thể”) hoặc tích chọn nhiều sản phẩm ở danh sách.</p>
           </form>
-          {groups.length ? (
+          {allGroups.length ? (
             <div className="mt-5 border-t border-[#e5e7eb] pt-4">
               <p className={adminLabel}>Xoá nhóm (sản phẩm giữ nguyên, hiển thị riêng lại)</p>
               <ul className="m-0 list-none space-y-1 p-0 text-[13px]">
-                {groups.map((g) => (
+                {allGroups.map((g) => (
                   <li key={g.id} className="flex items-center justify-between gap-2">
                     <span>{g.name}</span>
                     <form action={deleteGroupAction}>

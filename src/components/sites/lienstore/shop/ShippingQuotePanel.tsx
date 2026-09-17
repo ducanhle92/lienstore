@@ -300,6 +300,7 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
               </div>
               {q.available ? (
                 <>
+                  {compact ? null : (
                   <ul className="m-0 mt-2 list-none space-y-0.5 p-0 text-[12px] text-lien-muted">
                     {q.routeLabel ? <li>{t("shipRoute")}: {q.routeLabel}</li> : null}
                     <li>
@@ -323,6 +324,7 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
                       {q.rateCardVersion ? ` · v${q.rateCardVersion}` : ""}
                     </li>
                   </ul>
+                  )}
                   {q.accuracy === "from_price" ? <p className="m-0 mt-1.5 rounded bg-amber-50 px-2 py-1 text-[12px] leading-4 text-amber-800">{t("shipFromNote")}</p> : null}
                   {q.warnings.map((w) => (
                     <p key={w} className="m-0 mt-1 text-[12px] leading-4 text-amber-700">

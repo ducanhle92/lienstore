@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { sourceFromUrl } from "@/lib/cost-sources";
+import { landedFeeJpy, sourceFromUrl } from "@/lib/cost-sources";
 import { BUILTIN_SOURCES, matchSourceByUrl, PURCHASE_KIND_LABEL } from "@/lib/purchase-sources";
 import type { PurchaseSource } from "@/types/shop";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ interface Props {
   primaryIndex: number;
   defaultSource: string;
   /** Registry of purchase sources (Kho hàng › Nguồn nhập); falls back to the built-ins. */
-  sources?: Array<Pick<PurchaseSource, "key" | "name" | "kind" | "url">>;
+  sources?: Array<Pick<PurchaseSource, "key" | "name" | "kind" | "url"> & { extraFeeJpy?: number }>;
   error?: string;
   /** Primary quote (¥ + link) whenever it changes, for the live cost / price hints. */
   onPrimaryChange?: (primary: { priceJpy: number | null; url: string; source: string } | null) => void;
@@ -40,7 +40,7 @@ const priceOf = (r: CostSourceDraft | undefined) => {
  * so the server action reads them in order with formData.getAll.
  */
 export function CostSourcesEditor({ initial, primaryIndex, defaultSource, sources, error, onPrimaryChange }: Props) {
-  const registry = sources && sources.length ? sources : BUILTIN_SOURCES.map((s) => ({ ...s }));
+  const registry: Array<Pick<PurchaseSource, "key" | "name" | "kind" | "url"> & { extraFeeJpy?: number }> = sources && sources.length ? sources : BUILTIN_SOURCES.map((s) => ({ ...s }));
   // group the dropdown by kind so a long list of stores stays readable
   const kinds = Array.from(new Set(registry.map((s) => s.kind)));
   const [rows, setRows] = useState<CostSourceDraft[]>(initial.length ? initial : [{ source: defaultSource, priceJpy: "", url: "" }]);
@@ -61,10 +61,15 @@ export function CostSourcesEditor({ initial, primaryIndex, defaultSource, source
     setRows(next);
     setPrimary(primary >= next.length ? Math.max(0, next.length - 1) : primary > i ? primary - 1 : primary);
   };
-  const cheapestIdx = rows.reduce<number>((best, r, i) => {
+  const fees = Object.fromEntries(registry.filter((s) => (s.extraFeeJpy ?? 0) > 0).map((s) => [s.key, s.extraFeeJpy ?? 0]));
+  const landedOf = (r: CostSourceDraft | undefined) => {
     const p = priceOf(r);
+    return p === null ? null : p + landedFeeJpy(r?.source ?? "", fees);
+  };
+  const cheapestIdx = rows.reduce<number>((best, r, i) => {
+    const p = landedOf(r);
     if (p === null) return best;
-    const b = best >= 0 ? priceOf(rows[best]) : null;
+    const b = best >= 0 ? landedOf(rows[best]) : null;
     return b === null || p < b ? i : best;
   }, -1);
   const priced = rows.filter((r) => priceOf(r) !== null).length;
@@ -113,7 +118,8 @@ export function CostSourcesEditor({ initial, primaryIndex, defaultSource, source
                 </button>
               ) : null}
             </p>
-            {i === cheapestIdx && priced > 1 ? <span className="mt-1 inline-block rounded bg-green-100 px-1.5 text-[11px] font-semibold text-green-800">rẻ nhất</span> : null}
+            {landedFeeJpy(r.source, fees) ? <span className="mt-1 mr-1 inline-block rounded bg-amber-100 px-1.5 text-[11px] font-semibold text-amber-800" title="Phụ phí của nguồn (Nguồn nhập) — cộng vào giá vốn">+¥{landedFeeJpy(r.source, fees).toLocaleString("ja-JP")}/đv phụ phí</span> : null}
+            {i === cheapestIdx && priced > 1 ? <span className="mt-1 inline-block rounded bg-green-100 px-1.5 text-[11px] font-semibold text-green-800">rẻ nhất (đã tính phụ phí)</span> : null}
           </div>
         ))}
       </div>

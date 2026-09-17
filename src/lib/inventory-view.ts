@@ -1,4 +1,5 @@
 import type { InventoryLine, PipelineStage, StockState } from "./inventory";
+import type { TransitWhere, Warehouse } from "./warehouses";
 
 /**
  * Filter + sort of the inventory table, shared by the admin page and the CSV export so "xuất CSV" prints exactly what
@@ -6,7 +7,21 @@ import type { InventoryLine, PipelineStage, StockState } from "./inventory";
  */
 export type Track = "all" | "tracked" | "untracked";
 export type Need = "all" | "order" | "restock";
-export type Pstatus = "" | Exclude<PipelineStage, null>;
+/** "Trạng thái theo dõi": a stage, or a stage narrowed to WHERE — in stock at one warehouse, or on the way at one point of the route. */
+export type Pstatus = "" | Exclude<PipelineStage, null> | `in_stock_${Warehouse}` | `incoming_${TransitWhere}`;
+export const PSTATUS_VALUES: readonly Pstatus[] = ["", "in_stock", "in_stock_jp", "in_stock_carrier", "in_stock_vn", "incoming", "incoming_jp", "incoming_transit", "incoming_carrier", "unbought"];
+/** Warehouse a "in_stock_*" filter points at (for the per-warehouse stocktake CSV); null otherwise. */
+export function warehouseOfPstatus(p: Pstatus): Warehouse | null {
+  return p === "in_stock_jp" ? "jp" : p === "in_stock_carrier" ? "carrier" : p === "in_stock_vn" ? "vn" : null;
+}
+export function matchesPstatus(l: InventoryLine, p: Pstatus): boolean {
+  if (!p) return true;
+  if (p === "in_stock" || p === "incoming" || p === "unbought") return l.pipelineStage === p;
+  const wh = warehouseOfPstatus(p);
+  if (wh) return l.stockByWarehouse[wh] > 0;
+  const where = p.replace(/^incoming_/, "") as TransitWhere;
+  return l.incomingWhere[where] > 0;
+}
 /** Earliest lot expiry within … (from today). */
 export type Expiry = "" | "1m" | "3m" | "6m" | "1y";
 export const EXPIRY_DAYS: Record<Exclude<Expiry, "">, number> = { "1m": 30, "3m": 90, "6m": 180, "1y": 365 };
@@ -42,7 +57,7 @@ export function parseInventoryView(sp: Record<string, string | string[] | undefi
   const track = pick(first("track"), ["all", "tracked", "untracked"] as const, legacy === "tracked" || legacy === "low" || legacy === "out" ? "tracked" : legacy === "untracked" ? "untracked" : "all");
   const state = pick(first("state"), ["out", "low", "ok"] as const, legacy === "low" || legacy === "out" ? (legacy as StockState) : ("" as StockState | "")) as StockState | "";
   const need = pick(first("need"), ["all", "order", "restock"] as const, legacy === "order" ? "order" : "all");
-  const pstatus = pick(first("pstatus"), ["", "in_stock", "incoming", "unbought"] as const, "");
+  const pstatus = pick(first("pstatus"), PSTATUS_VALUES, "");
   const expiry = pick(first("expiry"), ["", "1m", "3m", "6m", "1y"] as const, "");
   const advice = pick(first("advice"), ["", "suggest"] as const, "");
   // "nên lưu kho" reads best fastest-selling first; an expiry filter reads soonest-expiring first
@@ -87,7 +102,7 @@ export function applyInventoryView(lines: InventoryLine[], v: InventoryView): In
     .filter((l) => (v.track === "tracked" ? l.product.stock !== null : v.track === "untracked" ? l.product.stock === null : true))
     .filter((l) => !v.state || (v.track === "tracked" && l.state === v.state))
     .filter((l) => (v.need === "order" ? l.demand > 0 && l.toBuy > 0 : v.need === "restock" ? l.toBuy > 0 && l.demand === 0 : true))
-    .filter((l) => !v.pstatus || l.pipelineStage === v.pstatus)
+    .filter((l) => matchesPstatus(l, v.pstatus))
     .filter((l) => !v.expiry || (l.minExpiryDays !== null && l.minExpiryDays <= EXPIRY_DAYS[v.expiry]))
     .filter((l) => v.advice !== "suggest" || l.soldRecent >= STOCK_SUGGEST_MIN_SOLD);
   const dirMul = v.dir === "asc" ? 1 : -1;

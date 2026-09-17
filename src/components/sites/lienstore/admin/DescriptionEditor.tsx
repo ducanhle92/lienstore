@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { structureDescription, type SectionKey } from "@/lib/description";
+import { htmlToPlain, plainToHtml } from "@/lib/plain-html";
 import { cn } from "@/lib/utils";
 import { adminInput, adminLabel } from "./ui";
 
@@ -33,8 +34,8 @@ const FACT_LABELS: Array<{ key: string; vi: string; ja: string }> = [
 ];
 
 const UI = {
-  vi: { structured: "Soạn theo mục", raw: "HTML thô", intro: "Giới thiệu (1–2 đoạn, HTML đơn giản)", facts: "Thông tin nhanh", lines: "Mỗi dòng là một gạch đầu dòng; để trống nếu không có.", other: "Mục khác (HTML)" },
-  ja: { structured: "項目ごとに編集", raw: "HTML", intro: "紹介文（HTML）", facts: "基本情報", lines: "1行が1項目になります。ない場合は空欄。", other: "その他（HTML）" },
+  vi: { structured: "Soạn theo mục", raw: "HTML thô", intro: "Giới thiệu — viết thường 1–2 đoạn, cách đoạn bằng một dòng trống", facts: "Thông tin nhanh", lines: "Mỗi dòng là một gạch đầu dòng; để trống nếu không có.", other: "Mục khác (HTML)" },
+  ja: { structured: "項目ごとに編集", raw: "HTML", intro: "紹介文 — 普通の文章で1〜2段落（段落は空行で区切る）", facts: "基本情報", lines: "1行が1項目になります。ない場合は空欄。", other: "その他（HTML）" },
 };
 
 interface Model {
@@ -76,12 +77,12 @@ function parse(html: string, name: string): Model {
     if (s.key === "other" || s.key === "info") other.push(`<p><strong>${s.title}</strong></p>${s.html}`);
     else sections[s.key] = htmlToLines(s.html);
   }
-  return { intro: d.introHtml.trim(), facts, sections, other: other.join("\n") };
+  return { intro: htmlToPlain(d.introHtml.trim()), facts, sections, other: other.join("\n") };
 }
 
 function compose(m: Model, lang: Lang): string {
   const parts: string[] = [];
-  if (m.intro.trim()) parts.push(/^</.test(m.intro.trim()) ? m.intro.trim() : `<p>${m.intro.trim()}</p>`);
+  if (m.intro.trim()) parts.push(plainToHtml(m.intro));
   const facts = FACT_LABELS.filter((f) => m.facts[f.key]?.trim()).map((f) => `<li>${f[lang]}: ${m.facts[f.key].trim()}</li>`);
   if (facts.length) parts.push(`<ul>${facts.join("")}</ul>`);
   for (const key of SECTION_ORDER) {
@@ -136,7 +137,7 @@ export function DescriptionEditor({ name, lang, initialHtml, productName = "" }:
             <label className={adminLabel} htmlFor={`${id}-intro`}>
               {ui.intro}
             </label>
-            <textarea id={`${id}-intro`} rows={3} value={model.intro} onChange={(e) => update({ intro: e.target.value })} className={adminInput} />
+            <textarea id={`${id}-intro`} rows={4} value={model.intro} onChange={(e) => update({ intro: e.target.value })} placeholder={lang === "vi" ? "VD: Sản phẩm nội địa Nhật của hãng…, dạng viên nhỏ dễ uống, phù hợp dùng theo đợt." : "例: 飲みやすい小粒の錠剤で、内側からのケアを続けたい方に向いています。"} className={adminInput} />
           </div>
           <div>
             <p className={adminLabel}>{ui.facts}</p>

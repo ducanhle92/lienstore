@@ -36,8 +36,12 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const fields: Record<string, string> = {};
 
-  const firstName = get("first_name");
-  const lastName = get("last_name");
+  // "Họ tên" comes as one box: the last word is the given name (tên), everything before it the family name (họ);
+  // a single word goes into both so nothing downstream (greetings, invoices) is left blank
+  const fullName = get("full_name").replace(/\s+/g, " ");
+  const nameParts = fullName ? fullName.split(" ") : [];
+  const firstName = fullName ? nameParts[nameParts.length - 1] : get("first_name");
+  const lastName = fullName ? nameParts.slice(0, -1).join(" ") || firstName : get("last_name");
   const street = get("address");
   const provinceCode = get("ship_province_code");
   const wardCode = get("ship_ward_code");
@@ -51,8 +55,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const clientFee = clientFeeRaw ? Number.parseInt(clientFeeRaw, 10) : null;
   const shipFeePayment: ShipFeePayment = delivery === "ship" && get("ship_fee_payment") === "on_delivery" ? "on_delivery" : "prepaid";
 
-  if (!firstName) fields.first_name = "Tên là trường bắt buộc.";
-  if (!lastName) fields.last_name = "Họ là trường bắt buộc.";
+  if (!firstName) fields.full_name = "Họ tên là trường bắt buộc.";
+  if (!lastName) fields.full_name = "Họ tên là trường bắt buộc.";
   const province = findProvince(provinceCode);
   const ward = findWard(wardCode);
   if (!province) fields.ship_province_code = "Chọn tỉnh/thành.";

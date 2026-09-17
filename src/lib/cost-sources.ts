@@ -45,7 +45,19 @@ export interface CostQuote {
 }
 
 /** Cheapest quote; ties go to the preferred source, then to the first entered. */
-export function cheapestQuote<T extends CostQuote>(rows: T[], preferred: string): T | null {
+export function cheapestQuote<T extends CostQuote>(rows: T[], preferred: string, fees: Record<string, number> = {}): T | null {
   if (!rows.length) return null;
-  return [...rows].sort((a, b) => a.priceJpy - b.priceJpy || (a.source === preferred ? -1 : b.source === preferred ? 1 : 0))[0];
+  const landed = (r: T) => r.priceJpy + landedFeeJpy(r.source, fees);
+  return [...rows].sort((a, b) => landed(a) - landed(b) || (a.source === preferred ? -1 : b.source === preferred ? 1 : 0))[0];
+}
+
+/** Per-unit ¥ surcharge of a purchase source (Nguồn nhập › Phụ phí), 0 when none. */
+export function landedFeeJpy(source: string, fees: Record<string, number> = {}): number {
+  const f = fees[source];
+  return Number.isFinite(f) && f > 0 ? f : 0;
+}
+
+/** VND cost price of a quote: (¥ quote + source surcharge) × rate. */
+export function costPriceFromJpy(priceJpy: number, source: string, rate: number, fees: Record<string, number> = {}): number {
+  return Math.round((priceJpy + landedFeeJpy(source, fees)) * rate);
 }

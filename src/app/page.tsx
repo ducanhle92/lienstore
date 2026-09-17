@@ -86,7 +86,7 @@ export default async function Home() {
           <SectionHeader2 title={t(lang, "bestTitle")} icon="star" href="/shop/?orderby=rating" />
           <ProductCarousel ariaLabel="Bán chạy">
               {popularItems.map((p) => (
-                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} />
+                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} hot />
               ))}
             </ProductCarousel>
         </section>

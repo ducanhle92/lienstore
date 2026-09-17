@@ -4,7 +4,9 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
 import { DEFAULT_PRICING, effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
-import { costSourceLabel, sourceFromUrl } from "@/lib/cost-sources";
+import { costSourceLabel, landedFeeJpy, sourceFromUrl } from "@/lib/cost-sources";
+import { htmlToPlain, isSimpleHtml } from "@/lib/plain-html";
+import { suggestStandardStock } from "@/lib/stock-advice";
 import { CostSourcesEditor } from "./CostSourcesEditor";
 import { InfoPopover } from "./InfoPopover";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -33,6 +35,8 @@ interface ProductFormProps {
   groups?: ProductGroup[];
   /** Purchase-source registry (Kho hàng › Nguồn nhập). */
   sources?: PurchaseSource[];
+  /** Units sold per month, oldest first (existing products) — the buying trend behind "Hàng order → Lưu kho". */
+  monthlySales?: Array<{ month: string; units: number }>;
 }
 
 const digits = (s: string) => Number.parseInt(s.replace(/[^\d]/g, ""), 10);
@@ -45,12 +49,31 @@ function computeMargin(priceText: string, costText: string): { profit: number; p
   return { profit: price - cost, pct: Math.round(((price - cost) / price) * 1000) / 10 };
 }
 
+/**
+ * Textarea the owner fills in natural language; the server wraps paragraphs in <p>. Content that already has richer
+ * HTML (links, bold…) is shown as-is so nothing is lost — with a note.
+ */
+function PlainTextField({ id, name, initialHtml, rows, placeholder }: { id: string; name: string; initialHtml: string; rows: number; placeholder?: string }) {
+  const simple = isSimpleHtml(initialHtml);
+  return (
+    <>
+      <textarea id={id} name={name} rows={rows} defaultValue={simple ? htmlToPlain(initialHtml) : initialHtml} placeholder={placeholder} className={cn(adminInput, !simple && "font-mono text-[12px]")} />
+      {!simple ? <p className="mt-1 text-[11px] text-lien-muted">Nội dung này có định dạng HTML (link, chữ đậm…), giữ nguyên để không mất định dạng.</p> : null}
+    </>
+  );
+}
+
 function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [] }: ProductFormProps) {
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
+  const [editSlug, setEditSlug] = useState(false);
+  const [stockMode, setStockMode] = useState<"order" | "stock">(product ? (product.stock !== null || product.fulfillment === "stock" ? "stock" : "order") : "order");
+  const [minStockText, setMinStockText] = useState(product?.minStock === null || product?.minStock === undefined ? "" : String(product.minStock));
+  const advice = suggestStandardStock(monthlySales);
+  const maxMonth = Math.max(1, ...monthlySales.map((m) => m.units));
   const [newLabels, setNewLabels] = useState("");
   const selGroup = groups.find((g) => String(g.id) === groupSel) ?? null;
   const groupLabels = groupSel === "new" ? newLabels.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3) : (selGroup?.attrLabels ?? []);
@@ -68,11 +91,15 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [catSlugs, setCatSlugs] = useState<string[]>(product?.categories ?? []);
   const defaultMargin = pricing ? effectiveMarginPct(pricing, null, catSlugs) : 25;
   const [primaryJpy, setPrimaryJpy] = useState<number | null>(product?.costJpy ?? null);
+  const [primarySource, setPrimarySource] = useState<string>(product?.costSource ?? "");
   const margin = computeMargin(priceText, costText);
   const costNum = digits(costText);
   const rate = quote?.jpyRate ?? 0;
-  /** Giá vốn VNĐ from the chosen ¥ quote at today's rate. */
-  const costFromJpy = primaryJpy && rate ? Math.round(primaryJpy * rate) : null;
+  const sourceFees = Object.fromEntries(sources.filter((s) => s.extraFeeJpy > 0).map((s) => [s.key, s.extraFeeJpy]));
+  /** Per-unit surcharge of the chosen source (Nguồn nhập › Phụ phí) — part of the landed ¥. */
+  const primaryFee = landedFeeJpy(primarySource, sourceFees);
+  /** Giá vốn VNĐ from the chosen ¥ quote (+ source surcharge) at today's rate. */
+  const costFromJpy = primaryJpy && rate ? Math.round((primaryJpy + primaryFee) * rate) : null;
   const recalcCost = () => {
     if (costFromJpy) setCostText(String(costFromJpy));
     return costFromJpy;
@@ -116,35 +143,57 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 </label>
                 <input id="nameJa" name="nameJa" defaultValue={product?.nameJa} placeholder="VD: 雪肌精 クリアウェルネス 140g" className={adminInput} />
               </div>
-              <div>
-                <label className={adminLabel} htmlFor="slug">
-                  Đường dẫn (slug)
-                </label>
-                <input id="slug" name="slug" defaultValue={product?.slug} placeholder="Để trống để tạo tự động từ tên" className={cn(adminInput, fields.slug && "border-red-500")} />
-                <FieldError msg={fields.slug} />
+              {/* the URL is generated from the name; an existing product keeps its URL unless the owner deliberately changes it */}
+              <div className="text-[12px] text-lien-muted">
+                {editSlug || fields.slug ? (
+                  <>
+                    <label className={adminLabel} htmlFor="slug">
+                      Đường dẫn (tự sinh từ tên — chỉ sửa khi thật cần)
+                    </label>
+                    <input id="slug" name="slug" defaultValue={product?.slug} placeholder="Để trống để tạo tự động từ tên" className={cn(adminInput, fields.slug && "border-red-500")} />
+                    <FieldError msg={fields.slug} />
+                  </>
+                ) : (
+                  <>
+                    {product ? <input type="hidden" name="slug" value={product.slug} readOnly /> : null}
+                    Đường dẫn: <span className="font-mono">/product/{product?.slug ?? "…"}/</span> — tự sinh từ tên sản phẩm.{" "}
+                    <button type="button" onClick={() => setEditSlug(true)} className="text-lien-blue hover:underline">
+                      Đổi
+                    </button>
+                  </>
+                )}
               </div>
               <div>
                 <label className={adminLabel} htmlFor="shortDescription">
-                  Mô tả ngắn (HTML)
+                  Mô tả ngắn <span className="font-normal text-lien-muted">— 1–2 câu, viết thường như nói với khách</span>
                 </label>
-                <textarea id="shortDescription" name="shortDescription" rows={3} defaultValue={product?.shortDescription} className={adminInput} />
+                <PlainTextField id="shortDescription" name="shortDescription" initialHtml={product?.shortDescription ?? ""} rows={3} placeholder="VD: Viên uống vitamin nhóm B của Nhật, hỗ trợ giảm mụn và da sần từ bên trong." />
               </div>
-              <div>
-                <p className={adminLabel}>Mô tả chi tiết</p>
-                <DescriptionEditor name="description" lang="vi" initialHtml={product?.description ?? ""} productName={product?.name} />
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="shortDescriptionJa">
-                  Mô tả ngắn tiếng Nhật
-                </label>
-                <textarea id="shortDescriptionJa" name="shortDescriptionJa" rows={2} defaultValue={product?.shortDescriptionJa} className={adminInput} />
-              </div>
-              <div>
-                <p className={adminLabel}>
-                  Mô tả chi tiết tiếng Nhật <span className="font-normal text-lien-muted">— để trống thì hiện bản tiếng Việt</span>
-                </p>
-                <DescriptionEditor name="descriptionJa" lang="ja" initialHtml={product?.descriptionJa ?? ""} productName={product?.nameJa || product?.name} />
-              </div>
+              <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" data-testid="desc-vi">
+                <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
+                  Mô tả chi tiết <span className="font-normal text-lien-muted">— bấm để mở: giới thiệu, thông tin nhanh, công dụng, thành phần, cách dùng, lưu ý</span>
+                </summary>
+                <div className="border-t border-[#e5e7eb] p-3">
+                  <DescriptionEditor name="description" lang="vi" initialHtml={product?.description ?? ""} productName={product?.name} />
+                </div>
+              </details>
+              <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" data-testid="desc-ja">
+                <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
+                  Nội dung tiếng Nhật <span className="font-normal text-lien-muted">— bấm để mở; để trống thì khách chọn 日本語 vẫn thấy bản tiếng Việt</span>
+                </summary>
+                <div className="grid gap-4 border-t border-[#e5e7eb] p-3">
+                  <div>
+                    <label className={adminLabel} htmlFor="shortDescriptionJa">
+                      Mô tả ngắn tiếng Nhật <span className="font-normal text-lien-muted">— viết thường, 1–2 câu</span>
+                    </label>
+                    <PlainTextField id="shortDescriptionJa" name="shortDescriptionJa" initialHtml={product?.shortDescriptionJa ?? ""} rows={2} placeholder="例: 肌あれ・にきびを体の内側からケアするビタミン剤です。" />
+                  </div>
+                  <div>
+                    <p className={adminLabel}>Mô tả chi tiết tiếng Nhật</p>
+                    <DescriptionEditor name="descriptionJa" lang="ja" initialHtml={product?.descriptionJa ?? ""} productName={product?.nameJa || product?.name} />
+                  </div>
+                </div>
+              </details>
             </div>
           </Card>
 
@@ -197,7 +246,17 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>
-                <CostSourcesEditor initial={costDrafts} primaryIndex={costPrimary} defaultSource={defaultSource} sources={sources} error={fields.costJpy} onPrimaryChange={(p) => setPrimaryJpy(p?.priceJpy ?? null)} />
+                <CostSourcesEditor
+                  initial={costDrafts}
+                  primaryIndex={costPrimary}
+                  defaultSource={defaultSource}
+                  sources={sources}
+                  error={fields.costJpy}
+                  onPrimaryChange={(p) => {
+                    setPrimaryJpy(p?.priceJpy ?? null);
+                    setPrimarySource(p?.source ?? "");
+                  }}
+                />
                 <p className="mt-1 text-[12px] leading-4 text-lien-muted">
                   Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp); chưa rõ mua ở đâu thì chọn “Chưa xác định — thêm sau”. Thêm cửa hàng / sàn mới ở{" "}
                   <Link href="/admin/products/sources/" className="text-lien-blue hover:underline">
@@ -213,12 +272,17 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 </label>
                 <div className="flex gap-2">
                   <input id="costPrice" name="costPrice" inputMode="numeric" value={costText} onChange={(e) => setCostText(e.target.value)} placeholder="Chỉ hiển thị trong quản trị" className={cn(adminInput, "!mb-0 flex-1", fields.costPrice && "border-red-500")} />
-                  <button type="button" onClick={recalcCost} disabled={!costFromJpy} title={costFromJpy ? `${primaryJpy?.toLocaleString("vi-VN")}¥ × ${rate.toLocaleString("vi-VN")} = ${costFromJpy.toLocaleString("vi-VN")}đ` : "Chọn một nguồn có giá ¥ trước"} className="shrink-0 rounded-md border border-lien-blue px-2.5 py-1.5 text-[12px] font-semibold text-lien-blue hover:bg-lien-blue-soft disabled:opacity-50" data-testid="recalc-cost">
+                  <button type="button" onClick={recalcCost} disabled={!costFromJpy} title={costFromJpy ? `(${primaryJpy?.toLocaleString("vi-VN")}¥${primaryFee ? ` + ${primaryFee.toLocaleString("vi-VN")}¥ phụ phí nguồn` : ""}) × ${rate.toLocaleString("vi-VN")} = ${costFromJpy.toLocaleString("vi-VN")}đ` : "Chọn một nguồn có giá ¥ trước"} className="shrink-0 rounded-md border border-lien-blue px-2.5 py-1.5 text-[12px] font-semibold text-lien-blue hover:bg-lien-blue-soft disabled:opacity-50" data-testid="recalc-cost">
                     <Fa name="refresh" /> Tính lại giá vốn
                   </button>
                 </div>
                 <FieldError msg={fields.costPrice} />
-                {costFromJpy && Number.isFinite(costNum) && costNum !== costFromJpy ? <p className="mt-1 text-[12px] text-amber-700">Theo nguồn đã chọn: {costFromJpy.toLocaleString("vi-VN")}đ ({primaryJpy?.toLocaleString("vi-VN")}¥ × {rate.toLocaleString("vi-VN")}) — bấm &quot;Tính lại giá vốn&quot; để cập nhật.</p> : null}
+                {costFromJpy && Number.isFinite(costNum) && costNum !== costFromJpy ? (
+                  <p className="mt-1 text-[12px] text-amber-700">
+                    Theo nguồn đã chọn: {costFromJpy.toLocaleString("vi-VN")}đ ({primaryJpy?.toLocaleString("vi-VN")}¥{primaryFee ? ` + ${primaryFee.toLocaleString("vi-VN")}¥ phụ phí` : ""} × {rate.toLocaleString("vi-VN")}) — bấm &quot;Tính lại giá vốn&quot; để cập nhật.
+                  </p>
+                ) : null}
+                {primaryFee ? <p className="mt-1 text-[12px] text-lien-muted">Nguồn này có phụ phí {primaryFee.toLocaleString("vi-VN")}¥/đv (VD: ship về kho Nhật) — đã cộng vào giá vốn.</p> : null}
                 {margin ? (
                   <p className={cn("mt-1 text-[12px] leading-4", margin.profit >= 0 ? "text-green-700" : "text-red-600")}>
                     Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
@@ -264,7 +328,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                             <InfoPopover>
                               {primaryJpy && costFromJpy ? (
                                 <>
-                                  {primaryJpy.toLocaleString("vi-VN")}¥ × {rate.toLocaleString("vi-VN")}đ/¥ = <strong>{vnd(costFromJpy)}</strong>
+                                  ({primaryJpy.toLocaleString("vi-VN")}¥{primaryFee ? ` + ${primaryFee.toLocaleString("vi-VN")}¥ phụ phí nguồn` : ""}) × {rate.toLocaleString("vi-VN")}đ/¥ = <strong>{vnd(costFromJpy)}</strong>
                                   {suggestion.cost !== costFromJpy ? <> (đang sửa tay: {vnd(suggestion.cost)})</> : null}
                                 </>
                               ) : (
@@ -360,13 +424,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </div>
                 ) : null}
               </div>
-              <div>
-                <label className={adminLabel} htmlFor="minStock">
-                  Mức tồn tối thiểu (cảnh báo sắp hết)
-                </label>
-                <input id="minStock" name="minStock" inputMode="numeric" defaultValue={product?.minStock ?? ""} placeholder="Mặc định 0 (không cảnh báo)" className={cn(adminInput, fields.minStock && "border-red-500")} />
-                <FieldError msg={fields.minStock} />
-              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={adminLabel} htmlFor="weightG">
@@ -415,22 +472,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 ) : null}
               </div>
               <div>
-                <label className={adminLabel} htmlFor="fulfillment">
-                  Hình thức
-                </label>
-                <select id="fulfillment" name="fulfillment" defaultValue={product?.fulfillment ?? (product?.stock !== null && product?.stock !== undefined ? "stock" : "order")} className={adminInput}>
-                  <option value="stock">Lưu kho — có sẵn tại kho Việt Nam</option>
-                  <option value="order">Order — mua tại Nhật khi có đơn (khách thanh toán trước)</option>
-                </select>
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="stock">
-                  Trạng thái tồn kho — số lượng <span className="font-normal text-lien-muted">(để trống = không theo dõi)</span>
-                </label>
-                <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? ""} className={cn(adminInput, fields.stock && "border-red-500")} />
-                <FieldError msg={fields.stock} />
-              </div>
-              <div>
                 <label className={adminLabel} htmlFor="sale_status">
                   Tình trạng bán
                 </label>
@@ -451,6 +492,88 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
+          <Card title="Kho hàng — Hàng order hay Lưu kho?">
+            <div className="grid gap-3" data-testid="stock-mode">
+              <label className={cn("flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-[13px] leading-5", stockMode === "order" ? "border-lien-blue bg-lien-blue-soft/40" : "border-[#e5e7eb]")}>
+                <input type="radio" name="stockMode" value="order" checked={stockMode === "order"} onChange={() => setStockMode("order")} className="mt-1 h-4 w-4" />
+                <span>
+                  <strong className="text-lien-heading">Hàng order</strong> — mua tại Nhật khi có đơn, khách thanh toán trước. Không theo dõi tồn kho.
+                </span>
+              </label>
+              <label className={cn("flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-[13px] leading-5", stockMode === "stock" ? "border-lien-blue bg-lien-blue-soft/40" : "border-[#e5e7eb]")}>
+                <input type="radio" name="stockMode" value="stock" checked={stockMode === "stock"} onChange={() => setStockMode("stock")} className="mt-1 h-4 w-4" />
+                <span>
+                  <strong className="text-lien-heading">Lưu kho</strong> — giữ sẵn hàng để giao nhanh; Kho hàng nhắc mua bù khi tồn xuống dưới mức tiêu chuẩn.
+                </span>
+              </label>
+              {stockMode === "stock" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={adminLabel} htmlFor="minStock">
+                      Lưu kho bao nhiêu? <span className="font-normal text-lien-muted">(mức tồn tiêu chuẩn)</span>
+                    </label>
+                    <input id="minStock" name="minStock" inputMode="numeric" value={minStockText} onChange={(e) => setMinStockText(e.target.value)} placeholder="VD: 10" className={cn(adminInput, fields.minStock && "border-red-500")} data-testid="min-stock" />
+                    <FieldError msg={fields.minStock} />
+                  </div>
+                  <div>
+                    <label className={adminLabel} htmlFor="stock">
+                      Tồn hiện tại <span className="font-normal text-lien-muted">(tất cả kho)</span>
+                    </label>
+                    <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? 0} className={cn(adminInput, fields.stock && "border-red-500")} />
+                    <FieldError msg={fields.stock} />
+                    {product ? (
+                      <Link href={`/admin/inventory/lots/${product.id}/`} className="mt-1 inline-block text-[12px] text-lien-blue hover:underline">
+                        Lô hàng theo kho (Nhật / ĐVVC / VN) →
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <input type="hidden" name="minStock" value={minStockText} readOnly />
+              )}
+              {product ? (
+                <div className="rounded-md border border-[#e5e7eb] bg-[#fafafa] p-2.5 text-[12px] leading-5" data-testid="sales-trend">
+                  <p className="m-0 font-semibold text-lien-heading">Xu hướng mua {monthlySales.length} tháng gần đây</p>
+                  <div className="mt-1.5 flex h-12 items-end gap-1" aria-hidden>
+                    {monthlySales.map((m) => (
+                      <div key={m.month} className="flex flex-1 flex-col items-center justify-end gap-0.5" title={`${m.month}: ${m.units} đv`}>
+                        <span className="text-[10px] leading-3 text-lien-muted">{m.units || ""}</span>
+                        <div className={cn("w-full rounded-t", m.units ? "bg-lien-blue" : "bg-[#e5e7eb]")} style={{ height: `${Math.max(3, Math.round((m.units / maxMonth) * 32))}px` }} />
+                        <span className="text-[10px] leading-3 text-lien-muted">{m.month.slice(5)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="m-0 mt-1.5 text-lien-text">
+                    {advice.avgPerMonth > 0 ? (
+                      <>
+                        Bán trung bình <strong>{advice.avgPerMonth.toLocaleString("vi-VN")}</strong> đv/tháng ({advice.total} đv/{monthlySales.length} tháng).{" "}
+                        {advice.suggested > 0 ? (
+                          <>
+                            Nên <strong>lưu kho ≈ {advice.suggested}</strong> đv (đủ bán ~{advice.coverMonths} tháng).{" "}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStockMode("stock");
+                                setMinStockText(String(advice.suggested));
+                              }}
+                              className="rounded border border-lien-blue px-1.5 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft"
+                              data-testid="use-advice"
+                            >
+                              Dùng mức này
+                            </button>
+                          </>
+                        ) : (
+                          "Bán chưa đều — giữ Hàng order là hợp lý."
+                        )}
+                      </>
+                    ) : (
+                      "Chưa có đơn nào trong giai đoạn này — giữ Hàng order, chưa cần lưu kho."
+                    )}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </Card>
 
           <Card title="Nhóm biến thể">
             <div className="grid gap-3">
@@ -522,16 +645,19 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             <Link href="/admin/products/" className={btnSecondary}>
               Huỷ
             </Link>
+            {product ? (
+              // submits the separate delete form below (a form cannot nest inside another form)
+              <ConfirmSubmit form="delete-product" message={`Xoá vĩnh viễn sản phẩm “${product.name}”?`} className={cn(btnDanger, "ml-auto")}>
+                Xoá sản phẩm
+              </ConfirmSubmit>
+            ) : null}
           </div>
         </div>
       </form>
 
       {product ? (
-        <form action={deleteProductAction} className="mt-8 border-t border-[#e5e7eb] pt-6">
+        <form id="delete-product" action={deleteProductAction}>
           <input type="hidden" name="id" value={product.id} />
-          <ConfirmSubmit message={`Xoá vĩnh viễn sản phẩm “${product.name}”?`} className={btnDanger}>
-            Xoá sản phẩm
-          </ConfirmSubmit>
         </form>
       ) : null}
     </>

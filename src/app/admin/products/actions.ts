@@ -1,15 +1,16 @@
 "use server";
 
-import { isCostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
+import { costPriceFromJpy, isCostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
 import { PRODUCT_MARGIN_RANGE } from "@/lib/pricing";
 import { isDimsConfidence } from "@/lib/shipping";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getCategories, getJpyRate, getProductById, getProductGroupById, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists } from "@/lib/db";
+import { deleteProduct, getCategories, getJpyRate, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
 import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
 import { normalizeAttrLabels } from "@/lib/variants";
+import { plainToHtml } from "@/lib/plain-html";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
 import { getAllProducts } from "@/lib/db";
@@ -40,7 +41,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const name = get("name");
   if (!name) fields.name = "Tên sản phẩm là bắt buộc.";
 
-  let slug = slugify(get("slug") || name);
+  let slug = slugify(get("slug") || existing?.slug || name);
   if (!slug) fields.slug = "Đường dẫn không hợp lệ.";
   else if (await slugExists(slug, id)) fields.slug = "Đường dẫn đã tồn tại, hãy chọn đường dẫn khác.";
 
@@ -75,7 +76,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const costRaw = get("costPrice");
   let costPrice = costRaw ? parseIntField(costRaw) : null;
   if (costRaw && costPrice === null) fields.costPrice = "Giá vốn không hợp lệ.";
-  if (costJpy && (costPrice === null || (existing?.costJpy !== costJpy))) costPrice = Math.round(costJpy * (await getJpyRate()));
+  if (costJpy && (costPrice === null || existing?.costJpy !== costJpy || (existing?.costSource ?? "") !== costSourceSel)) costPrice = costPriceFromJpy(costJpy, costSourceSel, await getJpyRate(), getSourceFeeMap());
 
   const marginRaw = get("marginPct").replace(",", ".");
   const marginPct = marginRaw === "" ? null : Number.parseFloat(marginRaw);
@@ -96,8 +97,13 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (dimsCm && !/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/.test(dimsCm)) fields.dimsCm = "Kích thước ghi dạng Dài x Rộng x Cao (cm), ví dụ 12x8x5.";
 
   const stockRaw = get("stock");
-  const stock = stockRaw === "" ? null : parseIntField(stockRaw);
+  let stock = stockRaw === "" ? null : parseIntField(stockRaw);
   if (stockRaw !== "" && (stock === null || stock < 0)) fields.stock = "Tồn kho phải là số nguyên ≥ 0 hoặc để trống.";
+  // "Kho hàng" card: Hàng order = not tracked (stock null) · Lưu kho = tracked, starting from the current count (or 0)
+  const stockMode = get("stockMode");
+  if (stockMode === "order") stock = null;
+  else if (stockMode === "stock" && stock === null) stock = existing?.stock ?? 0;
+  const fulfillment: CatalogProduct["fulfillment"] = stockMode ? (stockMode === "stock" ? "stock" : "order") : get("fulfillment") === "stock" ? "stock" : "order";
 
   const categories = formData.getAll("categories").map(String).filter(Boolean);
   if (categories.length === 0) fields.categories = "Chọn ít nhất một danh mục.";
@@ -160,7 +166,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     sku: get("sku") || null,
     stock,
     stockStatus: discontinued ? "discontinued" : "instock",
-    fulfillment: get("fulfillment") === "stock" ? "stock" : "order",
+    fulfillment,
     costJpy,
     costSource: costJpy ? costSourceSel || "manual" : "",
     costUrl,
@@ -170,10 +176,10 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     tags,
     images: images.length ? images : [thumb],
     thumb,
-    shortDescription: get("shortDescription"),
+    shortDescription: plainToHtml(get("shortDescription")),
     description: get("description"),
     nameJa: get("nameJa"),
-    shortDescriptionJa: get("shortDescriptionJa"),
+    shortDescriptionJa: plainToHtml(get("shortDescriptionJa")),
     descriptionJa: get("descriptionJa"),
     related: existing?.related ?? [],
     rating: existing?.rating ?? null,
@@ -185,6 +191,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   });
 
   await replaceCostSources(saved.id, costRows.map(({ source, priceJpy, url, checkedAt }) => ({ source, priceJpy, url, checkedAt })));
+  if ((existing?.stock ?? null) !== stock) await updateProductStock(saved.id, stock, minStock);
   if (existing) await cleanupRemovedUploads(existing.images, saved.images, saved.id);
   revalidatePath("/", "layout");
   redirect(`/admin/products/?saved=${saved.id}`);
@@ -257,6 +264,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
   const nameCol = header.findIndex((h) => h === "Tên sản phẩm");
   if (idCol < 0 && nameCol < 0) fail('Thiếu cột "ID" (sửa sản phẩm) hoặc "Tên sản phẩm" (tạo mới) — xuất CSV từ trang này để lấy mẫu.');
   const rate = await getJpyRate();
+  const fees = getSourceFeeMap();
   const [sources, categories] = await Promise.all([listPurchaseSources(true), getCategories()]);
   const catSlugs = new Set(categories.map((c) => c.slug));
   const catByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.slug]));
@@ -297,7 +305,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
           nameJa: patch.nameJa ?? "",
           price: patch.price ?? 0,
           regularPrice: patch.regularPrice ?? null,
-          costPrice: patch.costPrice ?? (costJpy ? Math.round(costJpy * rate) : null),
+          costPrice: patch.costPrice ?? (costJpy ? costPriceFromJpy(costJpy, sourceKey ?? UNKNOWN_SOURCE, rate, fees) : null),
           supplierUrl: patch.supplierUrl ?? null,
           minStock: patch.minStock ?? null,
           weightG: patch.weightG ?? null,
@@ -351,7 +359,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
     }
     const next = { ...existing, ...patch, ...(sourceKey ? { costSource: sourceKey } : {}) } as CatalogProduct;
     // an empty VND cost next to a ¥ cost means "derive it from the rate" (never wipes the cost); a changed ¥ also re-derives it
-    if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy))) next.costPrice = Math.round(next.costJpy * rate);
+    if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy) || (sourceKey && sourceKey !== existing.costSource))) next.costPrice = costPriceFromJpy(next.costJpy, next.costSource, rate, fees);
     if (patch.costJpy && patch.costJpy !== existing.costJpy) next.costCheckedAt = new Date().toISOString();
     const changed = (Object.keys(patch) as Array<keyof typeof patch>).some((k) => JSON.stringify(existing[k]) !== JSON.stringify(next[k])) || next.costPrice !== existing.costPrice;
     if (!changed) {

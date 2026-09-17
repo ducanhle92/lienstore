@@ -1,4 +1,5 @@
 import type { PurchaseStatus } from "@/lib/purchase";
+import type { Warehouse } from "@/lib/warehouses";
 // Shop / commerce types for the linconnn.io.vn clone.
 
 /** "discontinued" = the model is no longer sold in Japan ("Hết hàng"); stock levels never change this. */
@@ -86,6 +87,8 @@ export interface StockLot {
   unitCostVnd: number | null;
   /** ISO date (YYYY-MM-DD) or null. */
   expiry: string | null;
+  /** Which warehouse the lot sits in (Kho Nhật / Kho ĐVVC / Kho Việt Nam). */
+  warehouse: Warehouse;
   /** Shelf / box / room, free text. */
   location: string;
   note: string;
@@ -106,6 +109,8 @@ export interface StockPurchase {
   unitCostJpy: number | null;
   status: import("@/lib/purchase").PurchaseStatus;
   expiry: string | null;
+  /** Warehouse the goods are bound for — the lot is booked there when they arrive. */
+  warehouse: Warehouse;
   location: string;
   note: string;
   lotId: number | null;
@@ -126,6 +131,9 @@ export interface PurchaseSource {
   address: string;
   branch: string;
   note: string;
+  /** Per-unit surcharge in ¥ added to every quote from this source (e.g. iHerb: shipping to the Japan warehouse); 0 = none. */
+  extraFeeJpy: number;
+  extraFeeNote: string;
   /** Shipped with the system; cannot be deleted (only switched off). */
   builtin: boolean;
   active: boolean;

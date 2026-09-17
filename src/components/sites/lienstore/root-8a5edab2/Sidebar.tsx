@@ -12,7 +12,8 @@ export interface CategoryWidgetProps {
 export interface SidebarProps {
   title: string;
   categories: SidebarCategory[];
-  priceFilter: {
+  /** Omit to render the category list only (checkout has no use for a price filter). */
+  priceFilter?: {
     title: string;
     min: number;
     max: number;
@@ -60,14 +61,11 @@ export function Sidebar({ title, categories, priceFilter, className }: SidebarPr
       )}
     >
       <CategoryWidget title={title} categories={categories} className="mb-[14px]" />
-      <section className={cn("widget_block", widgetClass)}>
-        <PriceFilterWidget
-          title={priceFilter.title}
-          min={priceFilter.min}
-          max={priceFilter.max}
-          currency={priceFilter.currency}
-        />
-      </section>
+      {priceFilter ? (
+        <section className={cn("widget_block", widgetClass)}>
+          <PriceFilterWidget title={priceFilter.title} min={priceFilter.min} max={priceFilter.max} currency={priceFilter.currency} />
+        </section>
+      ) : null}
     </aside>
   );
 }

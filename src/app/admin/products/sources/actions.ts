@@ -21,7 +21,8 @@ export async function savePurchaseSourceEntryAction(formData: FormData): Promise
   const url = text(formData, "url").slice(0, 300);
   if (url && !/^https?:\/\//i.test(url)) back("error", "Link phải bắt đầu bằng http(s)://");
   try {
-    const s = await savePurchaseSource({ id: Number.isInteger(idRaw) && idRaw > 0 ? idRaw : undefined, name, kind, url, address: text(formData, "address").slice(0, 200), branch: text(formData, "branch").slice(0, 80), note: text(formData, "note").slice(0, 300), active: formData.get("active") !== "0" });
+    const feeRaw = text(formData, "extraFeeJpy").replace(/[^\d]/g, "");
+    const s = await savePurchaseSource({ id: Number.isInteger(idRaw) && idRaw > 0 ? idRaw : undefined, name, kind, url, address: text(formData, "address").slice(0, 200), branch: text(formData, "branch").slice(0, 80), note: text(formData, "note").slice(0, 300), extraFeeJpy: feeRaw ? Number.parseInt(feeRaw, 10) : 0, extraFeeNote: text(formData, "extraFeeNote").slice(0, 120), active: formData.get("active") !== "0" });
     revalidatePath("/admin", "layout");
     back("saved", `Đã lưu nguồn “${s.name}”.`);
   } catch (e) {

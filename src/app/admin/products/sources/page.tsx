@@ -84,6 +84,14 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
                             <input name="branch" defaultValue={s.branch} placeholder="Chi nhánh" className={adminInput} aria-label="Chi nhánh" />
                             <input name="address" defaultValue={s.address} placeholder="Địa chỉ" className={`${adminInput} sm:col-span-2`} aria-label="Địa chỉ" />
                             <input name="note" defaultValue={s.note} placeholder="Ghi chú (giờ mở, điểm thưởng, tax-free…)" className={`${adminInput} sm:col-span-2`} aria-label="Ghi chú" />
+                            <label className="block text-[12px] text-lien-muted">
+                              Phụ phí ¥ / đơn vị
+                              <input name="extraFeeJpy" inputMode="numeric" defaultValue={s.extraFeeJpy || ""} placeholder="0" className={`${adminInput} mt-0.5`} aria-label="Phụ phí ¥ mỗi đơn vị" />
+                            </label>
+                            <label className="block text-[12px] text-lien-muted">
+                              Phụ phí là gì
+                              <input name="extraFeeNote" defaultValue={s.extraFeeNote} placeholder="VD: ship về kho Nhật" className={`${adminInput} mt-0.5`} aria-label="Ghi chú phụ phí" />
+                            </label>
                             <label className="flex items-center gap-2 text-[13px]">
                               <input type="checkbox" name="active" value="1" defaultChecked={s.active} className="h-4 w-4" /> Đang dùng
                               <input type="hidden" name="active" value="0" />
@@ -100,6 +108,11 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
                       <td className={`${tdClass} max-w-[320px] text-[12px] text-lien-muted`}>
                         {purchaseSourceDetail(s).replace(`${PURCHASE_KIND_LABEL[s.kind]}`, "").replace(/^ · /, "") || "—"}
                         {s.note ? <span className="block">{s.note}</span> : null}
+                        {s.extraFeeJpy > 0 ? (
+                          <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Cộng vào giá ¥ của mọi báo giá từ nguồn này khi tính giá vốn">
+                            +¥{s.extraFeeJpy.toLocaleString("ja-JP")}/đv{s.extraFeeNote ? ` · ${s.extraFeeNote}` : ""}
+                          </span>
+                        ) : null}
                       </td>
                       <td className={`${tdClass} text-right`}>{n || <span className="text-lien-muted">0</span>}</td>
                       <td className={`${tdClass} whitespace-nowrap text-right`}>
@@ -160,11 +173,25 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
               </label>
               <input id="ns-note" name="note" placeholder="Giờ mở cửa, tax-free, thẻ điểm…" className={adminInput} />
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={adminLabel} htmlFor="ns-fee">
+                  Phụ phí ¥ / đơn vị <span className="font-normal text-lien-muted">(cộng vào giá vốn)</span>
+                </label>
+                <input id="ns-fee" name="extraFeeJpy" inputMode="numeric" placeholder="0" className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="ns-fee-note">
+                  Phụ phí là gì
+                </label>
+                <input id="ns-fee-note" name="extraFeeNote" placeholder="VD: ship về kho Nhật" className={adminInput} />
+              </div>
+            </div>
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
               <Fa name="plus" /> Thêm nguồn
             </button>
           </form>
-          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Nguồn thêm ở đây xuất hiện trong ô “Nguồn mua” của từng báo giá ¥ trên trang sản phẩm và trong CSV nhập hàng (cột “Nguồn giá”: ghi tên hoặc mã nguồn).</p>
+          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Nguồn thêm ở đây xuất hiện trong ô “Nguồn mua” của từng báo giá ¥ trên trang sản phẩm và trong CSV nhập hàng (cột “Nguồn giá”: ghi tên hoặc mã nguồn). <strong>Phụ phí</strong>: chi phí riêng của nguồn tính trên mỗi đơn vị — ví dụ iHerb có phí ship về kho shop ở Nhật — được cộng vào giá ¥ khi tính giá vốn và khi so nguồn rẻ nhất.</p>
         </Card>
       </div>
     </>

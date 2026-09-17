@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { addStockLot, deleteStockLot, updateStockLot } from "@/lib/db";
 import { parseExpiry } from "@/lib/lots";
+import { isWarehouse } from "@/lib/warehouses";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const intOr = (s: string, d: number | null): number | null => {
@@ -26,7 +27,8 @@ export async function addLotAction(formData: FormData): Promise<void> {
   const receivedRaw = text(formData, "receivedAt");
   const receivedAt = receivedRaw ? parseExpiry(receivedRaw) : null;
   if (receivedRaw && !receivedAt) back(productId, "error", "Ngày nhập không hợp lệ.");
-  await addStockLot({ productId, qty, receivedAt: receivedAt ?? undefined, sourceKey: text(formData, "sourceKey") || undefined, unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200) });
+  const wh = text(formData, "warehouse");
+  await addStockLot({ productId, qty, receivedAt: receivedAt ?? undefined, sourceKey: text(formData, "sourceKey") || undefined, unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200) });
   revalidatePath("/admin", "layout");
   back(productId, "saved", `Đã nhập lô ${qty} đơn vị.`);
 }
@@ -49,7 +51,8 @@ export async function updateLotAction(formData: FormData): Promise<void> {
   if (receivedRaw && !receivedAt) back(productId, "error", "Ngày nhập không hợp lệ.");
   const qtyLeft = intOr(text(formData, "qtyLeft"), null);
   if (qtyLeft === null || qtyLeft < 0) return back(productId, "error", "Số lượng còn phải là số ≥ 0.");
-  await updateStockLot(id, { qtyLeft, receivedAt: receivedAt ?? undefined, sourceKey: text(formData, "sourceKey") || undefined, unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200) });
+  const wh = text(formData, "warehouse");
+  await updateStockLot(id, { qtyLeft, receivedAt: receivedAt ?? undefined, sourceKey: text(formData, "sourceKey") || undefined, unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200) });
   revalidatePath("/admin", "layout");
   back(productId, "saved", "Đã lưu lô.");
 }

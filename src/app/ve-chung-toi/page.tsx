@@ -6,14 +6,18 @@ import { contact } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { Fa, type FaName } from "@/components/sites/lienstore/shared/icons";
 import { FullWidthShell, SiteChrome } from "@/components/sites/lienstore/shop/SiteChrome";
 import { PageBand } from "@/components/sites/lienstore/ui2/HomeBlocks";
-import { getStats } from "@/lib/db";
+import { getSiteTheme, getStats } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Về chúng tôi & liên hệ – LienStore",
-  description: "LienStore – hàng Nhật nội địa mua tận tay tại Nhật, có bill đối chiếu từng đơn. Hotline, Zalo, Facebook và địa chỉ liên hệ.",
-};
+/** Title / description carry the shop name and slogan set in Admin › Sales › Giao diện & Logo. */
+export async function generateMetadata(): Promise<Metadata> {
+  const theme = await getSiteTheme();
+  return {
+    title: `Về chúng tôi & liên hệ – ${theme.shopName}`,
+    description: `${theme.shopName} – ${theme.slogan || "hàng Nhật nội địa"}, mua tận tay tại Nhật, có bill đối chiếu từng đơn. Hotline, Zalo, Facebook và địa chỉ liên hệ.`,
+  };
+}
 
 const VALUES: Array<{ icon: FaName; title: string; text: string }> = [
   { icon: "shield", title: "Mua tận tay tại Nhật", text: "Từng món được chọn tại siêu thị, drugstore và Amazon Nhật. Mỗi đơn đều có bill mua hàng gốc để bạn đối chiếu." },
@@ -53,21 +57,24 @@ const JA = {
 export default async function AboutPage() {
   const lang = await getLang();
   const ja = lang === "ja";
-  const stats = await getStats();
+  const [stats, theme] = await Promise.all([getStats(), getSiteTheme()]);
+  // the copy was written with a placeholder brand; the real name + slogan come from the theme (logo header)
+  const brand = theme.shopName;
+  const b = (s: string) => s.replace(/LienStore/g, brand);
   return (
     <SiteChrome>
-      <PageBand title={t(lang, "aboutTitle")} crumbs={[{ label: t(lang, "aboutTitle") }]} description={ja ? JA.band : "LienStore – hàng Nhật nội địa, mua tận tay tại Nhật, có bill cho từng đơn."} />
+      <PageBand title={t(lang, "aboutTitle")} crumbs={[{ label: t(lang, "aboutTitle") }]} description={ja ? b(JA.band) : `${brand} – ${theme.slogan ? theme.slogan.charAt(0).toLowerCase() + theme.slogan.slice(1) : "hàng Nhật nội địa"}, mua tận tay tại Nhật, có bill cho từng đơn.`} />
       <FullWidthShell>
         <div className="mx-auto max-w-[1000px]">
           {/* Story */}
           <section className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
             <div className="text-[15px] leading-7 text-lien-text">
-              <h2 className="m-0 mb-3 text-[22px] font-bold leading-8 text-lien-heading">{ja ? JA.h2 : "LienStore ra đời từ một nỗi lo rất thật"}</h2>
+              <h2 className="m-0 mb-3 text-[22px] font-bold leading-8 text-lien-heading">{ja ? b(JA.h2) : `${brand} ra đời từ một nỗi lo rất thật`}</h2>
               <p className="m-0 mb-3">{ja ? JA.p1 : <>
                 Hàng &ldquo;nội địa Nhật&rdquo; ở Việt Nam ngày càng nhiều, nhưng không ít trong đó là hàng trôi nổi hoặc hàng giả gắn mác. Chúng tôi là hai người Việt đang sinh sống tại Nhật, và câu hỏi ban đầu rất đơn giản: <em>làm sao để người nhà ở quê dùng đúng món mình đang dùng ở đây?</em>
               </>}</p>
-              <p className="m-0 mb-3">{ja ? JA.p2 : <>
-                LienStore là lời trả lời cho câu hỏi đó. Mỗi sản phẩm trên web đều do chính chúng tôi mua tại cửa hàng hoặc Amazon Nhật, chụp bill, đóng gói và gửi về. Chúng tôi không cam kết giá rẻ nhất, nhưng cam kết một điều duy nhất và không đổi: <strong>đã lên LienStore thì là hàng Nhật nội địa.</strong>
+              <p className="m-0 mb-3">{ja ? b(JA.p2) : <>
+                {brand} là lời trả lời cho câu hỏi đó. Mỗi sản phẩm trên web đều do chính chúng tôi mua tại cửa hàng hoặc Amazon Nhật, chụp bill, đóng gói và gửi về. Chúng tôi không cam kết giá rẻ nhất, nhưng cam kết một điều duy nhất và không đổi: <strong>đã lên {brand} thì là hàng Nhật nội địa.</strong>
               </>}</p>
               <p className="m-0">{ja ? JA.p3 : <>
                 Cửa hàng hiện có hơn {stats.published} sản phẩm đang bán, từ thực phẩm chức năng, mỹ phẩm, mẹ & bé đến đồ gia dụng. Không thấy món cần? Nhắn Zalo, chúng tôi mua hộ.
@@ -76,7 +83,7 @@ export default async function AboutPage() {
             <aside className="rounded-md border border-lien-line bg-lien-cream p-5 text-[14px] leading-6">
               <h3 className="m-0 mb-3 text-[15px] font-bold uppercase text-lien-heading">{ja ? JA.stepsTitle : "Quy trình 5 bước"}</h3>
               <ol className="m-0 list-none space-y-2 p-0">
-                {(ja ? JA.steps : STEPS).map((s, i) => (
+                {(ja ? JA.steps : STEPS).map(b).map((s, i) => (
                   <li key={s} className="flex gap-3">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lien-blue text-[12px] font-bold text-white">{i + 1}</span>
                     <span>{s}</span>
@@ -89,7 +96,7 @@ export default async function AboutPage() {
           {/* Values */}
           <section className="mt-10 grid gap-4 sm:grid-cols-2" aria-label="Cam kết">
             {VALUES.map((v0, i) => {
-              const v = ja ? { ...v0, ...JA.values[i] } : v0;
+              const v = ja ? { ...v0, ...JA.values[i] } : { ...v0, text: b(v0.text) };
               return (
               <div key={v.title} className="flex gap-4 rounded-md border border-lien-line bg-white p-5">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-lien-blue-soft text-[20px] text-lien-blue">

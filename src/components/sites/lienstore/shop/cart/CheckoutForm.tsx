@@ -102,7 +102,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
   const { items, hydrated, subtotal } = useCart();
   const { t } = useLang();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrder, null);
-  const [delivery, setDelivery] = useState<"ship" | "pickup">("pickup");
+  const [delivery, setDelivery] = useState<"ship" | "pickup">("ship");
   const defaultSaved = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
   const [picked, setPicked] = useState<number | "new">(defaultSaved ? defaultSaved.id : "new");
   const pickedAddr = picked === "new" ? null : (savedAddresses.find((a) => a.id === picked) ?? null);
@@ -129,7 +129,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
   const openConfirm = () => {
     const fd = new FormData(formRef.current ?? undefined);
     const v = (k: string) => String(fd.get(k) ?? "").trim();
-    setConfirm({ firstName: v("first_name"), lastName: v("last_name"), phone: v("phone"), email: v("email"), address: fullAddress, note: v("note") });
+    setConfirm({ firstName: v("full_name"), lastName: "", phone: v("phone"), email: v("email"), address: fullAddress, note: v("note") });
   };
 
   // every order is paid up front by bank transfer (QR + account shown on the order page after "Đặt hàng")
@@ -241,10 +241,8 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
             <div className="woocommerce-billing-fields">
               <WooHeading as="h3">{t("recipientInfo")}</WooHeading>
               <div className="flex flex-wrap justify-between">
-                <Field name="first_name" label={t("firstNameShort")} autoComplete="given-name" error={fields.first_name} half defaultValue={defaults.firstName} />
-                <Field name="last_name" label={t("lastNameShort")} autoComplete="family-name" error={fields.last_name} half defaultValue={defaults.lastName} />
-                <Field key={`phone-${picked}`} name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={pickedAddr?.phone || defaults.phone} />
-                <Field name="email" label={t("emailOptionalLabel")} type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
+                {/* one "Họ tên" box (the server splits it: last word = tên, the rest = họ); address next, phone, then the optional email */}
+                <Field name="full_name" label={t("fullName")} autoComplete="name" error={fields.full_name ?? fields.first_name ?? fields.last_name} defaultValue={[defaults.lastName, defaults.firstName].filter(Boolean).join(" ")} />
                 {savedAddresses.length ? (
                   <fieldset className="mb-2 w-full p-[3px]">
                     <legend className="mb-1.5 text-[16px] font-semibold leading-8 text-lien-input-text">{t("savedAddresses")}</legend>
@@ -304,6 +302,8 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
                     streetName="address"
                   />
                 </div>
+                <Field key={`phone-${picked}`} name="phone" label={t("phone")} type="tel" autoComplete="tel" error={fields.phone} defaultValue={pickedAddr?.phone || defaults.phone} />
+                <Field name="email" label={t("emailOptionalLabel")} type="email" autoComplete="email" error={fields.email} defaultValue={defaults.email} required={false} />
               </div>
             </div>
             {!loggedIn ? (
@@ -564,7 +564,7 @@ export function CheckoutForm({ defaults = {}, loggedIn = false, savedAddresses =
               <p className="m-0 mt-1 text-[13px] leading-5 text-lien-muted">{t("confirmHint")}</p>
               {(() => {
                 const missing = [
-                  !confirm.firstName && !confirm.lastName ? t("firstNameShort") : "",
+                  !confirm.firstName && !confirm.lastName ? t("fullName") : "",
                   !confirm.phone ? t("phone") : "",
                   !addressComplete ? t("address") : "",
                   shipping && !selQuote ? t("deliveryLabel") : "",

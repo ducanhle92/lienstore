@@ -85,6 +85,7 @@ export function AccountDrawer({ open, onClose, customer }: Props) {
                 { href: "/my-account/", label: t("myPage"), icon: "user-circle" as const },
                 { href: "/my-account/?tab=profile", label: t("profileTab"), icon: "pencil" as const },
                 { href: "/my-account/?tab=orders", label: t("purchasedTab"), icon: "shopping-bag" as const },
+                { href: "/my-account/?tab=vouchers", label: t("vouchersTab"), icon: "gift" as const },
                 { href: "/wishlist/", label: t("wishlist"), icon: "heart-o" as const },
                 { href: "/cart/", label: t("cart"), icon: "shopping-cart" as const },
               ].map((l) => (

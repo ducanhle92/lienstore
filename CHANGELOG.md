@@ -5,6 +5,23 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Kho hàng theo 3 kho** — Kho Nhật (shop tại Chiba) · Kho ĐVVC (Kiến Express) · Kho Việt Nam (Hoằng Hóa): mỗi lô ghi rõ kho (sửa ở Quản lý lô), phiếu mua lưu kho chọn "Nhập vào kho"; bộ lọc Trạng thái nay chỉ rõ *lưu kho ở đâu* (theo kho) và *đang về đến đâu* (còn tại Nhật / NB → VN / kho ĐVVC VN); cột Tình trạng hiện tồn từng kho; **xuất CSV kiểm kê riêng từng kho** (cột "Kho kiểm kê") và nhập lại cập nhật đúng kho đó; CSV bảng có thêm cột tồn theo kho.
+- Nguồn nhập: **phụ phí ¥/đơn vị** theo nguồn (VD iHerb: phí ship về kho Nhật) — cộng vào giá vốn khi tính tay, khi job tỉ giá hằng đêm chạy, khi nhập CSV và khi so "nguồn rẻ nhất".
+- Sản phẩm › khung **Kho hàng**: chọn *Hàng order* hay *Lưu kho* (lưu bao nhiêu = mức tồn tiêu chuẩn), kèm biểu đồ số bán 6 tháng gần đây và gợi ý mức lưu kho ("Dùng mức này") để quyết định đổi từ order sang lưu kho.
+- Nhóm biến thể: ô tìm kiếm nhóm (theo tên nhóm, tên / SKU sản phẩm trong nhóm) ở góc trên bên phải.
+- Menu tài khoản (drawer): thêm mục **Voucher** — voucher chung của web và voucher admin gửi riêng cho tài khoản xem ở Tài khoản › Voucher.
+
+### Changed
+- Trang sửa sản phẩm: mô tả chi tiết (Việt / Nhật) thu gọn, bấm để mở; đường dẫn tự sinh từ tên (bấm "Đổi" khi thật cần); mô tả ngắn và phần giới thiệu viết bằng ngôn ngữ tự nhiên (không cần HTML — hệ thống tự chia đoạn); nút "Lưu thay đổi" và "Xoá sản phẩm" đặt cạnh nhau.
+- Thanh toán: mặc định **Giao tận nhà**; thứ tự Họ tên (một ô) → Địa chỉ nhận hàng → Số điện thoại → Email (tuỳ chọn); thẻ cước từng hãng gọn hơn (giá, dự kiến, nút chọn, "Xem cách tính"); bỏ khối "Lọc theo giá" ở cột bên.
+- Trang sản phẩm: bỏ dòng "Mỗi lựa chọn có ảnh…", bỏ mã SKU; "Từ khóa" chỉ hiện từ khoá tiếng Việt (bỏ tiếng Nhật, không dấu trùng, dung tích…).
+- Về chúng tôi: tên cửa hàng và slogan lấy theo Giao diện & Logo (Store Lienanh — Chuyên hàng Nhật nội địa) thay cho tên cũ.
+- Hướng dẫn 5 bước: bước 3 thành "Chọn hình thức nhận hàng và thanh toán"; mục Bán chạy nhất gắn nhãn **Hot** thay cho "Mới".
+
+### Fixed
+- Sữa tắm Reihaku Hatomugi High Moisture là chai **800ml** (trước ghi 600ml) — tên, tên Nhật, từ khoá, thuộc tính biến thể và mô tả được sửa khi lên bản này (đường dẫn giữ nguyên).
+
 ## [1.49.0] - 2026-09-17
 
 ### Fixed

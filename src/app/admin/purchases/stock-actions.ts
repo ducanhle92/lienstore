@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createStockPurchase, deleteStockPurchase, setStockPurchaseStatus } from "@/lib/db";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus, PURCHASE_LABEL } from "@/lib/purchase";
+import { isWarehouse } from "@/lib/warehouses";
 
 const PAGE = "/admin/purchases/?tab=stock";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -27,7 +28,8 @@ export async function createStockPurchaseAction(formData: FormData): Promise<voi
   if (expiryRaw && !expiry) back("error", "Hạn dùng không hợp lệ — ghi 2027-03-31, 31/03/2027 hoặc 2027-03.");
   const statusRaw = text(formData, "status");
   const status = isPurchaseStatus(statusRaw) ? statusRaw : "bought";
-  const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
+  const wh = text(formData, "warehouse");
+  const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
   revalidatePath("/admin", "layout");
   back("saved", status === "at_shop" ? `Đã nhập kho ${qty} × ${sp.productName} (tạo lô).` : `Đã tạo phiếu mua lưu kho #${sp.id}: ${qty} × ${sp.productName} — ${PURCHASE_LABEL[status]}.`);
 }

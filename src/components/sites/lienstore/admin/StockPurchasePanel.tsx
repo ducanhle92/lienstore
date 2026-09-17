@@ -7,6 +7,7 @@ import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource, StockPurchase } from "@/types/shop";
+import { WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSE_SHORT, WAREHOUSES } from "@/lib/warehouses";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -51,7 +52,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>SL</th>
                 <th className={thClass}>Nguồn · ¥</th>
-                <th className={thClass}>HSD · vị trí</th>
+                <th className={thClass}>HSD · kho</th>
                 <th className={thClass}>Trạng thái</th>
                 <th className={thClass}>Ghi chú</th>
                 <th className={thClass} />
@@ -88,7 +89,10 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
                     </td>
                     <td className={`${tdClass} text-[13px]`}>
                       {p.expiry ? formatDate(p.expiry) : <span className="text-lien-muted">—</span>}
-                      {p.location ? <span className="block text-[12px] text-lien-muted">{p.location}</span> : null}
+                      <span className="block text-[12px] text-lien-muted" title={WAREHOUSE_HINT[p.warehouse]}>
+                        → {WAREHOUSE_LABEL[p.warehouse]}
+                        {p.location ? ` · ${p.location}` : ""}
+                      </span>
                     </td>
                     <td className={tdClass}>
                       {p.lotId ? (
@@ -179,10 +183,22 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
             </div>
             <div>
               <label className={adminLabel} htmlFor="spa-loc">
-                Vị trí kho dự kiến
+                Vị trí trong kho
               </label>
               <input id="spa-loc" name="location" placeholder="Kệ A2" className={adminInput} />
             </div>
+          </div>
+          <div>
+            <label className={adminLabel} htmlFor="spa-wh">
+              Nhập vào kho <span className="font-normal text-lien-muted">— khi tới “Đã nhận được hàng”, lô được ghi vào kho này</span>
+            </label>
+            <select id="spa-wh" name="warehouse" defaultValue="vn" className={adminInput}>
+              {WAREHOUSES.map((w) => (
+                <option key={w} value={w}>
+                  {WAREHOUSE_LABEL[w]} ({WAREHOUSE_SHORT[w]}) — {WAREHOUSE_HINT[w]}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={adminLabel} htmlFor="spa-status">

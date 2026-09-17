@@ -165,7 +165,9 @@ function applyEffectiveRate(db: DatabaseSync): number {
  * Sales own them). Shared by the nightly job and the one-time fixed-rate job.
  */
 export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySell: boolean, now = new Date().toISOString()): Promise<{ costsUpdated: number; pricesUpdated: number; skippedSale: number }> {
-  const r = db.prepare("UPDATE products SET cost_price = CAST(ROUND(cost_jpy * ?) AS INTEGER), updated_at = ? WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND (cost_price IS NULL OR cost_price <> CAST(ROUND(cost_jpy * ?) AS INTEGER))").run(rate, now, rate);
+  // landed ¥ = quote + the source's per-unit surcharge (Nguồn nhập › Phụ phí, e.g. iHerb shipping to the Japan warehouse)
+  const landed = "(cost_jpy + COALESCE((SELECT ps.extra_fee_jpy FROM purchase_sources ps WHERE ps.key = products.cost_source), 0))";
+  const r = db.prepare(`UPDATE products SET cost_price = CAST(ROUND(${landed} * ?) AS INTEGER), updated_at = ? WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND (cost_price IS NULL OR cost_price <> CAST(ROUND(${landed} * ?) AS INTEGER))`).run(rate, now, rate);
   const costsUpdated = Number(r.changes);
   let pricesUpdated = 0;
   let skippedSale = 0;

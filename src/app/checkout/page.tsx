@@ -27,7 +27,7 @@ export default async function Checkout() {
   // The VN-domestic fee is quoted per carrier for the exact address (POST /api/shipping/quote) — no zone tables here.
   return (
     <SiteChrome>
-      <TwoColumnShell sidebar={<StoreSidebar />} title={t(lang, "checkoutTitle")}>
+      <TwoColumnShell sidebar={<StoreSidebar priceFilter={false} />} title={t(lang, "checkoutTitle")}>
         <article className="entry-content">
           <CheckoutForm
             loggedIn={!!customer}

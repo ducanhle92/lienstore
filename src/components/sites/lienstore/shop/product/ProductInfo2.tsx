@@ -79,7 +79,6 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
         ) : (
           <span className="font-semibold text-amber-700" data-testid="avail-order">{avail === "order_temp" ? t("orderTemp") : t("orderOnDemand")}</span>
         )}
-        {product.sku ? <span className="ml-3 text-lien-muted">SKU: {product.sku}</span> : null}
         {product.weightG && product.dimsConfidence === "high" ? <span className="ml-3 text-lien-muted">{t("weight")}: {formatAmount(product.weightG)} g</span> : null}
         {product.dimsCm && product.dimsConfidence === "high" ? <span className="ml-3 text-lien-muted">{t("dims")}: {product.dimsCm.replace(/x/g, "×")} cm</span> : null}
       </p>
