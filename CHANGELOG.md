@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.55.1] - 2026-09-17
+
 ### Fixed
 - Ba mức giá theo đúng ý chủ shop: **Giá thị trường** luôn là giá bị gạch; khách thấy Giá kỳ vọng bán ra, hoặc Giá khuyến mại khi có chương trình (có thể cao hay thấp hơn giá kỳ vọng, nhưng thấp hơn giá thị trường); % giảm tính so với giá thị trường. Giá gạch cũ của các sản phẩm đang giảm giá (VD 275.000đ của Mentholatum) được chuyển thành giá thị trường khi lên bản này; giá 152.000đ giữ làm giá kỳ vọng.
 - Sales › Giảm giá sản phẩm: % giảm tính trên giá thị trường (nếu có), kiểm tra giá KM thấp hơn giá thị trường thay cho giá gốc; bảng có cột "Giá thị trường (gạch)".
