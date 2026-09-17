@@ -69,16 +69,31 @@ function PlainTextField({ id, name, initialHtml, rows, placeholder }: { id: stri
 }
 
 /** Card that starts folded: the title row shows a one-line summary; click to open and edit. */
-function FoldCard({ title, summary, open, children, testId }: { title: string; summary: string; open?: boolean; children: React.ReactNode; testId?: string }) {
+function FoldCard({ title, summary, open, children, testId, info }: { title: string; summary: string; open?: boolean; children: React.ReactNode; testId?: string; info?: React.ReactNode }) {
   return (
     <details className="rounded-lg border border-[#e5e7eb] bg-white shadow-sm" open={open} data-testid={testId}>
       <summary className="flex cursor-pointer select-none flex-wrap items-baseline gap-x-2 px-5 py-3 text-[15px] font-semibold leading-6 text-lien-heading">
         {title}
+        {info ? <InfoPopover>{info}</InfoPopover> : null}
         <span className="text-[13px] font-normal text-lien-muted">— {summary}</span>
         <span className="ml-auto text-[12px] font-normal text-lien-blue">bấm để mở</span>
       </summary>
       <div className="border-t border-[#e5e7eb] p-5">{children}</div>
     </details>
+  );
+}
+
+/** Numbered block inside the "Bán hàng" card: a heading, an ⓘ with the explanation, then the fields. */
+function Section({ n, title, info, children, testId }: { n: number; title: string; info?: React.ReactNode; children: React.ReactNode; testId?: string }) {
+  return (
+    <section className="rounded-md border border-[#e5e7eb] p-3" data-testid={testId}>
+      <h3 className="m-0 mb-3 flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-lien-heading">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lien-blue text-[11px] text-white">{n}</span>
+        {title}
+        {info ? <InfoPopover>{info}</InfoPopover> : null}
+      </h3>
+      <div className="grid gap-4">{children}</div>
+    </section>
   );
 }
 
@@ -95,6 +110,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const maxMonth = Math.max(1, ...monthlySales.map((m) => m.units));
   const [newLabels, setNewLabels] = useState("");
   const selGroup = groups.find((g) => String(g.id) === groupSel) ?? null;
+  const groupSummary = groupSel === "new" ? "đang tạo nhóm mới" : selGroup ? `${selGroup.name}${Object.values(product?.variantAttrs ?? {}).length ? ` · ${Object.values(product?.variantAttrs ?? {}).join(" · ")}` : ""}` : "sản phẩm độc lập";
   const groupLabels = groupSel === "new" ? newLabels.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3) : (selGroup?.attrLabels ?? []);
   // rows of the ¥ editor: saved sources, or the legacy single price of the product
   const costDrafts = costSources.length ? costSources.map((c) => ({ source: c.source, priceJpy: String(c.priceJpy), url: c.url, checkedAt: c.checkedAt ?? undefined })) : product?.costJpy ? [{ source: product.costSource || sourceFromUrl(product.costUrl), priceJpy: String(product.costJpy), url: product.costUrl, checkedAt: product.costCheckedAt ?? undefined }] : [];
@@ -171,6 +187,12 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 </label>
                 <input id="nameJa" name="nameJa" defaultValue={product?.nameJa} placeholder="VD: 雪肌精 クリアウェルネス 140g" className={adminInput} />
               </div>
+            {/* the rest of the basics (URL, descriptions, Japanese copy, variant family) folds away — the name pair is what one edits most */}
+            <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" open={editSlug || !!fields.slug || !product} data-testid="fold-basic-more">
+              <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
+                Đường dẫn, mô tả & nội dung <span className="font-normal text-lien-muted">— bấm để mở</span>
+              </summary>
+              <div className="grid gap-4 border-t border-[#e5e7eb] p-3">
               {/* the URL is generated from the name; an existing product keeps its URL unless the owner deliberately changes it */}
               <div className="text-[12px] text-lien-muted">
                 {editSlug || fields.slug ? (
@@ -222,7 +244,76 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </div>
                 </div>
               </details>
+              </div>
+            </details>
+            <details className="rounded-md border border-[#e5e7eb] open:bg-[#fafafa]" open={groupSel === "new"} data-testid="fold-group">
+              <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
+                Nhóm biến thể <span className="font-normal text-lien-muted">— {groupSummary} · bấm để mở</span>
+              </summary>
+              <div className="border-t border-[#e5e7eb] p-3">
+            <div className="grid gap-3">
+              <div>
+                <label className={adminLabel} htmlFor="groupId">
+                  Thuộc dòng sản phẩm <span className="font-normal text-lien-muted">(cùng loại, chỉ khác vị / dung tích / số viên…)</span>
+                </label>
+                <select id="groupId" name="groupId" value={groupSel} onChange={(e) => setGroupSel(e.target.value)} className={adminInput}>
+                  <option value="">— Sản phẩm độc lập —</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                      {g.attrLabels.length ? ` (${g.attrLabels.join(", ")})` : ""}
+                    </option>
+                  ))}
+                  <option value="new">+ Tạo nhóm mới…</option>
+                </select>
+              </div>
+              {groupSel === "new" ? (
+                <>
+                  <div>
+                    <label className={adminLabel} htmlFor="groupName">
+                      Tên chung của nhóm
+                    </label>
+                    <input id="groupName" name="groupName" placeholder="VD: SAVAS Whey Protein 100" className={adminInput} />
+                  </div>
+                  <div>
+                    <label className={adminLabel} htmlFor="groupAttrLabels">
+                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(cha → con, tối đa 4, cách nhau dấu phẩy; để trống = “Loại”)</span>
+                    </label>
+                    <input id="groupAttrLabels" name="groupAttrLabels" value={newLabels} onChange={(e) => setNewLabels(e.target.value)} placeholder="VD: Vị, Khối lượng" className={adminInput} />
+                  </div>
+                </>
+              ) : null}
+              {groupSel ? (
+                <>
+                  {groupLabels.map((label, i) => (
+                    <div key={label}>
+                      <label className={adminLabel} htmlFor={`variant_${i}`}>
+                        {label} <span className="font-normal text-lien-muted">của sản phẩm này</span>
+                      </label>
+                      <input id={`variant_${i}`} name={`variant_${i}`} defaultValue={product?.variantAttrs[label] ?? ""} placeholder={label === "Vị" ? "VD: Dâu" : label} className={adminInput} />
+                    </div>
+                  ))}
+                  <div>
+                    <label className={adminLabel} htmlFor="variantPosition">
+                      Thứ tự trong nhóm <span className="font-normal text-lien-muted">(nhỏ nhất = thẻ đại diện ngoài kệ)</span>
+                    </label>
+                    <input id="variantPosition" name="variantPosition" inputMode="numeric" defaultValue={product?.variantPosition ?? 0} className={adminInput} />
+                  </div>
+                  {selGroup ? (
+                    <p className="m-0 text-[12px] text-lien-muted">
+                      <Link href={`/admin/products/groups/${selGroup.id}/`} className="text-lien-blue hover:underline">
+                        Xem / sửa cả nhóm →
+                      </Link>
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="m-0 text-[12px] leading-5 text-lien-muted">Ngoài kệ mỗi nhóm chỉ hiện một thẻ “N lựa chọn”; trong trang sản phẩm khách bấm chip để đổi loại. Ảnh, giá, SKU, mô tả vẫn riêng cho từng biến thể.</p>
+              )}
             </div>
+              </div>
+            </details>
+          </div>
           </Card>
 
           <FoldCard title="Danh mục *" summary={catSlugs.length ? catSlugs.map((slug) => categories.find((c) => c.slug === slug)?.name ?? slug).join(", ") : "chưa chọn"} open={!!fields.categories || !product} testId="fold-categories">
@@ -253,6 +344,50 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               error={fields.images}
             />
           </Card>
+
+          {product ? (
+            <FoldCard title="Xu hướng mua" summary={advice.avgPerMonth > 0 ? `TB ${advice.avgPerMonth.toLocaleString("vi-VN")} đv/tháng · ${advice.total} đv/${monthlySales.length} tháng${advice.suggested ? ` · nên lưu kho ≈ ${advice.suggested}` : ""}` : `chưa có đơn trong ${monthlySales.length} tháng`} testId="fold-trend">
+                <div className="rounded-md border border-[#e5e7eb] bg-[#fafafa] p-2.5 text-[12px] leading-5" data-testid="sales-trend">
+                  <p className="m-0 font-semibold text-lien-heading">Xu hướng mua {monthlySales.length} tháng gần đây</p>
+                  <div className="mt-1.5 flex h-12 items-end gap-1" aria-hidden>
+                    {monthlySales.map((m) => (
+                      <div key={m.month} className="flex flex-1 flex-col items-center justify-end gap-0.5" title={`${m.month}: ${m.units} đv`}>
+                        <span className="text-[10px] leading-3 text-lien-muted">{m.units || ""}</span>
+                        <div className={cn("w-full rounded-t", m.units ? "bg-lien-blue" : "bg-[#e5e7eb]")} style={{ height: `${Math.max(3, Math.round((m.units / maxMonth) * 32))}px` }} />
+                        <span className="text-[10px] leading-3 text-lien-muted">{m.month.slice(5)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="m-0 mt-1.5 text-lien-text">
+                    {advice.avgPerMonth > 0 ? (
+                      <>
+                        Bán trung bình <strong>{advice.avgPerMonth.toLocaleString("vi-VN")}</strong> đv/tháng ({advice.total} đv/{monthlySales.length} tháng).{" "}
+                        {advice.suggested > 0 ? (
+                          <>
+                            Nên <strong>lưu kho ≈ {advice.suggested}</strong> đv (đủ bán ~{advice.coverMonths} tháng).{" "}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStockMode("stock");
+                                setMinStockText(String(advice.suggested));
+                              }}
+                              className="rounded border border-lien-blue px-1.5 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft"
+                              data-testid="use-advice"
+                            >
+                              Dùng mức này
+                            </button>
+                          </>
+                        ) : (
+                          "Bán chưa đều — giữ Hàng order là hợp lý."
+                        )}
+                      </>
+                    ) : (
+                      "Chưa có đơn nào trong giai đoạn này — giữ Hàng order, chưa cần lưu kho."
+                    )}
+                  </p>
+                </div>
+            </FoldCard>
+          ) : null}
 
           {product ? (
             <FoldCard title="Lịch sử thay đổi" summary={changes.length ? `${changes.length} lần đổi gần đây · mới nhất ${formatDateTime(changes[0].createdAt)} (${changes[0].actor || "—"})` : "chưa có thay đổi nào được ghi"} testId="fold-history">
@@ -291,7 +426,8 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
         <div className="space-y-6">
           <Card title="Bán hàng">
             <div className="grid gap-4">
-              <div className="grid gap-3 rounded-md border border-[#e5e7eb] p-3" data-testid="price-trio">
+              <Section n={1} title="Giá bán cho khách" info={<>Giá thị trường là giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn. Giá kỳ vọng là giá bán bình thường (tính theo công thức bên dưới). Khi chạy khuyến mại, khách trả giá khuyến mại thay cho giá kỳ vọng; giá gạch vẫn là giá thị trường nên không có chuyện “tăng rồi giảm”.</>} testId="sec-price">
+              <div className="grid gap-3" data-testid="price-trio">
                 <div>
                   <label className={adminLabel} htmlFor="expectedPrice">
                     Giá kỳ vọng bán ra trên website (VNĐ) *
@@ -327,8 +463,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     <span className="text-lien-muted">Liên hệ (chưa có giá)</span>
                   )}
                 </p>
-                <p className="m-0 text-[11px] leading-4 text-lien-muted">Giá thị trường là giá đối chiếu (nơi khác bán) — luôn là giá bị gạch trên web, kèm % rẻ hơn. Giá kỳ vọng là giá bán bình thường (tính theo công thức bên dưới). Khi chạy khuyến mại, khách trả giá khuyến mại thay cho giá kỳ vọng; giá gạch vẫn là giá thị trường nên không có chuyện “tăng rồi giảm”.</p>
               </div>
+              </Section>
+              <Section n={2} title="Giá vốn — mua tại Nhật" info="Mỗi nguồn kèm giá ¥ và link mua; nút tròn = giá dùng làm giá vốn. Giá vốn VNĐ = (¥ + phụ phí của nguồn) × tỉ giá, hệ thống cũng tính lại mỗi đêm theo tỉ giá." testId="sec-cost">
               <div>
                 <label className={adminLabel}>Giá vốn (円 — giá tại Nhật) theo nguồn mua</label>
                 <CostSourcesEditor
@@ -382,6 +519,8 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </p>
                 ) : null}
               </div>
+              </Section>
+              <Section n={3} title="Tỉ lệ lãi & giá kỳ vọng" info="Giá kỳ vọng = giá vốn × (1 + tỉ lệ lãi) + phí vận chuyển ba chặng về kho VN, làm tròn theo Công thức giá. Bấm “Dùng giá này” để đưa vào ô Giá kỳ vọng bán ra ở mục 1." testId="sec-margin">
               <div>
                 <label className={adminLabel} htmlFor="marginPct">
                   Tỉ lệ lãi kỳ vọng (%){" "}
@@ -533,7 +672,12 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </div>
                 ) : null}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              </Section>
+            </div>
+          </Card>
+
+          <FoldCard title="Kích thước & khối lượng" summary={`${weightText.trim() ? `${weightText} g` : "chưa có cân"} · ${dimsText.trim() ? `${dimsText} cm` : "chưa có kích thước"} · tin cậy ${confText === "high" ? "cao" : confText === "medium" ? "trung bình" : confText === "low" ? "thấp" : "chưa đánh giá"}`} info="Phí vận chuyển tính trên <strong>cân tính phí</strong> = max(cân thật, D×R×C/6000) × hệ số an toàn theo độ tin cậy (Cao ×1,2 · Trung bình ×1,5 · Thấp ×2), làm tròn lên từng kg. Khách chỉ thấy số đo khi độ tin cậy là Cao." testId="fold-dims">
+            <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={adminLabel} htmlFor="weightG">
                     Khối lượng (gram)
@@ -565,10 +709,11 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </label>
                   <input id="dimsSource" name="dimsSource" defaultValue={product?.dimsSource ?? ""} placeholder="VD: Amazon.co.jp 梱包サイズ; ước theo 60 viên" className={adminInput} />
                 </div>
-                <p className="col-span-2 -mt-1 text-[12px] text-lien-muted">
-                  Phí vận chuyển tính trên <strong>cân tính phí</strong> = max(cân thật, D×R×C/6000) × hệ số an toàn theo độ tin cậy (Cao ×1,2 · Trung bình ×1,5 · Thấp ×2), làm tròn lên từng kg. Khách chỉ thấy số đo khi độ tin cậy là Cao.
-                </p>
-              </div>
+            </div>
+          </FoldCard>
+
+          <FoldCard title="Mã SKU & trạng thái" summary={`${skuText || "chưa có SKU"} · ${product?.stockStatus === "discontinued" ? "Hết hàng" : "Còn bán"} · ${product?.status === "draft" ? "Bản nháp" : "Đang bán"}`} open={!product} testId="fold-status">
+            <div className="grid gap-4">
               <div>
                 <label className={adminLabel} htmlFor="sku">
                   Mã SKU <span className="font-normal text-lien-muted">(THƯƠNG HIỆU-DANH MỤC-YYMM-MÃ SP)</span>
@@ -599,9 +744,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 </select>
               </div>
             </div>
-          </Card>
+          </FoldCard>
 
-          <Card title="Kho hàng — Hàng order hay Lưu kho?">
+          <FoldCard title="Kho hàng" summary={stockMode === "stock" ? `Lưu kho · mức tiêu chuẩn ${minStockText || "?"}${product?.stock !== null && product?.stock !== undefined ? ` · tồn ${product.stock}` : ""}` : "Hàng order — mua tại Nhật khi có đơn"} testId="fold-stock">
             <div className="grid gap-3" data-testid="stock-mode">
               <label className={cn("flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-[13px] leading-5", stockMode === "order" ? "border-lien-blue bg-lien-blue-soft/40" : "border-[#e5e7eb]")}>
                 <input type="radio" name="stockMode" value="order" checked={stockMode === "order"} onChange={() => setStockMode("order")} className="mt-1 h-4 w-4" />
@@ -639,110 +784,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 </div>
               ) : (
                 <input type="hidden" name="minStock" value={minStockText} readOnly />
-              )}
-              {product ? (
-                <div className="rounded-md border border-[#e5e7eb] bg-[#fafafa] p-2.5 text-[12px] leading-5" data-testid="sales-trend">
-                  <p className="m-0 font-semibold text-lien-heading">Xu hướng mua {monthlySales.length} tháng gần đây</p>
-                  <div className="mt-1.5 flex h-12 items-end gap-1" aria-hidden>
-                    {monthlySales.map((m) => (
-                      <div key={m.month} className="flex flex-1 flex-col items-center justify-end gap-0.5" title={`${m.month}: ${m.units} đv`}>
-                        <span className="text-[10px] leading-3 text-lien-muted">{m.units || ""}</span>
-                        <div className={cn("w-full rounded-t", m.units ? "bg-lien-blue" : "bg-[#e5e7eb]")} style={{ height: `${Math.max(3, Math.round((m.units / maxMonth) * 32))}px` }} />
-                        <span className="text-[10px] leading-3 text-lien-muted">{m.month.slice(5)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="m-0 mt-1.5 text-lien-text">
-                    {advice.avgPerMonth > 0 ? (
-                      <>
-                        Bán trung bình <strong>{advice.avgPerMonth.toLocaleString("vi-VN")}</strong> đv/tháng ({advice.total} đv/{monthlySales.length} tháng).{" "}
-                        {advice.suggested > 0 ? (
-                          <>
-                            Nên <strong>lưu kho ≈ {advice.suggested}</strong> đv (đủ bán ~{advice.coverMonths} tháng).{" "}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStockMode("stock");
-                                setMinStockText(String(advice.suggested));
-                              }}
-                              className="rounded border border-lien-blue px-1.5 py-0.5 text-[11px] font-semibold text-lien-blue hover:bg-lien-blue-soft"
-                              data-testid="use-advice"
-                            >
-                              Dùng mức này
-                            </button>
-                          </>
-                        ) : (
-                          "Bán chưa đều — giữ Hàng order là hợp lý."
-                        )}
-                      </>
-                    ) : (
-                      "Chưa có đơn nào trong giai đoạn này — giữ Hàng order, chưa cần lưu kho."
-                    )}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </Card>
-
-          <FoldCard title="Nhóm biến thể" summary={groupSel === "new" ? "đang tạo nhóm mới" : selGroup ? `${selGroup.name}${Object.values(product?.variantAttrs ?? {}).length ? ` · ${Object.values(product?.variantAttrs ?? {}).join(" · ")}` : ""}` : "sản phẩm độc lập"} open={groupSel === "new"} testId="fold-group">
-            <div className="grid gap-3">
-              <div>
-                <label className={adminLabel} htmlFor="groupId">
-                  Thuộc dòng sản phẩm <span className="font-normal text-lien-muted">(cùng loại, chỉ khác vị / dung tích / số viên…)</span>
-                </label>
-                <select id="groupId" name="groupId" value={groupSel} onChange={(e) => setGroupSel(e.target.value)} className={adminInput}>
-                  <option value="">— Sản phẩm độc lập —</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                      {g.attrLabels.length ? ` (${g.attrLabels.join(", ")})` : ""}
-                    </option>
-                  ))}
-                  <option value="new">+ Tạo nhóm mới…</option>
-                </select>
-              </div>
-              {groupSel === "new" ? (
-                <>
-                  <div>
-                    <label className={adminLabel} htmlFor="groupName">
-                      Tên chung của nhóm
-                    </label>
-                    <input id="groupName" name="groupName" placeholder="VD: SAVAS Whey Protein 100" className={adminInput} />
-                  </div>
-                  <div>
-                    <label className={adminLabel} htmlFor="groupAttrLabels">
-                      Thuộc tính phân biệt <span className="font-normal text-lien-muted">(cha → con, tối đa 4, cách nhau dấu phẩy; để trống = “Loại”)</span>
-                    </label>
-                    <input id="groupAttrLabels" name="groupAttrLabels" value={newLabels} onChange={(e) => setNewLabels(e.target.value)} placeholder="VD: Vị, Khối lượng" className={adminInput} />
-                  </div>
-                </>
-              ) : null}
-              {groupSel ? (
-                <>
-                  {groupLabels.map((label, i) => (
-                    <div key={label}>
-                      <label className={adminLabel} htmlFor={`variant_${i}`}>
-                        {label} <span className="font-normal text-lien-muted">của sản phẩm này</span>
-                      </label>
-                      <input id={`variant_${i}`} name={`variant_${i}`} defaultValue={product?.variantAttrs[label] ?? ""} placeholder={label === "Vị" ? "VD: Dâu" : label} className={adminInput} />
-                    </div>
-                  ))}
-                  <div>
-                    <label className={adminLabel} htmlFor="variantPosition">
-                      Thứ tự trong nhóm <span className="font-normal text-lien-muted">(nhỏ nhất = thẻ đại diện ngoài kệ)</span>
-                    </label>
-                    <input id="variantPosition" name="variantPosition" inputMode="numeric" defaultValue={product?.variantPosition ?? 0} className={adminInput} />
-                  </div>
-                  {selGroup ? (
-                    <p className="m-0 text-[12px] text-lien-muted">
-                      <Link href={`/admin/products/groups/${selGroup.id}/`} className="text-lien-blue hover:underline">
-                        Xem / sửa cả nhóm →
-                      </Link>
-                    </p>
-                  ) : null}
-                </>
-              ) : (
-                <p className="m-0 text-[12px] leading-5 text-lien-muted">Ngoài kệ mỗi nhóm chỉ hiện một thẻ “N lựa chọn”; trong trang sản phẩm khách bấm chip để đổi loại. Ảnh, giá, SKU, mô tả vẫn riêng cho từng biến thể.</p>
               )}
             </div>
           </FoldCard>
