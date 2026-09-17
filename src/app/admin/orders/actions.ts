@@ -38,6 +38,27 @@ export async function deleteOrderAction(formData: FormData): Promise<void> {
   redirect(`${back}${back.includes("?") ? "&" : "?"}deleted=${encodeURIComponent(`Đã xóa đơn #${r.number}${r.filePaths.length ? ` cùng ${r.filePaths.length} file đính kèm` : ""}.`)}`);
 }
 
+/** Delete every ticked order in the list (the bulk form posts `ids`; one id = just that row). */
+export async function deleteOrdersAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const ids = [...new Set(formData.getAll("ids").map(String).filter(Boolean))];
+  if (!ids.length) redirect(`/admin/orders/?error=${encodeURIComponent("Chưa chọn đơn nào để xóa.")}`);
+  const numbers: number[] = [];
+  let files = 0;
+  for (const id of ids) {
+    const r = await deleteOrder(id);
+    if (!r) continue;
+    numbers.push(r.number);
+    for (const p of r.filePaths) await deleteUpload(p);
+    files += r.filePaths.length;
+  }
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+  const list = numbers.sort((a, b) => a - b).map((n) => `#${n}`).join(", ");
+  redirect(`/admin/orders/?deleted=${encodeURIComponent(numbers.length ? `Đã xóa ${numbers.length} đơn (${list})${files ? ` cùng ${files} file đính kèm` : ""}.` : "Không đơn nào được xóa (có thể đã bị xóa trước đó).")}`);
+}
+
 /** Move the order along the logistics steps (Đã mua tại Nhật → Kho Nhật → … → Đã nhận hàng). */
 export async function setStageAction(formData: FormData): Promise<void> {
   if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");

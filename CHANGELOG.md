@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Đơn hàng: ô tích đầu dòng (và tích tất cả ở đầu bảng) để chọn nhiều đơn, nút **Xóa đã chọn (n)** phía trên bảng — chọn một dòng thì chỉ xóa dòng đó; hai nút Chi tiết / Xóa ở cột Xử lý được đóng khung, tô màu.
+
 ## [1.61.0] - 2026-09-17
 
 ### Added
