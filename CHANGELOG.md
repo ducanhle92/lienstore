@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.50.0] - 2026-09-17
+
 ### Added
 - **Kho hàng theo 3 kho** — Kho Nhật (shop tại Chiba) · Kho ĐVVC (Kiến Express) · Kho Việt Nam (Hoằng Hóa): mỗi lô ghi rõ kho (sửa ở Quản lý lô), phiếu mua lưu kho chọn "Nhập vào kho"; bộ lọc Trạng thái nay chỉ rõ *lưu kho ở đâu* (theo kho) và *đang về đến đâu* (còn tại Nhật / NB → VN / kho ĐVVC VN); cột Tình trạng hiện tồn từng kho; **xuất CSV kiểm kê riêng từng kho** (cột "Kho kiểm kê") và nhập lại cập nhật đúng kho đó; CSV bảng có thêm cột tồn theo kho.
 - Nguồn nhập: **phụ phí ¥/đơn vị** theo nguồn (VD iHerb: phí ship về kho Nhật) — cộng vào giá vốn khi tính tay, khi job tỉ giá hằng đêm chạy, khi nhập CSV và khi so "nguồn rẻ nhất".
