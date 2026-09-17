@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.58.0] - 2026-09-17
+
 ### Added
 - Vận chuyển › ④ Nội địa Việt Nam: thẻ **Kết nối Viettel Post (Open API đối tác)** — dán token từ viettelpost.vn › Quản lý token, “Lưu & kiểm tra” gọi danh mục tỉnh của Viettel để xác nhận token và tự tìm mã tỉnh/huyện kho gửi (Hoằng Hóa); token chỉ lưu trên máy chủ (biến môi trường VTP_TOKEN chỉ còn là dự phòng).
 
