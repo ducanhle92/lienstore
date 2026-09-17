@@ -59,7 +59,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {noPrice ? (
-          <span className="text-[26px] font-bold leading-8 text-lien-price">{t("contactForPrice")}</span>
+          <span className="text-[26px] font-bold leading-8 text-lien-contact">{t("contactForPrice")}</span>
         ) : regular ? (
           <>
             <del className="text-[16px] text-lien-muted" title={pv.kind === "market" ? "Giá thị trường" : "Giá trước khuyến mại"}>{formatAmount(regular)}đ</del>
@@ -128,6 +128,7 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
           disabled={out || noPrice}
           showViewCart
           linkClassName="w-full basis-full"
+          className={noPrice ? "!bg-lien-contact !opacity-100" : undefined}
         />
         <WishlistButton product={toCartProduct(product)} className="flex h-11 w-11 items-center justify-center rounded-full border border-lien-line text-[16px] text-lien-heading hover:border-lien-blue hover:text-lien-blue" />
       </form>

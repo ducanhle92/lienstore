@@ -302,6 +302,7 @@
   --color-lien-sale-text: var(--lien-sale-text);
   --color-lien-amber: var(--lien-amber);
   --color-lien-info: var(--lien-info);
+  --color-lien-contact: var(--lien-contact);
   --color-lien-price: var(--lien-price);
   --color-lien-success: var(--lien-success);
   --color-lien-text: var(--lien-text);
@@ -379,6 +380,7 @@
   --lien-sale-text: #ec0101; /* sale price */
   --lien-amber: #ffb83a; /* register CTA */
   --lien-info: #1878b9; /* "New" label */
+  --lien-contact: #1878b9; /* "Liên hệ" (no price) badge/button/price — sea blue */
   --lien-price: #b3251f; /* regular price (deep red) */
   --lien-success: #228b22;
   --lien-text: #222222;

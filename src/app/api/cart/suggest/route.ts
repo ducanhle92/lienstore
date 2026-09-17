@@ -7,27 +7,7 @@ export const dynamic = "force-dynamic";
 const MAX_INPUT = 6;
 const LIMIT = 8;
 
-function excerpt(p: CatalogProduct): string {
-  const t = (p.shortDescription || p.description).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
-  return t.length > 200 ? `${t.slice(0, 200).trimEnd()}…` : t;
-}
 
-function slim(p: CatalogProduct) {
-  return {
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    price: p.price,
-    regularPrice: p.regularPrice,
-    currency: p.currency,
-    image: p.images[0] || p.thumb,
-    thumb: p.thumb || p.images[0] || "",
-    stock: p.stock,
-    stockStatus: p.stockStatus,
-    excerpt: excerpt(p),
-    categories: p.categories,
-  };
-}
 
 /**
  * GET /api/cart/suggest?ids=1,2,3 — "Thường được mua cùng với": published products sharing a category with the
@@ -63,5 +43,6 @@ export async function GET(req: Request) {
     const r = await queryProducts({ orderby: "popularity", perPage: LIMIT * 2 });
     r.items.forEach(push);
   }
-  return NextResponse.json({ items: out.slice(0, LIMIT).map(slim) }, { headers: { "Cache-Control": "no-store" } });
+  // full CatalogProduct rows: the drawer renders the same ShopProductCard as the home-page shelves
+  return NextResponse.json({ items: out.slice(0, LIMIT) }, { headers: { "Cache-Control": "no-store" } });
 }

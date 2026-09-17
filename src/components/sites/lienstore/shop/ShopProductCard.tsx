@@ -149,7 +149,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
         ) : null}
         <p className="mt-1.5 mb-0 flex flex-wrap items-baseline justify-center gap-x-1.5 text-[13px] font-semibold leading-5 sm:gap-x-2 sm:text-[15px]">
           {noPrice ? (
-            <span className="text-lien-price"><T k="contactForPrice" /></span>
+            <span className="text-lien-contact"><T k="contactForPrice" /></span>
           ) : range ? (
             <span className="text-lien-price">
               <span className="text-[11px] font-normal text-lien-muted sm:text-[12px]"><T k="priceFrom" /> </span>

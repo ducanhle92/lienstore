@@ -87,7 +87,7 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
           <h1 className="mb-3 text-[22px] font-bold leading-8 text-lien-heading">{product.name}</h1>
           <p className="price mb-3 text-[20px] leading-[30px] text-[#77a464]">
             {noPrice ? (
-              <span>Liên hệ</span>
+              <span className="text-lien-contact">Liên hệ</span>
             ) : (
               <>
                 {priceView(product).strike ? (

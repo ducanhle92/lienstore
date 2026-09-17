@@ -8,8 +8,10 @@ import { formatAmount } from "@/lib/format";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart } from "./CartProvider";
-import type { QuickViewProduct } from "./QuickView";
-import { priceView } from "@/lib/price-display";
+import type { CatalogProduct } from "@/types/shop";
+import { UPSELL_ITEM } from "./carousel-classes";
+import { ProductCarousel } from "./ProductCarousel";
+import { ShopProductCard } from "./ShopProductCard";
 
 /**
  * Slide-in mini cart (sesofoods style): opens from the right after "Thêm vào giỏ" or the header cart icon.
@@ -140,22 +142,19 @@ export function CartDrawer() {
   );
 }
 
-/** "Thường được mua cùng với :" — one suggestion at a time with arrows + dots, like the reference site. */
+/** "Thường được mua cùng với" — the standard product cards (hover cart button, Liên hệ state…) in a drag / swipe strip, three per view. */
 function Suggestions({ ids }: { ids: number[] }) {
   const key = ids.join(",");
-  const [list, setList] = useState<QuickViewProduct[]>([]);
-  const [i, setI] = useState(0);
-  const { add, openDrawer } = useCart();
+  const [list, setList] = useState<CatalogProduct[]>([]);
 
   useEffect(() => {
     let alive = true;
     fetch(`/api/cart/suggest/?ids=${key}`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
-      .then((d: { items: QuickViewProduct[] }) => {
+      .then((d: { items: CatalogProduct[] }) => {
         if (!alive) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch result
         setList(d.items ?? []);
-        setI(0);
       })
       .catch(() => alive && setList([]));
     return () => {
@@ -164,54 +163,18 @@ function Suggestions({ ids }: { ids: number[] }) {
   }, [key]);
 
   if (list.length === 0) return null;
-  const pages = Math.min(list.length, 5);
-  const p = list[i % list.length];
-  const pv = priceView(p);
-  const pct = pv.pct ?? 0;
-  const cartProduct = { id: p.id, slug: p.slug, name: p.name, price: p.price, image: p.thumb || p.image };
-
   return (
     <section className="mx-5 my-4 rounded-md border-2 border-dashed border-lien-blue/40 bg-lien-blue-soft/40" aria-label="Thường được mua cùng với" data-testid="cart-upsell">
       <h3 className="m-0 flex items-center justify-center gap-2 border-b border-dashed border-lien-blue/30 px-4 py-2.5 text-center text-[13px] font-bold text-lien-heading">
         <span className="rounded-full bg-lien-blue px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Gợi ý</span>
         Thường được mua cùng với
       </h3>
-      {/* plain upsell: centred picture + name + price, one small "add" link — no action buttons like the cart rows above */}
-      <div className="flex flex-col items-center gap-2 bg-white px-4 py-4 text-center">
-        <Link href={`/product/${p.slug}/`} className="shrink-0">
-          <Image src={p.thumb || p.image} alt="" width={96} height={96} className="h-24 w-24 rounded border border-lien-line object-contain" />
-        </Link>
-        <Link href={`/product/${p.slug}/`} className="line-clamp-2 max-w-[280px] text-[13px] font-medium text-lien-heading no-underline hover:text-lien-blue">
-          {p.name}
-        </Link>
-        <p className="m-0 flex flex-wrap items-center justify-center gap-1.5 text-[13px]">
-          {pv.strike ? <del className="text-[11px] text-lien-muted">{formatAmount(pv.strike)}đ</del> : null}
-          <span className="font-bold text-lien-sale-text">{formatAmount(p.price)}đ</span>
-          {pct ? <span className="rounded bg-lien-sale px-1 text-[10px] font-bold text-white">-{pct}%</span> : null}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            add(cartProduct, 1);
-            openDrawer();
-          }}
-          className="text-[12px] font-semibold text-lien-blue hover:underline"
-        >
-          <Fa name="cart-plus" className="mr-1" /> Thêm vào giỏ
-        </button>
-      </div>
-      <div className="flex items-center justify-between border-t border-lien-line px-3 py-2">
-        <button type="button" aria-label="Trước" onClick={() => setI((i - 1 + list.length) % list.length)} className="flex h-8 w-8 items-center justify-center rounded-full text-lien-heading hover:bg-lien-cream">
-          <Fa name="angle-left" />
-        </button>
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: pages }, (_, k) => (
-            <button key={k} type="button" aria-label={`Gợi ý ${k + 1}`} onClick={() => setI(k)} className={cn("h-2 w-2 rounded-full border border-lien-muted", i % list.length === k ? "bg-lien-heading border-lien-heading" : "bg-white")} />
+      <div className="bg-white px-2 py-3">
+        <ProductCarousel ariaLabel="Sản phẩm gợi ý">
+          {list.map((p) => (
+            <ShopProductCard key={p.id} product={p} className={UPSELL_ITEM} />
           ))}
-        </div>
-        <button type="button" aria-label="Sau" onClick={() => setI((i + 1) % list.length)} className="flex h-8 w-8 items-center justify-center rounded-full text-lien-heading hover:bg-lien-cream">
-          <Fa name="angle-right" />
-        </button>
+        </ProductCarousel>
       </div>
     </section>
   );
