@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.55.3] - 2026-09-17
+
 ### Changed
 - Giỏ hàng nhanh: khối "Thường được mua cùng với" có nhãn "Gợi ý", viền đứt màu xanh và nền riêng để không lẫn với sản phẩm trong giỏ.
 - Trang của tôi: bỏ mục "Trang của tôi" thừa; **Thông tin cá nhân gộp vào "Tài khoản & mật khẩu"** (họ tên, điện thoại, địa chỉ, ảnh đại diện, mật khẩu ở cùng một trang); thứ tự menu: Tài khoản & mật khẩu → Đơn hàng đã mua → Voucher → Yêu thích → Đăng xuất (menu tài khoản trên header cũng vậy). Link cũ `?tab=profile` vẫn mở đúng.
