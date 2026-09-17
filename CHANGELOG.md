@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.63.0] - 2026-09-17
+
 ### Changed
 - Đơn hàng: bỏ hai nút Chi tiết / Xóa trên từng dòng (bấm mã đơn để xem chi tiết); nút xóa hàng loạt đổi tên **Xóa đơn hàng**. Chỉ **chủ cửa hàng** thấy ô tích và nút xóa (cả trong chi tiết đơn); tài khoản admin không xóa được đơn, kể cả gửi thẳng yêu cầu.
 - Hộp xác nhận xóa (đơn hàng, file, danh mục, bài viết, sản phẩm…) đổi từ cửa sổ mặc định của trình duyệt sang hộp thoại riêng: tiêu đề, mô tả những gì sẽ bị xóa, nút Hủy / Xóa màu đỏ, đóng bằng Esc hoặc bấm ra ngoài.
