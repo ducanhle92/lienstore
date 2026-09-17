@@ -4,13 +4,13 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
 import { DEFAULT_PRICING, effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
-import { costSourceLabel, landedFeeJpy, sourceFromUrl } from "@/lib/cost-sources";
+import { costSourceLabel, landedFeeJpy, type SourceFees, sourceFeeLines, sourceFromUrl } from "@/lib/cost-sources";
 import { htmlToPlain, isSimpleHtml } from "@/lib/plain-html";
 import { suggestStandardStock } from "@/lib/stock-advice";
 import { CostSourcesEditor } from "./CostSourcesEditor";
 import { InfoPopover } from "./InfoPopover";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
+import { billableProductWeightG, isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct, CostSource, ProductGroup, PurchaseSource, ShopCategory } from "@/types/shop";
 import { purchaseSourceName } from "@/lib/purchase-sources";
@@ -95,9 +95,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const margin = computeMargin(priceText, costText);
   const costNum = digits(costText);
   const rate = quote?.jpyRate ?? 0;
-  const sourceFees = Object.fromEntries(sources.filter((s) => s.extraFeeJpy > 0).map((s) => [s.key, s.extraFeeJpy]));
-  /** Per-unit surcharge of the chosen source (Nguồn nhập › Phụ phí) — part of the landed ¥. */
-  const primaryFee = landedFeeJpy(primarySource, sourceFees);
+  const sourceFees: SourceFees = Object.fromEntries(sources.filter((s) => s.fees.length).map((s) => [s.key, s.fees]));
+  const lotWeightGForFees = pricing?.lotWeightG ?? DEFAULT_PRICING.lotWeightG;
+  /** Billable grams of this item for weight-based surcharges (same rule as shipping). */
+  const billableForFees = billableProductWeightG(Number.isFinite(digits(weightText)) ? digits(weightText) : null, dimsText || null, isDimsConfidence(confText) ? confText : null);
+  /** Surcharges of the chosen source for this item (Nguồn nhập › Phụ phí) — part of the landed ¥. */
+  const primaryFee = landedFeeJpy(primarySource, sourceFees, billableForFees, lotWeightGForFees);
+  const primaryFeeLines = sourceFeeLines(primarySource, sourceFees, billableForFees, lotWeightGForFees);
   /** Giá vốn VNĐ from the chosen ¥ quote (+ source surcharge) at today's rate. */
   const costFromJpy = primaryJpy && rate ? Math.round((primaryJpy + primaryFee) * rate) : null;
   const recalcCost = () => {
@@ -251,6 +255,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   primaryIndex={costPrimary}
                   defaultSource={defaultSource}
                   sources={sources}
+                  fees={sourceFees}
+                  billableG={billableForFees}
+                  lotWeightG={lotWeightGForFees}
                   error={fields.costJpy}
                   onPrimaryChange={(p) => {
                     setPrimaryJpy(p?.priceJpy ?? null);
@@ -282,7 +289,11 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     Theo nguồn đã chọn: {costFromJpy.toLocaleString("vi-VN")}đ ({primaryJpy?.toLocaleString("vi-VN")}¥{primaryFee ? ` + ${primaryFee.toLocaleString("vi-VN")}¥ phụ phí` : ""} × {rate.toLocaleString("vi-VN")}) — bấm &quot;Tính lại giá vốn&quot; để cập nhật.
                   </p>
                 ) : null}
-                {primaryFee ? <p className="mt-1 text-[12px] text-lien-muted">Nguồn này có phụ phí {primaryFee.toLocaleString("vi-VN")}¥/đv (VD: ship về kho Nhật) — đã cộng vào giá vốn.</p> : null}
+                {primaryFee ? (
+                  <p className="mt-1 text-[12px] text-lien-muted">
+                    Phụ phí nguồn cho sản phẩm này: {primaryFee.toLocaleString("vi-VN")}¥ ({primaryFeeLines.map((l) => `${l.label}: ${l.how}`).join("; ")}) — đã cộng vào giá vốn.
+                  </p>
+                ) : null}
                 {margin ? (
                   <p className={cn("mt-1 text-[12px] leading-4", margin.profit >= 0 ? "text-green-700" : "text-red-600")}>
                     Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
@@ -338,6 +349,22 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                           </td>
                           <td className="py-0.5 text-right font-medium text-lien-heading">{suggestion.cost.toLocaleString("vi-VN")}đ</td>
                         </tr>
+                        {primaryFee ? (
+                          <tr>
+                            <td className="py-0.5 pr-2 pl-3 text-[11px] text-lien-muted">
+                              trong đó phụ phí nguồn ({primaryFee.toLocaleString("vi-VN")}¥)
+                              <InfoPopover>
+                                {primaryFeeLines.map((l) => (
+                                  <span key={l.label} className="block">
+                                    <strong>{l.label}</strong>: {l.how} = {Math.round(l.jpy).toLocaleString("vi-VN")}¥
+                                  </span>
+                                ))}
+                                Cân tính phí của sản phẩm: {billableForFees.toLocaleString("vi-VN")} g · × {rate.toLocaleString("vi-VN")}đ/¥ = <strong>{vnd(primaryFee * rate)}</strong>
+                              </InfoPopover>
+                            </td>
+                            <td className="py-0.5 text-right text-[11px] text-lien-muted">{vnd(primaryFee * rate)}</td>
+                          </tr>
+                        ) : null}
                         <tr>
                           <td className="py-0.5 pr-2 text-lien-muted">
                             Tỉ lệ lợi nhuận kỳ vọng

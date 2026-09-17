@@ -78,7 +78,8 @@ const NAV: NavGroup[] = [
     module: "shipping",
     children: [
       { href: "/admin/shipping/", label: "Đơn hàng · 4 chặng", icon: "list", module: "shipping" },
-      { href: "/admin/shipping/?leg=jp_domestic", label: "① Nội địa Nhật", icon: "cube", module: "shipping" },
+      { href: "/admin/shipping/?leg=jp_domestic&sub=to_jp_wh", label: "①a Nội địa Nhật → kho Nhật", icon: "cube", module: "shipping" },
+      { href: "/admin/shipping/?leg=jp_domestic&sub=to_carrier", label: "①b Kho Nhật → kho ĐVVC", icon: "cube", module: "shipping" },
       { href: "/admin/shipping/?leg=jp_vn", label: "② Nhật → Việt Nam", icon: "plane", module: "shipping" },
       { href: "/admin/shipping/?leg=vn_transfer", label: "③ Kho ĐVVC → kho shop", icon: "building", module: "shipping" },
       { href: "/admin/shipping/?leg=vn_domestic", label: "④ Nội địa Việt Nam", icon: "truck", module: "shipping" },
@@ -113,8 +114,11 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
     const [path, query] = l.href.split("?");
     if (path.startsWith("/admin/shipping")) {
       if (!pathname.startsWith("/admin/shipping")) return false;
-      const leg = query ? new URLSearchParams(query).get("leg") : null;
-      return (search.get("leg") ?? null) === leg;
+      const q = new URLSearchParams(query ?? "");
+      if ((search.get("leg") ?? null) !== q.get("leg")) return false;
+      // the two ① sheets share a leg; a plain ?leg=jp_domestic lights up ①a
+      if (q.get("leg") === "jp_domestic") return (search.get("sub") ?? "to_jp_wh") === q.get("sub");
+      return true;
     }
     if (l.exact) return pathname === path || pathname === path.slice(0, -1);
     return pathname.startsWith(path.slice(0, -1));

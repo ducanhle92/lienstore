@@ -12,6 +12,17 @@ export const SHIPPING_LEGS: Array<{ key: ShippingLeg; label: string; description
 
 export const LEG_LABEL: Record<ShippingLeg, string> = Object.fromEntries(SHIPPING_LEGS.map((l) => [l.key, l.label])) as Record<ShippingLeg, string>;
 
+/** Leg ① is managed as two sheets: from the seller to the shop's Japan warehouse, and from there to the carrier. */
+export type JpSubLeg = "to_jp_wh" | "to_carrier";
+export const JP_SUB_LEGS: Array<{ key: JpSubLeg; label: string; description: string }> = [
+  { key: "to_jp_wh", label: "①a Nội địa Nhật → kho Nhật", description: "Từ nơi mua (Amazon, cửa hàng, iHerb…) về kho của shop tại Nhật." },
+  { key: "to_carrier", label: "①b Kho Nhật → kho ĐVVC", description: "Từ kho shop tại Nhật tới kho đơn vị vận chuyển (Kiến Express) để gửi về Việt Nam." },
+];
+export const JP_SUB_LEG_LABEL: Record<JpSubLeg, string> = { to_jp_wh: JP_SUB_LEGS[0].label, to_carrier: JP_SUB_LEGS[1].label };
+export function isJpSubLeg(v: unknown): v is JpSubLeg {
+  return v === "to_jp_wh" || v === "to_carrier";
+}
+
 export function isShippingLeg(v: unknown): v is ShippingLeg {
   return v === "jp_domestic" || v === "jp_vn" || v === "vn_transfer" || v === "vn_domestic";
 }

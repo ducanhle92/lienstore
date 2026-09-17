@@ -2,12 +2,12 @@
 
 import { costPriceFromJpy, isCostSourceKind, sourceFromUrl } from "@/lib/cost-sources";
 import { PRODUCT_MARGIN_RANGE } from "@/lib/pricing";
-import { isDimsConfidence } from "@/lib/shipping";
+import { billableProductWeightG, isDimsConfidence } from "@/lib/shipping";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { deleteProduct, getCategories, getJpyRate, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
+import { deleteProduct, getCategories, getJpyRate, getPricingConfig, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
 import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
 import { normalizeAttrLabels } from "@/lib/variants";
 import { plainToHtml } from "@/lib/plain-html";
@@ -76,7 +76,6 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const costRaw = get("costPrice");
   let costPrice = costRaw ? parseIntField(costRaw) : null;
   if (costRaw && costPrice === null) fields.costPrice = "Giá vốn không hợp lệ.";
-  if (costJpy && (costPrice === null || existing?.costJpy !== costJpy || (existing?.costSource ?? "") !== costSourceSel)) costPrice = costPriceFromJpy(costJpy, costSourceSel, await getJpyRate(), getSourceFeeMap());
 
   const marginRaw = get("marginPct").replace(",", ".");
   const marginPct = marginRaw === "" ? null : Number.parseFloat(marginRaw);
@@ -95,6 +94,11 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const dimsConfidence = isDimsConfidence(confRaw) ? confRaw : null;
   const dimsSource = get("dimsSource").slice(0, 300);
   if (dimsCm && !/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/.test(dimsCm)) fields.dimsCm = "Kích thước ghi dạng Dài x Rộng x Cao (cm), ví dụ 12x8x5.";
+  // VND cost from the chosen ¥ quote + the source's surcharges (which may depend on the item's billable weight)
+  const weightChanged = (existing?.weightG ?? null) !== weightG || (existing?.dimsCm ?? null) !== dimsCm || (existing?.dimsConfidence ?? null) !== dimsConfidence;
+  if (costJpy && (costPrice === null || existing?.costJpy !== costJpy || (existing?.costSource ?? "") !== costSourceSel || weightChanged)) {
+    costPrice = costPriceFromJpy(costJpy, costSourceSel, await getJpyRate(), getSourceFeeMap(), billableProductWeightG(weightG, dimsCm, dimsConfidence), (await getPricingConfig()).lotWeightG);
+  }
 
   const stockRaw = get("stock");
   let stock = stockRaw === "" ? null : parseIntField(stockRaw);
@@ -265,6 +269,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
   if (idCol < 0 && nameCol < 0) fail('Thiếu cột "ID" (sửa sản phẩm) hoặc "Tên sản phẩm" (tạo mới) — xuất CSV từ trang này để lấy mẫu.');
   const rate = await getJpyRate();
   const fees = getSourceFeeMap();
+  const lotG = (await getPricingConfig()).lotWeightG;
   const [sources, categories] = await Promise.all([listPurchaseSources(true), getCategories()]);
   const catSlugs = new Set(categories.map((c) => c.slug));
   const catByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.slug]));
@@ -305,7 +310,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
           nameJa: patch.nameJa ?? "",
           price: patch.price ?? 0,
           regularPrice: patch.regularPrice ?? null,
-          costPrice: patch.costPrice ?? (costJpy ? costPriceFromJpy(costJpy, sourceKey ?? UNKNOWN_SOURCE, rate, fees) : null),
+          costPrice: patch.costPrice ?? (costJpy ? costPriceFromJpy(costJpy, sourceKey ?? UNKNOWN_SOURCE, rate, fees, billableProductWeightG(patch.weightG ?? null, patch.dimsCm ?? null, patch.dimsConfidence ?? null), lotG) : null),
           supplierUrl: patch.supplierUrl ?? null,
           minStock: patch.minStock ?? null,
           weightG: patch.weightG ?? null,
@@ -359,7 +364,7 @@ export async function importProductsCsvAction(formData: FormData): Promise<void>
     }
     const next = { ...existing, ...patch, ...(sourceKey ? { costSource: sourceKey } : {}) } as CatalogProduct;
     // an empty VND cost next to a ¥ cost means "derive it from the rate" (never wipes the cost); a changed ¥ also re-derives it
-    if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy) || (sourceKey && sourceKey !== existing.costSource))) next.costPrice = costPriceFromJpy(next.costJpy, next.costSource, rate, fees);
+    if (next.costJpy && (patch.costPrice === undefined || patch.costPrice === null || (patch.costJpy !== undefined && patch.costJpy !== existing.costJpy) || (sourceKey && sourceKey !== existing.costSource))) next.costPrice = costPriceFromJpy(next.costJpy, next.costSource, rate, fees, billableProductWeightG(next.weightG, next.dimsCm, next.dimsConfidence), lotG);
     if (patch.costJpy && patch.costJpy !== existing.costJpy) next.costCheckedAt = new Date().toISOString();
     const changed = (Object.keys(patch) as Array<keyof typeof patch>).some((k) => JSON.stringify(existing[k]) !== JSON.stringify(next[k])) || next.costPrice !== existing.costPrice;
     if (!changed) {

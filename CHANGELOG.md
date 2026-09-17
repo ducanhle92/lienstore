@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Nguồn nhập: **nhiều phụ phí cho một nguồn**, mỗi dòng có cách tính riêng — ¥ / sản phẩm, ¥ / kg (theo cân tính phí của sản phẩm, đã tính thể tích) hoặc ¥ / lần gửi (một lần ship nhiều món, chia cho từng sản phẩm theo cân trên cân một lần gửi). Cộng vào giá vốn tại Nhật khi lưu sản phẩm, khi job tỉ giá hằng đêm chạy, khi nhập CSV và khi so nguồn rẻ nhất.
+- Trang sản phẩm › Giá kỳ vọng: dòng **"trong đó phụ phí nguồn"** dưới Giá vốn tại Nhật, bấm ⓘ xem từng phụ phí được tính thế nào cho sản phẩm này.
+- Vận chuyển: chặng ① tách thành hai sheet **①a Nội địa Nhật → kho Nhật** (từ nơi mua về kho shop tại Nhật) và **①b Kho Nhật → kho ĐVVC** (từ kho shop tới Kiến Express); mỗi phương thức chọn nhánh khi sửa/thêm. Phương thức cũ tự xếp: LienStore gom tại nhà, Tự mang tới kho Nhật → ①b, còn lại → ①a.
+
+### Changed
+- Nhóm biến thể › Sửa nhóm: điền thuộc tính / thứ tự của mọi biến thể rồi bấm **"Lưu tất cả"** một lần (không còn nút Lưu từng dòng; "Tách" vẫn riêng từng dòng).
+
 ## [1.51.1] - 2026-09-17
 
 ### Changed

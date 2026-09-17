@@ -5,7 +5,37 @@ import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHead
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getPurchaseSourceDefault, listPurchaseSources, purchaseSourceUsage } from "@/lib/db";
+import { describeSourceFees, SOURCE_FEE_UNIT_LABEL, SOURCE_FEE_UNITS, type SourceFee } from "@/lib/cost-sources";
 import { PURCHASE_KIND_LABEL, PURCHASE_SOURCE_KINDS, purchaseSourceDetail } from "@/lib/purchase-sources";
+
+/** Fee rows of a source form: existing fees + one blank row to add (repeated inputs, read with getAll). */
+function FeeRows({ fees, idPrefix }: { fees: SourceFee[]; idPrefix: string }) {
+  const rows: Array<SourceFee | null> = [...fees, null];
+  return (
+    <div className="sm:col-span-2">
+      <p className="mb-1 text-[12px] font-semibold text-[#374151]">
+        Phụ phí của nguồn <span className="font-normal text-lien-muted">— cộng vào giá vốn tại Nhật; để trống số tiền = bỏ dòng</span>
+      </p>
+      <div className="space-y-1.5">
+        {rows.map((f, i) => (
+          <div key={`${idPrefix}-${i}`} className="grid grid-cols-[1fr_96px_150px_90px] gap-1.5">
+            <input name="fee_label" defaultValue={f?.label ?? ""} placeholder={i === rows.length - 1 ? "Thêm phụ phí: VD ship về kho Nhật" : "Tên phụ phí"} className={`${adminInput} !mb-0 !py-1 !text-[13px]`} aria-label="Tên phụ phí" />
+            <input name="fee_amount" inputMode="numeric" defaultValue={f?.amountJpy ?? ""} placeholder="¥" className={`${adminInput} !mb-0 !py-1 !text-[13px]`} aria-label="Số tiền ¥" />
+            <select name="fee_unit" defaultValue={f?.unit ?? "unit"} className={`${adminInput} !mb-0 !py-1 !text-[13px]`} aria-label="Cách tính">
+              {SOURCE_FEE_UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {SOURCE_FEE_UNIT_LABEL[u]}
+                </option>
+              ))}
+            </select>
+            <input name="fee_lot" inputMode="numeric" defaultValue={f?.lotWeightG ?? ""} placeholder="g/lần" title="Chỉ cho '¥ / lần gửi': cân của một lần gửi để chia; trống = cân lô của Công thức giá" className={`${adminInput} !mb-0 !py-1 !text-[13px]`} aria-label="Cân một lần gửi (g)" />
+          </div>
+        ))}
+      </div>
+      <p className="mt-1 mb-0 text-[11px] leading-4 text-lien-muted">¥ / sản phẩm: cộng thẳng. ¥ / kg: nhân cân tính phí của sản phẩm (đã tính thể tích). ¥ / lần gửi: một lần ship nhiều sản phẩm — chia cho từng sản phẩm theo cân của nó trên cân một lần gửi (trống = cân lô của Công thức giá).</p>
+    </div>
+  );
+}
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -84,14 +114,7 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
                             <input name="branch" defaultValue={s.branch} placeholder="Chi nhánh" className={adminInput} aria-label="Chi nhánh" />
                             <input name="address" defaultValue={s.address} placeholder="Địa chỉ" className={`${adminInput} sm:col-span-2`} aria-label="Địa chỉ" />
                             <input name="note" defaultValue={s.note} placeholder="Ghi chú (giờ mở, điểm thưởng, tax-free…)" className={`${adminInput} sm:col-span-2`} aria-label="Ghi chú" />
-                            <label className="block text-[12px] text-lien-muted">
-                              Phụ phí ¥ / đơn vị
-                              <input name="extraFeeJpy" inputMode="numeric" defaultValue={s.extraFeeJpy || ""} placeholder="0" className={`${adminInput} mt-0.5`} aria-label="Phụ phí ¥ mỗi đơn vị" />
-                            </label>
-                            <label className="block text-[12px] text-lien-muted">
-                              Phụ phí là gì
-                              <input name="extraFeeNote" defaultValue={s.extraFeeNote} placeholder="VD: ship về kho Nhật" className={`${adminInput} mt-0.5`} aria-label="Ghi chú phụ phí" />
-                            </label>
+                            <FeeRows fees={s.fees} idPrefix={fid} />
                             <label className="flex items-center gap-2 text-[13px]">
                               <input type="checkbox" name="active" value="1" defaultChecked={s.active} className="h-4 w-4" /> Đang dùng
                               <input type="hidden" name="active" value="0" />
@@ -108,9 +131,9 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
                       <td className={`${tdClass} max-w-[320px] text-[12px] text-lien-muted`}>
                         {purchaseSourceDetail(s).replace(`${PURCHASE_KIND_LABEL[s.kind]}`, "").replace(/^ · /, "") || "—"}
                         {s.note ? <span className="block">{s.note}</span> : null}
-                        {s.extraFeeJpy > 0 ? (
-                          <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title="Cộng vào giá ¥ của mọi báo giá từ nguồn này khi tính giá vốn">
-                            +¥{s.extraFeeJpy.toLocaleString("ja-JP")}/đv{s.extraFeeNote ? ` · ${s.extraFeeNote}` : ""}
+                        {s.fees.length ? (
+                          <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800" title={s.fees.map((f) => `${f.label}: ${f.amountJpy.toLocaleString("ja-JP")}¥ ${SOURCE_FEE_UNIT_LABEL[f.unit]}`).join(" · ")}>
+                            {describeSourceFees(s.fees)}
                           </span>
                         ) : null}
                       </td>
@@ -174,24 +197,13 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
               <input id="ns-note" name="note" placeholder="Giờ mở cửa, tax-free, thẻ điểm…" className={adminInput} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={adminLabel} htmlFor="ns-fee">
-                  Phụ phí ¥ / đơn vị <span className="font-normal text-lien-muted">(cộng vào giá vốn)</span>
-                </label>
-                <input id="ns-fee" name="extraFeeJpy" inputMode="numeric" placeholder="0" className={adminInput} />
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="ns-fee-note">
-                  Phụ phí là gì
-                </label>
-                <input id="ns-fee-note" name="extraFeeNote" placeholder="VD: ship về kho Nhật" className={adminInput} />
-              </div>
+              <FeeRows fees={[]} idPrefix="ns" />
             </div>
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
               <Fa name="plus" /> Thêm nguồn
             </button>
           </form>
-          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Nguồn thêm ở đây xuất hiện trong ô “Nguồn mua” của từng báo giá ¥ trên trang sản phẩm và trong CSV nhập hàng (cột “Nguồn giá”: ghi tên hoặc mã nguồn). <strong>Phụ phí</strong>: chi phí riêng của nguồn tính trên mỗi đơn vị — ví dụ iHerb có phí ship về kho shop ở Nhật — được cộng vào giá ¥ khi tính giá vốn và khi so nguồn rẻ nhất.</p>
+          <p className="mt-3 text-[12px] leading-5 text-lien-muted">Nguồn thêm ở đây xuất hiện trong ô “Nguồn mua” của từng báo giá ¥ trên trang sản phẩm và trong CSV nhập hàng (cột “Nguồn giá”: ghi tên hoặc mã nguồn). <strong>Phụ phí</strong>: chi phí riêng của nguồn (một hoặc nhiều dòng) — ví dụ iHerb có phí ship về kho shop ở Nhật — tính theo sản phẩm, theo kg hoặc theo lần gửi chia theo cân; được cộng vào giá ¥ khi tính giá vốn (trang sản phẩm hiện rõ dòng phụ phí) và khi so nguồn rẻ nhất.</p>
         </Card>
       </div>
     </>

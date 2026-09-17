@@ -16,7 +16,7 @@ import { buildQuoteConfig } from "@/lib/shipping";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
-import { describeMethodFormula, isShippingLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
+import { describeMethodFormula, isJpSubLeg, isShippingLeg, JP_SUB_LEG_LABEL, JP_SUB_LEGS, type JpSubLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { ShippingCarrier, ShippingMethod, ShippingZone } from "@/types/shop";
 
@@ -165,6 +165,15 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
                 </option>
               ))}
             </select>
+            {m.leg === "jp_domestic" ? (
+              <select name="sub_leg" defaultValue={m.subLeg || "to_jp_wh"} className={cn(adminInput, "mt-2")} aria-label="Nhánh của chặng ①">
+                {JP_SUB_LEGS.map((x) => (
+                  <option key={x.key} value={x.key}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </div>
           <div>
             <label className={adminLabel}>Đơn vị vận chuyển ({LEG_LABEL[m.leg]})</label>
@@ -246,16 +255,17 @@ function MethodCard({ m, carriers, tab }: { m: ShippingMethod; carriers: Shippin
   );
 }
 
-function AddMethodCard({ leg, carriers, position, tab }: { leg: ShippingLeg | null; carriers: ShippingCarrier[]; position: number; tab: string }) {
+function AddMethodCard({ leg, carriers, position, tab, subLeg = "" }: { leg: ShippingLeg | null; carriers: ShippingCarrier[]; position: number; tab: string; subLeg?: JpSubLeg | "" }) {
   const list = leg ? carriersFor(carriers, leg) : carriers;
   return (
     <details className="group rounded-lg border border-dashed border-[#d1d5db] bg-white">
       <summary className="flex cursor-pointer items-center gap-2 px-5 py-3 text-[14px] font-semibold text-lien-blue select-none">
-        <Fa name="plus" /> Thêm phương thức vận chuyển{leg ? ` · ${LEG_LABEL[leg]}` : ""}
+        <Fa name="plus" /> Thêm phương thức vận chuyển{leg ? ` · ${subLeg ? JP_SUB_LEG_LABEL[subLeg] : LEG_LABEL[leg]}` : ""}
       </summary>
       <div className="border-t border-[#e5e7eb] p-5">
       <form action={saveMethodAction} className="grid gap-3 md:grid-cols-3">
         <input type="hidden" name="backTab" value={tab} />
+        {subLeg ? <input type="hidden" name="sub_leg" value={subLeg} /> : null}
         <div>
           <label className={adminLabel}>Tên phương thức *</label>
           <input name="name" required placeholder={leg === "jp_domestic" ? "VD: Yamato tới kho Chiba, Gom tại nhà" : leg === "vn_domestic" ? "VD: Viettel Post, Bưu điện" : leg === "vn_transfer" ? "VD: Kiến Express Hà Nội → kho Thanh Hóa" : "VD: EMS Kiến Express, Xách tay, Đường biển"} className={adminInput} />
@@ -449,6 +459,10 @@ export default async function AdminShipping({ searchParams }: Props) {
   const policy = await getShipPolicy();
   const tabParam = first(sp.leg);
   const tab: ShippingLeg | "display" | "" = tabParam === "display" ? "display" : isShippingLeg(tabParam) ? tabParam : "";
+  // ① is split into two sheets (seller → kho Nhật · kho Nhật → kho ĐVVC); methods never classified count as ①a
+  const subRaw = first(sp.sub);
+  const sub: JpSubLeg | "" = tab === "jp_domestic" && isJpSubLeg(subRaw) ? subRaw : "";
+  const backTab = sub ? `${tab}|${sub}` : tab;
 
   return (
     <>
@@ -629,26 +643,39 @@ export default async function AdminShipping({ searchParams }: Props) {
       ) : (
         <div className="space-y-10">
           {SHIPPING_LEGS.filter((l) => l.key === tab).map((leg) => {
-            const list = methods.filter((m) => m.leg === leg.key);
+            const list = methods.filter((m) => m.leg === leg.key).filter((m) => !sub || (m.subLeg || "to_jp_wh") === sub);
+            const subInfo = sub ? JP_SUB_LEGS.find((x) => x.key === sub) : null;
             return (
               <section key={leg.key} id={`leg-${leg.key}`} className="space-y-6">
                 <div>
                   <h2 className="mb-1 text-[20px] font-bold text-lien-heading">
                     <Fa name={LEG_ICON[leg.key]} className="mr-2 text-lien-blue" />
-                    {leg.label} <span className="text-[14px] font-normal text-lien-muted">({list.length} phương thức)</span>
+                    {subInfo ? subInfo.label : leg.label} <span className="text-[14px] font-normal text-lien-muted">({list.length} phương thức)</span>
                   </h2>
-                  <p className="text-[13px] text-lien-muted">{leg.description}</p>
+                  <p className="text-[13px] text-lien-muted">{subInfo ? subInfo.description : leg.description}</p>
+                  {leg.key === "jp_domestic" ? (
+                    <p className="mt-1 flex flex-wrap gap-2 text-[12px]">
+                      {JP_SUB_LEGS.map((x) => (
+                        <Link key={x.key} href={`/admin/shipping/?leg=jp_domestic&sub=${x.key}`} className={cn("rounded-full px-2.5 py-0.5 font-semibold no-underline", sub === x.key ? "bg-lien-blue text-white" : "bg-[#eef2ff] text-[#374151] hover:bg-[#e0e7ff]")}>
+                          {x.label} ({methods.filter((m) => m.leg === "jp_domestic" && (m.subLeg || "to_jp_wh") === x.key).length})
+                        </Link>
+                      ))}
+                      <Link href="/admin/shipping/?leg=jp_domestic" className={cn("rounded-full px-2.5 py-0.5 font-semibold no-underline", !sub ? "bg-lien-blue text-white" : "bg-[#eef2ff] text-[#374151] hover:bg-[#e0e7ff]")}>
+                        Cả hai
+                      </Link>
+                    </p>
+                  ) : null}
                   <p className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[12px] leading-5 text-lien-text">{LEG_API_NOTE[leg.key]}</p>
                 </div>
                 {leg.key === "vn_domestic" ? <CarrierStatusPanel /> : null}
                 <LegShipmentsCard leg={leg.key} orders={recent} legMap={legMap} eventMap={eventMap} filter={legStatusFilter} />
                 {list.map((m) => (
-                  <MethodCard key={m.id} m={m} carriers={carriers} tab={tab} />
+                  <MethodCard key={m.id} m={m} carriers={carriers} tab={backTab} />
                 ))}
                 {list.length === 0 ? <p className="rounded-md border border-dashed border-[#d1d5db] p-4 text-[13px] text-lien-muted">Chưa có phương thức cho chặng này — thêm ở khung bên dưới.</p> : null}
                 {tab ? (
                   <>
-                    <AddMethodCard leg={leg.key} carriers={carriers} position={methods.length + 1} tab={tab} />
+                    <AddMethodCard leg={leg.key} carriers={carriers} position={methods.length + 1} tab={backTab} subLeg={sub || (leg.key === "jp_domestic" ? "to_jp_wh" : "")} />
                     {leg.key === "vn_domestic" ? (
                       <div id="pickup">
                         <Card title="Nhận tại kho (tuỳ chọn miễn phí ở trang thanh toán)">

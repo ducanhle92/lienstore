@@ -994,6 +994,19 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_order_leg_events_order ON order_leg_events(order_id)`,
     ],
   },
+  {
+    // Purchase sources carry any number of surcharges (per unit / per kg / per shipment shared by weight) as JSON;
+    // the single extra_fee_jpy of v43 becomes the first one. Japan-domestic methods split into two sheets:
+    // ①a from the seller to the shop's Japan warehouse, ①b from that warehouse to the carrier (Kiến Express).
+    version: 45,
+    name: "source-fees-and-jp-sub-leg",
+    up: [
+      `ALTER TABLE purchase_sources ADD COLUMN fees TEXT NOT NULL DEFAULT '[]'`,
+      `UPDATE purchase_sources SET fees = json_array(json_object('label', CASE WHEN extra_fee_note = '' THEN 'Phụ phí' ELSE extra_fee_note END, 'amountJpy', extra_fee_jpy, 'unit', 'unit', 'lotWeightG', NULL)) WHERE extra_fee_jpy > 0`,
+      `ALTER TABLE shipping_methods ADD COLUMN sub_leg TEXT NOT NULL DEFAULT ''`,
+      `UPDATE shipping_methods SET sub_leg = CASE WHEN name LIKE 'LienStore gom%' OR name LIKE 'Tự mang%' THEN 'to_carrier' ELSE 'to_jp_wh' END WHERE leg = 'jp_domestic'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

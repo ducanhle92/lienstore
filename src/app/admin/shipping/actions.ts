@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
 import { deleteShippingCarrier, deleteShippingMethod, deleteShippingZone, saveShippingCarrier, saveShippingMethod, saveShippingZone, setPickupAddress, setShippingNotes, setJpyRate, setShippingPricingMode } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
-import { isShippingLeg } from "@/lib/shipping";
+import { isJpSubLeg, isShippingLeg } from "@/lib/shipping";
 
 const BACK = "/admin/shipping/";
 
@@ -29,7 +29,9 @@ const amountOrNull = (fd: FormData, key: string): number | null => {
 
 function done(msg: string, anchor = "", tab = ""): never {
   revalidatePath("/", "layout");
-  redirect(`${BACK}?${tab ? `leg=${encodeURIComponent(tab)}&` : ""}saved=${encodeURIComponent(msg)}${anchor}`);
+  // `tab` may carry the ① sub-sheet as "jp_domestic|to_carrier"
+  const [legTab, sub] = tab.split("|");
+  redirect(`${BACK}?${legTab ? `leg=${encodeURIComponent(legTab)}&${sub ? `sub=${encodeURIComponent(sub)}&` : ""}` : ""}saved=${encodeURIComponent(msg)}${anchor}`);
 }
 function fail(msg: string): never {
   redirect(`${BACK}?error=${encodeURIComponent(msg)}`);
@@ -42,6 +44,7 @@ export async function saveMethodAction(formData: FormData): Promise<void> {
   if (!name) fail("Tên phương thức không được để trống.");
   const legRaw = formData.get("leg");
   const leg = isShippingLeg(legRaw) ? legRaw : "jp_vn";
+  const subRaw = formData.get("sub_leg");
   // carrier: existing id, or a new one typed inline
   let carrierId: number | null = int(formData, "carrierId", 0) || null;
   const newCarrier = text(formData, "newCarrier");
@@ -49,6 +52,7 @@ export async function saveMethodAction(formData: FormData): Promise<void> {
   const id = await saveShippingMethod({
     id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
     name,
+    subLeg: isJpSubLeg(subRaw) ? subRaw : "",
     description: text(formData, "description"),
     extraLabel: text(formData, "extraLabel"),
     currency: text(formData, "currency") || "đ",

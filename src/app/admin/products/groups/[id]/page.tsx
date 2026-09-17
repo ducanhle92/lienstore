@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { saveGroupAction, saveVariantAction } from "@/app/admin/products/groups/actions";
+import { saveGroupAction, saveVariantAction, saveVariantsBulkAction } from "@/app/admin/products/groups/actions";
 import { AddToGroupPicker } from "@/components/sites/lienstore/admin/AddToGroupPicker";
 import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
 import { VariantTree } from "@/components/sites/lienstore/admin/VariantTree";
@@ -79,7 +79,20 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
             <AddToGroupPicker groupId={group.id} candidates={candidates} />
           </Card>
 
-          <Card title={`Các biến thể (${members.length})`}>
+          <Card
+            title={`Các biến thể (${members.length})`}
+            actions={
+              members.length ? (
+                <button type="submit" form="bulk-variants" className={`${btnPrimary} !px-3 !py-1.5 !text-[13px]`}>
+                  <Fa name="check" /> Lưu tất cả
+                </button>
+              ) : null
+            }
+          >
+            {/* one form for every row: type freely, save once (the per-row "Tách" buttons have their own tiny forms) */}
+            <form id="bulk-variants" action={saveVariantsBulkAction}>
+              <input type="hidden" name="groupId" value={group.id} />
+            </form>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
@@ -105,7 +118,9 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                           <form id={fid} action={saveVariantAction}>
                             <input type="hidden" name="groupId" value={group.id} />
                             <input type="hidden" name="productId" value={p.id} />
+                            <input type="hidden" name="remove" value="1" />
                           </form>
+                          <input type="hidden" name="pid" value={p.id} form="bulk-variants" />
                           <div className="flex items-center gap-2">
                             {p.thumb ? <Image src={p.thumb} alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
                             <span className="flex min-w-0 flex-col leading-4">
@@ -121,22 +136,17 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                         </td>
                         {labels.map((l, i) => (
                           <td key={l} className={tdClass}>
-                            <input form={fid} name={`attr_${i}`} defaultValue={p.variantAttrs[l] ?? ""} placeholder={l} className={`${adminInput} !mb-0 !w-[150px] !py-1 !text-[13px] ${p.variantAttrs[l] ? "" : "border-amber-300 bg-amber-50"}`} aria-label={`${l} của ${p.name}`} />
+                            <input form="bulk-variants" name={`attr_${p.id}_${i}`} defaultValue={p.variantAttrs[l] ?? ""} placeholder={l} className={`${adminInput} !mb-0 !w-[150px] !py-1 !text-[13px] ${p.variantAttrs[l] ? "" : "border-amber-300 bg-amber-50"}`} aria-label={`${l} của ${p.name}`} />
                           </td>
                         ))}
                         <td className={tdClass}>
-                          <input form={fid} name="position" inputMode="numeric" defaultValue={p.variantPosition} className={`${adminInput} !mb-0 !w-[64px] !py-1 !text-[13px]`} aria-label="Thứ tự" />
+                          <input form="bulk-variants" name={`pos_${p.id}`} inputMode="numeric" defaultValue={p.variantPosition} className={`${adminInput} !mb-0 !w-[64px] !py-1 !text-[13px]`} aria-label="Thứ tự" />
                         </td>
                         <td className={`${tdClass} text-right whitespace-nowrap`}>{formatAmount(p.price)}đ</td>
                         <td className={`${tdClass} whitespace-nowrap`}>
-                          <div className="flex items-center gap-2">
-                            <button form={fid} type="submit" className={`${btnPrimary} !px-2.5 !py-1 !text-[12px]`}>
-                              Lưu
-                            </button>
-                            <button form={fid} type="submit" name="remove" value="1" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px]`} title="Tách khỏi nhóm (sản phẩm vẫn giữ nguyên)">
-                              Tách
-                            </button>
-                          </div>
+                          <button form={fid} type="submit" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px]`} title="Tách khỏi nhóm (sản phẩm vẫn giữ nguyên)">
+                            Tách
+                          </button>
                         </td>
                       </tr>
                     );
@@ -151,7 +161,12 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Ô vàng là giá trị còn thiếu. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”); giá hiển thị “Từ …” khi các biến thể khác giá.</p>
+            {members.length ? (
+              <button type="submit" form="bulk-variants" className={`${btnPrimary} mt-3`}>
+                <Fa name="check" /> Lưu tất cả ({members.length} biến thể)
+              </button>
+            ) : null}
+            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Điền thoải mái các ô rồi bấm “Lưu tất cả” một lần. Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Ô vàng là giá trị còn thiếu. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”); giá hiển thị “Từ …” khi các biến thể khác giá.</p>
           </Card>
         </div>
       </div>

@@ -1,4 +1,6 @@
+import type { SourceFee } from "@/lib/cost-sources";
 import type { PurchaseStatus } from "@/lib/purchase";
+import type { JpSubLeg } from "@/lib/shipping";
 import type { Warehouse } from "@/lib/warehouses";
 // Shop / commerce types for the linconnn.io.vn clone.
 
@@ -131,9 +133,8 @@ export interface PurchaseSource {
   address: string;
   branch: string;
   note: string;
-  /** Per-unit surcharge in ¥ added to every quote from this source (e.g. iHerb: shipping to the Japan warehouse); 0 = none. */
-  extraFeeJpy: number;
-  extraFeeNote: string;
+  /** Surcharges added to every quote from this source (e.g. iHerb: shipping to the Japan warehouse) — per item, per kg or per shipment. */
+  fees: SourceFee[];
   /** Shipped with the system; cannot be deleted (only switched off). */
   builtin: boolean;
   active: boolean;
@@ -562,6 +563,8 @@ export interface ShippingMethod {
   codShipFee: boolean;
   /** "ghn" = fee quoted live from the carrier API at checkout instead of the zone table. */
   liveQuote: "" | "ghn";
+  /** Japan-domestic methods only: ①a seller → shop's Japan warehouse, ①b Japan warehouse → carrier. */
+  subLeg: JpSubLeg | "";
   /** Method-specific notes, one per line. */
   notes: string;
   zones: ShippingZone[];

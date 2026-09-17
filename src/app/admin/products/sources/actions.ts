@@ -4,7 +4,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { deletePurchaseSource, savePurchaseSource } from "@/lib/db";
+import { isSourceFeeUnit, type SourceFee } from "@/lib/cost-sources";
 import { isPurchaseSourceKind } from "@/lib/purchase-sources";
+
+/** Repeated fee rows (fee_label / fee_amount / fee_unit / fee_lot); rows without an amount are dropped. */
+function readFees(fd: FormData): SourceFee[] {
+  const labels = fd.getAll("fee_label").map(String);
+  const amounts = fd.getAll("fee_amount").map(String);
+  const units = fd.getAll("fee_unit").map(String);
+  const lots = fd.getAll("fee_lot").map(String);
+  const out: SourceFee[] = [];
+  for (let i = 0; i < amounts.length; i++) {
+    const amount = Number.parseInt(amounts[i].replace(/[^\d]/g, ""), 10);
+    if (!Number.isInteger(amount) || amount <= 0) continue;
+    const lot = Number.parseInt((lots[i] ?? "").replace(/[^\d]/g, ""), 10);
+    const unit = units[i];
+    out.push({ label: (labels[i] ?? "").trim().slice(0, 80) || "Phụ phí", amountJpy: amount, unit: isSourceFeeUnit(unit) ? unit : "unit", lotWeightG: Number.isInteger(lot) && lot > 0 ? lot : null });
+  }
+  return out.slice(0, 8);
+}
 
 const PAGE = "/admin/products/sources/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -21,8 +39,7 @@ export async function savePurchaseSourceEntryAction(formData: FormData): Promise
   const url = text(formData, "url").slice(0, 300);
   if (url && !/^https?:\/\//i.test(url)) back("error", "Link phải bắt đầu bằng http(s)://");
   try {
-    const feeRaw = text(formData, "extraFeeJpy").replace(/[^\d]/g, "");
-    const s = await savePurchaseSource({ id: Number.isInteger(idRaw) && idRaw > 0 ? idRaw : undefined, name, kind, url, address: text(formData, "address").slice(0, 200), branch: text(formData, "branch").slice(0, 80), note: text(formData, "note").slice(0, 300), extraFeeJpy: feeRaw ? Number.parseInt(feeRaw, 10) : 0, extraFeeNote: text(formData, "extraFeeNote").slice(0, 120), active: formData.get("active") !== "0" });
+    const s = await savePurchaseSource({ id: Number.isInteger(idRaw) && idRaw > 0 ? idRaw : undefined, name, kind, url, address: text(formData, "address").slice(0, 200), branch: text(formData, "branch").slice(0, 80), note: text(formData, "note").slice(0, 300), fees: readFees(formData), active: formData.get("active") !== "0" });
     revalidatePath("/admin", "layout");
     back("saved", `Đã lưu nguồn “${s.name}”.`);
   } catch (e) {

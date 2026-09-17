@@ -39,11 +39,11 @@ import { findQuote } from "./carriers";
 import { CARRIER_NAME, usableForCheckoutTotal, type ShippingQuote } from "./carriers/types";
 import { quoteCart } from "./ship-quote";
 import { coarseRegionOf } from "./vn-address";
-import { cheapestQuote } from "./cost-sources";
+import { cheapestQuote, landedFeeJpy, parseSourceFees, type SourceFee, type SourceFees } from "./cost-sources";
 import { DEFAULT_WAREHOUSE, emptyByTransit, isWarehouse, type TransitWhere, transitWhereOf, type Warehouse } from "./warehouses";
 import { isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
-import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
+import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
 import { liveGhnTransferMethod } from "./carriers/ghn-transfer";
 import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
@@ -2195,6 +2195,7 @@ export function loadShippingMethods(db: DatabaseSync, activeOnly = true): Shippi
     homeDelivery: (m.home_delivery ?? 1) === 1,
     codShipFee: (m.cod_ship_fee ?? 1) === 1,
     liveQuote: m.live_quote === "ghn" ? "ghn" : "",
+    subLeg: isJpSubLeg((m as { sub_leg?: string | null }).sub_leg) ? ((m as { sub_leg?: string | null }).sub_leg as "to_jp_wh" | "to_carrier") : "",
     notes: m.notes ?? "",
     zones: zones.filter((z) => z.method_id === m.id).map(rowToZone),
   })), policy);
@@ -2237,6 +2238,8 @@ export async function deleteShippingCarrier(id: number): Promise<boolean> {
 export interface ShippingMethodInput {
   id?: number;
   name: string;
+  /** Japan-domestic methods: which of the two ① sheets it belongs to. */
+  subLeg?: "to_jp_wh" | "to_carrier" | "";
   description: string;
   extraLabel: string;
   currency: string;
@@ -2254,17 +2257,18 @@ export interface ShippingMethodInput {
 export async function saveShippingMethod(input: ShippingMethodInput): Promise<number> {
   const db = getDb();
   const codShip = input.codShipFee === false ? 0 : 1;
+  const subLeg = input.leg === "jp_domestic" ? input.subLeg || "to_jp_wh" : "";
   if (input.id) {
     db.prepare(
-      "UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ?, leg = ?, carrier_id = ?, includes_both_ends = ?, warehouse = ?, home_delivery = ?, notes = ?, cod_ship_fee = ? WHERE id = ?",
-    ).run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip, input.id);
+      "UPDATE shipping_methods SET name = ?, description = ?, extra_label = ?, currency = ?, position = ?, active = ?, leg = ?, carrier_id = ?, includes_both_ends = ?, warehouse = ?, home_delivery = ?, notes = ?, cod_ship_fee = ?, sub_leg = ? WHERE id = ?",
+    ).run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip, subLeg, input.id);
     return input.id;
   }
   const r = db
     .prepare(
-      "INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, cod_ship_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO shipping_methods (name, description, extra_label, currency, position, active, leg, carrier_id, includes_both_ends, warehouse, home_delivery, notes, cod_ship_fee, sub_leg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip);
+    .run(input.name, input.description, input.extraLabel, input.currency, input.position, input.active ? 1 : 0, input.leg, input.carrierId, input.includesBothEnds ? 1 : 0, input.warehouse, input.homeDelivery ? 1 : 0, input.notes, codShip, subLeg);
   return Number(r.lastInsertRowid);
 }
 
@@ -2936,36 +2940,42 @@ interface PurchaseSourceRow {
   address: string;
   branch: string;
   note: string;
-  extra_fee_jpy: number | null;
-  extra_fee_note: string | null;
+  fees: string | null;
   builtin: number;
   active: number;
   created_at: string;
 }
-const rowToPurchaseSource = (r: PurchaseSourceRow): PurchaseSource => ({ id: r.id, key: r.key, kind: isPurchaseSourceKind(r.kind) ? r.kind : "other", name: r.name, url: r.url ?? "", address: r.address ?? "", branch: r.branch ?? "", note: r.note ?? "", extraFeeJpy: Number(r.extra_fee_jpy ?? 0) || 0, extraFeeNote: r.extra_fee_note ?? "", builtin: r.builtin === 1, active: r.active === 1, createdAt: r.created_at });
+const rowToPurchaseSource = (r: PurchaseSourceRow): PurchaseSource => ({ id: r.id, key: r.key, kind: isPurchaseSourceKind(r.kind) ? r.kind : "other", name: r.name, url: r.url ?? "", address: r.address ?? "", branch: r.branch ?? "", note: r.note ?? "", fees: parseSourceFees(r.fees), builtin: r.builtin === 1, active: r.active === 1, createdAt: r.created_at });
 
-/** source key → per-unit ¥ surcharge (only sources with a fee). Cost price = (quote ¥ + fee) × rate. */
-export function getSourceFeeMap(): Record<string, number> {
-  const rows = getDb().prepare("SELECT key, extra_fee_jpy FROM purchase_sources WHERE extra_fee_jpy > 0").all() as unknown as Array<{ key: string; extra_fee_jpy: number }>;
-  return Object.fromEntries(rows.map((r) => [r.key, Number(r.extra_fee_jpy)]));
+/** source key → surcharges (only sources that have some). Cost price = (quote ¥ + fees for the item) × rate. */
+export function getSourceFeeMap(db: DatabaseSync = getDb()): SourceFees {
+  const rows = db.prepare("SELECT key, fees FROM purchase_sources WHERE fees <> '[]'").all() as unknown as Array<{ key: string; fees: string }>;
+  const out: SourceFees = {};
+  for (const r of rows) {
+    const list = parseSourceFees(r.fees);
+    if (list.length) out[r.key] = list;
+  }
+  return out;
 }
+/** Billable grams of a product row for the surcharge maths (same rule as shipping: max(actual, volumetric) × safety). */
+export const billableOfRow = (r: { weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }) => billableProductWeightG(r.weight_g, r.dims_cm, isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null);
 
 /** Active sources by default (built-ins first, then the owner's, by name). */
 export async function listPurchaseSources(includeInactive = false): Promise<PurchaseSource[]> {
   const rows = getDb().prepare(`SELECT * FROM purchase_sources ${includeInactive ? "" : "WHERE active = 1"} ORDER BY builtin DESC, CASE key WHEN 'unknown' THEN 1 ELSE 0 END, name COLLATE NOCASE`).all() as unknown as PurchaseSourceRow[];
   return rows.map(rowToPurchaseSource);
 }
-export async function savePurchaseSource(input: { id?: number; name: string; kind: PurchaseSource["kind"]; url: string; address: string; branch: string; note: string; extraFeeJpy?: number; extraFeeNote?: string; active?: boolean }): Promise<PurchaseSource> {
+export async function savePurchaseSource(input: { id?: number; name: string; kind: PurchaseSource["kind"]; url: string; address: string; branch: string; note: string; fees?: SourceFee[]; active?: boolean }): Promise<PurchaseSource> {
   const db = getDb();
   const name = input.name.trim();
-  const fee = Math.max(0, Math.round(input.extraFeeJpy ?? 0));
+  const fees = JSON.stringify(input.fees ?? []);
   if (input.id) {
-    db.prepare("UPDATE purchase_sources SET name = ?, kind = ?, url = ?, address = ?, branch = ?, note = ?, extra_fee_jpy = ?, extra_fee_note = ?, active = ? WHERE id = ?").run(name, input.kind, input.url, input.address, input.branch, input.note, fee, input.extraFeeNote ?? "", input.active === false ? 0 : 1, input.id);
+    db.prepare("UPDATE purchase_sources SET name = ?, kind = ?, url = ?, address = ?, branch = ?, note = ?, fees = ?, active = ? WHERE id = ?").run(name, input.kind, input.url, input.address, input.branch, input.note, fees, input.active === false ? 0 : 1, input.id);
     return rowToPurchaseSource(db.prepare("SELECT * FROM purchase_sources WHERE id = ?").get(input.id) as unknown as PurchaseSourceRow);
   }
   let key = sourceKeyFromName(name) || `nguon-${Date.now()}`;
   for (let i = 2; db.prepare("SELECT 1 FROM purchase_sources WHERE key = ?").get(key); i++) key = `${sourceKeyFromName(name)}-${i}`;
-  const res = db.prepare("INSERT INTO purchase_sources (key, kind, name, url, address, branch, note, extra_fee_jpy, extra_fee_note, builtin, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?)").run(key, input.kind, name, input.url, input.address, input.branch, input.note, fee, input.extraFeeNote ?? "", new Date().toISOString());
+  const res = db.prepare("INSERT INTO purchase_sources (key, kind, name, url, address, branch, note, fees, builtin, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?)").run(key, input.kind, name, input.url, input.address, input.branch, input.note, fees, new Date().toISOString());
   return rowToPurchaseSource(db.prepare("SELECT * FROM purchase_sources WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as PurchaseSourceRow);
 }
 /** Delete an owner-added source; its quotes / products fall back to "unknown". Built-ins cannot be deleted. */
@@ -2999,25 +3009,30 @@ export async function setPurchaseSourceDefault(v: string): Promise<void> {
 }
 
 /** How many products could buy cheaper than their current primary source, and by how much (¥). */
+type CostRow = { id: number; cost_jpy: number; cost_source: string; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null };
+const COST_ROWS_SQL = "SELECT id, cost_jpy, cost_source, weight_g, dims_cm, dims_confidence FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0";
+
 export async function purchaseSourceStats(preferred: string): Promise<{ withPrice: number; multi: number; notCheapest: number; savingsJpy: number }> {
   const db = getDb();
-  const products = db.prepare("SELECT id, cost_jpy FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number }>;
+  const products = db.prepare(COST_ROWS_SQL).all() as unknown as CostRow[];
+  const lotG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
   const rows = db.prepare("SELECT * FROM product_cost_sources").all() as unknown as CostSourceRow[];
   const byProduct = new Map<number, CostSource[]>();
   for (const r of rows) byProduct.set(r.product_id, [...(byProduct.get(r.product_id) ?? []), rowToCostSource(r)]);
-  const fees = getSourceFeeMap();
-  const curSource = new Map((db.prepare("SELECT id, cost_source FROM products").all() as unknown as Array<{ id: number; cost_source: string }>).map((r) => [r.id, r.cost_source ?? ""]));
+  const fees = getSourceFeeMap(db);
   let multi = 0;
   let notCheapest = 0;
   let savingsJpy = 0;
   for (const p of products) {
     const list = byProduct.get(p.id) ?? [];
     if (list.length >= 2) multi++;
-    const best = cheapestQuote(list, preferred, fees);
-    const curLanded = p.cost_jpy + (fees[curSource.get(p.id) ?? ""] ?? 0);
-    if (best && best.priceJpy + (fees[best.source] ?? 0) < curLanded) {
+    const g = billableOfRow(p);
+    const best = cheapestQuote(list, preferred, fees, g, lotG);
+    const curLanded = p.cost_jpy + landedFeeJpy(p.cost_source ?? "", fees, g, lotG);
+    const bestLanded = best ? best.priceJpy + landedFeeJpy(best.source, fees, g, lotG) : Number.POSITIVE_INFINITY;
+    if (best && bestLanded < curLanded) {
       notCheapest++;
-      savingsJpy += curLanded - (best.priceJpy + (fees[best.source] ?? 0));
+      savingsJpy += curLanded - bestLanded;
     }
   }
   return { withPrice: products.length, multi, notCheapest, savingsJpy };
@@ -3026,21 +3041,22 @@ export async function purchaseSourceStats(preferred: string): Promise<{ withPric
 /** Switch every product to its cheapest quote; VND cost follows the rate. */
 export async function optimizeCostSources(rate: number, preferred: string): Promise<{ checked: number; changed: number; savingsJpy: number }> {
   const db = getDb();
-  const products = db.prepare("SELECT id, cost_jpy FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number }>;
+  const products = db.prepare(COST_ROWS_SQL).all() as unknown as CostRow[];
+  const lotG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
   const rows = db.prepare("SELECT * FROM product_cost_sources").all() as unknown as CostSourceRow[];
   const byProduct = new Map<number, CostSource[]>();
   for (const r of rows) byProduct.set(r.product_id, [...(byProduct.get(r.product_id) ?? []), rowToCostSource(r)]);
   const upd = db.prepare("UPDATE products SET cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, cost_price = CAST(ROUND(? * ?) AS INTEGER), updated_at = ? WHERE id = ?");
-  const fees = getSourceFeeMap();
-  const curSource = new Map((db.prepare("SELECT id, cost_source FROM products").all() as unknown as Array<{ id: number; cost_source: string }>).map((r) => [r.id, r.cost_source ?? ""]));
+  const fees = getSourceFeeMap(db);
   let changed = 0;
   let savingsJpy = 0;
   const now = new Date().toISOString();
   withTransaction(db, () => {
     for (const p of products) {
-      const best = cheapestQuote(byProduct.get(p.id) ?? [], preferred, fees);
-      const curLanded = p.cost_jpy + (fees[curSource.get(p.id) ?? ""] ?? 0);
-      const bestLanded = best ? best.priceJpy + (fees[best.source] ?? 0) : Number.POSITIVE_INFINITY;
+      const g = billableOfRow(p);
+      const best = cheapestQuote(byProduct.get(p.id) ?? [], preferred, fees, g, lotG);
+      const curLanded = p.cost_jpy + landedFeeJpy(p.cost_source ?? "", fees, g, lotG);
+      const bestLanded = best ? best.priceJpy + landedFeeJpy(best.source, fees, g, lotG) : Number.POSITIVE_INFINITY;
       if (!best || bestLanded >= curLanded) continue;
       upd.run(best.priceJpy, best.source, best.url, now, bestLanded, rate, now, p.id);
       savingsJpy += curLanded - bestLanded;

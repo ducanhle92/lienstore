@@ -74,6 +74,27 @@ export async function saveVariantAction(formData: FormData): Promise<void> {
   back("saved", "Đã lưu biến thể.", `${PAGE}${groupId}/`);
 }
 
+/** "Lưu tất cả": attributes + order of every member row in one go (attr_<pid>_<i>, pos_<pid>, pid[]). */
+export async function saveVariantsBulkAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const groupId = Number.parseInt(text(formData, "groupId"), 10);
+  const g = await getProductGroupById(groupId);
+  if (!g) return back("error", "Không tìm thấy nhóm.");
+  const ids = formData.getAll("pid").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  let n = 0;
+  for (const pid of ids) {
+    const attrs: Record<string, string> = {};
+    g.attrLabels.forEach((label, i) => {
+      const v = text(formData, `attr_${pid}_${i}`).slice(0, 40);
+      if (v) attrs[label] = v;
+    });
+    const pos = Number.parseInt(text(formData, `pos_${pid}`), 10);
+    if (await setProductVariant(pid, groupId, attrs, Number.isInteger(pos) ? pos : 0)) n++;
+  }
+  revalidatePath("/", "layout");
+  back("saved", `Đã lưu ${n} biến thể.`, `${PAGE}${groupId}/`);
+}
+
 export async function deleteGroupAction(formData: FormData): Promise<void> {
   await requireAdmin("products");
   const id = Number.parseInt(text(formData, "id"), 10);

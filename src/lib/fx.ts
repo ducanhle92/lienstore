@@ -1,7 +1,8 @@
 import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSetting, setSetting } from "./sqlite";
-import { suggestPrice } from "./pricing";
+import { costPriceFromJpy } from "./cost-sources";
+import { parsePricing, suggestPrice } from "./pricing";
 
 /**
  * JPY → VND exchange rate and the nightly cost/price job.
@@ -165,10 +166,20 @@ function applyEffectiveRate(db: DatabaseSync): number {
  * Sales own them). Shared by the nightly job and the one-time fixed-rate job.
  */
 export async function applyFormulaPrices(db: DatabaseSync, rate: number, applySell: boolean, now = new Date().toISOString()): Promise<{ costsUpdated: number; pricesUpdated: number; skippedSale: number }> {
-  // landed ¥ = quote + the source's per-unit surcharge (Nguồn nhập › Phụ phí, e.g. iHerb shipping to the Japan warehouse)
-  const landed = "(cost_jpy + COALESCE((SELECT ps.extra_fee_jpy FROM purchase_sources ps WHERE ps.key = products.cost_source), 0))";
-  const r = db.prepare(`UPDATE products SET cost_price = CAST(ROUND(${landed} * ?) AS INTEGER), updated_at = ? WHERE cost_jpy IS NOT NULL AND cost_jpy > 0 AND (cost_price IS NULL OR cost_price <> CAST(ROUND(${landed} * ?) AS INTEGER))`).run(rate, now, rate);
-  const costsUpdated = Number(r.changes);
+  // landed ¥ = quote + the source's surcharges for this item (Nguồn nhập › Phụ phí: per item / per kg / per shipment by weight)
+  const { billableOfRow, getSourceFeeMap } = await import("./db");
+  const fees = getSourceFeeMap(db);
+  const lotG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
+  const rows = db.prepare("SELECT id, cost_jpy, cost_source, cost_price, weight_g, dims_cm, dims_confidence FROM products WHERE cost_jpy IS NOT NULL AND cost_jpy > 0").all() as unknown as Array<{ id: number; cost_jpy: number; cost_source: string | null; cost_price: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
+  const updCost = db.prepare("UPDATE products SET cost_price = ?, updated_at = ? WHERE id = ?");
+  let costsUpdated = 0;
+  for (const p of rows) {
+    const cost = costPriceFromJpy(p.cost_jpy, p.cost_source ?? "", rate, fees, billableOfRow(p), lotG);
+    if (p.cost_price !== cost) {
+      updCost.run(cost, now, p.id);
+      costsUpdated++;
+    }
+  }
   let pricesUpdated = 0;
   let skippedSale = 0;
   if (applySell) {

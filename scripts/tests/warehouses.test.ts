@@ -1,7 +1,7 @@
 /** Warehouses, per-source surcharge, plain-text descriptions, stock advice, customer-facing tags — pure unit tests:  npm run test:warehouses */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cheapestQuote, costPriceFromJpy } from "../../src/lib/cost-sources";
+import { cheapestQuote, costPriceFromJpy, landedFeeJpy, parseSourceFees, sourceFeeLines } from "../../src/lib/cost-sources";
 import { htmlToPlain, isSimpleHtml, plainToHtml } from "../../src/lib/plain-html";
 import { suggestStandardStock } from "../../src/lib/stock-advice";
 import { parseStocktakeCsv } from "../../src/lib/stocktake-csv";
@@ -40,11 +40,26 @@ describe("warehouses", () => {
   });
 });
 
-describe("purchase-source surcharge", () => {
-  const fees = { iherb: 300 };
-  it("is part of the landed cost", () => {
+describe("purchase-source surcharges", () => {
+  const fees = { iherb: [{ label: "Ship về kho Nhật", amountJpy: 300, unit: "unit" as const, lotWeightG: null }] };
+  it("per-item fee is part of the landed cost", () => {
     assert.equal(costPriceFromJpy(1000, "iherb", 170, fees), (1000 + 300) * 170);
     assert.equal(costPriceFromJpy(1000, "amazon", 170, fees), 170000);
+  });
+  it("per-kg and per-shipment fees follow the item's billable weight", () => {
+    const f = {
+      x: [
+        { label: "Ship theo cân", amountJpy: 1000, unit: "kg" as const, lotWeightG: null },
+        { label: "Ship một lần 1.000¥", amountJpy: 1000, unit: "lot" as const, lotWeightG: 5000 },
+      ],
+    };
+    // 500 g item: 1000¥/kg × 0.5 = 500¥; 1000¥ shared over a 5 kg shipment → 100¥
+    assert.equal(landedFeeJpy("x", f, 500, 10000), 600);
+    assert.deepEqual(sourceFeeLines("x", f, 500, 10000).map((l) => Math.round(l.jpy)), [500, 100]);
+    // "lot" without its own weight uses the pricing lot (10 kg) → 50¥
+    const g = { x: [{ label: "Ship", amountJpy: 1000, unit: "lot" as const, lotWeightG: null }] };
+    assert.equal(landedFeeJpy("x", g, 500, 10000), 50);
+    assert.equal(landedFeeJpy("x", g, 0, 10000), 0);
   });
   it("decides the cheapest source on landed ¥, not the sticker price", () => {
     const rows = [
@@ -53,6 +68,10 @@ describe("purchase-source surcharge", () => {
     ];
     assert.equal(cheapestQuote(rows, "amazon")?.source, "iherb");
     assert.equal(cheapestQuote(rows, "amazon", fees)?.source, "amazon");
+  });
+  it("parses the JSON column defensively", () => {
+    assert.deepEqual(parseSourceFees('[{"label":"A","amountJpy":"200","unit":"kg"},{"amountJpy":0},"x"]'), [{ label: "A", amountJpy: 200, unit: "kg", lotWeightG: null }]);
+    assert.deepEqual(parseSourceFees("nope"), []);
   });
 });
 
