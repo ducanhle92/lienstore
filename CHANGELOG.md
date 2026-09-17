@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang sửa sản phẩm gọn hơn: khung Danh mục, Từ khóa và Nhóm biến thể thu gọn thành một dòng tóm tắt (danh mục đã chọn, số từ khoá, tên nhóm), bấm để mở; chú thích dưới bảng nguồn mua rút còn một dòng (chi tiết trong ⓘ); hàng nút **Lưu thay đổi · Huỷ · Xoá sản phẩm** dính đáy màn hình, bấm được ở bất kỳ vị trí cuộn.
+
 ## [1.52.0] - 2026-09-17
 
 ### Added

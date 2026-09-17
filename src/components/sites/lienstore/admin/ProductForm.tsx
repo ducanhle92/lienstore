@@ -63,6 +63,20 @@ function PlainTextField({ id, name, initialHtml, rows, placeholder }: { id: stri
   );
 }
 
+/** Card that starts folded: the title row shows a one-line summary; click to open and edit. */
+function FoldCard({ title, summary, open, children, testId }: { title: string; summary: string; open?: boolean; children: React.ReactNode; testId?: string }) {
+  return (
+    <details className="rounded-lg border border-[#e5e7eb] bg-white shadow-sm" open={open} data-testid={testId}>
+      <summary className="flex cursor-pointer select-none flex-wrap items-baseline gap-x-2 px-5 py-3 text-[15px] font-semibold leading-6 text-lien-heading">
+        {title}
+        <span className="text-[13px] font-normal text-lien-muted">— {summary}</span>
+        <span className="ml-auto text-[12px] font-normal text-lien-blue">bấm để mở</span>
+      </summary>
+      <div className="border-t border-[#e5e7eb] p-5">{children}</div>
+    </details>
+  );
+}
+
 function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
@@ -201,7 +215,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
-          <Card title="Danh mục *">
+          <FoldCard title="Danh mục *" summary={catSlugs.length ? catSlugs.map((slug) => categories.find((c) => c.slug === slug)?.name ?? slug).join(", ") : "chưa chọn"} open={!!fields.categories || !product} testId="fold-categories">
             <div className={cn("grid max-h-60 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3", fields.categories && "rounded border border-red-500 p-2")}>
               {categories.map((c) => (
                 <label key={c.slug} className="flex items-start gap-2 text-[13px] leading-5">
@@ -213,14 +227,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               ))}
             </div>
             <FieldError msg={fields.categories} />
-          </Card>
+          </FoldCard>
 
-          <Card title="Từ khóa (thông tin cơ bản)">
+          <FoldCard title="Từ khóa" summary={product?.tags.length ? `${product.tags.length} từ khoá: ${product.tags.slice(0, 4).join(", ")}${product.tags.length > 4 ? "…" : ""}` : "chưa có"} testId="fold-tags">
             <label className={adminLabel} htmlFor="tags">
-              Cách nhau bằng dấu phẩy
+              Cách nhau bằng dấu phẩy <span className="font-normal text-lien-muted">— dùng để tìm kiếm; khách chỉ thấy từ khoá tiếng Việt</span>
             </label>
             <input id="tags" name="tags" defaultValue={product?.tags.join(", ")} className={adminInput} />
-          </Card>
+          </FoldCard>
 
           <Card title="Hình ảnh">
             <ProductImageManager
@@ -265,12 +279,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   }}
                 />
                 <p className="mt-1 text-[12px] leading-4 text-lien-muted">
-                  Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp); chưa rõ mua ở đâu thì chọn “Chưa xác định — thêm sau”. Thêm cửa hàng / sàn mới ở{" "}
+                  {product?.costSource ? `Nguồn hiện tại: ${sources.length ? purchaseSourceName(product.costSource, sources) : costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : "Chọn nguồn và giá ¥; nút tròn = giá dùng làm giá vốn."}{" "}
                   <Link href="/admin/products/sources/" className="text-lien-blue hover:underline">
                     Nguồn nhập
                   </Link>
-                  . Nút tròn chọn giá dùng làm giá vốn; đổi nguồn xong bấm &quot;Tính lại giá vốn&quot; bên dưới (mỗi đêm hệ thống cũng tính lại theo tỉ giá).
-                  {product?.costSource ? ` Nguồn hiện tại: ${sources.length ? purchaseSourceName(product.costSource, sources) : costSourceLabel(product.costSource)}${product.costCheckedAt ? ` · ${product.costCheckedAt.slice(0, 10)}` : ""}.` : ""}
+                  <InfoPopover>
+                    Mỗi nguồn kèm link mua (thay cho ô link nhà cung cấp); chưa rõ mua ở đâu thì chọn “Chưa xác định — thêm sau”. Thêm cửa hàng / sàn mới ở Nguồn nhập. Nút tròn chọn giá dùng làm giá vốn; đổi nguồn xong bấm &quot;Tính lại giá vốn&quot; bên dưới (mỗi đêm hệ thống cũng tính lại theo tỉ giá).
+                  </InfoPopover>
                 </p>
               </div>
               <div>
@@ -602,7 +617,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </Card>
 
-          <Card title="Nhóm biến thể">
+          <FoldCard title="Nhóm biến thể" summary={groupSel === "new" ? "đang tạo nhóm mới" : selGroup ? `${selGroup.name}${Object.values(product?.variantAttrs ?? {}).length ? ` · ${Object.values(product?.variantAttrs ?? {}).join(" · ")}` : ""}` : "sản phẩm độc lập"} open={groupSel === "new"} testId="fold-group">
             <div className="grid gap-3">
               <div>
                 <label className={adminLabel} htmlFor="groupId">
@@ -663,9 +678,10 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <p className="m-0 text-[12px] leading-5 text-lien-muted">Ngoài kệ mỗi nhóm chỉ hiện một thẻ “N lựa chọn”; trong trang sản phẩm khách bấm chip để đổi loại. Ảnh, giá, SKU, mô tả vẫn riêng cho từng biến thể.</p>
               )}
             </div>
-          </Card>
+          </FoldCard>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* sticks to the bottom of the window while the (long) form scrolls, so Lưu / Huỷ / Xoá are always one click away */}
+          <div className="sticky bottom-0 z-20 -mx-1 flex flex-wrap items-center gap-2 rounded-t-md border-t border-[#e5e7eb] bg-white/95 px-1 py-3 shadow-[0_-6px_16px_-10px_rgba(0,0,0,0.35)] backdrop-blur" data-testid="form-actions">
             <button type="submit" disabled={pending} className={btnPrimary}>
               {pending ? "Đang lưu…" : product ? "Lưu thay đổi" : "Tạo sản phẩm"}
             </button>
