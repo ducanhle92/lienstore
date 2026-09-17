@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Sản phẩm bản nháp (ẩn) không còn mở được bằng link trực tiếp — trang sản phẩm trả 404 (trước chỉ ẩn khỏi danh sách).
+
 ## [1.48.0] - 2026-09-17
 
 ### Changed

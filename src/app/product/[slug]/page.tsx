@@ -38,7 +38,7 @@ function metaDescription(shortDescription: string, description: string): string 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const found = await getProductBySlug(slug);
-  if (!found) return { title: "Không tìm thấy sản phẩm – LienStore" };
+  if (!found || found.status !== "publish") return { title: "Không tìm thấy sản phẩm – LienStore" };
   const product = localizeProduct(found, await getLang());
   return {
     title: `${product.name} – LienStore`,
@@ -54,7 +54,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const raw = await getProductBySlug(slug);
-  if (!raw) notFound();
+  // drafts (hidden products) must not stay reachable by a direct link
+  if (!raw || raw.status !== "publish") notFound();
   const lang = await getLang();
   const product = localizeProduct(raw, lang);
 
