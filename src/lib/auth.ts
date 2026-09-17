@@ -60,8 +60,8 @@ export function authorizeBasic(header: string | null): boolean {
   return safeEqual(decoded.slice(0, i), ADMIN_USER) && safeEqual(decoded.slice(i + 1), ADMIN_PASSWORD);
 }
 
-function makeToken(subject: string): string {
-  const payload = `${subject}.${Date.now() + SESSION_TTL_MS}`;
+function makeToken(subject: string, ttlMs = SESSION_TTL_MS): string {
+  const payload = `${subject}.${Date.now() + ttlMs}`;
   return `${payload}.${sign(payload)}`;
 }
 
@@ -127,4 +127,48 @@ export async function startSession(subject: string = ENV_SUBJECT): Promise<void>
 export async function endSession(): Promise<void> {
   const jar = await cookies();
   jar.delete(COOKIE);
+}
+
+/** Re-check the signed-in admin's own password (used before showing stored API keys in full). */
+export async function verifyCurrentAdminPassword(password: string): Promise<boolean> {
+  const s = await getAdminSession();
+  if (!s || !password) return false;
+  if (s.isEnv) return safeEqual(password, ADMIN_PASSWORD);
+  const c = await getCustomerById(s.id);
+  if (!c) return false;
+  const login = c.username || c.email;
+  const ok = login ? await verifyCustomerLogin(login, password) : null;
+  return !!ok && ok.id === s.id;
+}
+
+// Owner-only "show API keys in full": a second cookie signed like the session, valid a few minutes.
+const REVEAL_COOKIE = "lien_reveal";
+const REVEAL_TTL_MS = 3 * 60 * 1000;
+
+export async function grantSecretReveal(): Promise<void> {
+  const s = await getAdminSession();
+  if (!s || s.role !== "owner") return;
+  const jar = await cookies();
+  jar.set(REVEAL_COOKIE, makeToken(`reveal:${s.id}`, REVEAL_TTL_MS), {
+    httpOnly: true,
+    sameSite: "strict",
+    path: "/admin",
+    maxAge: REVEAL_TTL_MS / 1000,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+export async function revokeSecretReveal(): Promise<void> {
+  const jar = await cookies();
+  jar.delete({ name: REVEAL_COOKIE, path: "/admin" });
+}
+/** True while the owner's reveal cookie is valid and belongs to the current session. */
+export async function secretRevealActive(): Promise<boolean> {
+  const s = await getAdminSession();
+  if (!s || s.role !== "owner") return false;
+  const jar = await cookies();
+  const subject = parseToken(jar.get(REVEAL_COOKIE)?.value);
+  if (subject !== `reveal:${s.id}`) return false;
+  const exp = Number(jar.get(REVEAL_COOKIE)?.value.split(".")[1]);
+  // the session token lives 12 h; the reveal one must be younger than REVEAL_TTL
+  return Number.isFinite(exp) && exp - Date.now() <= REVEAL_TTL_MS;
 }

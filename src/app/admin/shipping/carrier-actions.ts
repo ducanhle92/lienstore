@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { can } from "@/lib/auth";
+import { can, getAdminSession, grantSecretReveal, revokeSecretReveal, verifyCurrentAdminPassword } from "@/lib/auth";
+import { getSecretSetting, setSecretSetting } from "@/lib/secret-store";
 import { isCarrierCode } from "@/lib/carriers";
 import { ALL_CARRIER_CODES, CARRIER_NAME, type CarrierCode } from "@/lib/carriers/types";
 import { GOSHIP_PROD, GOSHIP_SANDBOX, GOSHIP_SETTING_KEYS, GoshipError, goshipCheck, goshipResetCache } from "@/lib/carriers/goship";
@@ -42,7 +43,7 @@ export async function saveGhnSettingsAction(formData: FormData): Promise<void> {
     redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối GHN.")}`);
   }
   const typed = String(formData.get("token") ?? "").trim();
-  const token = typed || getSetting(db, GHN_SETTING_KEYS.token) || "";
+  const token = typed || getSecretSetting(db, GHN_SETTING_KEYS.token);
   if (!token) fail("Dán token GHN (Token API trong tài khoản khachhang.ghn.vn).");
   let shops: Awaited<ReturnType<typeof ghnListShops>>;
   try {
@@ -60,7 +61,7 @@ export async function saveGhnSettingsAction(formData: FormData): Promise<void> {
     districtId = shop.districtId || 0;
     wardCode = shop.wardCode || "";
   }
-  setSetting(db, GHN_SETTING_KEYS.token, token);
+  setSecretSetting(db, GHN_SETTING_KEYS.token, token);
   setSetting(db, GHN_SETTING_KEYS.shopId, String(shop.id));
   ghnResetCache();
   if (!districtId) {
@@ -99,7 +100,7 @@ export async function saveGoshipSettingsAction(formData: FormData): Promise<void
     redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối Goship — quay về GHN trực tiếp + biểu phí.")}`);
   }
   const typed = String(formData.get("token") ?? "").trim();
-  const token = typed || getSetting(db, GOSHIP_SETTING_KEYS.token) || "";
+  const token = typed || getSecretSetting(db, GOSHIP_SETTING_KEYS.token);
   if (!token) return fail("Dán Access Token Goship (shop.goship.io › Cài đặt › Kết nối API › Lấy Access Token).");
   const base = String(formData.get("base") ?? "") === "sandbox" ? GOSHIP_SANDBOX : GOSHIP_PROD;
   let check: Awaited<ReturnType<typeof goshipCheck>>;
@@ -116,7 +117,7 @@ export async function saveGoshipSettingsAction(formData: FormData): Promise<void
     fromCity = check.origin.city.id;
     fromDistrict = check.origin.district.id;
   }
-  setSetting(db, GOSHIP_SETTING_KEYS.token, token);
+  setSecretSetting(db, GOSHIP_SETTING_KEYS.token, token);
   setSetting(db, GOSHIP_SETTING_KEYS.base, base);
   setSetting(db, GOSHIP_SETTING_KEYS.fromCity, fromCity);
   setSetting(db, GOSHIP_SETTING_KEYS.fromDistrict, fromDistrict);
@@ -141,7 +142,7 @@ export async function saveViettelSettingsAction(formData: FormData): Promise<voi
     redirect(`${back}&saved=${encodeURIComponent("Đã gỡ kết nối Viettel Post.")}`);
   }
   const typed = String(formData.get("token") ?? "").trim();
-  const token = typed || getSetting(db, VTP_SETTING_KEYS.token) || "";
+  const token = typed || getSecretSetting(db, VTP_SETTING_KEYS.token);
   if (!token) fail("Dán token Viettel Post (viettelpost.vn › Quản lý token › Tạo token / Sao chép).");
   const wh = warehouseAddress(db);
   let check: Awaited<ReturnType<typeof viettelCheck>>;
@@ -155,7 +156,7 @@ export async function saveViettelSettingsAction(formData: FormData): Promise<voi
   const districtTyped = Number.parseInt(String(formData.get("senderDistrict") ?? "").trim(), 10);
   const senderProvince = Number.isInteger(provinceTyped) && provinceTyped > 0 ? provinceTyped : check.sender?.provinceId ?? 0;
   const senderDistrict = Number.isInteger(districtTyped) && districtTyped > 0 ? districtTyped : check.sender?.districtId ?? 0;
-  setSetting(db, VTP_SETTING_KEYS.token, token);
+  setSecretSetting(db, VTP_SETTING_KEYS.token, token);
   setSetting(db, VTP_SETTING_KEYS.senderProvince, senderProvince ? String(senderProvince) : "");
   setSetting(db, VTP_SETTING_KEYS.senderDistrict, senderDistrict ? String(senderDistrict) : "");
   viettelResetCache();
@@ -184,14 +185,30 @@ export async function saveSpxSettingsAction(formData: FormData): Promise<void> {
   const feeUrl = String(formData.get("feeUrl") ?? "").trim();
   if (userId && !/^\d{6,20}$/.test(userId)) redirect(`${back}&error=${encodeURIComponent("Mã user SPX là dãy số (thường 15 chữ số) trong Hồ sơ shop.")}`);
   if (feeUrl && !/^https:\/\//.test(feeUrl)) redirect(`${back}&error=${encodeURIComponent("Endpoint SPX phải bắt đầu bằng https://")}`);
-  const secretKey = typedKey || getSetting(db, SPX_SETTING_KEYS.secretKey) || "";
+  const secretKey = typedKey || getSecretSetting(db, SPX_SETTING_KEYS.secretKey);
   if (!secretKey) redirect(`${back}&error=${encodeURIComponent("Dán Secret Key SPX (Quản lý tài khoản › Hồ sơ shop).")}`);
-  setSetting(db, SPX_SETTING_KEYS.secretKey, secretKey);
+  setSecretSetting(db, SPX_SETTING_KEYS.secretKey, secretKey);
   setSetting(db, SPX_SETTING_KEYS.userId, userId);
   setSetting(db, SPX_SETTING_KEYS.feeUrl, feeUrl);
   revalidatePath("/", "layout");
   const missing = [!userId ? "Mã user (15 số)" : "", !feeUrl ? "tài liệu endpoint tính cước từ SPX" : ""].filter(Boolean);
   redirect(`${back}&saved=${encodeURIComponent(`Đã lưu khóa SPX trên máy chủ.${missing.length ? ` Còn thiếu: ${missing.join(" và ")} — khi có, cước SPX sẽ lấy từ API thay biểu phí.` : " Đủ thông tin — chờ xác nhận định dạng gọi API."}`)}`);
+}
+
+/** Owner re-enters their password → the stored API keys show in full for a few minutes (see ApiKeysVault). */
+export async function revealApiKeysAction(formData: FormData): Promise<void> {
+  const s = await getAdminSession();
+  const back = "/admin/shipping/?leg=vn_domestic";
+  if (!s) redirect("/admin/login/");
+  if (s.role !== "owner") redirect(`${back}&error=${encodeURIComponent("Chỉ chủ cửa hàng mới xem được khóa API đầy đủ.")}`);
+  const ok = await verifyCurrentAdminPassword(String(formData.get("password") ?? ""));
+  if (!ok) redirect(`${back}&error=${encodeURIComponent("Mật khẩu chưa đúng — khóa vẫn ẩn.")}#api-keys`);
+  await grantSecretReveal();
+  redirect(`${back}&saved=${encodeURIComponent("Đang hiện khóa API đầy đủ trong 3 phút.")}#api-keys`);
+}
+export async function hideApiKeysAction(): Promise<void> {
+  await revokeSecretReveal();
+  redirect("/admin/shipping/?leg=vn_domestic#api-keys");
 }
 
 /**

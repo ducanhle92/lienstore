@@ -94,6 +94,16 @@ export async function register() {
       console.warn(`[flow] default flow job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 18_000);
+  // every start-up: API keys still stored as plain text get sealed (see lib/secret-store.ts)
+  setTimeout(async () => {
+    try {
+      const { sealStoredSecrets } = await import("./lib/secret-store");
+      const n = sealStoredSecrets(getDb());
+      if (n) console.info(`[secrets] sealed ${n} stored API key(s)`);
+    } catch (e) {
+      console.warn(`[secrets] sealing failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 6_000);
   // one-time: leg ③ default → Viettel Post from Kiến Express Hà Nội, warehouse addresses, re-price (see lib/default-flow-job.ts)
   setTimeout(async () => {
     try {

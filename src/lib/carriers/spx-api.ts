@@ -1,4 +1,5 @@
 import "server-only";
+import { openSecret } from "@/lib/secret-store";
 import { getDb, getSetting } from "@/lib/sqlite";
 
 /**
@@ -11,7 +12,7 @@ export const SPX_SETTING_KEYS = { userId: "spx_user_id", secretKey: "spx_secret_
 
 function setting(key: string): string {
   try {
-    return (getSetting(getDb(), key) ?? "").trim();
+    return openSecret(getSetting(getDb(), key));
   } catch {
     return "";
   }

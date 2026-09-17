@@ -4,6 +4,7 @@
  * Configuration is read lazily so the site keeps running (with the estimate tables) until GHN is configured.
  */
 
+import { openSecret } from "./secret-store";
 import { getDb, getSetting } from "./sqlite";
 
 export const GHN_PRODUCTION_URL = "https://online-gateway.ghn.vn";
@@ -13,7 +14,7 @@ export const GHN_SETTING_KEYS = { token: "ghn_token", shopId: "ghn_shop_id", pic
 
 function setting(key: string): string {
   try {
-    return (getSetting(getDb(), key) ?? "").trim();
+    return openSecret(getSetting(getDb(), key));
   } catch {
     return "";
   }

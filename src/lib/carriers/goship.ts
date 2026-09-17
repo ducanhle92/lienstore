@@ -1,4 +1,5 @@
 import "server-only";
+import { openSecret } from "@/lib/secret-store";
 import { getDb, getSetting } from "@/lib/sqlite";
 import { legacyProvincesOf } from "@/lib/vn-address";
 import { type GoshipAddressMatch, type GoshipCity, type GoshipDistrict, type GoshipRate, type GoshipWard, goshipRateToQuote, matchGoshipAddress } from "./goship-pure";
@@ -15,7 +16,7 @@ export const GOSHIP_SANDBOX = "https://sandbox.goship.io/api/v2";
 
 function setting(key: string): string {
   try {
-    return (getSetting(getDb(), key) ?? "").trim();
+    return openSecret(getSetting(getDb(), key));
   } catch {
     return "";
   }

@@ -13,6 +13,7 @@ import { BATCH_FORM_ID, BatchShipmentCard } from "@/components/sites/lienstore/a
 import { describeShipPolicy } from "@/lib/ship-policy";
 import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard";
 import { buildQuoteConfig } from "@/lib/shipping";
+import { ApiKeysVault } from "@/components/sites/lienstore/admin/ApiKeysVault";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
@@ -36,8 +37,8 @@ const LEG_ICON: Record<ShippingLeg, "cube" | "plane" | "truck" | "building"> = {
 const LEG_API_NOTE: Record<ShippingLeg, string> = {
   jp_domestic: "Kết nối API: Japan Post (ゆうパック), Yamato, Sagawa không có API công khai tính cước cho khách lẻ (Yamato B2/Sagawa e飛伝 cần hợp đồng doanh nghiệp) → tính theo công thức biểu phí cỡ kiện (size = D+R+C) như bảng dưới; hoặc gom nhiều đơn thành một kiện lớn (Gom lô) để giảm phí.",
   jp_vn: "Kết nối API: Kiến Express không có API — cước theo bảng /kg do Kiến báo. Giảm phí bằng cách gom đủ lô (Gom lô ở sheet Đơn hàng) vì cước tính theo tổng cân của chuyến.",
-  vn_transfer: "Kết nối API: Viettel Post có Open API đối tác (đặt VTP_TOKEN trên máy chủ là dùng được ngay, không cần sửa code); SPX chỉ cấp API cho tài khoản được ủy quyền → hiện dùng biểu phí công khai. Bảng dưới là công thức đang dùng.",
-  vn_domestic: "Kết nối API: GHN (đặt GHN_TOKEN + GHN_SHOP_ID), Viettel Post (VTP_TOKEN); VNPost và SPX theo biểu phí công khai (phiên bản hóa). Cước cho khách được báo theo địa chỉ, không dùng bảng vùng bên dưới để thu tiền.",
+  vn_transfer: "Kết nối API: Viettel Post có Open API đối tác — dán token ở sheet ④ › Kết nối Viettel Post là nút “Báo giá chặng ③” lấy cước thật; Goship cũng báo được cước chặng này. SPX chỉ cấp API cho tài khoản được ủy quyền → hiện dùng biểu phí công khai. Bảng dưới là công thức đang dùng.",
+  vn_domestic: "Kết nối API: dán token ở các thẻ bên dưới (Goship, Viettel Post, GHN, SPX) — khóa được mã hóa lưu trên máy chủ, chủ cửa hàng xem lại được ở thẻ “Khóa API đã lưu”. VNPost và SPX chưa có API theo biểu phí công khai (phiên bản hóa). Cước cho khách được báo theo địa chỉ, không dùng bảng vùng bên dưới để thu tiền.",
 };
 
 /** Carriers serving a leg (a carrier may serve several). */
@@ -669,7 +670,12 @@ export default async function AdminShipping({ searchParams }: Props) {
                   ) : null}
                   <p className="mt-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-3 py-2 text-[12px] leading-5 text-lien-text">{LEG_API_NOTE[leg.key]}</p>
                 </div>
-                {leg.key === "vn_domestic" ? <CarrierStatusPanel /> : null}
+                {leg.key === "vn_domestic" ? (
+                  <>
+                    <ApiKeysVault />
+                    <CarrierStatusPanel />
+                  </>
+                ) : null}
                 <LegShipmentsCard leg={leg.key} orders={recent} legMap={legMap} eventMap={eventMap} filter={legStatusFilter} />
                 {list.map((m) => (
                   <MethodCard key={m.id} m={m} carriers={carriers} tab={backTab} />

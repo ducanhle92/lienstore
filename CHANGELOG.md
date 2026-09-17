@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Vận chuyển › ④: thẻ **Khóa API đã lưu** (chỉ chủ cửa hàng thấy) liệt kê mọi khóa đã nhập (Goship, GHN, Viettel Post, SPX, Facebook Page) dạng 4 ký tự cuối; nhập lại mật khẩu đăng nhập là hiện đầy đủ trong 3 phút để sao chép — không cần giữ khóa trong file text.
+
+### Security
+- Token/khóa API trong bảng settings được mã hóa AES-256-GCM (khóa dẫn xuất từ ADMIN_SESSION_SECRET); giá trị cũ dạng chữ thường được mã hóa lại khi máy chủ khởi động, đọc ra vẫn tương thích.
+
 ## [1.58.1] - 2026-09-17
 
 ### Changed

@@ -2,6 +2,7 @@ import "server-only";
 import type { CatalogProduct } from "@/types/shop";
 import { getAllProducts, getProductById, getSiteTheme } from "./db";
 import { composeFanpagePost, dueSlots, parseTimes } from "./fanpage-compose";
+import { openSecret, sealSecret } from "./secret-store";
 import { getDb, getSetting, setSetting, withTransaction } from "./sqlite";
 
 /**
@@ -56,7 +57,7 @@ export function getFanpageConfig(): FanpageConfig {
   }
   return {
     pageId: getSetting(db, KEYS.pageId) ?? "",
-    token: getSetting(db, KEYS.token) ?? process.env.FB_PAGE_TOKEN ?? "",
+    token: openSecret(getSetting(db, KEYS.token)) || process.env.FB_PAGE_TOKEN || "",
     graphVersion: getSetting(db, KEYS.version) || DEFAULT_VERSION,
     origin: (getSetting(db, KEYS.origin) || process.env.SITE_URL || "").replace(/\/$/, ""),
     auto,
@@ -66,7 +67,7 @@ export function getFanpageConfig(): FanpageConfig {
 export function saveFanpageConnection(input: { pageId: string; token?: string; graphVersion?: string }): void {
   const db = getDb();
   setSetting(db, KEYS.pageId, input.pageId.trim());
-  if (input.token !== undefined && input.token.trim()) setSetting(db, KEYS.token, input.token.trim());
+  if (input.token !== undefined && input.token.trim()) setSetting(db, KEYS.token, sealSecret(input.token));
   if (input.graphVersion?.trim()) setSetting(db, KEYS.version, input.graphVersion.trim());
 }
 export function clearFanpageToken(): void {

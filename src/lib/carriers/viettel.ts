@@ -8,6 +8,7 @@
  * resolved from the shop address by name when blank). Addresses use Viettel's own 3-level categories
  * (listProvince / listDistrict / listWards) matched by name from the new province → ward model, like Goship.
  */
+import { openSecret } from "@/lib/secret-store";
 import { getDb, getSetting } from "@/lib/sqlite";
 import { fold, legacyProvincesOf } from "@/lib/vn-address";
 import { CARRIER_NAME, type CarrierQuoteAdapter, type FeePart, type ShippingQuote, type ShippingQuoteRequest, unavailableQuote } from "./types";
@@ -17,7 +18,7 @@ export const VTP_DEFAULT_BASE = "https://partner.viettelpost.vn/v2";
 
 function setting(key: string): string {
   try {
-    return (getSetting(getDb(), key) ?? "").trim();
+    return openSecret(getSetting(getDb(), key));
   } catch {
     return "";
   }
