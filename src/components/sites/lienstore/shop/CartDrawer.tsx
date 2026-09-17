@@ -8,7 +8,7 @@ import { formatAmount } from "@/lib/format";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart } from "./CartProvider";
-import { QuickViewButton, type QuickViewProduct } from "./QuickView";
+import type { QuickViewProduct } from "./QuickView";
 
 /**
  * Slide-in mini cart (sesofoods style): opens from the right after "Thêm vào giỏ" or the header cart icon.
@@ -171,35 +171,29 @@ function Suggestions({ ids }: { ids: number[] }) {
   return (
     <section className="mx-5 my-4 rounded-md border border-lien-line bg-lien-footer2" aria-label="Thường được mua cùng với">
       <h3 className="m-0 border-b border-lien-line px-4 py-2.5 text-center text-[13px] font-bold text-lien-heading">Thường được mua cùng với :</h3>
-      <div className="flex items-center gap-3 bg-white px-3 py-3">
+      {/* plain upsell: centred picture + name + price, one small "add" link — no action buttons like the cart rows above */}
+      <div className="flex flex-col items-center gap-2 bg-white px-4 py-4 text-center">
         <Link href={`/product/${p.slug}/`} className="shrink-0">
-          <Image src={p.thumb || p.image} alt="" width={64} height={64} className="h-16 w-16 rounded border border-lien-line object-contain" />
+          <Image src={p.thumb || p.image} alt="" width={96} height={96} className="h-24 w-24 rounded border border-lien-line object-contain" />
         </Link>
-        <div className="min-w-0 flex-1">
-          <Link href={`/product/${p.slug}/`} className="line-clamp-1 text-[13px] font-medium text-lien-heading no-underline hover:text-lien-blue">
-            {p.name}
-          </Link>
-          <p className="m-0 mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px]">
-            {p.regularPrice && p.regularPrice > p.price ? <del className="text-[11px] text-lien-muted">{formatAmount(p.regularPrice)}đ</del> : null}
-            <span className="font-bold text-lien-sale-text">{formatAmount(p.price)}đ</span>
-            {pct ? <span className="rounded bg-lien-sale px-1 text-[10px] font-bold text-white">-{pct}%</span> : null}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              add(cartProduct, 1);
-              openDrawer();
-            }}
-            aria-label="Thêm vào giỏ"
-            title="Thêm vào giỏ"
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-lien-success text-[14px] text-white hover:opacity-90"
-          >
-            <Fa name="cart-plus" />
-          </button>
-          <QuickViewButton product={p} iconOnly className="flex h-9 w-9 items-center justify-center rounded-md border border-lien-line bg-white text-[13px] text-lien-heading hover:bg-lien-blue hover:text-white" />
-        </div>
+        <Link href={`/product/${p.slug}/`} className="line-clamp-2 max-w-[280px] text-[13px] font-medium text-lien-heading no-underline hover:text-lien-blue">
+          {p.name}
+        </Link>
+        <p className="m-0 flex flex-wrap items-center justify-center gap-1.5 text-[13px]">
+          {p.regularPrice && p.regularPrice > p.price ? <del className="text-[11px] text-lien-muted">{formatAmount(p.regularPrice)}đ</del> : null}
+          <span className="font-bold text-lien-sale-text">{formatAmount(p.price)}đ</span>
+          {pct ? <span className="rounded bg-lien-sale px-1 text-[10px] font-bold text-white">-{pct}%</span> : null}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            add(cartProduct, 1);
+            openDrawer();
+          }}
+          className="text-[12px] font-semibold text-lien-blue hover:underline"
+        >
+          <Fa name="cart-plus" className="mr-1" /> Thêm vào giỏ
+        </button>
       </div>
       <div className="flex items-center justify-between border-t border-lien-line px-3 py-2">
         <button type="button" aria-label="Trước" onClick={() => setI((i - 1 + list.length) % list.length)} className="flex h-8 w-8 items-center justify-center rounded-full text-lien-heading hover:bg-lien-cream">

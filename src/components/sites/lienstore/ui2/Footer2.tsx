@@ -101,6 +101,13 @@ export function Footer2({ logo, shopName = "LienStore", contact, accountLinks, s
                 </a>
               </li>
             ))}
+            {contact.phones.map((p) => (
+              <li key={p.href}>
+                <a href={p.href} aria-label={`Gọi ${p.number}`} title={`Gọi ${p.label}: ${p.number}`} className="flex h-11 items-center gap-2 rounded-full bg-lien-success px-3.5 text-[13px] font-bold text-white no-underline shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)] transition-transform hover:scale-105">
+                  <Fa name="phone" className="text-[16px]" /> {p.number}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
