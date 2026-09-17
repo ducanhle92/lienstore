@@ -5,7 +5,6 @@
 #
 #   sh truenas-autoupdate.sh <app-name> <image:tag> [log-file]
 #   sh truenas-autoupdate.sh lienstore-prod ghcr.io/ducanhle92/lienstore:latest
-#   sh truenas-autoupdate.sh lienstore      ghcr.io/ducanhle92/lienstore:dev
 #
 # Optional env: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID → message after each redeploy.
 set -u

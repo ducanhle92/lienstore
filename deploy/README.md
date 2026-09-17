@@ -39,12 +39,12 @@ Có hai cách đưa image lên NAS. **Cách B** không cần GitHub/registry, ph
 3. **Apps → Discover Apps → ⋮ (góc phải) → Install via YAML**. Dán nội dung [`truenas-app.local.yaml`](./truenas-app.local.yaml), sửa:
    - `<pool>` → tên pool thật (2 chỗ: volume).
    - `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`.
-   - `NEXT_PUBLIC_SITE_URL` → `http://<ip-truenas>:30080` (hoặc `https://dev.linconnn.io.vn` nếu đã có tunnel).
+   - `NEXT_PUBLIC_SITE_URL` → `http://<ip-truenas>:30080` (hoặc `https://linconnn.io.vn` nếu đã có tunnel).
    Đặt tên app `lienstore` → Save.
 
 4. Mở `http://<ip-truenas>:30080`. Trang admin: `/admin/` (user `admin`, mật khẩu vừa đặt). Kiểm tra `http://<ip-truenas>:30080/api/health/`.
 
-5. Ra internet: Cloudflare Zero Trust → Tunnel → Public Hostname `dev.linconnn.io.vn` → `http://<ip-truenas>:30080` (đã hướng dẫn trong `docs/DEPLOY.md`).
+5. Ra internet: Cloudflare Zero Trust → Tunnel → Public Hostname `linconnn.io.vn` → cổng của app prod (đã hướng dẫn trong `docs/DEPLOY.md`).
 
 **Nâng cấp bản mới**: chạy lại bước 1 và 2, rồi Apps → lienstore → ⋮ → *Restart* (hoặc Stop/Start). DB nằm trong dataset nên dữ liệu giữ nguyên; migration mới (nếu có) tự chạy khi khởi động.
 

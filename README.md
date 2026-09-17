@@ -126,7 +126,7 @@ npm run release -- minor                                     # → ghcr.io/ducan
 # rồi Install via YAML → deploy/truenas-app.yaml
 ```
 
-Cổng LAN mặc định `30080`, DB nằm ở `/mnt/<pool>/lienstore/data`. Ra internet qua Cloudflare Tunnel: Public Hostname `dev.linconnn.io.vn` → `http://<ip-nas>:30080`.
+Cổng LAN mặc định `30081` cho prod, DB nằm ở `/mnt/<pool>/lienstore-prod/data`. Ra internet qua Cloudflare Tunnel: Public Hostname `linconnn.io.vn` → `http://<ip-nas>:30081`. (Môi trường dev đã tắt từ 17/09/2026.)
 
 ## Đánh phiên bản
 

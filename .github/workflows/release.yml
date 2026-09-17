@@ -1,6 +1,6 @@
-# Release pipeline: tag vX.Y.Z → PROMOTE the image CI already built for that commit (`sha-<sha>`, the one running on
-# dev) to `X.Y.Z`, `X.Y` and `latest` on GHCR → GitHub Release notes. Takes ~30 s; no rebuild, so prod runs exactly
-# the bytes that were tested on dev. Falls back to a fresh linux/amd64 build when the sha image is missing
+# Release pipeline: tag vX.Y.Z → PROMOTE the image CI already built and smoke-tested for that commit (`sha-<sha>`)
+# to `X.Y.Z`, `X.Y` and `latest` on GHCR → GitHub Release notes. Takes ~30 s; no rebuild, so prod runs exactly
+# the bytes CI tested. Falls back to a fresh linux/amd64 build when the sha image is missing
 # (e.g. the tag points at a commit that never reached `main`).
 #
 # Create a release with `npm run release -- patch|minor|major|X.Y.Z` (scripts/release.mjs): bumps package.json,
