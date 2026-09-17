@@ -114,6 +114,16 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
+  // one-time: customers pick only GHN / J&T / Viettel Post (see lib/carrier-trio-job.ts)
+  setTimeout(async () => {
+    try {
+      const { applyCarrierTrioOnce } = await import("./lib/carrier-trio-job");
+      const r = applyCarrierTrioOnce();
+      if (r) console.info(`[carriers] customer carriers → GHN, J&T, Viettel Post (disabled: ${r.disabled.join(", ")})`);
+    } catch (e) {
+      console.warn(`[carriers] trio job failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 8_000);
   // one-time: Reihaku Hatomugi High Moisture body soap is the 800 ml bottle, not 600 ml (see lib/hatomugi-fix-job.ts)
   setTimeout(async () => {
     try {

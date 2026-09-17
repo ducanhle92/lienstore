@@ -340,7 +340,7 @@ export function viettelRowToQuote(row: VtpPriceRow, req: ShippingQuoteRequest): 
     etaText: row.THOI_GIAN?.trim() || undefined,
     quotedAt: at.toISOString(),
     expiresAt: new Date(at.getTime() + 10 * 60 * 1000).toISOString(),
-    warnings: ["Giá niêm yết của Viettel Post cho tài khoản thường; tạo vận đơn qua app/API Viettel Post với tài khoản shop thì đúng giá này, gửi tại bưu cục có thể khác."],
+    warnings: [],
     includes: ["VAT", "Phí dịch vụ theo biểu giá niêm yết"],
     codShipFee: true,
   };
