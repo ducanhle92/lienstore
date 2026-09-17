@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.52.2] - 2026-09-17
+
 ### Changed
 - Sales › Giảm giá sản phẩm: chọn sản phẩm bằng ô gõ tìm (tên, SKU, #id) như Flash Sales thay cho danh sách thả xuống dài; khi sửa giảm giá sản phẩm đã được chọn sẵn.
 
