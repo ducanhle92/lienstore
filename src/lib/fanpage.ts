@@ -88,10 +88,19 @@ interface GraphError {
   error?: { message?: string; code?: number; type?: string };
 }
 
+/** Graph URL for a path that may already carry a query (`123?fields=name,link`): extra params are appended with `&`. */
+export function graphUrl(version: string, path: string, params: Record<string, string> = {}): string {
+  const u = new URL(`https://graph.facebook.com/${version}/${path.replace(/^\//, "")}`);
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  return u.toString();
+}
+
 async function graph<T>(cfg: FanpageConfig, path: string, body?: Record<string, string>): Promise<T> {
-  const url = `https://graph.facebook.com/${cfg.graphVersion}/${path.replace(/^\//, "")}`;
   const form = new URLSearchParams({ ...(body ?? {}), access_token: cfg.token });
-  const res = await fetch(body ? url : `${url}?${form.toString()}`, body ? { method: "POST", body: form, headers: { "Content-Type": "application/x-www-form-urlencoded" } } : { method: "GET" });
+  const res = await fetch(
+    body ? graphUrl(cfg.graphVersion, path) : graphUrl(cfg.graphVersion, path, { access_token: cfg.token }),
+    body ? { method: "POST", body: form, headers: { "Content-Type": "application/x-www-form-urlencoded" } } : { method: "GET" },
+  );
   const data = (await res.json().catch(() => ({}))) as T & GraphError;
   if (!res.ok || data.error) throw new Error(data.error?.message ? `Facebook: ${data.error.message}${data.error.code ? ` (mã ${data.error.code})` : ""}` : `Facebook trả về HTTP ${res.status}`);
   return data;

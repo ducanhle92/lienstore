@@ -1,6 +1,7 @@
 /** Fanpage caption generator + auto-post slots — pure unit tests:  npm run test:fanpage */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { graphUrl } from "../../src/lib/fanpage";
 import { composeFanpagePost, dueSlots, parseTimes, toHashtag } from "../../src/lib/fanpage-compose";
 
 const product = {
@@ -49,5 +50,12 @@ describe("auto-post slots", () => {
     assert.deepEqual(dueSlots(["09:00", "20:00"], "09:05", ["09:00"]), []);
     assert.deepEqual(dueSlots(["09:00", "20:00"], "12:00", []), []); // 3 h late → skipped
     assert.deepEqual(dueSlots(["09:00", "20:00"], "20:00", []), ["20:00"]);
+  });
+});
+
+describe("Graph URL", () => {
+  it("appends access_token with & when the path already has a query (was ?fields=name,link?access_token=…)", () => {
+    assert.equal(graphUrl("v23.0", "123?fields=name,link", { access_token: "T" }), "https://graph.facebook.com/v23.0/123?fields=name%2Clink&access_token=T");
+    assert.equal(graphUrl("v23.0", "/123/feed"), "https://graph.facebook.com/v23.0/123/feed");
   });
 });
