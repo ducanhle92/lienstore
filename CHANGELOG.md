@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Nhãn sản phẩm ghim sát góc trên trái ảnh (trang sản phẩm và thẻ) và nhỏ hơn một chút để không che ảnh; áp dụng cho mọi nhãn.
+
 ## [1.71.0] - 2026-09-18
 
 ### Changed
