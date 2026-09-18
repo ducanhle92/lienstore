@@ -4,17 +4,62 @@ import { revalidatePath } from "next/cache";
 import { expectedPriceOf } from "@/lib/price-display";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, saveVoucherProgram, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, saveVoucherProgram, setProductHot, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
+import { HOT_BADGE_SETTING } from "@/lib/hot-badge";
+import { getDb, getSetting, setSetting } from "@/lib/sqlite";
+import { deleteUpload, saveUpload } from "@/lib/uploads";
 import { isVoucherColor } from "@/lib/voucher-programs";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
 const FLASH_SALE = "/admin/promotions/flash-sale/";
+const BESTSELLERS = "/admin/promotions/bestsellers/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
+
+/** Sales › Sản phẩm bán chạy: tick / untick the Hot mark of one product. */
+export async function setProductHotAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "productId"), 10);
+  const hot = text(formData, "hot") === "1";
+  if (!Number.isInteger(id)) return back(BESTSELLERS, "error", "Chọn một sản phẩm.");
+  const p = await getProductById(id);
+  if (!p) return back(BESTSELLERS, "error", "Không tìm thấy sản phẩm.");
+  await setProductHot(id, hot);
+  revalidatePath("/", "layout");
+  back(BESTSELLERS, "saved", hot ? `Đã đánh dấu Hot: ${p.name}.` : `Đã bỏ Hot: ${p.name}.`);
+}
+
+const BADGE_TYPES = new Set(["image/png", "image/webp", "image/svg+xml", "image/jpeg"]);
+/** Replace (or reset) the Best-seller badge drawn on Hot products' gallery. */
+export async function saveHotBadgeAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const db = getDb();
+  if (formData.get("reset") === "1") {
+    setSetting(db, HOT_BADGE_SETTING, "");
+    revalidatePath("/", "layout");
+    back(BESTSELLERS, "saved", "Đã dùng lại nhãn Best seller mặc định.");
+  }
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return back(BESTSELLERS, "error", "Chọn file ảnh nhãn (PNG nền trong suốt là đẹp nhất).");
+  if (!BADGE_TYPES.has(file.type)) back(BESTSELLERS, "error", "Nhãn phải là PNG, WebP, SVG hoặc JPG.");
+  if (file.size > 3 * 1024 * 1024) back(BESTSELLERS, "error", "Nhãn tối đa 3 MB.");
+  const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/svg+xml" ? "svg" : file.type.split("/")[1];
+  try {
+    const saved = await saveUpload("badges", `best-seller-${Date.now()}.${ext}`, Buffer.from(await file.arrayBuffer()));
+    const prev = getSetting(db, HOT_BADGE_SETTING)?.trim();
+    setSetting(db, HOT_BADGE_SETTING, saved.url);
+    if (prev && prev !== saved.url && prev.includes("/uploads/")) await deleteUpload(prev.replace(/^.*\/uploads\//, "")).catch(() => false);
+    revalidatePath("/", "layout");
+    back(BESTSELLERS, "saved", "Đã thay nhãn Best seller.");
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(BESTSELLERS, "error", e instanceof Error ? e.message : "Không lưu được nhãn.");
+  }
+}
 
 /** Put a product on sale: keeps the current price as the crossed-out regular price unless one is given. */
 export async function setSaleAction(formData: FormData): Promise<void> {

@@ -10,6 +10,8 @@ interface ProductGalleryProps {
   className?: string;
   /** Shop logo stamped bottom-right on every picture (deters copying); the stored files stay clean. */
   watermark?: string | null;
+  /** Picture pinned to the top-left corner of the main image (the Best-seller ribbon of Hot products). */
+  badge?: string | null;
 }
 
 const ZOOM = 2.25; // 547px image → 900px source, like WP Image Zoom's "window" mode
@@ -21,7 +23,7 @@ const WINDOW = { w: 400, h: 360 };
  * width below 768px. A single image renders alone; several images add a 4-column thumbnail row.
  * Hovering the main image shows a lens and a zoom window to the right (WP Image Zoooom plugin).
  */
-export function ProductGallery({ images, alt, className, watermark = null }: ProductGalleryProps) {
+export function ProductGallery({ images, alt, className, watermark = null, badge = null }: ProductGalleryProps) {
   const [index, setIndex] = useState(0);
   const [lens, setLens] = useState<{ x: number; y: number; w: number; h: number; size: number } | null>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -69,6 +71,10 @@ export function ProductGallery({ images, alt, className, watermark = null }: Pro
               />
             ))}
           </div>
+          {badge ? (
+            // eslint-disable-next-line @next/next/no-img-element -- owner-uploaded badge, any size
+            <img src={badge} alt="Best seller" draggable={false} className="pointer-events-none absolute top-3 left-3 z-[6] w-[28%] max-w-[150px] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]" data-testid="hot-badge" />
+          ) : null}
           {watermark ? (
             // eslint-disable-next-line @next/next/no-img-element -- theme logo, plain img keeps the overlay light
             <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-5 bottom-5 z-[5] w-[22%] max-w-[120px] select-none opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />

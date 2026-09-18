@@ -72,7 +72,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
   const pv = priceView(product);
   const pct = pv.pct;
   const fresh = isNewProduct(product);
-  const hot = hotProp || product.tags.some((t) => /^(bán chạy|ban chay|bestseller|best seller|hot)$/i.test(t.trim()));
+  const hot = hotProp || product.hot;
   const primary = product.thumb || product.images[0];
   const fam = product.variantSummary && product.variantSummary.count > 1 ? product.variantSummary : null;
   // a family is "Liên hệ" only when none of its variants has a price; otherwise it shows the lowest priced one
@@ -107,7 +107,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
         <div className="pointer-events-none absolute top-1.5 right-1.5 flex flex-col items-end gap-1 sm:top-2 sm:right-2">
           {flashEndsAt ? <FlashSaleCountdown endsAt={flashEndsAt} compact /> : null}
           {pct ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]">-{pct}%</span> : null}
-          {hot && !out ? <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="bestseller" /></span> : null}
+          {hot && !out ? <span className="rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-hot"><T k="bestseller" /></span> : null}
           {fresh && !out && !hot ? <span className="rounded bg-lien-info px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]"><T k="isNew" /></span> : null}
           {fam ? (
             <span className="rounded bg-white/95 px-1 py-0.5 text-[10px] font-semibold leading-4 text-lien-blue ring-1 ring-lien-blue sm:px-1.5 sm:text-[11px]" data-testid="badge-variants">

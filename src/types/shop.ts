@@ -53,6 +53,8 @@ export interface CatalogProduct {
   /** Category slugs. */
   categories: string[];
   tags: string[];
+  /** Owner-ticked "Hot / bán chạy": home best-seller shelf, red Hot label, Best-seller badge on the product page. */
+  hot: boolean;
   /** Full-size gallery image paths (local). */
   images: string[];
   /** 300×300 listing thumbnail path (local). */
@@ -392,6 +394,8 @@ export interface ProductQuery {
   search?: string;
   /** only products whose regular price is above the selling price */
   onSale?: boolean;
+  /** Only products the owner marked Hot (bán chạy). */
+  hot?: boolean;
   orderby?: ProductOrderBy;
   page?: number;
   perPage?: number;

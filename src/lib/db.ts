@@ -99,6 +99,7 @@ interface ProductRow {
   cost_checked_at: string | null;
   margin_pct: number | null;
   tags: string;
+  hot?: number | null;
   images: string;
   thumb: string;
   short_description: string;
@@ -158,6 +159,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     fulfillment: r.fulfillment === "stock" ? "stock" : "order",
     categories: parseArr(r.categories),
     tags: parseArr(r.tags),
+    hot: (r.hot ?? 0) === 1,
     images: parseArr(r.images),
     thumb: r.thumb,
     shortDescription: r.short_description,
@@ -392,6 +394,7 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
     });
   }
   if (q.onSale) items = items.filter((p) => (p.regularPrice ?? 0) > p.price);
+  if (q.hot) items = items.filter((p) => p.hot);
   // one card per variant family on the shelf (the picker on the product page reaches the others)
   if (!q.expandVariants && !q.includeDrafts) items = collapseVariants(items, new Map((await listProductGroups()).map((g) => [g.id, g.name])));
   switch (q.orderby) {
@@ -417,6 +420,12 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const start = (page - 1) * perPage;
   return { items: items.slice(start, start + perPage), total, page, perPage, totalPages };
+}
+
+/** Flip the owner's Hot mark on one product. */
+export async function setProductHot(id: number, hot: boolean): Promise<boolean> {
+  const r = getDb().prepare("UPDATE products SET hot = ?, updated_at = ? WHERE id = ?").run(hot ? 1 : 0, new Date().toISOString(), id);
+  return r.changes > 0;
 }
 
 export async function getRelatedProducts(product: CatalogProduct, limit = 4): Promise<CatalogProduct[]> {
@@ -506,6 +515,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.descriptionJa,
         id,
       );
+      db.prepare("UPDATE products SET hot = ? WHERE id = ?").run(input.hot ? 1 : 0, id);
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
       const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, market_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct, tags, images, thumb,
@@ -549,6 +559,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.descriptionJa ?? "",
       );
       id = Number(res.lastInsertRowid);
+      if (input.hot) db.prepare("UPDATE products SET hot = 1 WHERE id = ?").run(id);
     }
     const insPC = db.prepare("INSERT OR IGNORE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     input.categories.forEach((slug, i) => insPC.run(id, slug, i));

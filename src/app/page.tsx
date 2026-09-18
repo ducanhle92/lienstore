@@ -31,15 +31,18 @@ export default async function Home() {
   const banners = await getBanners();
   const slides = banners.length ? banners.map((b) => ({ image: b.image, href: b.href || "/shop/", alt: b.alt })) : fallbackSlides;
   const categories = await getHeaderCategories(lang);
-  const [fresh, popular, sale, flashItems] = await Promise.all([
+  const [fresh, hotPicks, popular, sale, flashItems] = await Promise.all([
     queryProducts({ orderby: "date", perPage: 12 }),
+    // owner-marked Hot products first (most sold first), then best-rated products fill the shelf up to 12
+    queryProducts({ hot: true, orderby: "popularity", perPage: 12 }),
     queryProducts({ orderby: "rating", perPage: 12 }),
     // every discounted product, best sellers first — not "discounted ones that happen to be in the top 60"
     queryProducts({ onSale: true, orderby: "popularity", perPage: 12 }),
     getFlashSaleItems(),
   ]);
   const freshItems = localizeProducts(fresh.items, lang);
-  const popularItems = localizeProducts(popular.items, lang);
+  const hotIds = new Set(hotPicks.items.map((p) => p.id));
+  const popularItems = localizeProducts([...hotPicks.items, ...popular.items.filter((p) => !hotIds.has(p.id))].slice(0, 12), lang);
   // one merged "Sales" carousel: flash-sale picks first (each keeps its own countdown), then other discounted
   // products not already picked for flash sale
   const flashIds = new Set(flashItems.map((f) => f.product.id));
@@ -96,7 +99,7 @@ export default async function Home() {
           <SectionHeader2 title={t(lang, "bestTitle")} icon="star" href="/shop/?orderby=rating" />
           <ProductCarousel ariaLabel="Bán chạy">
               {popularItems.map((p) => (
-                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} hot />
+                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} hot={p.hot} />
               ))}
             </ProductCarousel>
         </section>

@@ -1130,6 +1130,15 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE vouchers SET program_id = (SELECT MIN(id) FROM voucher_programs) WHERE program_id IS NULL`,
     ],
   },
+  {
+    // "Hot" (bán chạy) is an explicit flag the owner ticks, not a tag convention; products already tagged hot keep it.
+    version: 52,
+    name: "product-hot-flag",
+    up: [
+      `ALTER TABLE products ADD COLUMN hot INTEGER NOT NULL DEFAULT 0`,
+      `UPDATE products SET hot = 1 WHERE lower(tags) LIKE '%"hot"%' OR lower(tags) LIKE '%bestseller%' OR lower(tags) LIKE '%best seller%' OR tags LIKE '%bán chạy%' OR lower(tags) LIKE '%ban chay%'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

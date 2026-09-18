@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Sản phẩm Hot (bán chạy)**: ô tích trong chi tiết sản phẩm (mục Mã SKU & trạng thái) và tab mới **Sales › Sản phẩm bán chạy** — chọn sản phẩm để đánh dấu, danh sách đang Hot (kèm số đã bán, nút Bỏ Hot), tải/đổi ảnh nhãn Best seller. Sản phẩm Hot đứng đầu dải “Bán chạy nhất” ở trang chủ (thiếu thì bù bằng sản phẩm đánh giá cao), nhãn Hot trên thẻ đổi sang màu đỏ, trang sản phẩm có nhãn Best seller ở góc trên trái ảnh. Sản phẩm đang gắn tag hot/bán chạy được chuyển sang cờ mới tự động.
+
 ## [1.68.0] - 2026-09-18
 
 ### Fixed
