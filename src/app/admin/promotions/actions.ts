@@ -4,35 +4,19 @@ import { revalidatePath } from "next/cache";
 import { expectedPriceOf } from "@/lib/price-display";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteProductLabel, deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveProductLabel, saveVoucher, saveVoucherProgram, setProductHot, setProductLabel, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { deleteProductLabel, deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveProductLabel, saveVoucher, saveVoucherProgram, setProductLabel, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
-import { HOT_BADGE_SETTING } from "@/lib/hot-badge";
-import { getDb, getSetting, setSetting } from "@/lib/sqlite";
-import { deleteUpload, saveUpload } from "@/lib/uploads";
+import { saveUpload } from "@/lib/uploads";
 import { isVoucherColor } from "@/lib/voucher-programs";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
 const FLASH_SALE = "/admin/promotions/flash-sale/";
-const BESTSELLERS = "/admin/promotions/bestsellers/";
 const LABELS = "/admin/promotions/labels/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
-
-/** Sales › Sản phẩm bán chạy: tick / untick the Hot mark of one product. */
-export async function setProductHotAction(formData: FormData): Promise<void> {
-  await requireAdmin("promotions");
-  const id = Number.parseInt(text(formData, "productId"), 10);
-  const hot = text(formData, "hot") === "1";
-  if (!Number.isInteger(id)) return back(BESTSELLERS, "error", "Chọn một sản phẩm.");
-  const p = await getProductById(id);
-  if (!p) return back(BESTSELLERS, "error", "Không tìm thấy sản phẩm.");
-  await setProductHot(id, hot);
-  revalidatePath("/", "layout");
-  back(BESTSELLERS, "saved", hot ? `Đã đánh dấu Hot: ${p.name}.` : `Đã bỏ Hot: ${p.name}.`);
-}
 
 const LABEL_TYPES: Record<string, string> = { "image/gif": "gif", "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg", "image/avif": "avif", "image/jpeg": "jpg" };
 
@@ -51,7 +35,7 @@ export async function saveProductLabelAction(formData: FormData): Promise<void> 
       const saved = await saveUpload("badges", `label-${Date.now()}.${LABEL_TYPES[file.type]}`, Buffer.from(await file.arrayBuffer()));
       image = saved.url;
     }
-    const savedId = await saveProductLabel({ id, name: text(formData, "name"), image: image || undefined, position: Number.parseInt(text(formData, "position"), 10) || 0, active: formData.get("active") === "on" });
+    const savedId = await saveProductLabel({ id, name: text(formData, "name"), image: image || undefined, position: Number.parseInt(text(formData, "position"), 10) || 0, active: formData.get("active") === "on", hot: formData.get("hot") === "on" });
     revalidatePath("/", "layout");
     back(`${LABELS}?open=${savedId}`, "saved", id ? "Đã lưu nhãn." : "Đã thêm nhãn mới.");
   } catch (e) {
@@ -82,46 +66,6 @@ export async function assignLabelAction(formData: FormData): Promise<void> {
   await setProductLabel(productId, labelId && Number.isInteger(labelId) ? labelId : null);
   revalidatePath("/", "layout");
   back(to, "saved", labelId ? `Đã gắn nhãn cho ${p.name}.` : `Đã gỡ nhãn khỏi ${p.name}.`);
-}
-
-/** Un-mark every ticked product in the Hot list at once. */
-export async function unsetHotBulkAction(formData: FormData): Promise<void> {
-  await requireAdmin("promotions");
-  const ids = [...new Set(formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter((n) => Number.isInteger(n)))];
-  if (!ids.length) back(BESTSELLERS, "error", "Chưa tích sản phẩm nào.");
-  let n = 0;
-  for (const id of ids) if (await setProductHot(id, false)) n++;
-  revalidatePath("/", "layout");
-  back(BESTSELLERS, "saved", `Đã bỏ Hot ${n} sản phẩm.`);
-}
-
-const BADGE_TYPES = new Set(["image/png", "image/webp", "image/svg+xml", "image/jpeg", "image/gif", "image/avif", "image/bmp"]);
-const BADGE_EXT: Record<string, string> = { "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg", "image/jpeg": "jpg", "image/gif": "gif", "image/avif": "avif", "image/bmp": "bmp" };
-/** Replace (or reset) the Best-seller badge drawn on Hot products' gallery. */
-export async function saveHotBadgeAction(formData: FormData): Promise<void> {
-  await requireAdmin("promotions");
-  const db = getDb();
-  if (formData.get("reset") === "1") {
-    setSetting(db, HOT_BADGE_SETTING, "");
-    revalidatePath("/", "layout");
-    back(BESTSELLERS, "saved", "Đã dùng lại nhãn Best seller mặc định.");
-  }
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return back(BESTSELLERS, "error", "Chọn file ảnh nhãn (PNG nền trong suốt là đẹp nhất).");
-  if (!BADGE_TYPES.has(file.type)) back(BESTSELLERS, "error", "Nhãn phải là ảnh PNG, WebP, SVG, GIF, JPG, AVIF hoặc BMP.");
-  if (file.size > 5 * 1024 * 1024) back(BESTSELLERS, "error", "Nhãn tối đa 5 MB.");
-  const ext = BADGE_EXT[file.type] ?? "png";
-  try {
-    const saved = await saveUpload("badges", `best-seller-${Date.now()}.${ext}`, Buffer.from(await file.arrayBuffer()));
-    const prev = getSetting(db, HOT_BADGE_SETTING)?.trim();
-    setSetting(db, HOT_BADGE_SETTING, saved.url);
-    if (prev && prev !== saved.url && prev.includes("/uploads/")) await deleteUpload(prev.replace(/^.*\/uploads\//, "")).catch(() => false);
-    revalidatePath("/", "layout");
-    back(BESTSELLERS, "saved", "Đã thay nhãn Best seller.");
-  } catch (e) {
-    if (isRedirect(e)) throw e;
-    back(BESTSELLERS, "error", e instanceof Error ? e.message : "Không lưu được nhãn.");
-  }
 }
 
 /** Put a product on sale: keeps the current price as the crossed-out regular price unless one is given. */

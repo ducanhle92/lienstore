@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Gộp **Sản phẩm bán chạy** vào **Nhãn sản phẩm**: nhãn được đánh dấu “bán chạy” (mặc định BEST SELLER) chính là cờ Hot — sản phẩm mang nhãn này đứng đầu dải “Bán chạy nhất” trang chủ và có nhãn Hot đỏ trên thẻ; các sản phẩm từng tích Hot được gắn nhãn BEST SELLER tự động. Bỏ tab Sản phẩm bán chạy, ô tích Hot trong chi tiết sản phẩm và ảnh nhãn Best seller riêng. Tab Nhãn sản phẩm chuyển xuống giữa Chính sách vận chuyển và Feedback khách hàng; mỗi nhãn có ô “Nhãn bán chạy” để đổi nhãn nào giữ vai trò này, và cột Đã bán trong danh sách sản phẩm.
+
 ## [1.70.0] - 2026-09-18
 
 ### Added

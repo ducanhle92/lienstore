@@ -8,7 +8,7 @@ import { type PickableProduct, ProductSearchSelect } from "@/components/sites/li
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getProductLabels } from "@/lib/db";
+import { getAllProducts, getProductLabels, getUnitsSold } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
   await requireAdmin("promotions");
   const sp = await searchParams;
   const [labels, products] = await Promise.all([getProductLabels(), getAllProducts(true)]);
+  const sold = getUnitsSold();
   const openId = Number.parseInt(first(sp.open), 10);
   const pickable: PickableProduct[] = products.map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
   const byLabel = new Map<number, typeof products>();
@@ -31,7 +32,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader title="Nhãn sản phẩm" subtitle={`${labels.length} nhãn · mỗi sản phẩm gắn tối đa một nhãn; nhãn hiện ở góc trên trái ảnh trên thẻ sản phẩm và trang sản phẩm`} />
+      <PageHeader title="Nhãn sản phẩm" subtitle={`${labels.length} nhãn · mỗi sản phẩm gắn tối đa một nhãn, hiện ở góc trên trái ảnh trên thẻ và trang sản phẩm · nhãn đánh dấu “bán chạy” đưa sản phẩm lên đầu dải Bán chạy nhất kèm nhãn Hot đỏ`} />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
@@ -43,7 +44,10 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF must stay animated */}
               <img src={l.image} alt="" className="h-14 w-14 shrink-0 object-contain" />
               <div className="min-w-0">
-                <div className="truncate text-[13px] font-bold text-lien-heading">{l.name}</div>
+                <div className="truncate text-[13px] font-bold text-lien-heading">
+                  {l.name}
+                  {l.hot ? <span className="ml-1.5 rounded bg-lien-sale px-1 py-0.5 text-[10px] font-bold text-white">Hot</span> : null}
+                </div>
                 <div className="text-[12px] text-lien-muted">
                   {n} sản phẩm{l.active ? "" : " · đang ẩn"}
                 </div>
@@ -63,6 +67,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                 {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF must stay animated */}
                 <img src={l.image} alt="" className="h-12 w-12 object-contain" />
                 <span className="text-[15px] font-bold text-lien-heading">{l.name}</span>
+                {l.hot ? <span className="rounded bg-lien-sale px-1.5 py-0.5 text-[11px] font-bold text-white" title="Nhãn bán chạy: đứng đầu dải Bán chạy nhất, nhãn Hot đỏ trên thẻ">Bán chạy · Hot</span> : null}
                 <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", l.active ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-700")}>{l.active ? "Đang dùng" : "Đang ẩn"}</span>
                 <span className="text-[13px] text-lien-muted">{items.length} sản phẩm</span>
                 <Link href={open ? "?" : `?open=${l.id}#label-${l.id}`} className="ml-auto text-[13px] text-lien-blue hover:underline">
@@ -97,6 +102,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                           <tr>
                             <th className={thClass}>Sản phẩm</th>
                             <th className={`${thClass} text-right`}>Giá</th>
+                            <th className={`${thClass} text-right`}>Đã bán</th>
                             <th className={thClass}>Trạng thái</th>
                             <th className={thClass} />
                           </tr>
@@ -119,6 +125,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                                 </div>
                               </td>
                               <td className={`${tdClass} text-right`}>{p.price > 0 ? `${formatAmount(p.price)}đ` : "Liên hệ"}</td>
+                              <td className={`${tdClass} text-right`}>{sold.get(p.id) ?? 0}</td>
                               <td className={tdClass}>{p.status === "publish" ? "Đang bán" : "Bản nháp"}</td>
                               <td className={`${tdClass} text-right`}>
                                 <form action={assignLabelAction} className="inline">
@@ -163,6 +170,13 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                         <input type="checkbox" name="active" defaultChecked={l.active} className="h-4 w-4" /> Đang dùng
                       </label>
                     </div>
+                    <label className="inline-flex items-start gap-2 rounded-md border border-[#fecaca] bg-red-50/60 px-3 py-2 text-[13px] text-lien-heading">
+                      <input type="checkbox" name="hot" defaultChecked={l.hot} className="mt-0.5 h-4 w-4" />
+                      <span>
+                        <span className="font-semibold">Nhãn bán chạy (Hot)</span>
+                        <InfoPopover>Sản phẩm mang nhãn này đứng đầu dải “Bán chạy nhất” trên trang chủ (nhiều đơn nhất trước) và có nhãn Hot đỏ trên thẻ. Thường chỉ bật cho BEST SELLER.</InfoPopover>
+                      </span>
+                    </label>
                     <button type="submit" className={btnSecondary}>
                       <Fa name="check" /> Lưu nhãn
                     </button>
@@ -178,7 +192,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
         <summary className="flex cursor-pointer items-center gap-2 px-5 py-3 text-[14px] font-semibold text-lien-blue select-none">
           <Fa name="plus" /> Thêm nhãn mới
         </summary>
-        <form action={saveProductLabelAction} encType="multipart/form-data" className="grid gap-3 border-t border-[#e5e7eb] p-5 md:grid-cols-[1fr_auto_120px_auto_auto] md:items-end" data-testid="label-new">
+        <form action={saveProductLabelAction} encType="multipart/form-data" className="grid gap-3 border-t border-[#e5e7eb] p-5 md:grid-cols-[1fr_auto_120px_auto_auto_auto] md:items-end" data-testid="label-new">
           <div>
             <label className={adminLabel} htmlFor="new-name">
               Tên nhãn *
@@ -197,6 +211,9 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
           </div>
           <label className="inline-flex items-center gap-2 pb-2.5 text-[14px]">
             <input type="checkbox" name="active" defaultChecked className="h-4 w-4" /> Đang dùng
+          </label>
+          <label className="inline-flex items-center gap-2 pb-2.5 text-[14px]">
+            <input type="checkbox" name="hot" className="h-4 w-4" /> Bán chạy
           </label>
           <button type="submit" className={btnPrimary}>
             <Fa name="plus" /> Thêm nhãn

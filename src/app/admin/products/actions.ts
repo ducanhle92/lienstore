@@ -180,7 +180,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     sku: get("sku") || null,
     stock,
     stockStatus: discontinued ? "discontinued" : "instock",
-    hot: get("hot") === "on",
+    hot: false, // derived from the label (read-only)
     labelId: Number.parseInt(get("labelId"), 10) || null,
     label: null,
     fulfillment,

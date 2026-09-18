@@ -1175,6 +1175,17 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE products ADD COLUMN label_id INTEGER REFERENCES product_labels(id) ON DELETE SET NULL`,
     ],
   },
+  {
+    // "Hot / bán chạy" is no longer a separate tick: a label flagged hot (BEST SELLER by default) makes its products
+    // lead the home best-seller shelf and carry the red Hot mark. Products that were ticked Hot get that label.
+    version: 54,
+    name: "hot-is-a-label",
+    up: [
+      `ALTER TABLE product_labels ADD COLUMN hot INTEGER NOT NULL DEFAULT 0`,
+      `UPDATE product_labels SET hot = 1 WHERE slug = 'best-seller'`,
+      `UPDATE products SET label_id = (SELECT id FROM product_labels WHERE slug = 'best-seller') WHERE hot = 1 AND label_id IS NULL`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

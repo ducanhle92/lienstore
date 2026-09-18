@@ -53,12 +53,12 @@ export interface CatalogProduct {
   /** Category slugs. */
   categories: string[];
   tags: string[];
-  /** Owner-ticked "Hot / bán chạy": home best-seller shelf, red Hot label, Best-seller badge on the product page. */
+  /** Derived: the product wears a label flagged "bán chạy" → home best-seller shelf + red Hot mark (read-only). */
   hot: boolean;
   /** Label (nhãn) pinned on the product picture, null = none. */
   labelId: number | null;
   /** Resolved label picture/name (active labels only) for the storefront. */
-  label: { id: number; name: string; image: string } | null;
+  label: { id: number; name: string; image: string; hot: boolean } | null;
   /** Full-size gallery image paths (local). */
   images: string[];
   /** 300×300 listing thumbnail path (local). */
@@ -463,6 +463,8 @@ export interface ProductLabel {
   image: string;
   position: number;
   active: boolean;
+  /** This label means "bán chạy": its products lead the home shelf and get the red Hot mark. */
+  hot: boolean;
   createdAt: string;
   updatedAt: string;
 }

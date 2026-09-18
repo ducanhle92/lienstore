@@ -736,7 +736,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               </div>
               <div>
                 <label className={adminLabel} htmlFor="labelId">
-                  Nhãn trên ảnh <InfoPopover>Ảnh nhãn động (BEST SELLER, SALE, NEW ARRIVAL…) ghim ở góc trên trái ảnh sản phẩm trên thẻ và trang sản phẩm. Quản lý bộ nhãn và danh sách sản phẩm theo nhãn ở Sales › Nhãn sản phẩm.</InfoPopover>
+                  Nhãn trên ảnh <InfoPopover>Ảnh nhãn động (BEST SELLER, SALE, NEW ARRIVAL…) ghim ở góc trên trái ảnh sản phẩm trên thẻ và trang sản phẩm. Nhãn BEST SELLER (đánh dấu “bán chạy”) còn đưa sản phẩm lên đầu dải “Bán chạy nhất” trang chủ kèm nhãn Hot đỏ. Quản lý bộ nhãn và danh sách sản phẩm theo nhãn ở Sales › Nhãn sản phẩm.</InfoPopover>
                 </label>
                 <select id="labelId" name="labelId" defaultValue={product?.labelId ?? ""} className={adminInput} data-testid="label-select">
                   <option value="">— Không nhãn —</option>
@@ -748,13 +748,6 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   ))}
                 </select>
               </div>
-              <label className="inline-flex items-start gap-2 rounded-md border border-[#fecaca] bg-red-50/60 px-3 py-2 text-[14px] text-lien-heading" data-testid="hot-toggle">
-                <input type="checkbox" name="hot" defaultChecked={product?.hot ?? false} className="mt-1 h-4 w-4" />
-                <span>
-                  <span className="font-semibold">Sản phẩm Hot (bán chạy)</span>
-                  <InfoPopover>Đứng đầu dải “Bán chạy nhất” trên trang chủ, nhãn Hot đỏ trên thẻ sản phẩm và nhãn Best seller ở góc trái ảnh trang sản phẩm. Quản lý cả danh sách ở Sales › Sản phẩm bán chạy.</InfoPopover>
-                </span>
-              </label>
             </div>
           </FoldCard>
 
