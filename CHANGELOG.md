@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.71.3] - 2026-09-18
+
 ### Changed
 - Thẻ sản phẩm (trang chủ, danh mục, dải cuộn) không hiện ảnh nhãn nữa để khỏi chồng với nhãn Hot; nhãn chỉ hiện trên trang chi tiết sản phẩm.
 
