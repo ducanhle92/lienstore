@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.67.0] - 2026-09-18
+
 ### Added
 - **Chương trình voucher** (Sales › Voucher): gom mã theo chương trình, mỗi chương trình là một banner riêng trên trang chủ với tiêu đề là tên chương trình, dòng phụ, màu banner tự chọn (8 màu), thứ tự và bật/tắt. Có nhiều chương trình thì trang chủ xếp nhiều banner. Voucher chọn chương trình khi tạo/sửa; các mã hiện có nằm trong chương trình mặc định “Ưu đãi độc quyền”. Xoá chương trình không xoá mã (chuyển sang chương trình đầu).
 
