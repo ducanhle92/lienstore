@@ -447,6 +447,19 @@ export interface OrderMessage {
 }
 
 /** Discount code redeemable at checkout. */
+/** A voucher campaign: one home-page banner (title = name) in its own colour, holding many codes. */
+export interface VoucherProgram {
+  id: number;
+  name: string;
+  subtitle: string;
+  /** Palette key, see lib/voucher-programs.ts. */
+  color: string;
+  position: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Voucher {
   id: number;
   code: string;
@@ -461,8 +474,10 @@ export interface Voucher {
   usedCount: number;
   active: boolean;
   note: string;
-  /** Listed in the home-page "Ưu đãi độc quyền website" strip (public vouchers only). */
+  /** Listed in its program's home-page banner (public vouchers only). */
   showHome: boolean;
+  /** Program (campaign) the code belongs to; null = first program. */
+  programId: number | null;
   /** When non-empty, only these customer accounts may redeem the code. */
   customerIds: string[];
   /** Human labels of those accounts (customer no · login ID) for the admin form. */

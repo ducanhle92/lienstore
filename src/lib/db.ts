@@ -31,6 +31,7 @@ import type {
   StaticPage,
   UserRole,
   Voucher,
+  VoucherProgram,
 } from "@/types/shop";
 import { descendantSlugs } from "./categories";
 import { NO_EMAIL_DOMAIN, displayEmail } from "./customer-email";
@@ -1279,6 +1280,7 @@ interface VoucherRow {
   active: number;
   note: string;
   show_home: number | null;
+  program_id?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -1296,6 +1298,7 @@ const rowToVoucher = (r: VoucherRow): Voucher => ({
   active: r.active === 1,
   note: r.note,
   showHome: (r.show_home ?? 1) !== 0,
+  programId: r.program_id ?? null,
   customerIds: [],
   customerLabels: [],
   createdAt: r.created_at,
@@ -1332,13 +1335,13 @@ export async function saveVoucher(input: Omit<Voucher, "id" | "usedCount" | "cre
   if (!code) throw new Error("Cần mã voucher.");
   const dup = db.prepare("SELECT id FROM vouchers WHERE code = ? COLLATE NOCASE").get(code) as { id: number } | undefined;
   if (dup && dup.id !== input.id) throw new Error(`Mã "${code}" đã tồn tại.`);
-  const params = [code, input.kind, Math.max(0, Math.round(input.value)), Math.max(0, Math.round(input.minSubtotal)), input.maxDiscount, input.startsAt, input.endsAt, input.usageLimit, input.active ? 1 : 0, input.note, input.showHome ? 1 : 0, now];
+  const params = [code, input.kind, Math.max(0, Math.round(input.value)), Math.max(0, Math.round(input.minSubtotal)), input.maxDiscount, input.startsAt, input.endsAt, input.usageLimit, input.active ? 1 : 0, input.note, input.showHome ? 1 : 0, input.programId ?? null, now];
   return withTransaction(db, () => {
     let id = input.id;
     if (id) {
-      db.prepare("UPDATE vouchers SET code = ?, kind = ?, value = ?, min_subtotal = ?, max_discount = ?, starts_at = ?, ends_at = ?, usage_limit = ?, active = ?, note = ?, show_home = ?, updated_at = ? WHERE id = ?").run(...params, id);
+      db.prepare("UPDATE vouchers SET code = ?, kind = ?, value = ?, min_subtotal = ?, max_discount = ?, starts_at = ?, ends_at = ?, usage_limit = ?, active = ?, note = ?, show_home = ?, program_id = ?, updated_at = ? WHERE id = ?").run(...params, id);
     } else {
-      const r = db.prepare("INSERT INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, show_home, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(...params, now);
+      const r = db.prepare("INSERT INTO vouchers (code, kind, value, min_subtotal, max_discount, starts_at, ends_at, usage_limit, active, note, show_home, program_id, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(...params, now);
       id = Number(r.lastInsertRowid);
     }
     db.prepare("DELETE FROM voucher_customers WHERE voucher_id = ?").run(id);
@@ -1396,6 +1399,48 @@ export async function getHomeVouchers(customerId?: string | null): Promise<Array
 
 export async function deleteVoucher(id: number): Promise<void> {
   getDb().prepare("DELETE FROM vouchers WHERE id = ?").run(id);
+}
+
+// ---- voucher programs (campaign banners) ----------------------------------------------------------------------------
+
+interface VoucherProgramRow {
+  id: number;
+  name: string;
+  subtitle: string;
+  color: string;
+  position: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+const rowToProgram = (r: VoucherProgramRow): VoucherProgram => ({ id: r.id, name: r.name, subtitle: r.subtitle, color: r.color, position: r.position, active: r.active === 1, createdAt: r.created_at, updatedAt: r.updated_at });
+
+export async function getVoucherPrograms(): Promise<VoucherProgram[]> {
+  return (getDb().prepare("SELECT * FROM voucher_programs ORDER BY position, id").all() as unknown as VoucherProgramRow[]).map(rowToProgram);
+}
+
+export async function saveVoucherProgram(input: { id?: number; name: string; subtitle: string; color: string; position: number; active: boolean }): Promise<number> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const name = input.name.trim().slice(0, 80);
+  if (!name) throw new Error("Cần tên chương trình.");
+  const params = [name, input.subtitle.trim().slice(0, 120), input.color, Math.round(input.position) || 0, input.active ? 1 : 0, now];
+  if (input.id) {
+    db.prepare("UPDATE voucher_programs SET name = ?, subtitle = ?, color = ?, position = ?, active = ?, updated_at = ? WHERE id = ?").run(...params, input.id);
+    return input.id;
+  }
+  const r = db.prepare("INSERT INTO voucher_programs (name, subtitle, color, position, active, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(...params, now);
+  return Number(r.lastInsertRowid);
+}
+
+/** Deleting a program never deletes codes: they move to the first remaining program (or stay unassigned). */
+export async function deleteVoucherProgram(id: number): Promise<void> {
+  const db = getDb();
+  withTransaction(db, () => {
+    const next = db.prepare("SELECT id FROM voucher_programs WHERE id <> ? ORDER BY position, id LIMIT 1").get(id) as { id: number } | undefined;
+    db.prepare("UPDATE vouchers SET program_id = ? WHERE program_id = ?").run(next?.id ?? null, id);
+    db.prepare("DELETE FROM voucher_programs WHERE id = ?").run(id);
+  });
 }
 
 export type VoucherCheck = { ok: true; voucher: Voucher; discount: number } | { ok: false; message: string };

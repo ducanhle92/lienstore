@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { expectedPriceOf } from "@/lib/price-display";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, saveVoucherProgram, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
+import { isVoucherColor } from "@/lib/voucher-programs";
 
 const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
@@ -82,6 +83,7 @@ export async function saveVoucherAction(formData: FormData): Promise<void> {
       active: formData.get("active") === "on",
       note: text(formData, "note"),
       showHome: formData.get("showHome") === "on",
+      programId: Number.parseInt(text(formData, "programId"), 10) || null,
       customerIds,
     });
     revalidatePath("/admin", "layout");
@@ -90,6 +92,36 @@ export async function saveVoucherAction(formData: FormData): Promise<void> {
     if (isRedirect(e)) throw e;
     back(VOUCHERS, "error", e instanceof Error ? e.message : "Không lưu được voucher.");
   }
+}
+
+/** Voucher programs: name = banner title on the home page, colour per banner, order, on/off. */
+export async function saveVoucherProgramAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const idRaw = text(formData, "id");
+  const color = text(formData, "color");
+  try {
+    await saveVoucherProgram({
+      id: idRaw ? Number.parseInt(idRaw, 10) : undefined,
+      name: text(formData, "name"),
+      subtitle: text(formData, "subtitle"),
+      color: isVoucherColor(color) ? color : "red",
+      position: Number.parseInt(text(formData, "position"), 10) || 0,
+      active: formData.get("active") === "on",
+    });
+    revalidatePath("/", "layout");
+    back(VOUCHERS, "saved", idRaw ? "Đã lưu chương trình." : "Đã thêm chương trình voucher.");
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(VOUCHERS, "error", e instanceof Error ? e.message : "Không lưu được chương trình.");
+  }
+}
+
+export async function deleteVoucherProgramAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "id"), 10);
+  if (Number.isInteger(id)) await deleteVoucherProgram(id);
+  revalidatePath("/", "layout");
+  back(VOUCHERS, "saved", "Đã xoá chương trình; voucher trong đó chuyển sang chương trình đầu tiên.");
 }
 
 export async function deleteVoucherAction(formData: FormData): Promise<void> {

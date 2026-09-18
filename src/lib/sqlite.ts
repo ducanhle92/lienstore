@@ -1107,6 +1107,29 @@ export const MIGRATIONS: Migration[] = [
     name: "order-item-list-price",
     up: [`ALTER TABLE order_items ADD COLUMN list_price INTEGER`],
   },
+  {
+    // Voucher programs: the owner groups codes into named campaigns, each its own home-page banner with a colour.
+    // Existing codes join the default program that carries the old fixed banner title.
+    version: 51,
+    name: "voucher-programs",
+    up: [
+      `CREATE TABLE IF NOT EXISTS voucher_programs (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL,
+        subtitle   TEXT NOT NULL DEFAULT '',
+        color      TEXT NOT NULL DEFAULT 'red',
+        position   INTEGER NOT NULL DEFAULT 0,
+        active     INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `INSERT INTO voucher_programs (name, subtitle, color, position, active, created_at, updated_at)
+         SELECT 'Ưu đãi độc quyền', 'Nhập mã ở trang thanh toán', 'red', 0, 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         WHERE NOT EXISTS (SELECT 1 FROM voucher_programs)`,
+      `ALTER TABLE vouchers ADD COLUMN program_id INTEGER REFERENCES voucher_programs(id) ON DELETE SET NULL`,
+      `UPDATE vouchers SET program_id = (SELECT MIN(id) FROM voucher_programs) WHERE program_id IS NULL`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

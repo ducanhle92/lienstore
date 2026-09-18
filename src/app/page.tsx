@@ -15,7 +15,8 @@ import { buildCategoryTree, shortName } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
 import { localizeProducts } from "@/lib/localize";
-import { getBanners, getFlashSaleItems, getHomeVouchers, queryProducts } from "@/lib/db";
+import { getBanners, getFlashSaleItems, getHomeVouchers, getVoucherPrograms, queryProducts } from "@/lib/db";
+import { groupVouchersByProgram } from "@/lib/voucher-programs";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ const CATEGORY_ROWS = 6;
 export default async function Home() {
   const lang = await getLang();
   const me = await getCurrentCustomer();
-  const homeVouchers = await getHomeVouchers(me?.id ?? null);
+  const [homeVouchers, voucherPrograms] = await Promise.all([getHomeVouchers(me?.id ?? null), getVoucherPrograms()]);
+  const voucherGroups = groupVouchersByProgram(voucherPrograms, homeVouchers);
   const banners = await getBanners();
   const slides = banners.length ? banners.map((b) => ({ image: b.image, href: b.href || "/shop/", alt: b.alt })) : fallbackSlides;
   const categories = await getHeaderCategories(lang);
@@ -60,7 +62,15 @@ export default async function Home() {
 
         <CategoryCarousel categories={categories} />
 
-        <VoucherStrip vouchers={homeVouchers.map((v) => ({ code: v.code, kind: v.kind, value: v.value, minSubtotal: v.minSubtotal, maxDiscount: v.maxDiscount, endsAt: v.endsAt, personal: v.personal, note: v.note }))} />
+        {voucherGroups.map(({ program, vouchers }) => (
+          <VoucherStrip
+            key={program.id}
+            title={program.name}
+            subtitle={program.subtitle}
+            color={program.color}
+            vouchers={vouchers.map((v) => ({ code: v.code, kind: v.kind, value: v.value, minSubtotal: v.minSubtotal, maxDiscount: v.maxDiscount, endsAt: v.endsAt, personal: v.personal, note: v.note }))}
+          />
+        ))}
 
         {showSales ? (
           <section className="mt-10" aria-label="Giảm giá">
