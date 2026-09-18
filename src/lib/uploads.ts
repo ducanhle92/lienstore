@@ -21,6 +21,8 @@ export const MIME_BY_EXT: Record<string, string> = {
   ".webp": "image/webp",
   ".gif": "image/gif",
   ".avif": "image/avif",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
   ".pdf": "application/pdf",
 };
 

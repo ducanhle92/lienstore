@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { saveHotBadgeAction, setProductHotAction } from "@/app/admin/promotions/actions";
+import { saveHotBadgeAction, setProductHotAction, unsetHotBulkAction } from "@/app/admin/promotions/actions";
+import { FilePickButton } from "@/components/sites/lienstore/admin/FilePickButton";
+import { BulkUnhotButton, HOT_BULK_FORM_ID, SelectAllHot } from "@/components/sites/lienstore/admin/HotBulk";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -34,7 +36,7 @@ export default async function BestSellersAdmin({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
-      <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title="Đánh dấu Hot cho sản phẩm">
           <form action={setProductHotAction} className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end" data-testid="hot-add-form">
             <input type="hidden" name="hot" value="1" />
@@ -56,13 +58,13 @@ export default async function BestSellersAdmin({ searchParams }: Props) {
             <img src={badge} alt="Nhãn Best seller hiện tại" className="max-h-[120px] w-auto max-w-full" data-testid="hot-badge-preview" />
           </div>
           <form action={saveHotBadgeAction} encType="multipart/form-data" className="grid gap-2">
-            <label className={adminLabel} htmlFor="badge-file">
-              Tải nhãn khác <span className="font-normal text-lien-muted">(PNG nền trong suốt, ngang khoảng 600×300)</span>
+            <label className={adminLabel}>
+              Tải nhãn khác <span className="font-normal text-lien-muted">(PNG / WebP / SVG / GIF / JPG / AVIF, nền trong suốt và ngang khoảng 600×300 là đẹp nhất, tối đa 5 MB)</span>
             </label>
-            <input id="badge-file" name="file" type="file" accept="image/png,image/webp,image/svg+xml,image/jpeg" className="text-[13px]" />
+            <FilePickButton name="file" accept="image/png,image/webp,image/svg+xml,image/gif,image/jpeg,image/avif,image/bmp" label="Chọn ảnh nhãn" className={btnSecondary} />
             <div className="flex flex-wrap gap-2">
               <button type="submit" className={btnPrimary}>
-                <Fa name="upload" /> Lưu nhãn
+                <Fa name="check" /> Lưu nhãn
               </button>
               {!isDefault ? (
                 <button type="submit" name="reset" value="1" className={btnSecondary}>
@@ -75,13 +77,26 @@ export default async function BestSellersAdmin({ searchParams }: Props) {
         </Card>
       </div>
 
-      <Card title={`Đang đánh dấu Hot (${hot.length})`}>
+      <Card
+        title={`Đang đánh dấu Hot (${hot.length})`}
+        actions={
+          hot.length ? (
+            <form id={HOT_BULK_FORM_ID} action={unsetHotBulkAction} className="flex items-center gap-2 text-[12px] text-lien-muted">
+              <span className="hidden sm:inline">Tích ô đầu dòng rồi</span>
+              <BulkUnhotButton className={btnSecondary} />
+            </form>
+          ) : null
+        }
+      >
         {hot.length === 0 ? (
           <p className="m-0 text-[14px] text-lien-muted">Chưa có sản phẩm nào. Chọn sản phẩm ở khung trên hoặc tích “Sản phẩm Hot” trong chi tiết sản phẩm.</p>
         ) : (
           <table className={tableClass} data-testid="hot-list">
             <thead>
               <tr>
+                <th className={`${thClass} w-8`}>
+                  <SelectAllHot />
+                </th>
                 <th className={thClass}>Sản phẩm</th>
                 <th className={`${thClass} text-right`}>Giá</th>
                 <th className={`${thClass} text-right`}>Đã bán</th>
@@ -93,13 +108,19 @@ export default async function BestSellersAdmin({ searchParams }: Props) {
               {hot.map((p) => (
                 <tr key={p.id}>
                   <td className={tdClass}>
+                    <input type="checkbox" name="ids" value={p.id} form={HOT_BULK_FORM_ID} aria-label={`Chọn ${p.name}`} className="h-4 w-4" />
+                  </td>
+                  <td className={tdClass}>
                     <div className="flex items-center gap-3">
                       <Image src={p.thumb} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded object-cover" />
                       <div>
                         <Link href={`/admin/products/${p.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                           {p.name}
                         </Link>
-                        <div className="text-[12px] text-lien-muted">#{p.id}{p.sku ? ` · ${p.sku}` : ""}</div>
+                        <div className="text-[12px] text-lien-muted">
+                          #{p.id}
+                          {p.sku ? ` · ${p.sku}` : ""}
+                        </div>
                       </div>
                     </div>
                   </td>

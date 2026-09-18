@@ -33,7 +33,19 @@ export async function setProductHotAction(formData: FormData): Promise<void> {
   back(BESTSELLERS, "saved", hot ? `Đã đánh dấu Hot: ${p.name}.` : `Đã bỏ Hot: ${p.name}.`);
 }
 
-const BADGE_TYPES = new Set(["image/png", "image/webp", "image/svg+xml", "image/jpeg"]);
+/** Un-mark every ticked product in the Hot list at once. */
+export async function unsetHotBulkAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const ids = [...new Set(formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter((n) => Number.isInteger(n)))];
+  if (!ids.length) back(BESTSELLERS, "error", "Chưa tích sản phẩm nào.");
+  let n = 0;
+  for (const id of ids) if (await setProductHot(id, false)) n++;
+  revalidatePath("/", "layout");
+  back(BESTSELLERS, "saved", `Đã bỏ Hot ${n} sản phẩm.`);
+}
+
+const BADGE_TYPES = new Set(["image/png", "image/webp", "image/svg+xml", "image/jpeg", "image/gif", "image/avif", "image/bmp"]);
+const BADGE_EXT: Record<string, string> = { "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg", "image/jpeg": "jpg", "image/gif": "gif", "image/avif": "avif", "image/bmp": "bmp" };
 /** Replace (or reset) the Best-seller badge drawn on Hot products' gallery. */
 export async function saveHotBadgeAction(formData: FormData): Promise<void> {
   await requireAdmin("promotions");
@@ -45,9 +57,9 @@ export async function saveHotBadgeAction(formData: FormData): Promise<void> {
   }
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return back(BESTSELLERS, "error", "Chọn file ảnh nhãn (PNG nền trong suốt là đẹp nhất).");
-  if (!BADGE_TYPES.has(file.type)) back(BESTSELLERS, "error", "Nhãn phải là PNG, WebP, SVG hoặc JPG.");
-  if (file.size > 3 * 1024 * 1024) back(BESTSELLERS, "error", "Nhãn tối đa 3 MB.");
-  const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/svg+xml" ? "svg" : file.type.split("/")[1];
+  if (!BADGE_TYPES.has(file.type)) back(BESTSELLERS, "error", "Nhãn phải là ảnh PNG, WebP, SVG, GIF, JPG, AVIF hoặc BMP.");
+  if (file.size > 5 * 1024 * 1024) back(BESTSELLERS, "error", "Nhãn tối đa 5 MB.");
+  const ext = BADGE_EXT[file.type] ?? "png";
   try {
     const saved = await saveUpload("badges", `best-seller-${Date.now()}.${ext}`, Buffer.from(await file.arrayBuffer()));
     const prev = getSetting(db, HOT_BADGE_SETTING)?.trim();

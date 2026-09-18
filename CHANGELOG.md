@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Sales › Sản phẩm bán chạy: nhãn Best seller tải lên không hiển thị (đường dẫn /api/files/badges chưa được phục vụ) — đã sửa; ảnh đã tải trước đó hiện lại bình thường.
+
+### Changed
+- Sales › Sản phẩm bán chạy: nút **Chọn ảnh nhãn** thay ô chọn tệp thô, nhận PNG / WebP / SVG / GIF / JPG / AVIF / BMP tới 5 MB; danh sách đang Hot có ô tích từng dòng, tích tất cả và nút **Bỏ Hot đã chọn** (hỏi xác nhận) bên cạnh nút Bỏ Hot từng dòng.
+
 ## [1.69.0] - 2026-09-18
 
 ### Added
