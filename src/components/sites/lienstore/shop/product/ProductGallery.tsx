@@ -73,7 +73,7 @@ export function ProductGallery({ images, alt, className, watermark = null, badge
           </div>
           {badge ? (
             // eslint-disable-next-line @next/next/no-img-element -- owner-uploaded badge, any size
-            <img src={badge} alt="Best seller" draggable={false} className="pointer-events-none absolute -top-2 -left-2 z-[6] w-[24%] max-w-[130px] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]" data-testid="hot-badge" />
+            <img src={badge} alt="Best seller" draggable={false} className="pointer-events-none absolute top-0 left-0 z-[6] w-[30%] max-w-[150px] -translate-x-[20%] -translate-y-[8%] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]" data-testid="hot-badge" />
           ) : null}
           {watermark ? (
             // eslint-disable-next-line @next/next/no-img-element -- theme logo, plain img keeps the overlay light

@@ -122,7 +122,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
         </div>
         {product.label ? (
           // eslint-disable-next-line @next/next/no-img-element -- animated GIF label must keep animating
-          <img src={product.label.image} alt={product.label.name} draggable={false} className="pointer-events-none absolute top-0 left-0 z-[1] w-[28%] max-w-[88px] select-none" data-testid="card-label" />
+          <img src={product.label.image} alt={product.label.name} draggable={false} className="pointer-events-none absolute top-0 left-0 z-[1] w-[34%] max-w-[104px] -translate-x-[20%] -translate-y-[8%] select-none" data-testid="card-label" />
         ) : null}
         <div className="absolute top-1.5 left-1.5 z-[2] flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />

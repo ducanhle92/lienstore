@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Nhãn sản phẩm: bù phần trong suốt quanh thẻ trong file GIF nên hình thẻ đỏ chạm hẳn góc trên trái ảnh, không còn khoảng trắng bên trái/trên (trang sản phẩm và thẻ sản phẩm).
+
 ## [1.71.1] - 2026-09-18
 
 ### Changed
