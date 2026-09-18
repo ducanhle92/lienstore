@@ -30,6 +30,7 @@ import type {
   ShopCategory,
   StaticPage,
   UserRole,
+  ProductLabel,
   Voucher,
   VoucherProgram,
 } from "@/types/shop";
@@ -100,6 +101,9 @@ interface ProductRow {
   margin_pct: number | null;
   tags: string;
   hot?: number | null;
+  label_id?: number | null;
+  label_name?: string | null;
+  label_image?: string | null;
   images: string;
   thumb: string;
   short_description: string;
@@ -117,8 +121,9 @@ interface ProductRow {
 }
 
 const PRODUCT_SELECT = `SELECT p.*,
-  (SELECT json_group_array(category_slug) FROM (SELECT category_slug FROM product_categories WHERE product_id = p.id ORDER BY position)) AS categories
-  FROM products p`;
+  (SELECT json_group_array(category_slug) FROM (SELECT category_slug FROM product_categories WHERE product_id = p.id ORDER BY position)) AS categories,
+  pl.name AS label_name, pl.image AS label_image
+  FROM products p LEFT JOIN product_labels pl ON pl.id = p.label_id AND pl.active = 1`;
 
 function parseArr(s: string | null): string[] {
   try {
@@ -160,6 +165,8 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     categories: parseArr(r.categories),
     tags: parseArr(r.tags),
     hot: (r.hot ?? 0) === 1,
+    labelId: r.label_id ?? null,
+    label: r.label_id && r.label_image ? { id: r.label_id, name: r.label_name ?? "", image: r.label_image } : null,
     images: parseArr(r.images),
     thumb: r.thumb,
     shortDescription: r.short_description,
@@ -422,6 +429,54 @@ export async function queryProducts(q: ProductQuery = {}): Promise<ProductQueryR
   return { items: items.slice(start, start + perPage), total, page, perPage, totalPages };
 }
 
+// ---- product labels (nhãn) ------------------------------------------------------------------------------------------
+
+interface ProductLabelRow {
+  id: number;
+  slug: string;
+  name: string;
+  image: string;
+  position: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+const rowToLabel = (r: ProductLabelRow): ProductLabel => ({ id: r.id, slug: r.slug, name: r.name, image: r.image, position: r.position, active: r.active === 1, createdAt: r.created_at, updatedAt: r.updated_at });
+
+export async function getProductLabels(): Promise<ProductLabel[]> {
+  return (getDb().prepare("SELECT * FROM product_labels ORDER BY position, id").all() as unknown as ProductLabelRow[]).map(rowToLabel);
+}
+
+export async function saveProductLabel(input: { id?: number; name: string; image?: string; position: number; active: boolean }): Promise<number> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const name = input.name.trim().slice(0, 60);
+  if (!name) throw new Error("Cần tên nhãn.");
+  if (input.id) {
+    const cur = db.prepare("SELECT image FROM product_labels WHERE id = ?").get(input.id) as { image: string } | undefined;
+    if (!cur) throw new Error("Không tìm thấy nhãn.");
+    db.prepare("UPDATE product_labels SET name = ?, image = ?, position = ?, active = ?, updated_at = ? WHERE id = ?").run(name, input.image || cur.image, Math.round(input.position) || 0, input.active ? 1 : 0, now, input.id);
+    return input.id;
+  }
+  if (!input.image) throw new Error("Cần ảnh nhãn.");
+  const base = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "nhan";
+  let slug = base;
+  for (let i = 2; db.prepare("SELECT 1 FROM product_labels WHERE slug = ?").get(slug); i++) slug = `${base}-${i}`;
+  const r = db.prepare("INSERT INTO product_labels (slug, name, image, position, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(slug, name, input.image, Math.round(input.position) || 0, input.active ? 1 : 0, now, now);
+  return Number(r.lastInsertRowid);
+}
+
+/** Deleting a label unpins it from every product (FK ON DELETE SET NULL). */
+export async function deleteProductLabel(id: number): Promise<void> {
+  getDb().prepare("DELETE FROM product_labels WHERE id = ?").run(id);
+}
+
+/** Pin one label on a product (null = remove). */
+export async function setProductLabel(productId: number, labelId: number | null): Promise<boolean> {
+  const r = getDb().prepare("UPDATE products SET label_id = ?, updated_at = ? WHERE id = ?").run(labelId, new Date().toISOString(), productId);
+  return r.changes > 0;
+}
+
 /** Flip the owner's Hot mark on one product. */
 export async function setProductHot(id: number, hot: boolean): Promise<boolean> {
   const r = getDb().prepare("UPDATE products SET hot = ?, updated_at = ? WHERE id = ?").run(hot ? 1 : 0, new Date().toISOString(), id);
@@ -515,7 +570,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.descriptionJa,
         id,
       );
-      db.prepare("UPDATE products SET hot = ? WHERE id = ?").run(input.hot ? 1 : 0, id);
+      db.prepare("UPDATE products SET hot = ?, label_id = ? WHERE id = ?").run(input.hot ? 1 : 0, input.labelId ?? null, id);
       db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(id);
     } else {
       const res = db.prepare(`INSERT INTO products (slug, name, price, regular_price, market_price, cost_price, supplier_url, min_stock, currency, sku, stock, stock_status, fulfillment, cost_jpy, cost_source, cost_url, cost_checked_at, margin_pct, tags, images, thumb,
@@ -559,7 +614,7 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
         input.descriptionJa ?? "",
       );
       id = Number(res.lastInsertRowid);
-      if (input.hot) db.prepare("UPDATE products SET hot = 1 WHERE id = ?").run(id);
+      if (input.hot || input.labelId) db.prepare("UPDATE products SET hot = ?, label_id = ? WHERE id = ?").run(input.hot ? 1 : 0, input.labelId ?? null, id);
     }
     const insPC = db.prepare("INSERT OR IGNORE INTO product_categories (product_id, category_slug, position) VALUES (?, ?, ?)");
     input.categories.forEach((slug, i) => insPC.run(id, slug, i));

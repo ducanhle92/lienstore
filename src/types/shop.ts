@@ -55,6 +55,10 @@ export interface CatalogProduct {
   tags: string[];
   /** Owner-ticked "Hot / bán chạy": home best-seller shelf, red Hot label, Best-seller badge on the product page. */
   hot: boolean;
+  /** Label (nhãn) pinned on the product picture, null = none. */
+  labelId: number | null;
+  /** Resolved label picture/name (active labels only) for the storefront. */
+  label: { id: number; name: string; image: string } | null;
   /** Full-size gallery image paths (local). */
   images: string[];
   /** 300×300 listing thumbnail path (local). */
@@ -451,6 +455,18 @@ export interface OrderMessage {
 }
 
 /** Discount code redeemable at checkout. */
+/** A product label ("nhãn"): a small (animated) tag picture pinned top-left on product pictures. */
+export interface ProductLabel {
+  id: number;
+  slug: string;
+  name: string;
+  image: string;
+  position: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** A voucher campaign: one home-page banner (title = name) in its own colour, holding many codes. */
 export interface VoucherProgram {
   id: number;

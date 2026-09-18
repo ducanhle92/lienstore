@@ -1,7 +1,7 @@
 import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getImportQuoteConfig, getPricingConfig, getPurchaseSourceDefault, listProductGroups, listPurchaseSources } from "@/lib/db";
+import { getCategories, getImportQuoteConfig, getPricingConfig, getProductLabels, getPurchaseSourceDefault, listProductGroups, listPurchaseSources } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export default async function NewProduct() {
   return (
     <>
       <PageHeader title="Thêm sản phẩm" back={{ href: "/admin/products/", label: "Sản phẩm" }} />
-      <ProductForm categories={categories} quote={quote} pricing={pricing} defaultSource={await getPurchaseSourceDefault()} groups={groups} sources={sources} />
+      <ProductForm categories={categories} quote={quote} pricing={pricing} defaultSource={await getPurchaseSourceDefault()} groups={groups} sources={sources} labels={await getProductLabels()} />
     </>
   );
 }

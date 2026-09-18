@@ -15,7 +15,7 @@ import { InfoPopover } from "./InfoPopover";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { billableProductWeightG, isDimsConfidence, LEG_LABEL, type ShippingQuoteConfig } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
-import type { CatalogProduct, CostSource, ProductGroup, PurchaseSource, ShopCategory } from "@/types/shop";
+import type { CatalogProduct, CostSource, ProductGroup, PurchaseSource, ShopCategory, ProductLabel } from "@/types/shop";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { DescriptionEditor } from "./DescriptionEditor";
@@ -34,6 +34,8 @@ interface ProductFormProps {
   pricing?: PricingConfig;
   /** SKU proposed by the convention (existing products only). */
   skuSuggestion?: string;
+  /** Label set (Sales › Nhãn sản phẩm) for the "Nhãn" picker. */
+  labels?: ProductLabel[];
   /** Variant families to pick from (Kho hàng › Nhóm biến thể). */
   groups?: ProductGroup[];
   /** Purchase-source registry (Kho hàng › Nguồn nhập). */
@@ -101,7 +103,7 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, labels = [], costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
   const [editSlug, setEditSlug] = useState(false);
   const [stockMode, setStockMode] = useState<"order" | "stock">(product ? (product.stock !== null || product.fulfillment === "stock" ? "stock" : "order") : "order");
@@ -730,6 +732,20 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <select id="status" name="status" defaultValue={product?.status ?? "publish"} className={adminInput}>
                   <option value="publish">Đang bán</option>
                   <option value="draft">Bản nháp (ẩn)</option>
+                </select>
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="labelId">
+                  Nhãn trên ảnh <InfoPopover>Ảnh nhãn động (BEST SELLER, SALE, NEW ARRIVAL…) ghim ở góc trên trái ảnh sản phẩm trên thẻ và trang sản phẩm. Quản lý bộ nhãn và danh sách sản phẩm theo nhãn ở Sales › Nhãn sản phẩm.</InfoPopover>
+                </label>
+                <select id="labelId" name="labelId" defaultValue={product?.labelId ?? ""} className={adminInput} data-testid="label-select">
+                  <option value="">— Không nhãn —</option>
+                  {labels.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                      {l.active ? "" : " (đang ẩn)"}
+                    </option>
+                  ))}
                 </select>
               </div>
               <label className="inline-flex items-start gap-2 rounded-md border border-[#fecaca] bg-red-50/60 px-3 py-2 text-[14px] text-lien-heading" data-testid="hot-toggle">

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { expectedPriceOf } from "@/lib/price-display";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveVoucher, saveVoucherProgram, setProductHot, setShipPolicy, updateProductPricing } from "@/lib/db";
+import { deleteProductLabel, deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveProductLabel, saveVoucher, saveVoucherProgram, setProductHot, setProductLabel, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
 import { HOT_BADGE_SETTING } from "@/lib/hot-badge";
@@ -16,6 +16,7 @@ const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
 const FLASH_SALE = "/admin/promotions/flash-sale/";
 const BESTSELLERS = "/admin/promotions/bestsellers/";
+const LABELS = "/admin/promotions/labels/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
@@ -31,6 +32,56 @@ export async function setProductHotAction(formData: FormData): Promise<void> {
   await setProductHot(id, hot);
   revalidatePath("/", "layout");
   back(BESTSELLERS, "saved", hot ? `Đã đánh dấu Hot: ${p.name}.` : `Đã bỏ Hot: ${p.name}.`);
+}
+
+const LABEL_TYPES: Record<string, string> = { "image/gif": "gif", "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg", "image/avif": "avif", "image/jpeg": "jpg" };
+
+/** Sales › Nhãn sản phẩm: create or edit a label (name, picture, order, on/off). */
+export async function saveProductLabelAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const idRaw = text(formData, "id");
+  const id = idRaw ? Number.parseInt(idRaw, 10) : undefined;
+  const backTo = id ? `${LABELS}?open=${id}` : LABELS;
+  let image = "";
+  try {
+    const file = formData.get("file");
+    if (file instanceof File && file.size > 0) {
+      if (!LABEL_TYPES[file.type]) return back(backTo, "error", "Ảnh nhãn phải là GIF, PNG, WebP, SVG, AVIF hoặc JPG.");
+      if (file.size > 5 * 1024 * 1024) return back(backTo, "error", "Ảnh nhãn tối đa 5 MB.");
+      const saved = await saveUpload("badges", `label-${Date.now()}.${LABEL_TYPES[file.type]}`, Buffer.from(await file.arrayBuffer()));
+      image = saved.url;
+    }
+    const savedId = await saveProductLabel({ id, name: text(formData, "name"), image: image || undefined, position: Number.parseInt(text(formData, "position"), 10) || 0, active: formData.get("active") === "on" });
+    revalidatePath("/", "layout");
+    back(`${LABELS}?open=${savedId}`, "saved", id ? "Đã lưu nhãn." : "Đã thêm nhãn mới.");
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(backTo, "error", e instanceof Error ? e.message : "Không lưu được nhãn.");
+  }
+}
+
+export async function deleteProductLabelAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const id = Number.parseInt(text(formData, "id"), 10);
+  if (Number.isInteger(id)) await deleteProductLabel(id);
+  revalidatePath("/", "layout");
+  back(LABELS, "saved", "Đã xoá nhãn; các sản phẩm từng gắn nhãn này giờ không có nhãn.");
+}
+
+/** Pin a label on a product (labelId blank = remove). `back` = label id whose panel stays open. */
+export async function assignLabelAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const productId = Number.parseInt(text(formData, "productId"), 10);
+  const labelRaw = text(formData, "labelId");
+  const labelId = labelRaw ? Number.parseInt(labelRaw, 10) : null;
+  const open = text(formData, "back") || labelRaw;
+  const to = open ? `${LABELS}?open=${open}` : LABELS;
+  if (!Number.isInteger(productId)) return back(to, "error", "Chọn một sản phẩm.");
+  const p = await getProductById(productId);
+  if (!p) return back(to, "error", "Không tìm thấy sản phẩm.");
+  await setProductLabel(productId, labelId && Number.isInteger(labelId) ? labelId : null);
+  revalidatePath("/", "layout");
+  back(to, "saved", labelId ? `Đã gắn nhãn cho ${p.name}.` : `Đã gỡ nhãn khỏi ${p.name}.`);
 }
 
 /** Un-mark every ticked product in the Hot list at once. */

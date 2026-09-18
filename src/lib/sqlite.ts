@@ -1139,6 +1139,42 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE products SET hot = 1 WHERE lower(tags) LIKE '%"hot"%' OR lower(tags) LIKE '%bestseller%' OR lower(tags) LIKE '%best seller%' OR tags LIKE '%bán chạy%' OR lower(tags) LIKE '%ban chay%'`,
     ],
   },
+  {
+    // Product labels ("nhãn"): a set of animated tag pictures (BEST SELLER, SALE, NEW ARRIVAL…) the owner pins on
+    // products — at most one per product, shown top-left of the picture on cards and the product page.
+    version: 53,
+    name: "product-labels",
+    up: [
+      `CREATE TABLE IF NOT EXISTS product_labels (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug       TEXT NOT NULL UNIQUE,
+        name       TEXT NOT NULL,
+        image      TEXT NOT NULL,
+        position   INTEGER NOT NULL DEFAULT 0,
+        active     INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      )`,
+      `INSERT OR IGNORE INTO product_labels (slug, name, image, position) VALUES
+         ('best-seller', 'BEST SELLER', '/sites/lienstore/labels/best-seller.gif', 0),
+         ('best-deal', 'BEST DEAL', '/sites/lienstore/labels/best-deal.gif', 1),
+         ('sale', 'SALE', '/sites/lienstore/labels/sale.gif', 2),
+         ('best-price', 'BEST PRICE', '/sites/lienstore/labels/best-price.gif', 3),
+         ('big-sale', 'BIG SALE', '/sites/lienstore/labels/big-sale.gif', 4),
+         ('black-sale', 'BLACK SALE', '/sites/lienstore/labels/black-sale.gif', 5),
+         ('flash-sale', 'FLASH SALE', '/sites/lienstore/labels/flash-sale.gif', 6),
+         ('half-price', 'HALF PRICE', '/sites/lienstore/labels/half-price.gif', 7),
+         ('hot-deal', 'HOT DEAL', '/sites/lienstore/labels/hot-deal.gif', 8),
+         ('huge-discount', 'HUGE DISCOUNT', '/sites/lienstore/labels/huge-discount.gif', 9),
+         ('mega-sale', 'MEGA SALE', '/sites/lienstore/labels/mega-sale.gif', 10),
+         ('new-arrival', 'NEW ARRIVAL', '/sites/lienstore/labels/new-arrival.gif', 11),
+         ('new-collection', 'NEW COLLECTION', '/sites/lienstore/labels/new-collection.gif', 12),
+         ('new-offer', 'NEW OFFER', '/sites/lienstore/labels/new-offer.gif', 13),
+         ('only-today-sale', 'ONLY TODAY SALE', '/sites/lienstore/labels/only-today-sale.gif', 14),
+         ('order-now', 'ORDER NOW!', '/sites/lienstore/labels/order-now.gif', 15)`,
+      `ALTER TABLE products ADD COLUMN label_id INTEGER REFERENCES product_labels(id) ON DELETE SET NULL`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

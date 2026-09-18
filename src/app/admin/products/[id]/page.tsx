@@ -4,7 +4,7 @@ import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
 import { suggestSku } from "@/lib/sku";
 import { PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getCategories, getImportQuoteConfig, getMonthlyUnitsSold, getPricingConfig, getProductById, getPurchaseSourceDefault, listCostSources, listProductChanges, listProductGroups, listPurchaseSources } from "@/lib/db";
+import { getCategories, getImportQuoteConfig, getMonthlyUnitsSold, getPricingConfig, getProductById, getProductLabels, getPurchaseSourceDefault, listCostSources, listProductChanges, listProductGroups, listPurchaseSources } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function EditProduct({ params }: Props) {
           </a>
         }
       />
-      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} costSources={costSources} defaultSource={defaultSource} groups={groups} sources={sources} monthlySales={getMonthlyUnitsSold(product.id, 6)} changes={listProductChanges(product.id, 60)} />
+      <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} labels={await getProductLabels()} costSources={costSources} defaultSource={defaultSource} groups={groups} sources={sources} monthlySales={getMonthlyUnitsSold(product.id, 6)} changes={listProductChanges(product.id, 60)} />
     </>
   );
 }

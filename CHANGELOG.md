@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Nhãn sản phẩm** (Sales › Nhãn sản phẩm): bộ 16 nhãn động dạng thẻ đỏ (BEST SELLER, BEST DEAL, SALE, BEST PRICE, BIG SALE, BLACK SALE, FLASH SALE, HALF PRICE, HOT DEAL, HUGE DISCOUNT, MEGA SALE, NEW ARRIVAL, NEW COLLECTION, NEW OFFER, ONLY TODAY SALE, ORDER NOW!) — mỗi nhãn có danh sách sản phẩm riêng (thêm bằng ô tìm, gỡ từng dòng), đổi tên/ảnh/thứ tự/ẩn, thêm nhãn mới, xoá nhãn. Mỗi sản phẩm mang tối đa một nhãn; chọn được ngay trong chi tiết sản phẩm (ô “Nhãn trên ảnh”). Nhãn hiện ở góc trên trái ảnh trên thẻ sản phẩm và trang sản phẩm (GIF giữ chuyển động).
+
+### Changed
+- Nhãn Best seller mặc định của sản phẩm Hot đổi sang thẻ động BEST SELLER trong bộ mới; sản phẩm có nhãn riêng thì nhãn riêng được ưu tiên.
+
 ## [1.69.1] - 2026-09-18
 
 ### Fixed
