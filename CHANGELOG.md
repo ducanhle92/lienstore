@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.69.1] - 2026-09-18
+
 ### Fixed
 - Sales › Sản phẩm bán chạy: nhãn Best seller tải lên không hiển thị (đường dẫn /api/files/badges chưa được phục vụ) — đã sửa; ảnh đã tải trước đó hiện lại bình thường.
 
