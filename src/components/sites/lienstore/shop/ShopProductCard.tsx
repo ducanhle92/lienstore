@@ -120,11 +120,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
             <span className="rounded bg-lien-success px-1 py-0.5 text-[10px] font-semibold leading-4 text-white sm:px-1.5 sm:text-[11px]" data-testid="badge-available"><T k="availableNow" /></span>
           ) : null}
         </div>
-        {product.label ? (
-          // eslint-disable-next-line @next/next/no-img-element -- animated GIF label must keep animating
-          <img src={product.label.image} alt={product.label.name} draggable={false} className="pointer-events-none absolute top-0 left-0 z-[1] w-[34%] max-w-[104px] -translate-x-[20%] -translate-y-[8%] select-none" data-testid="card-label" />
-        ) : null}
-        <div className="absolute top-1.5 left-1.5 z-[2] flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 opacity-0 sm:top-2 sm:left-2 transition-opacity group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <WishlistButton product={toCartProduct(product)} className="flex h-7 w-7 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white sm:h-8 sm:w-8 sm:text-[14px]" />
           <QuickViewButton product={toQuickView(product)} className="flex h-8 w-8 items-center justify-center rounded-full border border-lien-line bg-white text-[13px] text-lien-heading shadow-sm hover:bg-lien-blue hover:text-white [@media(hover:none)]:hidden" iconOnly />
         </div>
