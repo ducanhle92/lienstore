@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Phát hành lại 1.67.0 (chương trình voucher): CI của bản trước lỗi tạm thời ở bước build Docker image nên prod không nhận được bản mới; nội dung không đổi.
+
 ## [1.67.0] - 2026-09-18
 
 ### Added
