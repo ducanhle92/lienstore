@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatAmount } from "@/lib/format";
 import { priceView } from "@/lib/price-display";
+import { ZALO_URL } from "@/lib/contact-links";
 import { cn } from "@/lib/utils";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { AddToCartButton } from "./AddToCartButton";
@@ -124,7 +125,8 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
               product={cartProduct}
               quantity={qty}
               variant="square"
-              disabled={out || noPrice}
+              disabled={out}
+              contactHref={noPrice ? ZALO_URL : undefined}
               label={noPrice ? "Liên hệ đặt hàng" : undefined}
               className="font-arial"
             />

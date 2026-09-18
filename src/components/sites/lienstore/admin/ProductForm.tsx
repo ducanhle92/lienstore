@@ -429,9 +429,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
               <div className="grid gap-3" data-testid="price-trio">
                 <div>
                   <label className={adminLabel} htmlFor="expectedPrice">
-                    Giá bán trên web (VNĐ) *
+                    Giá bán trên web (VNĐ) <span className="font-normal text-lien-muted">— để trống = “Liên hệ” (khách bấm sang Zalo)</span>
                   </label>
-                  <input id="expectedPrice" name="expectedPrice" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} required className={cn(adminInput, fields.price && "border-red-500")} />
+                  <input id="expectedPrice" name="expectedPrice" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} placeholder="trống = Liên hệ" className={cn(adminInput, fields.price && "border-red-500")} />
                   <FieldError msg={fields.price} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">

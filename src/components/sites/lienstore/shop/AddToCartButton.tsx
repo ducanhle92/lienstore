@@ -18,6 +18,8 @@ interface AddToCartButtonProps {
   showViewCart?: boolean;
   className?: string;
   linkClassName?: string;
+  /** No price yet: render a link (same shape, contact colour) that opens this URL — the shop's Zalo — instead of adding to cart. */
+  contactHref?: string;
 }
 
 const VARIANT_CLASS: Record<Variant, string> = {
@@ -40,6 +42,7 @@ export function AddToCartButton({
   showViewCart,
   className,
   linkClassName,
+  contactHref,
 }: AddToCartButtonProps) {
   const { add, openDrawer } = useCart();
   const [added, setAdded] = useState(false);
@@ -59,6 +62,14 @@ export function AddToCartButton({
       if (!withLink) window.setTimeout(() => setAdded(false), 1800);
     }, 250);
   };
+
+  if (contactHref) {
+    return (
+      <a href={contactHref} target="_blank" rel="noreferrer" className={cn(VARIANT_CLASS[variant], "!bg-lien-contact hover:!brightness-95", className)} data-testid="contact-zalo">
+        {label}
+      </a>
+    );
+  }
 
   return (
     <>

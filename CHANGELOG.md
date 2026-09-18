@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Tạo sản phẩm mới không còn bắt buộc ảnh và giá: để trống giá thì sản phẩm hiện **“Liên hệ”** (thẻ, xem nhanh, trang sản phẩm), chưa có ảnh thì dùng ảnh “Ảnh đang cập nhật” cho tới khi thêm ảnh thật.
+- Bấm “Liên hệ” / “Liên hệ đặt hàng” (nút điện thoại trên thẻ, nút ở xem nhanh và trang sản phẩm) mở Zalo của shop trong tab mới thay vì nút bị vô hiệu.
+
 ## [1.67.1] - 2026-09-18
 
 ### Fixed

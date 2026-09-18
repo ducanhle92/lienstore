@@ -8,6 +8,7 @@ import { availabilityOf } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CatalogProduct } from "@/types/shop";
+import { ZALO_URL } from "@/lib/contact-links";
 import { AddToCartButton } from "../AddToCartButton";
 import { toCartProduct } from "../ShopProductCard";
 import { priceView } from "@/lib/price-display";
@@ -125,10 +126,10 @@ export function ProductInfo2({ product, categoryNames, children, group = null, v
           quantity={qty}
           variant="primary"
           label={noPrice ? t("contactToOrder") : out ? t("outOfStock") : t("addToCart")}
-          disabled={out || noPrice}
+          disabled={out}
+          contactHref={noPrice ? ZALO_URL : undefined}
           showViewCart
           linkClassName="w-full basis-full"
-          className={noPrice ? "!bg-lien-contact !opacity-100" : undefined}
         />
         <WishlistButton product={toCartProduct(product)} className="flex h-11 w-11 items-center justify-center rounded-full border border-lien-line text-[16px] text-lien-heading hover:border-lien-blue hover:text-lien-blue" />
       </form>

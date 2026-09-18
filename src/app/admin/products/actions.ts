@@ -7,6 +7,7 @@ import { billableProductWeightG, isDimsConfidence } from "@/lib/shipping";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can, getAdminSession } from "@/lib/auth";
+import { NO_IMAGE } from "@/lib/contact-links";
 import { storedPrices } from "@/lib/price-display";
 import { deleteProduct, getCategories, getJpyRate, getPricingConfig, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
 import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
@@ -46,10 +47,10 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (!slug) fields.slug = "Đường dẫn không hợp lệ.";
   else if (await slugExists(slug, id)) fields.slug = "Đường dẫn đã tồn tại, hãy chọn đường dẫn khác.";
 
-  // three prices (lib/price-display.ts): expected web price (required) · promo (optional, must be lower) · market reference
+  // three prices (lib/price-display.ts): web price (blank / 0 = "Liên hệ" — the shopper is sent to Zalo) · promo · market reference
   const expectedRaw = get("expectedPrice") || get("regularPrice") || get("price");
-  const expected = parseIntField(expectedRaw);
-  if (expected === null || expected < 0) fields.price = "Giá bán trên web phải là số nguyên ≥ 0.";
+  const expected = expectedRaw ? parseIntField(expectedRaw) : 0;
+  if (expected === null || expected < 0) fields.price = "Giá bán trên web phải là số nguyên ≥ 0 (để trống = Liên hệ).";
   const promoRaw = get("expectedPrice") ? get("promoPrice") : get("regularPrice") ? get("price") : "";
   const promo = promoRaw ? parseIntField(promoRaw) : null;
   if (promoRaw && promo === null) fields.promoPrice = "Giá khuyến mại không hợp lệ.";
@@ -123,8 +124,8 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const thumb = get("thumb") || (images[0] ? await resolveThumbFor(images[0]) : "");
-  if (!thumb) fields.images = "Cần ít nhất một ảnh (đường dẫn /sites/... hoặc https://...).";
+  // no picture yet → the shared "Ảnh đang cập nhật" placeholder; the owner adds real photos later
+  const thumb = get("thumb") || (images[0] ? await resolveThumbFor(images[0]) : NO_IMAGE);
 
   const tags = get("tags")
     .split(",")

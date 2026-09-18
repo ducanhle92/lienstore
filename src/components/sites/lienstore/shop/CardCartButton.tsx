@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
+import { ZALO_URL } from "@/lib/contact-links";
 import { cn } from "@/lib/utils";
 import { useCart, type CartProduct } from "./CartProvider";
 
@@ -46,18 +47,31 @@ export function CardCartButton({ product, disabled = false, noPrice = false, cla
       >
         {noPrice ? t("contactForPrice") : disabled ? t("outOfStock") : done ? t("added") : t("addToCart")}
       </span>
+      {noPrice ? (
+        <a
+          href={ZALO_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${t("contactForPrice")} Zalo: ${product.name}`}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-lien-contact text-[19px] text-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)] transition-transform hover:scale-105 [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:text-[14px]"
+          data-testid="card-contact-zalo"
+        >
+          <Fa name="phone" />
+        </a>
+      ) : (
       <button
-        type="button"
-        onClick={onClick}
-        disabled={isDisabled}
-        aria-label={noPrice ? t("contactForPrice") : disabled ? t("outOfStock") : `${t("addToCart")}: ${product.name}`}
-        className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-full text-[19px] text-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)] transition-transform hover:scale-105 disabled:cursor-not-allowed [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:text-[14px]",
-          noPrice ? "bg-lien-contact" : isDisabled ? "bg-lien-muted" : done ? "bg-lien-success" : "bg-lien-success group-hover/cart:bg-lien-sale group-focus-within/cart:bg-lien-sale",
-        )}
-      >
-        <Fa name={noPrice ? "phone" : done ? "check" : "shopping-cart"} />
-      </button>
+          type="button"
+          onClick={onClick}
+          disabled={isDisabled}
+          aria-label={noPrice ? t("contactForPrice") : disabled ? t("outOfStock") : `${t("addToCart")}: ${product.name}`}
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full text-[19px] text-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.5)] transition-transform hover:scale-105 disabled:cursor-not-allowed [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:text-[14px]",
+            noPrice ? "bg-lien-contact" : isDisabled ? "bg-lien-muted" : done ? "bg-lien-success" : "bg-lien-success group-hover/cart:bg-lien-sale group-focus-within/cart:bg-lien-sale",
+          )}
+        >
+          <Fa name={noPrice ? "phone" : done ? "check" : "shopping-cart"} />
+        </button>
+      )}
     </div>
   );
 }
