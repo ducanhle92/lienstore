@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
+import { SearchSuggest } from "./SearchSuggest";
 
 interface SearchModalProps {
   /** Class for the trigger link/button (styled by the caller to match the nav item). */
@@ -40,7 +41,8 @@ export function SearchModal({ triggerClassName }: SearchModalProps) {
             >
               ×
             </button>
-            <form role="search" method="get" action="/shop/" className="search-form flex rounded-[3px] border-2 border-lien-blue bg-white">
+            <SearchSuggest panelClassName="!static !mt-3 !w-full !min-w-0 !shadow-none">
+            <form role="search" method="get" action="/shop/" autoComplete="off" className="search-form flex rounded-[3px] border-2 border-lien-blue bg-white">
               <label htmlFor="main-search-form" className="sr-only">
                 Search for:
               </label>
@@ -56,6 +58,7 @@ export function SearchModal({ triggerClassName }: SearchModalProps) {
                 <Fa name="search" className="text-[21px] leading-[21px]" />
               </button>
             </form>
+            </SearchSuggest>
           </div>
         </div>
       ) : null}

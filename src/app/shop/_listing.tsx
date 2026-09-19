@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductListing } from "@/components/sites/lienstore/shop/ProductListing";
 import { queryProducts } from "@/lib/db";
+import { logSearch } from "@/lib/search-suggest";
 import type { ProductOrderBy } from "@/types/shop";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang-server";
@@ -37,6 +38,7 @@ export async function ShopListing({ page, searchParams }: ShopListingProps) {
   const lang = await getLang();
   const orderby = parseOrderBy(searchParams.orderby);
   const s = first(searchParams.s)?.trim() || undefined;
+  if (s && page === 1) logSearch(s); // feeds "Xu hướng tìm kiếm" in the header search dropdown
   const productCat = first(searchParams.product_cat) || undefined;
   const tag = first(searchParams.tag) || undefined;
   const onSale = first(searchParams.onsale) === "1";

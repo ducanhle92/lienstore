@@ -7,6 +7,9 @@ import { requireAdmin } from "@/lib/auth";
 import { deleteProductLabel, deleteVoucher, deleteVoucherProgram, type FlashDiscount, getFlashSaleItems, getProductById, removeFlashSaleProduct, reorderFlashSaleProducts, resolveCustomerRefs, saveFlashSaleProduct, saveProductLabel, saveVoucher, saveVoucherProgram, setProductLabel, setShipPolicy, updateProductPricing } from "@/lib/db";
 import type { ShipPolicy } from "@/lib/ship-policy";
 import { parseAmount } from "@/lib/format";
+import { invalidateSearchSuggest, saveList, SEARCH_KEYS, searchLists } from "@/lib/search-suggest";
+import { normalizeQuery } from "@/lib/search-suggest-pure";
+import { getDb } from "@/lib/sqlite";
 import { saveUpload } from "@/lib/uploads";
 import { isVoucherColor } from "@/lib/voucher-programs";
 
@@ -14,6 +17,7 @@ const DISCOUNTS = "/admin/promotions/discounts/";
 const VOUCHERS = "/admin/promotions/vouchers/";
 const FLASH_SALE = "/admin/promotions/flash-sale/";
 const LABELS = "/admin/promotions/labels/";
+const SEARCH = "/admin/promotions/search/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
@@ -66,6 +70,33 @@ export async function assignLabelAction(formData: FormData): Promise<void> {
   await setProductLabel(productId, labelId && Number.isInteger(labelId) ? labelId : null);
   revalidatePath("/", "layout");
   back(to, "saved", labelId ? `Đã gắn nhãn cho ${p.name}.` : `Đã gỡ nhãn khỏi ${p.name}.`);
+}
+
+/** Sales › Gợi ý tìm kiếm: pinned trending terms + brand list (one per line). */
+export async function saveSearchSuggestAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const db = getDb();
+  const lines = (k: string) => text(formData, k).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  saveList(db, SEARCH_KEYS.pinned, lines("pinned"));
+  saveList(db, SEARCH_KEYS.brands, lines("brands"));
+  invalidateSearchSuggest();
+  revalidatePath("/", "layout");
+  back(SEARCH, "saved", "Đã lưu gợi ý tìm kiếm.");
+}
+
+/** Hide (or show again) one searched term in the trending list. */
+export async function hideSearchTermAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const db = getDb();
+  const term = text(formData, "term");
+  const hide = text(formData, "hidden") === "1";
+  const cur = searchLists(db).hidden;
+  const norm = normalizeQuery(term);
+  const next = hide ? [...cur, term] : cur.filter((x) => normalizeQuery(x) !== norm);
+  saveList(db, SEARCH_KEYS.hidden, next);
+  invalidateSearchSuggest();
+  revalidatePath("/", "layout");
+  back(SEARCH, "saved", hide ? `Đã ẩn “${term}” khỏi gợi ý.` : `Đã hiện lại “${term}”.`);
 }
 
 /** Put a product on sale: keeps the current price as the crossed-out regular price unless one is given. */

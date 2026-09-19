@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Gợi ý khi tìm kiếm**: bấm vào ô tìm kiếm (máy tính và bản mobile) hiện bảng “Xu hướng tìm kiếm” (từ khoá khách hay tìm 30 ngày gần đây, chưa có thì lấy từ khoá sản phẩm phổ biến, cộng từ khoá bạn ghim) và “Thương hiệu nổi bật” (danh sách bạn nhập, chưa nhập thì web tự đoán từ tên sản phẩm); gõ chữ thì lọc chip, bấm chip là tìm ngay. Lượt tìm của khách được ghi lại.
+- **Sales › Gợi ý tìm kiếm**: xem bảng đang hiện cho khách, ghim từ khoá, nhập danh sách thương hiệu, xem từ khoá khách đã tìm 30 ngày và ẩn từ khoá không muốn gợi ý.
+
 ## [1.71.3] - 2026-09-18
 
 ### Changed

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { OPEN_ACCOUNT_EVENT } from "@/components/sites/lienstore/shared/open-account";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
+import { SearchSuggest } from "@/components/sites/lienstore/shop/SearchSuggest";
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
@@ -210,12 +211,14 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
           </Link>
         </nav>
 
-        <form action="/shop/" method="get" role="search" className="ml-auto hidden h-[42px] min-w-[220px] flex-1 items-center overflow-hidden rounded-full border border-white/40 bg-white focus-within:border-white md:flex md:max-w-[420px] xl:max-w-[560px] 2xl:max-w-[640px]">
-          <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
-          <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-blue hover:text-lien-blue-hover">
-            <Fa name="search" />
-          </button>
-        </form>
+        <SearchSuggest className="ml-auto hidden min-w-[220px] flex-1 md:block md:max-w-[420px] xl:max-w-[560px] 2xl:max-w-[640px]" panelClassName="min-w-[360px] lg:w-[560px]">
+          <form action="/shop/" method="get" role="search" autoComplete="off" className="flex h-[42px] w-full items-center overflow-hidden rounded-full border border-white/40 bg-white focus-within:border-white">
+            <input name="s" placeholder={t("searchPlaceholder")} aria-label={t("searchPlaceholder")} autoComplete="off" className="h-full flex-1 bg-transparent pl-4 text-[14px] text-lien-text outline-none placeholder:text-lien-muted" />
+            <button type="submit" aria-label={t("search")} className="flex h-full w-11 items-center justify-center text-[16px] text-lien-blue hover:text-lien-blue-hover">
+              <Fa name="search" />
+            </button>
+          </form>
+        </SearchSuggest>
 
         <div className="flex items-center gap-1 sm:gap-2">
           <button

@@ -71,6 +71,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/promotions/vouchers/", label: "Voucher", icon: "gift", module: "promotions" },
       { href: "/admin/promotions/shipping-policy/", label: "Chính sách vận chuyển", icon: "truck", module: "promotions" },
       { href: "/admin/promotions/labels/", label: "Nhãn sản phẩm", icon: "tags", module: "promotions" },
+      { href: "/admin/promotions/search/", label: "Gợi ý tìm kiếm", icon: "search", module: "promotions" },
       { href: "/admin/reviews/", label: "Feedback khách hàng", icon: "star", module: "reviews" },
     ],
   },

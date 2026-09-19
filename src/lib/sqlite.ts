@@ -1186,6 +1186,21 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE products SET label_id = (SELECT id FROM product_labels WHERE slug = 'best-seller') WHERE hot = 1 AND label_id IS NULL`,
     ],
   },
+  {
+    // Shopper searches (/shop/?s=) are counted so the header search can suggest "Xu hướng tìm kiếm".
+    version: 55,
+    name: "search-log",
+    up: [
+      `CREATE TABLE IF NOT EXISTS search_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        q          TEXT NOT NULL,
+        q_norm     TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_search_log_norm ON search_log(q_norm, created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_search_log_time ON search_log(created_at)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

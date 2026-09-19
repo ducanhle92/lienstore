@@ -25,6 +25,8 @@ const DICT = {
   news: ["Tin tức", "ニュース"],
   about: ["Về chúng tôi", "会社紹介"],
   searchPlaceholder: ["Tìm kiếm sản phẩm", "商品を検索"],
+  trendingSearches: ["Xu hướng tìm kiếm", "人気の検索キーワード"],
+  featuredBrands: ["Thương hiệu nổi bật", "注目ブランド"],
   search: ["Tìm", "検索"],
   account: ["Tài khoản", "アカウント"],
   wishlist: ["Yêu thích", "お気に入り"],
