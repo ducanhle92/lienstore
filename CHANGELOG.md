@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.73.0] - 2026-09-21
+
 ### Fixed
 - iPhone: bấm vào ô tìm kiếm (và các ô nhập trong admin) không còn bị Safari tự phóng to trang — chữ trong ô nhập trên điện thoại đặt 16px.
 
