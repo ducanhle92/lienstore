@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Admin trên điện thoại: thanh trên cùng (tên shop + ☰) kéo hết chiều ngang màn hình và dính ở trên khi cuộn; trang không còn bị tràn ngang do nội dung rộng.
+
 ## [1.73.0] - 2026-09-21
 
 ### Fixed

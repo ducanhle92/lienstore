@@ -154,7 +154,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
   }, [drawer]);
 
   return (
-    <aside className="flex w-full flex-col bg-lien-footer text-white md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto" data-testid="admin-sidebar">
+    <aside className="flex w-full flex-col bg-lien-footer text-white max-md:sticky max-md:top-0 max-md:z-40 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto" data-testid="admin-sidebar">
       {/* phone top bar */}
       <div className="flex items-center justify-between gap-3 px-3 py-2.5 md:hidden">
         <Link href="/admin/" className="min-w-0 truncate font-oswald text-[19px] leading-7 text-white no-underline">

@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-lien-page md:flex-row md:items-start">
+    <div className="flex min-h-screen w-full max-w-[100vw] flex-col bg-lien-page max-md:overflow-x-hidden md:flex-row md:items-start">
       <AdminNav permissions={session.permissions} userLabel={session.label} role={session.role} shopName={theme.shopName} />
       <main className="min-w-0 flex-1 px-3 py-4 md:px-8 md:py-6">
         <div className="mx-auto max-w-[1200px]">
