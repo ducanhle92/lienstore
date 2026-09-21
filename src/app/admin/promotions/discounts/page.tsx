@@ -27,7 +27,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
   const editId = Number.parseInt(first(sp.edit), 10);
   const editing = Number.isInteger(editId) ? products.find((p) => p.id === editId) : undefined;
   // type-ahead picker (like Flash Sales) instead of a 500-row dropdown
-  const toPick = (p: (typeof products)[number]): PickableProduct => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock });
+  const toPick = (p: (typeof products)[number]): PickableProduct => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock });
   const pickable = products.map(toPick);
 
   return (

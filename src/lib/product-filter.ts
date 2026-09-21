@@ -6,7 +6,9 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
     const v = sp[k];
     return ((Array.isArray(v) ? v[0] : v) ?? "").trim();
   };
-  const q = first("q").toLowerCase();
+  // accent-insensitive so "kem chong nang" finds "Kem chống nắng"; the Japanese name (フルグラ) is searched too
+  const fold = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+  const q = fold(first("q"));
   const status = first("status");
   const category = first("category");
   const stock = first("stock");
@@ -15,7 +17,7 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
   const sort = first("sort") || "updated";
   const dir = first("dir") === "asc" ? 1 : -1;
   const items = all
-    .filter((p) => !q || `${p.name} ${p.slug} ${p.sku ?? ""} #${p.id}`.toLowerCase().includes(q))
+    .filter((p) => !q || fold(`${p.name} ${p.nameJa} ${p.slug} ${p.sku ?? ""} #${p.id}`).includes(q))
     .filter((p) => !status || p.status === status)
     .filter((p) => !category || p.categories.includes(category))
     .filter((p) => !stock || (stock === "out" ? p.stockStatus === "discontinued" : p.stockStatus === "instock"))

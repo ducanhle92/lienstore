@@ -26,7 +26,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
   const [labels, products] = await Promise.all([getProductLabels(), getAllProducts(true)]);
   const sold = getUnitsSold();
   const openId = Number.parseInt(first(sp.open), 10);
-  const pickable: PickableProduct[] = products.map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
+  const pickable: PickableProduct[] = products.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
   const byLabel = new Map<number, typeof products>();
   for (const p of products) if (p.labelId) byLabel.set(p.labelId, [...(byLabel.get(p.labelId) ?? []), p]);
 

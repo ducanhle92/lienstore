@@ -44,7 +44,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
   rememberSiteOrigin(await siteUrl());
   const cfg = getFanpageConfig();
   const [products, posts] = await Promise.all([getAllProducts(true), Promise.resolve(listFanpagePosts(80))]);
-  const pickable: PickableProduct[] = products.filter((p) => p.status === "publish").map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
+  const pickable: PickableProduct[] = products.filter((p) => p.status === "publish").map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
   const draftId = Number.parseInt(first(sp.draft), 10);
   const draft = Number.isInteger(draftId) ? getFanpagePost(draftId) : null;
   const draftProduct = draft?.productId ? products.find((p) => p.id === draft.productId) : undefined;

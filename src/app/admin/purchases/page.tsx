@@ -45,7 +45,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
   const receipts = tab === "receipts" ? listReceipts(80) : [];
   const draftId = Number.parseInt(first(sp.draft), 10);
-  const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
+  const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
   const lines = all
     .filter((l) => !status || l.purchaseStatus === status)

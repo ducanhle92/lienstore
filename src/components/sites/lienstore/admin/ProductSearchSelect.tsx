@@ -7,6 +7,8 @@ import { adminInput } from "./ui";
 export interface PickableProduct {
   id: number;
   name: string;
+  /** Japanese product name (searched too). */
+  nameJa?: string;
   sku: string | null;
   thumb: string;
   costJpy: number | null;
@@ -26,13 +28,13 @@ interface Props {
 const strip = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase();
 
 /** Type-ahead single product picker: a text box + result list; the chosen id goes into a hidden input. */
-export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên hoặc SKU sản phẩm…", initial = null }: Props) {
+export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên Việt / tên Nhật hoặc SKU sản phẩm…", initial = null }: Props) {
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<PickableProduct | null>(initial);
   const matches = useMemo(() => {
     const terms = strip(q).split(/\s+/).filter(Boolean);
     if (!terms.length) return [];
-    return products.filter((p) => terms.every((t) => strip(`${p.name} ${p.sku ?? ""} #${p.id}`).includes(t))).slice(0, 12);
+    return products.filter((p) => terms.every((t) => strip(`${p.name} ${p.nameJa ?? ""} ${p.sku ?? ""} #${p.id}`).includes(t))).slice(0, 12);
   }, [q, products]);
   const choose = (p: PickableProduct | null) => {
     setPicked(p);

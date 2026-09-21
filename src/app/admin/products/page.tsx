@@ -103,7 +103,7 @@ export default async function AdminProducts({ searchParams }: Props) {
 
       <Card>
         <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_170px_120px_110px_110px_160px_auto]">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên, slug, SKU…" className={adminInput} />
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={adminInput} />
           <select name="category" defaultValue={category} className={adminInput}>
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => (
