@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.74.1] - 2026-09-21
+
 ### Changed
 - Admin › Sản phẩm: ô tìm tìm được cả **tên tiếng Nhật** (VD フルグラ) bên cạnh tên Việt, slug, SKU; tên Việt tìm không cần dấu. Các ô chọn sản phẩm khác trong admin (Giảm giá, Nhãn, Mua hàng, Fanpage…) cũng tìm theo tên Nhật.
 
