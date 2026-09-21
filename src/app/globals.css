@@ -568,3 +568,26 @@
     background: transparent;
   }
 }
+
+/* Phones: iOS Safari auto-zooms the page when a focused field's text is smaller than 16px (search box, admin forms).
+   Unlayered + !important so it wins over Tailwind's text-[13px]/[14px] utilities. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  /* Admin tables: scroll sideways inside their card instead of squeezing 8 columns into 390px. */
+  .admin-card-body > table,
+  .admin-card-body > form > table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+/* admin drawer on phones */
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

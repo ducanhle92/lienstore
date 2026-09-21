@@ -23,9 +23,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="flex min-h-screen flex-col bg-lien-page md:flex-row md:items-start">
       <AdminNav permissions={session.permissions} userLabel={session.label} role={session.role} shopName={theme.shopName} />
-      <main className="flex-1 px-4 py-6 md:px-8">
+      <main className="min-w-0 flex-1 px-3 py-4 md:px-8 md:py-6">
         <div className="mx-auto max-w-[1200px]">
-          <div className="mb-3 flex justify-end">
+          <div className="mb-3 hidden justify-end md:flex">
             <Link href={session.isEnv ? "/admin/users/" : `/admin/users/${session.id}/`} title={ROLE_LABELS[session.role]} className="inline-flex items-center gap-2 rounded-md border border-[#e5e7eb] bg-white px-3 py-1.5 text-[12px] font-bold uppercase tracking-wide text-lien-heading no-underline hover:border-lien-blue hover:text-lien-blue">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lien-blue text-[10px] text-white">{(session.label.trim()[0] ?? "A").toUpperCase()}</span>
               {session.label}

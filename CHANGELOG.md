@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- iPhone: bấm vào ô tìm kiếm (và các ô nhập trong admin) không còn bị Safari tự phóng to trang — chữ trong ô nhập trên điện thoại đặt 16px.
+
+### Changed
+- Admin trên điện thoại: thanh trên cùng gọn (tên shop + nút ☰), menu mở dạng ngăn trượt từ trái với đủ các nhóm (Tổng quan, Kho hàng, Đơn hàng, Kế toán, Sales, Vận chuyển…), tự đóng khi chuyển trang; nội dung bớt lề, tiêu đề nhỏ hơn; bảng dài trong thẻ kéo ngang được thay vì bị ép cột. Máy tính giữ nguyên thanh bên.
+
 ## [1.72.0] - 2026-09-19
 
 ### Added

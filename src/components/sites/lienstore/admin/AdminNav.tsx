@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { logout } from "@/app/admin/actions";
@@ -132,15 +132,52 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
   // Children stay hidden until the parent row is clicked; the group holding the current page starts open
   // (until the user toggles it), so a deep link still shows where you are.
   const [open, setOpen] = useState<Record<string, boolean | undefined>>({});
+  // Phones: the menu lives in a slide-in drawer; it closes on navigation, Esc or the backdrop.
+  const [drawer, setDrawer] = useState(false);
+  const route = `${pathname}?${search.toString()}`;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- close the drawer whenever the route changes
+    setDrawer(false);
+  }, [route]);
+  useEffect(() => {
+    if (!drawer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawer(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [drawer]);
 
   return (
     <aside className="flex w-full flex-col bg-lien-footer text-white md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto" data-testid="admin-sidebar">
-      <div className="border-b border-white/10 px-5 py-4">
+      {/* phone top bar */}
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5 md:hidden">
+        <Link href="/admin/" className="min-w-0 truncate font-oswald text-[19px] leading-7 text-white no-underline">
+          {shopName} <span className="text-white/60">· Quản trị</span>
+        </Link>
+        <button type="button" onClick={() => setDrawer(true)} aria-label="Mở menu quản trị" aria-expanded={drawer} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[18px] text-white hover:bg-white/10" data-testid="admin-menu-toggle">
+          <Fa name="bars" />
+        </button>
+      </div>
+      {/* desktop brand */}
+      <div className="hidden border-b border-white/10 px-5 py-4 md:block">
         <Link href="/admin/" className="block font-oswald text-[22px] leading-7 text-white no-underline">
           {shopName} <span className="text-white/60">· Quản trị</span>
         </Link>
       </div>
-      <nav className="flex flex-row gap-1 overflow-x-auto px-2 py-2 md:flex-col md:py-4" aria-label="Quản trị">
+      <div className={cn("md:contents", drawer ? "fixed inset-0 z-[90] flex" : "hidden")} data-testid="admin-drawer" data-open={drawer ? "1" : "0"}>
+      <nav className={cn("flex h-full w-[290px] max-w-[86vw] flex-col gap-1 overflow-y-auto bg-lien-footer px-2 py-3 shadow-2xl md:h-auto md:w-auto md:max-w-none md:shadow-none md:py-4", drawer && "animate-[slideIn_.2s_ease-out]")} aria-label="Quản trị">
+        <div className="mb-1 flex items-center justify-between px-3 md:hidden">
+          <span className="text-[12px] font-bold uppercase tracking-wide text-white/60">Menu</span>
+          <button type="button" onClick={() => setDrawer(false)} aria-label="Đóng menu" className="flex h-9 w-9 items-center justify-center rounded-md text-[18px] text-white/80 hover:bg-white/10">
+            <Fa name="times" />
+          </button>
+        </div>
         {nav.map((g) => {
           if (!g.children) {
             return (
@@ -153,7 +190,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
           const active = groupActive(g);
           const isOpen = open[g.label] ?? active;
           return (
-            <div key={g.label} className="md:contents">
+            <div key={g.label} className="contents">
               <button
                 type="button"
                 onClick={() => setOpen((o) => ({ ...o, [g.label]: !isOpen }))}
@@ -192,6 +229,9 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
           </button>
         </form>
       </nav>
+      {/* backdrop (phones only) */}
+      <button type="button" aria-label="Đóng menu" onClick={() => setDrawer(false)} className="flex-1 bg-black/50 md:hidden" />
+      </div>
     </aside>
   );
 }

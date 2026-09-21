@@ -57,27 +57,27 @@ export function Card({ children, className, title, actions }: { children: ReactN
   return (
     <section className={cn("rounded-lg border border-[#e5e7eb] bg-white shadow-sm", className)}>
       {title || actions ? (
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-5 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-4 py-3 md:px-5">
           {title ? <h2 className="text-[15px] font-semibold leading-6 text-lien-heading">{title}</h2> : <span />}
           {actions}
         </header>
       ) : null}
-      <div className="p-5">{children}</div>
+      <div className="admin-card-body p-4 md:p-5">{children}</div>
     </section>
   );
 }
 
 export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: ReactNode; back?: { href: string; label: string } }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3 md:mb-6 md:gap-4">
+      <div className="min-w-0">
         {back ? (
           <Link href={back.href} className="mb-1 inline-block text-[13px] text-lien-blue hover:underline">
             ← {back.label}
           </Link>
         ) : null}
-        <h1 className="font-oswald text-[28px] font-normal leading-9 text-lien-heading">{title}</h1>
-        {subtitle ? <p className="mt-1 text-[14px] leading-5 text-lien-muted">{subtitle}</p> : null}
+        <h1 className="font-oswald text-[24px] font-normal leading-8 text-lien-heading md:text-[28px] md:leading-9">{title}</h1>
+        {subtitle ? <p className="mt-1 text-[13px] leading-5 text-lien-muted md:text-[14px]">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
