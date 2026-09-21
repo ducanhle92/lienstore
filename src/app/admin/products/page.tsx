@@ -4,7 +4,7 @@ import { groupProductsAction } from "@/app/admin/products/groups/actions";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
-import { filterProducts } from "@/lib/product-filter";
+import { filterProducts, PRICE_BUCKETS } from "@/lib/product-filter";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
@@ -29,6 +29,7 @@ export default async function AdminProducts({ searchParams }: Props) {
   const category = first(sp.category);
   const stock = first(sp.stock);
   const source = first(sp.source);
+  const priceBucket = first(sp.price);
   const saved = first(sp.saved);
   const deleted = first(sp.deleted);
 
@@ -45,7 +46,7 @@ export default async function AdminProducts({ searchParams }: Props) {
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const items = filterProducts(all, sp);
   const fulfillment = first(sp.fulfillment);
-  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source }).filter(([, v]) => v)).toString();
+  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
   const missingPrice = items.filter((p) => p.price <= 0).length;
 
@@ -102,7 +103,7 @@ export default async function AdminProducts({ searchParams }: Props) {
       {deleted ? <Flash>Đã xoá sản phẩm.</Flash> : null}
 
       <Card>
-        <form method="get" className="mb-5 grid gap-3 md:grid-cols-[1fr_170px_120px_110px_110px_160px_auto]">
+        <form method="get" className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_160px_115px_105px_105px_150px_170px_auto]">
           <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={adminInput} />
           <select name="category" defaultValue={category} className={adminInput}>
             <option value="">Tất cả danh mục</option>
@@ -135,6 +136,14 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
             {hasNoSource ? <option value="none">Chưa gắn nguồn</option> : null}
+          </select>
+          <select name="price" defaultValue={priceBucket} className={adminInput} aria-label="Giá thực tế trên website" data-testid="price-filter">
+            <option value="">Mọi giá bán</option>
+            {PRICE_BUCKETS.map((b) => (
+              <option key={b.key} value={b.key}>
+                {b.label}
+              </option>
+            ))}
           </select>
           <button type="submit" className={btnPrimary}>
             Lọc

@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Admin › Sản phẩm: bộ lọc **Giá thực tế trên website** — Chưa có giá (Liên hệ), dưới 100k, 100–200k, 200–500k, 500k–1 triệu, trên 1 triệu; áp dụng cho cả Xuất CSV theo bộ lọc.
+
 ## [1.74.1] - 2026-09-21
 
 ### Changed
