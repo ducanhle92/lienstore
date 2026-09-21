@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { brandHintOf } from "@/app/admin/products/actions";
 import { ProductForm } from "@/components/sites/lienstore/admin/ProductForm";
 import { suggestSku } from "@/lib/sku";
@@ -28,9 +30,14 @@ export default async function EditProduct({ params }: Props) {
         subtitle={`#${product.id} · /product/${product.slug}/`}
         back={{ href: "/admin/products/", label: "Sản phẩm" }}
         actions={
-          <a href={`/product/${product.slug}/`} target="_blank" rel="noreferrer" className="text-[14px] text-lien-blue hover:underline">
-            Xem trên cửa hàng ↗
-          </a>
+          <>
+            <Link href={`/admin/products/new/?from=${product.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-lien-blue/60 px-3 py-1.5 text-[13px] font-semibold text-lien-blue no-underline hover:bg-lien-blue-soft" title="Tạo sản phẩm mới chép sẵn mọi thông tin của sản phẩm này (không chép ảnh)" data-testid="clone-product">
+              <Fa name="plus" /> Nhân bản sang sản phẩm mới
+            </Link>
+            <a href={`/product/${product.slug}/`} target="_blank" rel="noreferrer" className="text-[14px] text-lien-blue hover:underline">
+              Xem trên cửa hàng ↗
+            </a>
+          </>
         }
       />
       <ProductForm product={product} categories={categories} quote={quote} pricing={pricing} skuSuggestion={skuSuggestion} labels={await getProductLabels()} costSources={costSources} defaultSource={defaultSource} groups={groups} sources={sources} monthlySales={getMonthlyUnitsSold(product.id, 6)} changes={listProductChanges(product.id, 60)} />

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import type { CatalogProduct, CostSource, ProductGroup, PurchaseSource, ShopCategory, ProductLabel } from "@/types/shop";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { ConfirmSubmit } from "./ConfirmSubmit";
+import { GroupSearchSelect } from "./GroupSearchSelect";
 import { DescriptionEditor } from "./DescriptionEditor";
 import { ProductImageManager } from "./ProductImageManager";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash } from "./ui";
@@ -36,6 +37,8 @@ interface ProductFormProps {
   skuSuggestion?: string;
   /** Label set (Sales › Nhãn sản phẩm) for the "Nhãn" picker. */
   labels?: ProductLabel[];
+  /** `product` is a template for a NEW product (Nhân bản): fields are pre-filled, but no id, no pictures, draft. */
+  clone?: boolean;
   /** Variant families to pick from (Kho hàng › Nhóm biến thể). */
   groups?: ProductGroup[];
   /** Purchase-source registry (Kho hàng › Nguồn nhập). */
@@ -103,7 +106,8 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, labels = [], costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, labels = [], clone = false, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
+  const isEdit = !!product && !clone;
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
   const [editSlug, setEditSlug] = useState(false);
   const [stockMode, setStockMode] = useState<"order" | "stock">(product ? (product.stock !== null || product.fulfillment === "stock" ? "stock" : "order") : "order");
@@ -123,7 +127,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [promoText, setPromoText] = useState(product ? String(promoPriceOf(product) ?? "") : "");
   const [marketText, setMarketText] = useState(String(product?.marketPrice ?? ""));
   const [costText, setCostText] = useState(String(product?.costPrice ?? ""));
-  const [skuText, setSkuText] = useState(product?.sku ?? "");
+  const [skuText, setSkuText] = useState(clone ? "" : (product?.sku ?? ""));
   const [marginText, setMarginText] = useState(product?.marginPct === null || product?.marginPct === undefined ? "" : String(product.marginPct));
   const [weightText, setWeightText] = useState(String(product?.weightG ?? ""));
   const [dimsText, setDimsText] = useState(product?.dimsCm ?? "");
@@ -169,8 +173,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   return (
     <>
       {state?.error ? <Flash kind="error">{state.error}</Flash> : null}
+      {clone && product ? (
+        <Flash kind="warning">
+          Đang <strong>nhân bản</strong> từ “{product.name}” (#{product.id}): mọi thông tin đã được chép sẵn, chỉ cần sửa tên, vị / khối lượng, giá và <strong>thêm ảnh mới</strong>. Sản phẩm mới tạo ở trạng thái Bản nháp cho tới khi bạn đổi.
+        </Flash>
+      ) : null}
       <form action={action} className="grid gap-6 lg:grid-cols-3">
-        {product ? <input type="hidden" name="id" value={product.id} /> : null}
+        {isEdit ? <input type="hidden" name="id" value={product.id} /> : null}
 
         <div className="space-y-6 lg:col-span-2">
           <Card title="Thông tin cơ bản">
@@ -206,8 +215,8 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </>
                 ) : (
                   <>
-                    {product ? <input type="hidden" name="slug" value={product.slug} readOnly /> : null}
-                    Đường dẫn: <span className="font-mono">/product/{product?.slug ?? "…"}/</span> — tự sinh từ tên sản phẩm.{" "}
+                    {isEdit ? <input type="hidden" name="slug" value={product.slug} readOnly /> : null}
+                    Đường dẫn: <span className="font-mono">/product/{isEdit ? product.slug : "…"}/</span> — tự sinh từ tên sản phẩm.{" "}
                     <button type="button" onClick={() => setEditSlug(true)} className="text-lien-blue hover:underline">
                       Đổi
                     </button>
@@ -257,16 +266,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <label className={adminLabel} htmlFor="groupId">
                   Thuộc dòng sản phẩm <InfoPopover>Cùng loại, chỉ khác vị / dung tích / số viên… Ngoài kệ mỗi nhóm hiện một thẻ “N lựa chọn”.</InfoPopover>
                 </label>
-                <select id="groupId" name="groupId" value={groupSel} onChange={(e) => setGroupSel(e.target.value)} className={adminInput}>
-                  <option value="">— Sản phẩm độc lập —</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                      {g.attrLabels.length ? ` (${g.attrLabels.join(", ")})` : ""}
-                    </option>
-                  ))}
-                  <option value="new">+ Tạo nhóm mới…</option>
-                </select>
+                <GroupSearchSelect groups={groups} value={groupSel} onChange={setGroupSel} />
               </div>
               {groupSel === "new" ? (
                 <>
@@ -340,13 +340,13 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
 
           <Card title="Hình ảnh">
             <ProductImageManager
-              initial={product?.images ?? []}
-              initialThumbs={product?.thumb && product.images[0] ? { [product.images[0]]: product.thumb } : {}}
+              initial={clone ? [] : (product?.images ?? [])}
+              initialThumbs={!clone && product?.thumb && product.images[0] ? { [product.images[0]]: product.thumb } : {}}
               error={fields.images}
             />
           </Card>
 
-          {product ? (
+          {isEdit ? (
             <FoldCard title="Xu hướng mua" summary={advice.avgPerMonth > 0 ? `TB ${advice.avgPerMonth.toLocaleString("vi-VN")} đv/tháng · ${advice.total} đv/${monthlySales.length} tháng${advice.suggested ? ` · nên lưu kho ≈ ${advice.suggested}` : ""}` : `chưa có đơn trong ${monthlySales.length} tháng`} testId="fold-trend">
                 <div className="rounded-md border border-[#e5e7eb] bg-[#fafafa] p-2.5 text-[12px] leading-5" data-testid="sales-trend">
                   <p className="m-0 font-semibold text-lien-heading">Xu hướng mua {monthlySales.length} tháng gần đây</p>
@@ -390,7 +390,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </FoldCard>
           ) : null}
 
-          {product ? (
+          {isEdit ? (
             <FoldCard title="Lịch sử thay đổi" summary={changes.length ? `${changes.length} lần đổi gần đây · mới nhất ${formatDateTime(changes[0].createdAt)} (${changes[0].actor || "—"})` : "chưa có thay đổi nào được ghi"} testId="fold-history">
               {changes.length ? (
                 <div className="overflow-x-auto">
@@ -729,7 +729,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                 <label className={adminLabel} htmlFor="status">
                   Trạng thái
                 </label>
-                <select id="status" name="status" defaultValue={product?.status ?? "publish"} className={adminInput}>
+                <select id="status" name="status" defaultValue={clone ? "draft" : (product?.status ?? "publish")} className={adminInput}>
                   <option value="publish">Đang bán</option>
                   <option value="draft">Bản nháp (ẩn)</option>
                 </select>
@@ -780,7 +780,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     </label>
                     <input id="stock" name="stock" inputMode="numeric" defaultValue={product?.stock ?? 0} className={cn(adminInput, fields.stock && "border-red-500")} />
                     <FieldError msg={fields.stock} />
-                    {product ? (
+                    {isEdit ? (
                       <Link href={`/admin/inventory/lots/${product.id}/`} className="mt-1 inline-block text-[12px] text-lien-blue hover:underline">
                         Lô hàng theo kho (Nhật / ĐVVC / VN) →
                       </Link>
@@ -796,12 +796,12 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
           {/* sticks to the bottom of the window while the (long) form scrolls, so Lưu / Huỷ / Xoá are always one click away */}
           <div className="sticky bottom-0 z-20 -mx-1 flex flex-wrap items-center gap-2 rounded-t-md border-t border-[#e5e7eb] bg-white/95 px-1 py-3 shadow-[0_-6px_16px_-10px_rgba(0,0,0,0.35)] backdrop-blur" data-testid="form-actions">
             <button type="submit" disabled={pending} className={btnPrimary}>
-              {pending ? "Đang lưu…" : product ? "Lưu thay đổi" : "Tạo sản phẩm"}
+              {pending ? "Đang lưu…" : isEdit ? "Lưu thay đổi" : "Tạo sản phẩm"}
             </button>
             <Link href="/admin/products/" className={btnSecondary}>
               Huỷ
             </Link>
-            {product ? (
+            {isEdit ? (
               // submits the separate delete form below (a form cannot nest inside another form)
               <ConfirmSubmit form="delete-product" message={`Xoá vĩnh viễn sản phẩm “${product.name}”?`} className={cn(btnDanger, "ml-auto")}>
                 Xoá sản phẩm
@@ -811,7 +811,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
         </div>
       </form>
 
-      {product ? (
+      {isEdit ? (
         <form id="delete-product" action={deleteProductAction}>
           <input type="hidden" name="id" value={product.id} />
         </form>

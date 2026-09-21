@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Nhân bản sản phẩm**: trong chi tiết sản phẩm có nút “Nhân bản sang sản phẩm mới” — mở form tạo mới đã chép sẵn tên, mô tả, danh mục, từ khoá, nhóm biến thể, giá, giá vốn theo nguồn, kích thước… chỉ cần sửa vài chi tiết (vị, khối lượng, giá) và thêm ảnh mới; ảnh không chép, SKU để trống để tạo mới, trạng thái mặc định Bản nháp.
+- Chi tiết sản phẩm › Nhóm biến thể: ô “Thuộc dòng sản phẩm” đổi thành ô tìm gõ chữ (lọc theo tên nhóm / thuộc tính) thay cho danh sách thả dài; vẫn chọn được “Sản phẩm độc lập” và “Tạo nhóm mới”.
+
 ## [1.73.1] - 2026-09-21
 
 ### Fixed
