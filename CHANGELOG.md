@@ -7,6 +7,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [1.74.3] - 2026-09-25
 
+### Fixed
+- Slogan cũ “ĐẸP MỖI GIÂY – KHỎE MỖI NGÀY” vẫn còn trong tiêu đề trang Shop (/shop/, /shop/page/N/) — nay tiêu đề lấy slogan trong Admin › Giao diện & Logo: “Shop – Chuyên hàng Nhật nội địa – Store Lienanh”.
+- Slogan để trống trong admin làm tiêu đề trang chủ, thanh menu và web app (PWA) thiếu slogan — nay trống sẽ tự dùng “Chuyên hàng Nhật nội địa”; tiêu đề trang chủ, mô tả chia sẻ, manifest PWA và tên ứng dụng khi thêm vào màn hình chính iOS đều thống nhất theo tên shop + slogan.
+
 ## [1.74.2] - 2026-09-21
 
 ### Added
