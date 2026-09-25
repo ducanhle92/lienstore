@@ -10,7 +10,7 @@ export type ThemeColors = Record<ThemeColorKey, string>;
 export interface SiteTheme {
   /** Brand name shown in titles, alt text and the footer. */
   shopName: string;
-  /** Tagline under the header logo ("Chuyên hàng Nhật nội địa"). */
+  /** Tagline under the header logo, in the home title and the PWA manifest; never empty (falls back to the default). */
   slogan: string;
   /** Logo on the coloured header bar (light artwork, transparent background). */
   logoHeader: string;
@@ -94,7 +94,7 @@ export function parseTheme(raw: string | null | undefined): SiteTheme {
     }
     return {
       shopName: typeof o.shopName === "string" && o.shopName.trim() ? o.shopName.trim().slice(0, 60) : DEFAULT_THEME.shopName,
-      slogan: typeof o.slogan === "string" ? o.slogan.trim().slice(0, 80) : DEFAULT_THEME.slogan,
+      slogan: (typeof o.slogan === "string" && o.slogan.trim().slice(0, 80)) || DEFAULT_THEME.slogan,
       logoHeader: isPath(o.logoHeader) ? o.logoHeader : DEFAULT_THEME.logoHeader,
       logoLight: isPath(o.logoLight) ? o.logoLight : DEFAULT_THEME.logoLight,
       icon: isPath(o.icon) ? o.icon : DEFAULT_THEME.icon,

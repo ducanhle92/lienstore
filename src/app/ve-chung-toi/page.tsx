@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const theme = await getSiteTheme();
   return {
     title: "Về chúng tôi & liên hệ",
-    description: `${theme.shopName} – ${theme.slogan || "hàng Nhật nội địa"}, mua tận tay tại Nhật, có bill đối chiếu từng đơn. Hotline, Zalo, Facebook và địa chỉ liên hệ.`,
+    description: `${theme.shopName} – ${theme.slogan}, mua tận tay tại Nhật, có bill đối chiếu từng đơn. Hotline, Zalo, Facebook và địa chỉ liên hệ.`,
   };
 }
 
@@ -63,7 +63,7 @@ export default async function AboutPage() {
   const b = (s: string) => s.replace(/LienStore/g, brand);
   return (
     <SiteChrome>
-      <PageBand title={t(lang, "aboutTitle")} crumbs={[{ label: t(lang, "aboutTitle") }]} description={ja ? b(JA.band) : `${brand} – ${theme.slogan ? theme.slogan.charAt(0).toLowerCase() + theme.slogan.slice(1) : "hàng Nhật nội địa"}, mua tận tay tại Nhật, có bill cho từng đơn.`} />
+      <PageBand title={t(lang, "aboutTitle")} crumbs={[{ label: t(lang, "aboutTitle") }]} description={ja ? b(JA.band) : `${brand} – ${theme.slogan.charAt(0).toLowerCase() + theme.slogan.slice(1)}, mua tận tay tại Nhật, có bill cho từng đơn.`} />
       <FullWidthShell>
         <div className="mx-auto max-w-[1000px]">
           {/* Story */}

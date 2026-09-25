@@ -67,7 +67,7 @@ export default async function AdminTheme({ searchParams }: Props) {
               </div>
               <div>
                 <label className={adminLabel} htmlFor="slogan">
-                  Slogan (hiện dưới logo trên thanh menu)
+                  Slogan (dưới logo, tiêu đề trang chủ, web app; để trống = "Chuyên hàng Nhật nội địa")
                 </label>
                 <input id="slogan" name="slogan" defaultValue={theme.slogan} maxLength={80} placeholder="Chuyên hàng Nhật nội địa" className={adminInput} />
               </div>

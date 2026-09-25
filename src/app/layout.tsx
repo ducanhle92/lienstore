@@ -11,8 +11,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const [theme, base] = await Promise.all([getSiteTheme(), siteUrl()]);
   return {
     metadataBase: new URL(base),
-    title: { default: theme.slogan ? `${theme.shopName} – ${theme.slogan}` : theme.shopName, template: `%s – ${theme.shopName}` },
-    description: `${theme.shopName} – Mỹ phẩm, thực phẩm chức năng, hàng tiêu dùng Nhật nội địa`,
+    title: { default: `${theme.shopName} – ${theme.slogan}`, template: `%s – ${theme.shopName}` },
+    description: `${theme.shopName} – ${theme.slogan}: mỹ phẩm, thực phẩm chức năng, hàng tiêu dùng mua tận tay tại Nhật`,
+    applicationName: theme.shopName,
+    // name under the icon when the web app is added to the iOS home screen
+    appleWebApp: { title: theme.shopName },
     icons: {
       icon: [{ url: theme.icon, type: "image/png" }],
       apple: [{ url: theme.icon }],

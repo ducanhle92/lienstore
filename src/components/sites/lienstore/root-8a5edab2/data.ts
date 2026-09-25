@@ -32,7 +32,7 @@ export const branding = {
   logo: "/sites/lienstore/brand/lienstore-logo-horizontal.svg",
   logoWidth: 520,
   logoHeight: 120,
-  tagline: "ĐẸP MỖI GIÂY – KHỎE MỖI NGÀY",
+  tagline: "Chuyên hàng Nhật nội địa",
   siteTitle: "Store Lienanh",
   homeHref: "/",
 };

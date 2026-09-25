@@ -7,7 +7,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   return {
     name: theme.shopName,
     short_name: theme.shopName,
-    description: theme.slogan || "Chuyên hàng Nhật nội địa",
+    description: theme.slogan,
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

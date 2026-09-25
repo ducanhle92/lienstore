@@ -55,7 +55,7 @@ export async function saveThemeAction(formData: FormData): Promise<void> {
     };
     const theme: SiteTheme = {
       shopName: text(formData, "shopName").slice(0, 60) || DEFAULT_THEME.shopName,
-      slogan: text(formData, "slogan").slice(0, 80),
+      slogan: text(formData, "slogan").slice(0, 80) || DEFAULT_THEME.slogan,
       logoHeader: (await pickImage(formData, "logoHeaderFile", "logo-header")) ?? pathOr("logoHeader", current.logoHeader),
       logoLight: (await pickImage(formData, "logoLightFile", "logo-light")) ?? pathOr("logoLight", current.logoLight),
       icon: (await pickImage(formData, "iconFile", "icon")) ?? pathOr("icon", current.icon),
