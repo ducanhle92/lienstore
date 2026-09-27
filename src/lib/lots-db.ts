@@ -37,6 +37,10 @@ export interface LotView {
   batchId: number | null;
   batchCode: string;
   batchStatus: string;
+  /** Packing run (Đóng hàng) the lot is boxed in / travelling with, if any. */
+  shipmentId: number | null;
+  shipmentCode: string;
+  shipmentStatus: string;
   parentLotId: number | null;
   purchaseId: number | null;
   /** Bill the lot was bought on (via its slip), if any. */
@@ -74,6 +78,9 @@ interface Row {
   batch_id: number | null;
   batch_code: string | null;
   batch_status: string | null;
+  shipment_id: number | null;
+  shipment_code: string | null;
+  shipment_status: string | null;
   parent_lot_id: number | null;
   purchase_id: number | null;
   receipt_id: number | null;
@@ -92,10 +99,10 @@ export function listLotViews(db: DatabaseSync, opts: { productId?: number; side?
   if (!opts.includeEmpty) where.push(`(l.qty_left > 0 OR EXISTS (SELECT 1 FROM order_item_allocations a JOIN order_items oi ON oi.id = a.order_item_id JOIN orders o ON o.id = oi.order_id WHERE a.source_type = 'lot' AND a.source_id = l.id AND a.consumed_at IS NOT NULL AND o.status <> 'cancelled' AND o.ship_stage NOT IN ('delivering','delivered')))`);
   const rows = db
     .prepare(
-      `SELECT l.*, p.name, p.sku, p.thumb, b.code AS batch_code, b.status AS batch_status,
+      `SELECT l.*, p.name, p.sku, p.thumb, b.code AS batch_code, b.status AS batch_status, sh.code AS shipment_code, sh.status AS shipment_status,
               (SELECT r.id FROM stock_purchases sp JOIN purchase_receipts r ON r.id = sp.receipt_id WHERE sp.lot_id = l.id LIMIT 1) AS receipt_id,
               (SELECT r.code FROM stock_purchases sp JOIN purchase_receipts r ON r.id = sp.receipt_id WHERE sp.lot_id = l.id LIMIT 1) AS receipt_code
-       FROM stock_lots l JOIN products p ON p.id = l.product_id LEFT JOIN purchase_batches b ON b.id = l.batch_id
+       FROM stock_lots l JOIN products p ON p.id = l.product_id LEFT JOIN purchase_batches b ON b.id = l.batch_id LEFT JOIN shipments sh ON sh.id = l.shipment_id
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY CASE WHEN l.expiry IS NULL THEN 1 ELSE 0 END, l.expiry, l.received_at, l.id`,
     )
     .all(...(args as never[])) as unknown as Row[];
@@ -138,6 +145,9 @@ export function listLotViews(db: DatabaseSync, opts: { productId?: number; side?
       batchId: r.batch_id,
       batchCode: r.batch_code ?? "",
       batchStatus: r.batch_status ?? "",
+      shipmentId: r.shipment_id ?? null,
+      shipmentCode: r.shipment_code ?? "",
+      shipmentStatus: r.shipment_status ?? "",
       parentLotId: r.parent_lot_id,
       purchaseId: r.purchase_id,
       receiptId: r.receipt_id ?? null,

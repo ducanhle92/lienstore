@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { mergeLotAction, moveLotsAction, splitLotAction } from "@/app/admin/inventory/lot-actions";
+import { mergeLotAction, moveLotsAction, packLotsAction, splitLotAction } from "@/app/admin/inventory/lot-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount, formatDate, formatPrice } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
@@ -28,6 +28,8 @@ interface Props {
   filter: LotsFilter;
   sources: PurchaseSource[];
   batches: Array<{ id: number; code: string; label: string; status: string }>;
+  /** Open packing runs (Đóng hàng) ticked lots can be boxed into. */
+  shipments?: Array<{ id: number; code: string; label: string }>;
   readyOrders: OrderReadyToShip[];
   backUrl: string;
 }
@@ -63,15 +65,19 @@ export function applyLotsFilter(lots: LotView[], f: LotsFilter): LotView[] {
 /** Places a lot at Kho Nhật (shop) can be sent to. */
 const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchaseIndex("bought") && purchaseIndex(s.key) <= purchaseIndex("at_shop"));
 
-export function LotsBoard({ side, lots, flying, filter, sources, batches, readyOrders, backUrl }: Props) {
+export function LotsBoard({ side, lots, flying, filter, sources, batches, shipments = [], readyOrders, backUrl }: Props) {
   const totals = lotTotals(lots, side);
+  // the "tại kho shop" tile counts the shelf only — boxed lots (Đóng hàng) are listed apart
+  if (side === "jp") totals.atShop -= lots.filter((l) => l.warehouse === "jp" && l.shipmentId).reduce((n, l) => n + l.physical, 0);
   const shopWh = side === "jp" ? "jp" : "vn";
   const carrierWh = side === "jp" ? "jp_carrier" : "carrier";
   const shown = applyLotsFilter(
     lots.filter((l) => (side === "jp" ? l.warehouse === "jp" || (l.warehouse === "jp_carrier" && !l.inTransit) : l.warehouse === "vn" || l.warehouse === "carrier")),
     filter,
   );
-  const atShop = shown.filter((l) => l.warehouse === shopWh);
+  // Kho Nhật (shop): the shelf vs. what is already boxed for a packing run
+  const atShop = shown.filter((l) => l.warehouse === shopWh && !(side === "jp" && l.shipmentId));
+  const boxed = side === "jp" ? shown.filter((l) => l.warehouse === "jp" && l.shipmentId) : [];
   const atCarrier = shown.filter((l) => l.warehouse === carrierWh);
   const accent = side === "jp" ? "blue" : "red";
   void batches;
@@ -146,10 +152,48 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, readyO
               <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển các lô đã tick (hoặc phần SL đã nhập) sang vị trí đã chọn; đợt mua của lô giữ nguyên">
                 <Fa name="truck" /> Chuyển
               </button>
+              <span className="mx-1 text-lien-muted">|</span>
+              {shipments.length ? (
+                <>
+                  <select name="shipmentId" form={formId} defaultValue={shipments[0].id} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyến đóng hàng">
+                    {shipments.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.code}
+                        {s.label ? ` · ${s.label}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" form={formId} formAction={packLotsAction} className={cn(btnSecondary, "!py-1")} title="Đóng các lô đã tick (hoặc phần SL đã nhập) vào chuyến; hàng rời kệ, chờ xuất ĐVVC">
+                    <Fa name="cube" /> Đóng vào chuyến
+                  </button>
+                </>
+              ) : (
+                <Link href="/admin/inventory/shipments/" className="text-[12px] text-lien-blue hover:underline">
+                  <Fa name="cube" /> Mở chuyến đóng hàng
+                </Link>
+              )}
             </div>
           </>
         ) : null}
         <LotTable lots={atShop} sources={sources} scope={`shop-${side}`} formId={side === "jp" ? formId : null} backUrl={backUrl} />
+        {side === "jp" && boxed.length ? (
+          <div className="mt-3 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-3 py-2" data-testid="boxed-lots">
+            <p className="m-0 mb-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-lien-heading">
+              <Fa name="cube" /> Đã đóng hàng, chờ xuất ĐVVC ({boxed.length} lô · {boxed.reduce((n, l) => n + l.physical, 0)} đv)
+              <Link href="/admin/inventory/shipments/" className="text-[12px] font-normal text-lien-blue hover:underline">
+                Đóng hàng →
+              </Link>
+            </p>
+            <ul className="m-0 list-none space-y-0.5 p-0 text-[12px]">
+              {boxed.map((l) => (
+                <li key={l.id}>
+                  lô #{l.id} · {l.productName} ×{l.physical} · chuyến <b>{l.shipmentCode}</b>
+                  {l.reserved.length ? ` · ${l.reserved.map((r) => `#${r.orderNumber}×${r.qty}`).join(", ")}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {side === "vn" ? (
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">

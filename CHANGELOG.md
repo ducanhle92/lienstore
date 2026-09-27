@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Kho hàng › Đóng hàng** (menu cuối nhóm Kho hàng, migration 63): chuyến đóng hàng CH-… từ Kho Nhật (shop) gửi ĐVVC. Mở chuyến (tên, ngày dự kiến gửi, ghi chú), trong chuyến **tìm sản phẩm theo tên và nhập số lượng đóng** → hàng rời kệ Kho Nhật ngay (lấy lô hạn dùng gần trước, hàng khách đã thanh toán đi trước, tách lô khi chỉ lấy một phần; thiếu thì báo còn thiếu bao nhiêu). Bảng chuyến: sản phẩm, SL đóng (kèm số đã thanh toán), lô #, HSD, đơn khách, mua ở · ¥, vị trí; rút từng lô khi chuyến chưa xuất (phần tách tự gộp về lô gốc). Trạng thái chuyến: Đang đóng → **Đã đóng xong** → **Đã chuyển cho ĐVVC** → NB→VN → Kho ĐVVC VN → Về kho shop VN — từ “Đã chuyển cho ĐVVC” mọi lô đổi vị trí theo, dòng đơn khách cập nhật theo. Sửa thông tin chuyến (ngày gửi, mã vận đơn…); xoá chuyến chưa xuất trả hàng về kệ.
+- Tồn kho › Kho Nhật: bảng “tại kho shop” chỉ còn hàng **trên kệ**; hàng đã đóng nằm ở nhánh **“Đã đóng hàng, chờ xuất ĐVVC”** (lô, SL, chuyến, đơn). Thanh “Lô đã tick →” có thêm **Đóng vào chuyến** (chọn chuyến đang mở; SL nhập = phần chưa bán, hàng đã thanh toán đi cùng). Tồn web không đổi khi đóng hàng (hàng vẫn còn, chỉ đã vào thùng).
+
 ## [1.79.4] - 2026-09-27
 
 ### Changed

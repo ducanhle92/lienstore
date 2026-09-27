@@ -1328,6 +1328,27 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE purchase_receipts ADD COLUMN files TEXT NOT NULL DEFAULT '[]'`,
     ],
   },
+  {
+    // Đóng hàng: a packing run from Kho Nhật (shop) to the carrier; lots (or parts) boxed into it
+    version: 63,
+    name: "shipments",
+    up: [
+      `CREATE TABLE IF NOT EXISTS shipments (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        code       TEXT NOT NULL UNIQUE,
+        label      TEXT NOT NULL DEFAULT '',
+        status     TEXT NOT NULL DEFAULT 'packing',
+        planned_at TEXT,
+        shipped_at TEXT,
+        tracking   TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `ALTER TABLE stock_lots ADD COLUMN shipment_id INTEGER`,
+      `CREATE INDEX IF NOT EXISTS idx_stock_lots_shipment ON stock_lots(shipment_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

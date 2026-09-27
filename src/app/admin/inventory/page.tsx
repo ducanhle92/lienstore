@@ -19,6 +19,7 @@ import { describeByWarehouse, TRANSIT_LABEL, WAREHOUSE_LABEL, WAREHOUSE_SHORT, W
 import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/LotsBoard";
 import { listLotViews, listOrdersReadyToShip } from "@/lib/lots-db";
 import { listBatchHeads } from "@/lib/purchase-batches-db";
+import { listOpenShipments } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function AdminInventory({ searchParams }: Props) {
   const allLots = view === "lots" ? listLotViews(getDb(), {}) : [];
   const flying = allLots.filter((l) => l.warehouse === "jp_carrier" && l.inTransit);
   const batchHeads = view === "lots" ? listBatchHeads() : [];
+  const openShipments = view === "lots" && side === "jp" ? listOpenShipments() : [];
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
   const lotsBack = `/admin/inventory/?side=${side}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
   const jpUnits = allLots.filter((l) => l.warehouse === "jp" || l.warehouse === "jp_carrier").reduce((n, l) => n + l.physical, 0);
@@ -131,7 +133,7 @@ export default async function AdminInventory({ searchParams }: Props) {
           Theo sản phẩm · kiểm kê · CSV
         </Link>
       </div>
-      {view === "lots" ? <LotsBoard side={side} lots={allLots} flying={flying} filter={lotFilter} sources={sources} batches={batchHeads} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+      {view === "lots" ? <LotsBoard side={side} lots={allLots} flying={flying} filter={lotFilter} sources={sources} batches={batchHeads} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

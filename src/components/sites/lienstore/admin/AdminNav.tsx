@@ -55,6 +55,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
       { href: "/admin/purchases/", label: "Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
       { href: "/admin/inventory/", label: "Tồn kho", icon: "archive", module: "inventory" },
+      { href: "/admin/inventory/shipments/", label: "Đóng hàng", icon: "cube", module: "inventory" },
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
@@ -136,7 +137,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
     }
     if (l.exact) return pathname === path || pathname === path.slice(0, -1);
     // "/admin/inventory/" must not light up for "/admin/inventory/warehouses/" (a sibling leaf owns that)
-    if (path === "/admin/inventory/" && pathname.startsWith("/admin/inventory/warehouses")) return false;
+    if (path === "/admin/inventory/" && (pathname.startsWith("/admin/inventory/warehouses") || pathname.startsWith("/admin/inventory/shipments"))) return false;
     return pathname.startsWith(path.slice(0, -1));
   };
   const anyActive = (l: NavLeaf): boolean => (l.children ? l.children.some(anyActive) : leafActive(l));
