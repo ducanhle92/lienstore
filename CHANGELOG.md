@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.79.4] - 2026-09-27
+
 ### Changed
 - Mua theo đợt: **bảng của mỗi đợt là một form** — sửa bao nhiêu ô cũng được rồi bấm **Lưu thay đổi** (thanh đỏ dính cuối màn hình khi đợt đang hiện, như màn Sản phẩm). Bỏ hết nút ✓ ✕ / SL tách trên từng dòng; chỉ ghi những ô thực sự đổi (đổi trạng thái → lô đổi vị trí theo). Bỏ dòng “Nguồn mặc định · ngày mua · gửi NB→VN” dưới tiêu đề (tổng đv · ¥ chuyển lên cạnh tiêu đề).
 - Mua theo đợt: **Bill là đơn vị đánh số** (PM-…) mà từng dòng sản phẩm tham chiếu — badge mã bill trên mỗi dòng (dòng đơn, phiếu, lô), “chưa có bill” khi chưa gắn. Khối **Bill (n)** ngay trong đợt (bấm mở): danh sách bill với ngày, nguồn, ¥, số sản phẩm, số dòng trong đợt, **ảnh chụp bill** (thêm / gỡ tại chỗ), nhập bill mới bằng cách dán nội dung (tự tách sản phẩm → phiếu nháp xác nhận ngay phía trên đợt) hoặc **Tạo bill trống** để đính ảnh. Form “+ Thêm sản phẩm đã mua” (thu gọn, bấm mới mở) có ô **Bill**: chọn bill có sẵn / “+ bill mới” tự tạo / không gắn. Dòng đã tick → **Gắn bill**.
