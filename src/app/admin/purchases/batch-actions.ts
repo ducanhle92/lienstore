@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
+import { isPurchaseStatus } from "@/lib/purchase";
 import { isBatchStatus } from "@/lib/purchase-batches";
-import { addLinesToBatch, addProductToBatch, allocateSurplusToLine, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -133,4 +134,106 @@ export async function deleteBatchAction(formData: FormData): Promise<void> {
   revalidatePath("/admin", "layout");
   if (!r.ok) go("error", r.message ?? "Không xoá được.", batchId);
   go("saved", "Đã xoá đợt gửi — các dòng đơn giữ trạng thái, dòng mua dư bị bỏ.");
+}
+
+/** One stock row of a batch (SL, nguồn, HSD, ngày mua, ¥, ghi chú, trạng thái — or just the product from "đổi sản phẩm"). */
+export async function updateBatchStockAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  const spId = intOr(formData, "stockPurchaseId");
+  if (!batchId || !spId) go("error", "Yêu cầu không hợp lệ.");
+  const patch: Parameters<typeof updateBatchStock>[1] = {};
+  if (formData.has("productId")) {
+    const pid = intOr(formData, "productId");
+    if (!pid) go("error", "Chưa chọn sản phẩm mới.", batchId);
+    patch.productId = pid!;
+  }
+  if (formData.has("qty")) {
+    const qty = intOr(formData, "qty");
+    if (!qty || qty <= 0) go("error", "Số lượng phải lớn hơn 0.", batchId);
+    patch.qty = qty!;
+  }
+  if (formData.has("sourceKey")) patch.sourceKey = text(formData, "sourceKey");
+  if (formData.has("expiry")) {
+    const raw = text(formData, "expiry");
+    const v = raw ? parseExpiry(raw) : null;
+    if (raw && !v) go("error", "Hạn dùng không hợp lệ (VD 2027-03-31, 03/2027).", batchId);
+    patch.expiry = v;
+  }
+  if (formData.has("boughtAt")) {
+    const v = dateOrNull(text(formData, "boughtAt"));
+    if (v === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
+    patch.boughtAt = v ?? null;
+  }
+  if (formData.has("unitCostJpy")) {
+    const raw = text(formData, "unitCostJpy").replace(/[^\d]/g, "");
+    patch.unitCostJpy = raw ? Number.parseInt(raw, 10) : null;
+  }
+  if (formData.has("note")) patch.note = text(formData, "note").slice(0, 200);
+  if (formData.has("status")) {
+    const st = text(formData, "status");
+    if (isPurchaseStatus(st)) patch.status = st;
+  }
+  const r = await updateBatchStock(spId!, patch);
+  revalidatePath("/admin", "layout");
+  go(r.ok ? "saved" : "error", r.ok ? "Đã lưu dòng." : (r.message ?? "Không lưu được."), batchId);
+}
+
+/** "Tách": part of a stock row stays in Japan for a later batch (hold) or becomes its own row in this batch (split). */
+export async function splitBatchStockAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  const spId = intOr(formData, "stockPurchaseId");
+  const qty = intOr(formData, "splitQty");
+  const mode = text(formData, "mode") === "split" ? "split" : "hold";
+  if (!batchId || !spId) go("error", "Yêu cầu không hợp lệ.");
+  if (!qty) go("error", "Nhập số đơn vị muốn tách.", batchId);
+  const r = splitBatchStock(spId!, qty!, mode);
+  revalidatePath("/admin", "layout");
+  go(r.ok ? "saved" : "error", r.message, batchId);
+}
+
+/** Ticked rows → hold in Japan / leave the batch / move to another batch. */
+export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  if (!batchId) go("error", "Yêu cầu không hợp lệ.");
+  const sids = formData.getAll("sids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  const ids = formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  const op = text(formData, "op");
+  if (!sids.length && !ids.length) go("error", "Chưa tick dòng nào.", batchId);
+  if (op === "move") {
+    const target = intOr(formData, "targetBatchId");
+    if (!target || target === batchId) go("error", "Chọn đợt khác để chuyển sang.", batchId);
+    const hold = ids.length ? holdBatchRows(batchId!, [], ids) : { lines: 0 };
+    const linesAdded = ids.length ? addLinesToBatch(target!, ids)?.added ?? 0 : 0;
+    const r = await moveStockToBatch(sids, target!);
+    revalidatePath("/admin", "layout");
+    go("saved", `Đã chuyển ${(r?.moved ?? 0) + linesAdded} dòng sang đợt ${r?.code ?? ""}${hold.lines ? "" : ""}.`, batchId);
+  }
+  if (op === "remove") {
+    let n = 0;
+    for (const id of ids) if (removeLineFromBatch(id)) n++;
+    for (const id of sids) if (await removeSurplusFromBatch(id)) n++;
+    revalidatePath("/admin", "layout");
+    go("saved", `Đã bỏ ${n} dòng khỏi đợt (dòng đơn giữ trạng thái, dòng lưu kho bị xoá).`, batchId);
+  }
+  const r = holdBatchRows(batchId!, sids, ids);
+  revalidatePath("/admin", "layout");
+  go("saved", `Đã giữ lại tại Nhật ${r.stock} dòng lưu kho (chờ đợt sau)${r.lines ? ` · ${r.lines} dòng đơn rời đợt` : ""}.`, batchId);
+}
+
+/** Held rows (or plain stock slips from the "Mua lưu kho" tab) → into a batch. */
+export async function moveStockToBatchAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const target = intOr(formData, "batchId");
+  const spids = formData.getAll("spids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  const back = text(formData, "back");
+  const bounce = (key: "saved" | "error", msg: string): never => (back ? redirect(`${back}${back.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(msg)}`) : go(key, msg, intOr(formData, "fromBatchId") ?? target));
+  if (!target) bounce("error", "Chưa chọn đợt.");
+  if (!spids.length) bounce("error", "Chưa tick dòng nào.");
+  const r = await moveStockToBatch(spids, target!);
+  revalidatePath("/admin", "layout");
+  if (!r) bounce("error", "Không tìm thấy đợt.");
+  bounce("saved", `Đã đưa ${r!.moved} dòng vào đợt ${r!.code}.`);
 }

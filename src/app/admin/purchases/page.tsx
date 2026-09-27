@@ -105,7 +105,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
         </Link>
       </div>
 
-      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
+      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} /> : null}
       {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} /> : null}
 
       {/* compact stage counters (same density as Kho hàng) — the table below is the working view */}

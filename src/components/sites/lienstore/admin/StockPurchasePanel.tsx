@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { moveStockToBatchAction } from "@/app/admin/purchases/batch-actions";
 import { bulkStockPurchaseAction, createStockPurchaseAction, deleteStockPurchaseAction, setStockPurchaseStatusAction } from "@/app/admin/purchases/stock-actions";
 import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
 import { todayIso } from "@/lib/lots";
@@ -20,10 +21,12 @@ interface Props {
   products: PickableProduct[];
   sources: PurchaseSource[];
   includeDone: boolean;
+  /** Open shipment batches — ticked slips can be sent into one. */
+  batches?: Array<{ id: number; code: string; label: string }>;
 }
 
 /** Quản lý mua hàng › tab "Mua lưu kho": buy-for-stock slips (no order behind them) + their journey to the warehouse. */
-export function StockPurchasePanel({ purchases, products, sources, includeDone }: Props) {
+export function StockPurchasePanel({ purchases, products, sources, includeDone, batches = [] }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <Card title={`Phiếu mua lưu kho (${purchases.length})`} actions={<Link href={`/admin/purchases/?tab=stock${includeDone ? "" : "&done=1"}`} className="text-[13px] text-lien-blue hover:underline">{includeDone ? "Ẩn phiếu đã nhập kho" : "Xem cả phiếu đã nhập kho"}</Link>}>
@@ -41,6 +44,24 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
             <button type="submit" className={cn(btnPrimary, "!py-1")}>
               Áp dụng
             </button>
+            {batches.length ? (
+              <>
+                <span className="mx-1 text-lien-muted">|</span>
+                <span className="font-semibold text-lien-heading">hoặc đưa vào đợt:</span>
+                <input type="hidden" name="back" value="/admin/purchases/?tab=stock" />
+                <select name="batchId" defaultValue={batches[0].id} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Đợt gửi">
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.code}
+                      {b.label ? ` · ${b.label}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" formAction={moveStockToBatchAction} className={cn(btnSecondary, "!py-1")} title="Các phiếu đã tick đi chung chuyến với đợt này (hàng giữ lại Nhật từ đợt trước cũng ở đây)">
+                  Đưa vào đợt
+                </button>
+              </>
+            ) : null}
             <span className="text-lien-muted">Tới “Đã nhận được hàng (kho shop)” → tự tạo lô trong Kho hàng, tồn kho tăng.</span>
           </div>
         </form>

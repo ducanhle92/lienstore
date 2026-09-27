@@ -168,6 +168,11 @@ export interface PurchaseBatchStock {
   note: string;
   /** Where these units were bought — each product in a batch can come from its own source. */
   sourceKey: string;
+  /** Batch the row travels in now (null = waiting in Japan for the next one). */
+  batchId: number | null;
+  batchCode: string;
+  /** Batch the row was split off from ("giữ lại Nhật chờ đợt sau"). */
+  originBatchId: number | null;
 }
 
 /**
@@ -190,6 +195,8 @@ export interface PurchaseBatch {
   updatedAt: string;
   lines: PurchaseBatchLine[];
   stock: PurchaseBatchStock[];
+  /** Rows split off this batch and kept in Japan: still waiting, or already travelling in a later batch. */
+  held: PurchaseBatchStock[];
 }
 
 export type PurchaseSourceKind = "website" | "store" | "auction" | "secondhand" | "other";

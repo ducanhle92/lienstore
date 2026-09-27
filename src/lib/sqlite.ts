@@ -1234,6 +1234,12 @@ export const MIGRATIONS: Migration[] = [
     name: "receipt-batch",
     up: [`ALTER TABLE purchase_receipts ADD COLUMN batch_id INTEGER`],
   },
+  {
+    // Units split off a batch and kept in Japan for a later shipment remember where they came from.
+    version: 58,
+    name: "stock-purchase-origin-batch",
+    up: [`ALTER TABLE stock_purchases ADD COLUMN origin_batch_id INTEGER`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
