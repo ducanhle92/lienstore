@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.79.0] - 2026-09-27
+
 ### Changed
 - **Mô hình kho theo lô, 4 vị trí** (migration 61): mỗi lô ở một trong `Kho Nhật (shop)` → `Kho ĐVVC Nhật` → `Kho ĐVVC VN` → `Kho Việt Nam (shop)`, cờ “đang bay NB→VN” giữa hai kho ĐVVC. Hàng **đã mua tại Nhật thành lô ngay** ở Kho Nhật (shop) (ngày nhập = ngày mua, nguồn, HSD, ¥); trước đây phải tới “Đã nhận (kho shop)” mới có lô nên Kho Nhật luôn 0. Chuỗi trạng thái phiếu/dòng: Chưa mua → **Đã đặt mua (chưa nhận)** (mới) → Tại kho Nhật (shop) → Đã gửi ĐVVC Nhật → NB→VN → Tại kho ĐVVC VN → Về kho shop VN → Đang giao → Đã nhận. “Đã mua” cũ = Tại kho Nhật (shop).
 - **Chuyến hàng (DG-…) = một lần chuyển lô qua các vị trí**: đổi trạng thái chuyến → mọi lô trong chuyến đổi vị trí theo (Đang gom = Kho Nhật shop; Đã gửi ĐVVC Nhật = Kho ĐVVC Nhật; NB→VN = đang bay; Tới kho ĐVVC VN; Tại kho VN = chuyến kết thúc). Lô không thuộc chuyến nào đứng ở Kho Nhật (shop) (“giữ lại Nhật” = rút khỏi chuyến, thêm lại được); **rút lô khỏi chuyến chỉ trước NB→VN**, sau đó bị từ chối. Xoá chuyến đang gom trả lô về Kho Nhật, không mất lô.
