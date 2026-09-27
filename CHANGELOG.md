@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.77.1] - 2026-09-27
+
 ### Added
 - Kho hàng › Địa chỉ kho: mục **Địa chỉ khác của shop** — bấm “Thêm địa chỉ” để ghi thêm bao nhiêu điểm cũng được (kho VN thứ hai, nhà / điểm gom ở Nhật, kho tạm, điểm giao nhận…), mỗi địa chỉ có tên, loại (kho Nhật / ĐVVC Nhật / ĐVVC VN / kho shop VN / khác), địa chỉ và ghi chú; bỏ từng dòng được. Bốn kho chính giữ nguyên.
 
