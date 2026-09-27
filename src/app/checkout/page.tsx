@@ -18,7 +18,8 @@ export default async function Checkout() {
   const [customer, methods, pickupAddress, products, mode, jpyRate, defaults] = await Promise.all([getCurrentCustomer(), getShippingMethods(), getPickupAddress(), getAllProducts(), getShippingPricingMode(), getJpyRate(), getQuoteDefaults()]);
   const quote = buildQuoteConfig(methods, mode, jpyRate, defaults);
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
-  const preorderIds = products.filter((p) => p.fulfillment === "order" || p.stock === null || p.stock <= 0).map((p) => p.id);
+  // "Khách quen" (ticked by the admin) may always pay on delivery — nothing is marked "must prepay" for them
+  const preorderIds = customer?.isRegular ? [] : products.filter((p) => p.fulfillment === "order" || p.stock === null || p.stock <= 0).map((p) => p.id);
   // Billable grams per product: max(actual, volumetric) × safety factor by confidence (500 g × 2 when unknown) — for the JP legs.
   const weights: Record<number, number> = {};
   for (const p of products) weights[p.id] = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);

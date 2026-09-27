@@ -1240,6 +1240,42 @@ export const MIGRATIONS: Migration[] = [
     name: "stock-purchase-origin-batch",
     up: [`ALTER TABLE stock_purchases ADD COLUMN origin_batch_id INTEGER`],
   },
+  {
+    // "Phân bổ nguồn hàng": which lot / stock purchase / batch serves each order line (reservation until the payment is
+    // confirmed, then the lot units are deducted — see lib/allocations-db.ts). Regular customers may pay on delivery.
+    // Legacy rows: lines already in a batch → 'batch'; lines served from stock at order time (the lot was deducted then)
+    // → a consumed 'lot' row without a lot id; lines still "Chưa mua" → 'buy'.
+    version: 59,
+    name: "order-item-allocations",
+    up: [
+      `CREATE TABLE IF NOT EXISTS order_item_allocations (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+        source_type   TEXT NOT NULL,
+        source_id     INTEGER,
+        qty           INTEGER NOT NULL,
+        manual        INTEGER NOT NULL DEFAULT 0,
+        consumed_at   TEXT,
+        expires_at    TEXT,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_alloc_item ON order_item_allocations(order_item_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_alloc_source ON order_item_allocations(source_type, source_id)`,
+      `ALTER TABLE customers ADD COLUMN is_regular INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN stock_committed_at TEXT`,
+      `INSERT INTO order_item_allocations (order_item_id, source_type, source_id, qty, manual, consumed_at, created_at, updated_at)
+         SELECT oi.id, 'batch', oi.batch_id, oi.quantity, 0, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.batch_id IS NOT NULL AND o.status IN ('pending','processing')`,
+      `INSERT INTO order_item_allocations (order_item_id, source_type, source_id, qty, manual, consumed_at, created_at, updated_at)
+         SELECT oi.id, 'lot', NULL, oi.quantity, 0, COALESCE(oi.purchase_updated_at, o.created_at), strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.batch_id IS NULL AND oi.purchase_status = 'at_shop' AND o.status IN ('pending','processing')`,
+      `INSERT INTO order_item_allocations (order_item_id, source_type, source_id, qty, manual, consumed_at, created_at, updated_at)
+         SELECT oi.id, 'buy', NULL, oi.quantity, 0, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.batch_id IS NULL AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND o.status IN ('pending','processing')`,
+      `UPDATE orders SET stock_committed_at = updated_at WHERE stock_committed_at IS NULL AND ship_stage IN ('paid','in_transit','vn_warehouse','delivering','delivered')`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

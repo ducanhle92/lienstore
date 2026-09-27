@@ -5,7 +5,6 @@ import type { CheckoutState } from "@/components/sites/lienstore/shop/cart/check
 import { isCarrierCode } from "@/lib/carriers";
 import { getCurrentCustomer, startCustomerSession } from "@/lib/customer-auth";
 import { createCustomer, createOrder, findCustomerByEmail } from "@/lib/db";
-import { autoAllocateOrderFromBatches } from "@/lib/purchase-batches-db";
 import { findProvince, findWard } from "@/lib/vn-address";
 import type { CartItem, Order, PaymentMethod, ShipFeePayment } from "@/types/shop";
 
@@ -119,7 +118,5 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không thể tạo đơn hàng. Vui lòng thử lại." };
   }
-  // lines stock could not cover are served from surplus already bought in an open shipment batch (never throws)
-  autoAllocateOrderFromBatches(order.id);
   redirect(`/checkout/order-received/${order.id}/`);
 }

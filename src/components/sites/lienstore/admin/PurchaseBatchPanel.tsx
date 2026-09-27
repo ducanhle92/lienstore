@@ -659,6 +659,16 @@ function StockRow({ b, s, done, bulkId, srcSelect, products, sources, stock }: {
       <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
         <span className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-semibold text-[#3730a3]">Lưu kho</span>
         <span className="block text-lien-muted">phiếu #{s.id}</span>
+        {s.reserved.length ? (
+          <span className="block">
+            {s.reserved.map((r) => (
+              <Link key={`${r.orderId}`} href={`/admin/orders/${r.orderId}/`} className="mr-1 inline-block rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold text-amber-800 no-underline hover:underline" title="Giữ cho đơn khách">
+                #{r.orderNumber} ×{r.qty}
+              </Link>
+            ))}
+            <span className="text-lien-muted">trống {Math.max(0, s.qty - s.reserved.reduce((n, r) => n + r.qty, 0))}</span>
+          </span>
+        ) : null}
         {s.originBatchId && s.originBatchId !== b.id ? <span className="block text-lien-muted">từ đợt trước</span> : null}
         {stock !== null ? <span className="block text-lien-muted">tồn {stock}</span> : null}
       </td>

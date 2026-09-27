@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Phân bổ nguồn hàng cho dòng đơn** (migration 59, bảng order_item_allocations): mỗi dòng đơn biết hàng lấy từ đâu — lô có sẵn (Kho VN / ĐVVC / Nhật, theo hạn dùng gần nhất trước, cùng HSD thì kho gần VN hơn), phiếu mua đang về, đợt đang gom, hay “Cần mua”. Một dòng SL>1 có thể tách nhiều nguồn; không bao giờ giữ vượt số trống.
+- Đơn mới chỉ **giữ chỗ** (tồn kho ngoài web đã trừ phần giữ); **trừ tồn thật** khi đơn sang “Đã xác nhận thanh toán” hoặc admin đổi sang thu khi giao. Huỷ trước đó → trả lại chỗ; huỷ sau khi trừ → tạo lô nhập lại. Đang giao / Đã nhận không đụng tồn nữa.
+- **Khách quen**: checkbox ở Admin › Khách hàng (tài khoản); badge trên trang đơn; khách quen được chọn thanh toán khi nhận hàng ở checkout; nút “Đổi sang thanh toán khi nhận hàng” trên trang đơn trừ tồn ngay.
+- Trang đơn: cột **Nguồn hàng** (badge + chi tiết lô / phiếu / đợt), ô đổi nguồn thủ công, nút **Phân bổ lại**, nhãn “Đang giữ chỗ / Đã trừ tồn kho”.
+- Kho hàng › Lô hàng: cột **Đã giữ cho đơn** trên từng lô, khối “Đang mua theo đơn”, phiếu mua lưu kho hiện đơn đang giữ.
+- Mua theo đặt hàng: mặc định chỉ dòng **Cần mua** (ô “Xem cả dòng đã có nguồn”); Mua theo đợt: thêm sản phẩm / nhập bill đều đi qua phân bổ chung, dòng lưu kho hiện đơn đang giữ; trạng thái dòng đơn đổi theo phiếu / đợt / lô, không phải sửa tay.
+
+### Changed
+- Dữ liệu cũ được chuyển sang phân bổ: dòng đã thuộc đợt → nguồn “đợt”; dòng “Tại kho” do trừ lô lúc đặt → ghi nhận đã trừ; dòng “Chưa mua” → “Cần mua” rồi tự tìm nguồn có sẵn một lần sau khi cập nhật.
+
 ## [1.77.2] - 2026-09-27
 
 ### Changed

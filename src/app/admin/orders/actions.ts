@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { can, getAdminSession } from "@/lib/auth";
-import { addOrderMessage, deleteOrder, setOrderStage, updateOrderStatus } from "@/lib/db";
+import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
+import { addOrderMessage, deleteOrder, setOrderCod, setOrderStage, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { isShipStage } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
@@ -78,6 +79,41 @@ export async function setStageAction(formData: FormData): Promise<void> {
     revalidatePath("/admin");
   }
   redirect(`/admin/orders/${id}/?staged=1#tracking`);
+}
+
+/** "Phân bổ lại": automatic sources of every line are recomputed (manual overrides and deducted units stay). */
+export async function reallocateOrderAction(formData: FormData): Promise<void> {
+  if (!(await can("orders")) && !(await can("inventory"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  if (id) {
+    await reallocateOrder(id);
+    revalidatePath("/admin", "layout");
+  }
+  redirect(`/admin/orders/${id}/?saved=${encodeURIComponent("Đã phân bổ lại nguồn hàng cho đơn.")}`);
+}
+
+/** Override the source of one line: "buy" or "lot:12" / "stock_purchase:25" / "batch:3". */
+export async function setItemSourceAction(formData: FormData): Promise<void> {
+  if (!(await can("orders")) && !(await can("inventory"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const itemId = Number.parseInt(String(formData.get("itemId") ?? ""), 10);
+  const raw = String(formData.get("source") ?? "buy");
+  const [type, sid] = raw.split(":");
+  const sourceId = Number.parseInt(sid ?? "", 10);
+  const ok = type === "buy" || type === "lot" || type === "stock_purchase" || type === "batch";
+  if (!Number.isInteger(itemId) || !ok) redirect(`/admin/orders/${id}/?error=${encodeURIComponent("Yêu cầu không hợp lệ.")}`);
+  const r = await setManualAllocation(itemId, type as "buy" | "lot" | "stock_purchase" | "batch", Number.isInteger(sourceId) ? sourceId : null);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
+}
+
+/** Regular customer: the order switches to pay-on-delivery and the reserved stock is deducted now. */
+export async function setOrderCodAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const r = await setOrderCod(id);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
 }
 
 /** Shop → customer message on an order. */

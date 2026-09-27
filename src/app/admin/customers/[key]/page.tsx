@@ -1,26 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ADMIN_STATUS_LABELS, Card, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { setCustomerRegularAction } from "@/app/admin/customers/actions";
+import { ADMIN_STATUS_LABELS, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { countOrderFiles, getCustomerOverview, getOrdersForCustomerKey } from "@/lib/db";
+import { countOrderFiles, getCustomerById, getCustomerOverview, getOrdersForCustomerKey } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ key: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /** One customer (registered or guest): profile, every order with its items, and which orders already have a receipt. */
-export default async function AdminCustomerDetail({ params }: Props) {
+export default async function AdminCustomerDetail({ params, searchParams }: Props) {
   await requireAdmin("customers");
   const { key: raw } = await params;
   const key = decodeURIComponent(raw);
   const [overview, orders, fileCounts] = await Promise.all([getCustomerOverview(), getOrdersForCustomerKey(key), countOrderFiles()]);
+  const sp = await searchParams;
+  const flag = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v) ?? ""; };
   const c = overview.find((x) => x.key === key);
   if (!c) notFound();
+  const account = c.customerId ? await getCustomerById(c.customerId) : null;
+  const isRegular = !!account?.isRegular;
 
   const spent = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
   const itemsBought = new Map<string, { name: string; slug: string; image: string; qty: number; total: number }>();
@@ -38,9 +44,29 @@ export default async function AdminCustomerDetail({ params }: Props) {
     <>
       <PageHeader
         title={c.name || c.email || c.phone || "Khách hàng"}
-        subtitle={`${orders.length} đơn · đã chi ${formatPrice(spent)}${c.registered ? " · có tài khoản" : " · khách vãng lai"}`}
+        subtitle={`${orders.length} đơn · đã chi ${formatPrice(spent)}${c.registered ? " · có tài khoản" : " · khách vãng lai"}${isRegular ? " · khách quen" : ""}`}
         back={{ href: "/admin/customers/", label: "Khách hàng" }}
+        actions={
+          c.customerId ? (
+            <form action={setCustomerRegularAction} className="flex items-center gap-2" data-testid="regular-form">
+              <input type="hidden" name="customerId" value={c.customerId} />
+              <input type="hidden" name="key" value={c.key} />
+              <input type="hidden" name="regular" value={isRegular ? "0" : "1"} />
+              <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]" title="Khách quen được chọn thanh toán khi nhận hàng; admin đổi đơn sang thu khi giao thì tồn kho trừ ngay">
+                <input type="checkbox" checked={isRegular} readOnly className="h-4 w-4" />
+                Khách quen
+              </label>
+              <button type="submit" className={`${btnSecondary} !py-1 !text-[12px]`}>
+                {isRegular ? "Bỏ đánh dấu" : "Đánh dấu"}
+              </button>
+            </form>
+          ) : (
+            <span className="text-[12px] text-lien-muted">Khách vãng lai — cần tài khoản để đánh dấu khách quen</span>
+          )
+        }
       />
+      {flag("saved") ? <Flash>{flag("saved")}</Flash> : null}
+      {flag("error") ? <Flash kind="error">{flag("error")}</Flash> : null}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card title="Đơn hàng">

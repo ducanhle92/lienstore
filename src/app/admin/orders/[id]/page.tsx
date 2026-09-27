@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderCodAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
+import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { SHIP_STAGES, stageIndex } from "@/lib/shipping";
@@ -11,11 +13,9 @@ import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
+import { getCustomerById, getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { getDb, getSetting } from "@/lib/sqlite";
-import { setPurchaseAction } from "@/app/admin/purchases/actions";
-import { PURCHASE_STAGES } from "@/lib/purchase";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
@@ -35,6 +35,13 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   const isOwner = session.role === "owner";
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [order, files, overview, legMap, shippingMethods, messages, orderWeightG, importQuote, theme] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id), getImportQuoteConfig(), getSiteTheme()]);
+  // "Nguồn hàng": which lot / slip / batch serves each line, plus what the admin may switch it to
+  const itemIds = (order?.items ?? []).map((it) => it.itemId).filter((x): x is number => typeof x === "number");
+  const allocViews = order ? listAllocationViews(getDb(), itemIds) : [];
+  const sourceOptions = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, listSourceOptions(getDb(), it.productId, it.itemId as number)] as const) : []);
+  const regularCustomer = order?.customerId ? await getCustomerById(order.customerId) : null;
+  const isRegular = !!regularCustomer?.isRegular;
+  const TONE: Record<string, string> = { green: "bg-green-100 text-green-800", sky: "bg-sky-100 text-sky-800", amber: "bg-amber-100 text-amber-800", gray: "bg-gray-200 text-gray-700" };
   let transferQuotes: TransferQuotesView | null = null;
   try {
     const raw = getSetting(getDb(), `leg3_quotes:${id}`);
@@ -75,7 +82,24 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card title="Sản phẩm">
+          <Card
+            title="Sản phẩm"
+            actions={
+              <span className="flex items-center gap-2">
+                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", order.stockCommittedAt ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={order.stockCommittedAt ? `Tồn kho đã trừ lúc ${formatDateTime(order.stockCommittedAt)}` : "Đang giữ chỗ — trừ tồn thật khi xác nhận thanh toán hoặc đổi sang thu khi giao"}>
+                  {order.stockCommittedAt ? "Đã trừ tồn kho" : "Đang giữ chỗ"}
+                </span>
+                {order.status !== "cancelled" ? (
+                  <form action={reallocateOrderAction}>
+                    <input type="hidden" name="id" value={order.id} />
+                    <button type="submit" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px]`} title="Tính lại nguồn hàng tự động cho mọi dòng (giữ các ghi đè tay và phần đã trừ)">
+                      <Fa name="refresh" /> Phân bổ lại
+                    </button>
+                  </form>
+                ) : null}
+              </span>
+            }
+          >
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -83,7 +107,10 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Đơn giá</th>
                   <th className={thClass}>SL</th>
-                  <th className={thClass}>Mua hàng</th>
+                  <th className={thClass}>
+                    Nguồn hàng
+                    <InfoPopover>Hàng của dòng này lấy từ đâu: lô có sẵn (kho VN / ĐVVC / Nhật, theo hạn dùng gần nhất trước), phiếu mua đang về, đợt đang gom, hay còn phải mua. Tồn kho đã trừ phần giữ chỗ; trừ thật khi xác nhận thanh toán hoặc đổi sang thu khi giao. Chọn nguồn khác trong ô bên dưới nếu muốn ghi đè.</InfoPopover>
+                  </th>
                   <th className={`${thClass} text-right`}>Thành tiền</th>
                 </tr>
               </thead>
@@ -106,22 +133,43 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     </td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td>
                     <td className={tdClass}>{it.quantity}</td>
-                    <td className={tdClass}>
+                    <td className={`${tdClass} min-w-[260px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
                       {it.itemId ? (
-                        <form action={setPurchaseAction} className="flex items-center gap-1">
-                          <input type="hidden" name="itemId" value={it.itemId} />
-                          <input type="hidden" name="back" value={`/admin/orders/${order.id}/`} />
-                          <select name="status" defaultValue={it.purchaseStatus ?? "not_bought"} className="rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Trạng thái mua hàng">
-                            {PURCHASE_STAGES.map((s) => (
-                              <option key={s.key} value={s.key}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
-                          <button type="submit" className="rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px] hover:border-lien-blue" title="Lưu">
-                            <Fa name="check-circle" />
-                          </button>
-                        </form>
+                        <>
+                          <div className="space-y-1">
+                            {allocViews
+                              .filter((a) => a.orderItemId === it.itemId)
+                              .map((a) => (
+                                <div key={a.id} className="text-[12px] leading-4">
+                                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", TONE[a.tone])}>{a.label}</span>
+                                  {it.quantity > 1 ? <span className="ml-1 font-semibold">×{a.qty}</span> : null}
+                                  {a.manual ? <span className="ml-1 text-[10px] text-lien-muted">(ghi đè)</span> : null}
+                                  {a.detail ? <span className="block text-lien-muted">{a.detail}</span> : null}
+                                </div>
+                              ))}
+                            {!allocViews.some((a) => a.orderItemId === it.itemId) ? <span className="text-[12px] text-lien-muted">— theo trạng thái tay: {it.purchaseStatus ?? "chưa mua"}</span> : null}
+                          </div>
+                          {order.status !== "cancelled" ? (
+                            <form action={setItemSourceAction} className="mt-1.5 flex items-center gap-1">
+                              <input type="hidden" name="id" value={order.id} />
+                              <input type="hidden" name="itemId" value={it.itemId} />
+                              <select name="source" defaultValue="" className="max-w-[240px] rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Đổi nguồn hàng">
+                                <option value="" disabled>
+                                  — đổi nguồn —
+                                </option>
+                                <option value="buy">Cần mua (bỏ giữ chỗ)</option>
+                                {(sourceOptions.get(it.itemId) ?? []).map((o) => (
+                                  <option key={`${o.type}:${o.id}`} value={`${o.type}:${o.id}`}>
+                                    {o.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <button type="submit" className="rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px] hover:border-lien-blue" title="Đổi nguồn cho dòng này">
+                                <Fa name="check-circle" />
+                              </button>
+                            </form>
+                          ) : null}
+                        </>
                       ) : null}
                     </td>
                     <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td>
@@ -232,6 +280,24 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             </form>
           </Card>
           <Card title="Trạng thái">
+            <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid="payment-box">
+              <div>
+                Thanh toán: <b>{order.paymentMethod === "cod" ? "Thu khi giao" : PAYMENT[order.paymentMethod] ?? order.paymentMethod}</b>
+                {order.stockCommittedAt ? <span className="block text-[12px] text-lien-muted">Tồn kho đã trừ theo đơn lúc {formatDateTime(order.stockCommittedAt)}.</span> : <span className="block text-[12px] text-lien-muted">Hàng đang được giữ chỗ; trừ tồn thật khi xác nhận thanh toán.</span>}
+              </div>
+              {order.paymentMethod !== "cod" && order.status !== "cancelled" ? (
+                isRegular ? (
+                  <form action={setOrderCodAction} className="mt-2">
+                    <input type="hidden" name="id" value={order.id} />
+                    <button type="submit" className={`${btnSecondary} !py-1 !text-[12px]`} title="Khách quen: không cần chuyển khoản trước — đổi sang thu khi giao và trừ tồn kho ngay">
+                      <Fa name="check-circle" /> Đổi sang thanh toán khi nhận hàng
+                    </button>
+                  </form>
+                ) : (
+                  <p className="m-0 mt-1 text-[12px] text-lien-muted">Muốn cho thu khi giao? Tick “Khách quen” ở trang khách hàng trước.</p>
+                )
+              ) : null}
+            </div>
             <form action={updateOrderStatusAction} className="grid gap-3">
               <input type="hidden" name="id" value={order.id} />
               <select name="status" defaultValue={order.status} className={adminInput}>
@@ -265,9 +331,16 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           <Card
             title="Khách hàng"
             actions={
-              <Link href={`/admin/customers/${encodeURIComponent(customerKey)}/`} className="text-[13px] text-lien-blue hover:underline">
-                Lịch sử mua →
-              </Link>
+              <span className="flex items-center gap-2">
+                {isRegular ? (
+                  <span className="rounded-full bg-lien-blue-soft px-2 py-0.5 text-[11px] font-semibold text-lien-blue" title="Khách quen — được thanh toán khi nhận hàng">
+                    <Fa name="star" /> Khách quen
+                  </span>
+                ) : null}
+                <Link href={`/admin/customers/${encodeURIComponent(customerKey)}/`} className="text-[13px] text-lien-blue hover:underline">
+                  Lịch sử mua →
+                </Link>
+              </span>
             }
           >
             <dl className="grid gap-2 text-[14px] leading-5">

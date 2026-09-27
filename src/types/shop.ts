@@ -173,6 +173,8 @@ export interface PurchaseBatchStock {
   batchCode: string;
   /** Batch the row was split off from ("giữ lại Nhật chờ đợt sau"). */
   originBatchId: number | null;
+  /** Units of this row already reserved for customer orders (see order_item_allocations). */
+  reserved: Array<{ orderId: string; orderNumber: number; qty: number }>;
 }
 
 /**
@@ -292,6 +294,8 @@ export interface Customer {
   permissions: string[];
   /** false = login blocked without deleting the account. */
   active: boolean;
+  /** "Khách quen" (ticked by the admin): may pay on delivery, stock is deducted when the admin grants it. */
+  isRegular: boolean;
   /** Profile picture URL (uploaded by the customer); empty = initial letter. */
   avatar: string;
   createdAt: string;
@@ -343,6 +347,8 @@ export interface Order {
   delivery: "ship" | "pickup";
   /** True when the order contains made-to-order items (must be paid in full up front). */
   prepaidRequired: boolean;
+  /** When the reserved lot units were really deducted (payment confirmed / COD granted); null = still only reserved. */
+  stockCommittedAt: string | null;
   /** Voucher discount taken off the subtotal (0 when none). */
   discount: number;
   voucherCode: string;

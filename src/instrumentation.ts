@@ -114,6 +114,16 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
+  // one-time after migration 59: legacy "Cần mua" lines take the stock that already exists (see lib/allocations-db.ts)
+  setTimeout(async () => {
+    try {
+      const { backfillAllocationsOnce } = await import("./lib/allocations-db");
+      const n = await backfillAllocationsOnce();
+      if (n) console.info(`[alloc] backfill: ${n} order line(s) now have a source`);
+    } catch (e) {
+      console.warn(`[alloc] backfill failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 25_000);
   // one-time: stored texts still saying "LienStore" → the theme's shop name (see lib/brand-rename-job.ts)
   setTimeout(async () => {
     try {

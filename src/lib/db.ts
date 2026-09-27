@@ -46,13 +46,15 @@ import { DEFAULT_WAREHOUSE, emptyByTransit, isWarehouse, type TransitWhere, tran
 import { isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
 import { diffProductChanges, type ProductChangeField, type ProductChangeInput } from "./price-display";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
-import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
+import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, SHIP_STAGES, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
 import { liveGhnTransferMethod } from "./carriers/ghn-transfer";
 import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
+import { allocateOrderSync, allocatePendingForProductSync, commitOrderSync, onStockPurchaseChangedSync, onStockPurchaseDeletedSync, releaseOrderSync } from "./allocations-db";
+import { syncProductStock } from "./stock-sync";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
@@ -221,6 +223,7 @@ interface OrderRow {
   shipping_label: string | null;
   delivery: string | null;
   prepaid_required: number | null;
+  stock_committed_at: string | null;
   discount: number | null;
   voucher_code: string | null;
   ship_stage: string | null;
@@ -274,6 +277,7 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     shippingLabel: r.shipping_label ?? "",
     delivery: r.delivery === "pickup" ? "pickup" : "ship",
     prepaidRequired: (r.prepaid_required ?? 0) === 1,
+    stockCommittedAt: r.stock_committed_at ?? null,
     discount: r.discount ?? 0,
     shipFeePayment: r.ship_fee_payment === "on_delivery" ? "on_delivery" : "prepaid",
     shipQuote: r.ship_quote_json ?? null,
@@ -303,6 +307,7 @@ interface CustomerRow {
   username: string | null;
   customer_no: number | null;
   avatar: string | null;
+  is_regular: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -322,9 +327,15 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   permissions: parseArr(r.permissions ?? "[]"),
   active: (r.active ?? 1) === 1,
   avatar: r.avatar ?? "",
+  isRegular: (r.is_regular ?? 0) === 1,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
+
+/** Admin › Khách hàng: tick / untick "Khách quen". */
+export async function setCustomerRegular(id: string, regular: boolean): Promise<boolean> {
+  return Number(getDb().prepare("UPDATE customers SET is_regular = ?, updated_at = ? WHERE id = ?").run(regular ? 1 : 0, new Date().toISOString(), id).changes) > 0;
+}
 
 // ---------- Products ----------
 
@@ -881,6 +892,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let prepaidRequired = false;
     let weightG = 0;
     let special = false;
+    // "Khách quen" may pay on delivery even for made-to-order lines
+    const regular = input.customerId ? ((db.prepare("SELECT is_regular FROM customers WHERE id = ?").get(input.customerId) as { is_regular: number | null } | undefined)?.is_regular ?? 0) === 1 : false;
     for (const it of input.items) {
       const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
         | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
@@ -890,12 +903,13 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       const qty = Math.max(1, Math.floor(it.quantity));
       // made-to-order: no tracked stock, or not enough on hand
       const fromStock = row.stock !== null && row.stock >= qty;
-      if (!fromStock) prepaidRequired = true;
+      if (!fromStock && !regular) prepaidRequired = true;
       weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
       // fully covered by warehouse stock → the goods are already at the shop, not "chưa mua" (see lib/purchase.ts)
       // expected web price at this moment (regular_price holds it while a promotion runs) — Kế toán reads promo cost from it
       const listPrice = row.regular_price && row.regular_price > 0 && row.regular_price !== row.price ? row.regular_price : row.price;
-      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty, listPrice, purchaseStatus: fromStock ? "at_shop" : undefined });
+      // the purchase status comes from the allocation below (lot at the shop → "Tại kho", lot in Japan → "Đã mua"…)
+      items.push({ productId: row.id, slug: row.slug, name: row.name, price: row.price, image: row.thumb, quantity: qty, listPrice });
     }
     if (items.length === 0) throw new Error("Giỏ hàng trống");
     if (prepaidRequired && input.paymentMethod === "cod") throw new Error("Đơn có hàng order (đặt mua theo yêu cầu) cần thanh toán trước 100% bằng chuyển khoản.");
@@ -999,13 +1013,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     );
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(id, now);
     const insItem = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_updated_at, list_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    // stock 0 makes the product "Hàng order" (bought to order); it never becomes "Hết hàng" (that means discontinued in Japan)
-    const decStock = db.prepare(`UPDATE products SET stock = MAX(0, stock - ?), updated_at = ? WHERE id = ? AND stock IS NOT NULL`);
-    for (const it of items) {
-      insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity, it.purchaseStatus ?? "not_bought", it.purchaseStatus ? now : null, it.listPrice ?? null);
-      decStock.run(it.quantity, now, it.productId);
-      consumeLotsSync(db, it.productId, it.quantity, now); // FEFO: earliest expiry leaves first
-    }
+    for (const it of items) insItem.run(id, it.productId, it.slug, it.name, it.price, it.image, it.quantity, it.purchaseStatus ?? "not_bought", it.purchaseStatus ? now : null, it.listPrice ?? null);
+    // reserve stock for every line (lots FEFO, then slips on their way, then batches); products.stock excludes the reservations.
+    // Paying on delivery (regular customers) commits the order right away: the lot units are deducted now.
+    allocateOrderSync(db, id);
+    if (input.paymentMethod === "cod") commitOrderSync(db, id);
     // Pre-fill the per-leg table so the admin sees what was quoted (editable later).
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
     for (const l of importLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `${mode === "per_order" ? "Báo giá khi đặt" : "Mặc định theo luồng nhập hàng (đã gồm trong giá bán; chia theo lô)"}: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
@@ -1059,6 +1071,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       shippingLabel,
       delivery,
       prepaidRequired,
+      // paying on delivery (regular customers) committed the stock above
+      stockCommittedAt: input.paymentMethod === "cod" ? now : null,
       discount,
       voucherCode,
       shipStage: "ordered",
@@ -1123,6 +1137,8 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
   const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
   if (r.changes === 0) return false;
   db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
+  // payment confirmed (or any later stage) → the reserved lot units are deducted for real
+  if (SHIP_STAGES.findIndex((s) => s.key === stage) >= SHIP_STAGES.findIndex((s) => s.key === "paid")) commitOrderSync(db, id);
   // every line of the order has at least reached the purchase status implied by the logistics stage (never lowered)
   const minStatus = STAGE_TO_PURCHASE[stage];
   if (minStatus) {
@@ -1201,8 +1217,33 @@ export async function findOrder(number: number, phone: string): Promise<Order | 
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null> {
-  const res = getDb().prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, new Date().toISOString(), id);
-  return Number(res.changes) > 0 ? getOrderById(id) : null;
+  const db = getDb();
+  const cur = db.prepare("SELECT status, stock_committed_at FROM orders WHERE id = ?").get(id) as { status: string; stock_committed_at: string | null } | undefined;
+  if (!cur) return null;
+  const now = new Date().toISOString();
+  withTransaction(db, () => {
+    db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, now, id);
+    if (status === "cancelled" && cur.status !== "cancelled") {
+      // reservations vanish; units already deducted come back as a return lot
+      releaseOrderSync(db, id, !!cur.stock_committed_at);
+      db.prepare("UPDATE orders SET stock_committed_at = NULL WHERE id = ?").run(id);
+    } else if (cur.status === "cancelled" && status !== "cancelled") allocateOrderSync(db, id, true);
+  });
+  return getOrderById(id);
+}
+
+/** Admin: a regular customer's order switches to pay-on-delivery — the reserved lot units are deducted now. */
+export async function setOrderCod(id: string): Promise<{ ok: boolean; message: string }> {
+  const db = getDb();
+  const o = db.prepare("SELECT o.status, o.customer_id, c.is_regular FROM orders o LEFT JOIN customers c ON c.id = o.customer_id WHERE o.id = ?").get(id) as { status: string; customer_id: string | null; is_regular: number | null } | undefined;
+  if (!o) return { ok: false, message: "Không tìm thấy đơn." };
+  if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ." };
+  if ((o.is_regular ?? 0) !== 1) return { ok: false, message: "Chỉ khách quen mới được thanh toán khi nhận hàng — tick “Khách quen” ở trang khách hàng trước." };
+  withTransaction(db, () => {
+    db.prepare("UPDATE orders SET payment_method = 'cod', prepaid_required = 0, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+    commitOrderSync(db, id);
+  });
+  return { ok: true, message: "Đơn chuyển sang thu khi giao — tồn kho đã trừ theo đơn." };
 }
 
 /** Admin override of what the customer pays for delivery; total is recomputed. */
@@ -1629,7 +1670,9 @@ export async function deleteOrder(id: string): Promise<{ number: number; filePat
   const row = db.prepare("SELECT number FROM orders WHERE id = ?").get(id) as { number: number } | undefined;
   if (!row) return null;
   const files = (db.prepare("SELECT path FROM order_files WHERE order_id = ?").all(id) as unknown as Array<{ path: string }>).map((f) => f.path);
+  const committed = !!(db.prepare("SELECT stock_committed_at FROM orders WHERE id = ?").get(id) as { stock_committed_at: string | null }).stock_committed_at;
   withTransaction(db, () => {
+    releaseOrderSync(db, id, committed);
     db.prepare("UPDATE payment_events SET order_id = NULL WHERE order_id = ?").run(id);
     db.prepare("DELETE FROM orders WHERE id = ?").run(id);
   });
@@ -1685,10 +1728,9 @@ interface LotRow {
 const whOf = (v: string | null | undefined): Warehouse => (isWarehouse(v) ? v : DEFAULT_WAREHOUSE);
 const rowToLot = (r: LotRow): StockLot => ({ id: r.id, productId: r.product_id, qtyIn: r.qty_in, qtyLeft: r.qty_left, receivedAt: r.received_at, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, unitCostVnd: r.unit_cost_vnd, expiry: r.expiry, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", purchaseId: r.purchase_id, boughtAt: r.bought_at ?? null, createdAt: r.created_at, updatedAt: r.updated_at });
 
-/** products.stock := sum of what is left in the lots (only when the product has lots). */
+/** products.stock := what is left in the lots minus what open orders have reserved (see lib/stock-sync.ts). */
 function syncStockFromLots(db: DatabaseSync, productId: number, now: string): void {
-  const r = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(qty_left), 0) AS s FROM stock_lots WHERE product_id = ?").get(productId) as { n: number; s: number };
-  if (Number(r.n) > 0) db.prepare("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?").run(Number(r.s), now, productId);
+  syncProductStock(db, productId, now);
 }
 /** Take `qty` units out of the product's lots, earliest expiry first. Silent when the product has no lots. */
 function consumeLotsSync(db: DatabaseSync, productId: number, qty: number, now: string, warehouse?: Warehouse): void {
@@ -1749,7 +1791,7 @@ export async function getStockLot(id: number): Promise<StockLot | null> {
   const r = getDb().prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
   return r ? rowToLot(r) : null;
 }
-export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string; purchaseId?: number | null }): Promise<StockLot> {
+export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string; purchaseId?: number | null; /** the caller converts its own reservations first (stock purchase → lot) */ skipAllocate?: boolean }): Promise<StockLot> {
   const db = getDb();
   const now = new Date().toISOString();
   return withTransaction(db, () => {
@@ -1759,6 +1801,7 @@ export async function addStockLot(input: { productId: number; qty: number; recei
     const vnd = input.unitCostVnd ?? (jpy && jpy !== p.cost_jpy ? null : p.cost_price) ?? null;
     const res = db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, bought_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.qty, input.receivedAt || todayIso(), input.boughtAt ?? null, input.sourceKey || UNKNOWN_SOURCE, jpy, vnd, input.expiry ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.location ?? "", input.note ?? "", input.purchaseId ?? null, now, now);
     syncStockFromLots(db, input.productId, now);
+    if (!input.skipAllocate) allocatePendingForProductSync(db, input.productId); // lines still "Cần mua" take from the new lot
     return rowToLot(db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as LotRow);
   });
 }
@@ -1771,6 +1814,7 @@ export async function updateStockLot(id: number, patch: { qtyLeft?: number; rece
     const qtyLeft = patch.qtyLeft ?? cur.qty_left;
     db.prepare("UPDATE stock_lots SET qty_left = ?, qty_in = MAX(qty_in, ?), received_at = ?, bought_at = ?, source_key = ?, unit_cost_jpy = ?, expiry = ?, warehouse = ?, location = ?, note = ?, updated_at = ? WHERE id = ?").run(qtyLeft, qtyLeft, patch.receivedAt ?? cur.received_at, patch.boughtAt === undefined ? cur.bought_at : patch.boughtAt, patch.sourceKey ?? cur.source_key, patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy, patch.expiry === undefined ? cur.expiry : patch.expiry, patch.warehouse ?? whOf(cur.warehouse), patch.location ?? cur.location, patch.note ?? cur.note, now, id);
     syncStockFromLots(db, cur.product_id, now);
+    allocatePendingForProductSync(db, cur.product_id);
     return true;
   });
 }
@@ -1784,6 +1828,9 @@ export async function deleteStockLot(id: number): Promise<boolean> {
     const left = db.prepare("SELECT COUNT(*) AS n FROM stock_lots WHERE product_id = ?").get(cur.product_id) as { n: number };
     if (Number(left.n) > 0) syncStockFromLots(db, cur.product_id, now);
     else db.prepare("UPDATE products SET stock = 0, updated_at = ? WHERE id = ? AND stock IS NOT NULL").run(now, cur.product_id);
+    // reservations on the deleted lot become "Cần mua" again and look for another source
+    db.prepare("UPDATE order_item_allocations SET source_type = 'buy', source_id = NULL, manual = 0 WHERE source_type = 'lot' AND source_id = ? AND consumed_at IS NULL").run(id);
+    allocatePendingForProductSync(db, cur.product_id);
     return true;
   });
 }
@@ -1835,16 +1882,20 @@ export async function setStockPurchaseStatus(id: number, status: PurchaseStatus,
   const now = new Date().toISOString();
   let lotId = cur.lot_id;
   if (purchaseIndex(status) >= purchaseIndex("at_shop") && !lotId) {
-    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, boughtAt: cur.bought_at ?? null, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, warehouse: whOf(cur.warehouse), location: cur.location, note: cur.note ? `Mua lưu kho #${cur.id} · ${cur.note}` : `Mua lưu kho #${cur.id}`, purchaseId: cur.id });
+    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, boughtAt: cur.bought_at ?? null, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, warehouse: whOf(cur.warehouse), location: cur.location, note: cur.note ? `Mua lưu kho #${cur.id} · ${cur.note}` : `Mua lưu kho #${cur.id}`, purchaseId: cur.id, skipAllocate: true });
     lotId = lot.id;
   }
   db.prepare("UPDATE stock_purchases SET status = ?, note = COALESCE(?, note), lot_id = ?, updated_at = ? WHERE id = ?").run(purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status, note ?? null, lotId, now, id);
+  // lines served from this slip follow it (and take the lot once it exists); then the free units serve waiting lines
+  onStockPurchaseChangedSync(db, id);
+  if (lotId && !cur.lot_id) allocatePendingForProductSync(db, cur.product_id);
   return { ok: true, lotId };
 }
 export async function deleteStockPurchase(id: number): Promise<boolean> {
   const db = getDb();
   const cur = db.prepare("SELECT lot_id FROM stock_purchases WHERE id = ?").get(id) as { lot_id: number | null } | undefined;
   if (!cur || cur.lot_id) return false; // once it became a lot, manage the lot instead
+  onStockPurchaseDeletedSync(db, id); // its lines fall back to "Cần mua" (or another source)
   return Number(db.prepare("DELETE FROM stock_purchases WHERE id = ?").run(id).changes) > 0;
 }
 
@@ -2024,6 +2075,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     role: input.role ?? "customer",
     permissions: input.permissions ?? [],
     active: input.active ?? true,
+    isRegular: false,
     createdAt: now,
     updatedAt: now,
   };

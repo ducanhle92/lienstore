@@ -4,6 +4,8 @@ import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/act
 import { addLinesToBatchAction, allocateSurplusAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
 import { PurchaseBatchPanel } from "@/components/sites/lienstore/admin/PurchaseBatchPanel";
+import { itemIdsNeedingPurchase } from "@/lib/allocations-db";
+import { getDb } from "@/lib/sqlite";
 import { listBatchHeads, listOpenSurplus, listPurchaseBatches } from "@/lib/purchase-batches-db";
 import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
 import { todayIso } from "@/lib/lots";
@@ -39,6 +41,9 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const view = first(sp.view) === "product" ? "product" : "line";
   const includeDone = first(sp.done) === "1";
+  // by default only lines still "Cần mua" (no lot / slip / batch behind them); ?all=1 shows every open line
+  const showAll = first(sp.all) === "1";
+  const needIds = itemIdsNeedingPurchase(getDb());
   // three tabs; the old "receipts" tab maps to Mua theo đặt hàng with the bill section open
   const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "batches" ? "batches" : "orders";
   const receiptsOpen = first(sp.receipts) === "1" || first(sp.tab) === "receipts" || !!first(sp.draft);
@@ -56,13 +61,15 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
   const lines = all
+    .filter((l) => showAll || includeDone || needIds.has(l.itemId))
     .filter((l) => !status || l.purchaseStatus === status)
     .filter((l) => !q || `${l.name} ${l.sku ?? ""} #${l.orderNumber} ${l.customerName} ${l.receiptCode}`.toLowerCase().includes(q))
     .filter((l) => !from || shopDayOf(l.orderCreatedAt) >= from)
     .filter((l) => !to || shopDayOf(l.orderCreatedAt) <= to)
     .filter((l) => !source || (source === "-" ? !l.sourceKey : l.sourceKey === source));
   const counts = Object.fromEntries(PURCHASE_STAGES.map((s) => [s.key, all.filter((l) => l.purchaseStatus === s.key).reduce((n, l) => n + l.quantity, 0)])) as Record<PurchaseStatus, number>;
-  const self = `/admin/purchases/?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), ...(view !== "line" ? { view } : {}), ...(includeDone ? { done: "1" } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}), ...(source ? { source } : {}) }).toString()}`;
+  const self = `/admin/purchases/?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), ...(view !== "line" ? { view } : {}), ...(includeDone ? { done: "1" } : {}), ...(showAll ? { all: "1" } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}), ...(source ? { source } : {}) }).toString()}`;
+  const needCount = all.filter((l) => needIds.has(l.itemId)).length;
 
   // per-product roll-up
   const byProduct = new Map<number, { name: string; sku: string | null; thumb: string | null; costPrice: number | null; supplierUrl: string | null; total: number; per: Record<PurchaseStatus, number>; orders: string[] }>();
@@ -95,7 +102,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
 
       <div className="mb-5 flex flex-wrap gap-2" data-testid="purchase-tabs">
         <Link href="/admin/purchases/" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Mua theo đặt hàng ({all.length} dòng)
+          Mua theo đặt hàng ({needCount} dòng cần mua)
         </Link>
         <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
@@ -150,6 +157,9 @@ export default async function AdminPurchases({ searchParams }: Props) {
           </label>
           <label className="inline-flex items-center gap-2 text-[13px]">
             <input type="checkbox" name="done" value="1" defaultChecked={includeDone} className="h-4 w-4" /> Gồm đơn đã xong
+          </label>
+          <label className="inline-flex items-center gap-2 text-[13px]" title="Mặc định chỉ hiện dòng còn phải mua; dòng đã có lô / phiếu / đợt phía sau được ẩn">
+            <input type="checkbox" name="all" value="1" defaultChecked={showAll} className="h-4 w-4" /> Xem cả dòng đã có nguồn
           </label>
           <button type="submit" className={cn(btnPrimary, "md:col-start-6")}>
             Lọc

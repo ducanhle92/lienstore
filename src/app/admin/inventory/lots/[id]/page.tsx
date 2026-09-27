@@ -5,7 +5,9 @@ import { addLotAction, updateLotAction } from "@/app/admin/inventory/lots/action
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
+import { listReservationsForProduct } from "@/lib/allocations-db";
 import { getProductById, listPurchaseSources, listStockLots, listStockPurchases } from "@/lib/db";
+import { getDb } from "@/lib/sqlite";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
@@ -31,6 +33,17 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
   const [product, lots, sources, purchases, sp] = await Promise.all([getProductById(pid), listStockLots(pid, false), listPurchaseSources(), listStockPurchases(false), searchParams]);
   if (!product) notFound();
   const open = purchases.filter((p) => p.productId === pid);
+  const reservations = listReservationsForProduct(getDb(), pid);
+  // one line per order line of this product: its parts (lot / slip / batch / buy)
+  const orderLines = Array.from(
+    reservations.reduce((acc, r) => {
+      const g = acc.get(r.itemId) ?? { itemId: r.itemId, orderId: r.orderId, orderNumber: r.orderNumber, qty: 0, parts: [] as typeof reservations };
+      g.qty += r.qty;
+      g.parts.push(r);
+      acc.set(r.itemId, g);
+      return acc;
+    }, new Map<number, { itemId: number; orderId: string; orderNumber: number; qty: number; parts: typeof reservations }>()).values(),
+  ).filter((g) => g.parts.some((p) => !p.consumed));
   const left = lots.reduce((s, l) => s + l.qtyLeft, 0);
   const whField = (value: string, id: string, cls = "!mb-0 !w-[130px] !py-1 !text-[13px]") => (
     <select id={id} name="warehouse" defaultValue={value} className={`${adminInput} ${cls}`} aria-label="Kho">
@@ -74,6 +87,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                   <tr>
                     <th className={thClass}>Ngày nhập</th>
                     <th className={thClass}>Còn / nhập</th>
+                    <th className={thClass}>Đã giữ cho đơn</th>
                     <th className={thClass}>Nguồn nhập</th>
                     <th className={thClass}>Giá vốn ¥/đv</th>
                     <th className={thClass}>Hạn dùng</th>
@@ -102,6 +116,24 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                         <td className={`${tdClass} whitespace-nowrap`}>
                           <input form={fid} name="qtyLeft" inputMode="numeric" defaultValue={l.qtyLeft} className={`${adminInput} !mb-0 inline-block !w-[64px] !py-1 text-center !text-[13px]`} aria-label="Số lượng còn" />
                           <span className="ml-1 text-[12px] text-lien-muted">/ {l.qtyIn}</span>
+                        </td>
+                        <td className={`${tdClass} text-[12px]`}>
+                          {(() => {
+                            const held = reservations.filter((r) => r.sourceType === "lot" && r.sourceId === l.id && !r.consumed);
+                            const free = l.qtyLeft - held.reduce((n, r) => n + r.qty, 0);
+                            return held.length ? (
+                              <>
+                                {held.map((r) => (
+                                  <Link key={`${r.itemId}`} href={`/admin/orders/${r.orderId}/`} className="mr-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800 no-underline hover:underline" title="Giữ chỗ cho đơn (chưa trừ)">
+                                    #{r.orderNumber} ×{r.qty}
+                                  </Link>
+                                ))}
+                                <span className="block text-lien-muted">trống {Math.max(0, free)}</span>
+                              </>
+                            ) : (
+                              <span className="text-lien-muted">—</span>
+                            );
+                          })()}
                         </td>
                         <td className={tdClass}>{srcField("sourceKey", l.sourceKey, `${fid}-src`)}</td>
                         <td className={tdClass}>
@@ -137,7 +169,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                   })}
                   {lots.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có lô nào — nhập lô ở khung bên phải, hoặc tạo phiếu “Mua lưu kho” ở Quản lý mua hàng (khi hàng về tới kho, lô tự tạo).
                       </td>
                     </tr>
@@ -145,8 +177,29 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, số lượng trừ vào lô có hạn dùng gần nhất trước (FEFO). Sửa số “còn” để kiểm kho; tồn kho của sản phẩm = tổng “còn” của các lô ở cả ba kho. Đổi cột “Kho” khi chuyển lô từ Kho Nhật → Kho ĐVVC → Kho Việt Nam.</p>
+            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, đơn giữ chỗ trên lô có hạn dùng gần nhất trước (FEFO, kể cả lô đang ở Nhật); số “còn” chỉ trừ thật khi đơn được xác nhận thanh toán hoặc thu khi giao. Tồn kho ngoài web = tổng “còn” của các lô ở cả ba kho trừ phần đã giữ. Đổi cột “Kho” khi chuyển lô từ Kho Nhật → Kho ĐVVC → Kho Việt Nam.</p>
           </Card>
+
+          {orderLines.length ? (
+            <Card title={`Đang mua theo đơn (${orderLines.length} dòng)`}>
+              <ul className="m-0 list-none space-y-1 p-0 text-[13px]" data-testid="product-order-lines">
+                {orderLines.map((g) => (
+                  <li key={g.itemId} className="flex flex-wrap items-center gap-2">
+                    <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-blue hover:underline">
+                      #{g.orderNumber}
+                    </Link>
+                    <span className="font-semibold">×{g.qty}</span>
+                    {g.parts.map((p, i) => (
+                      <span key={i} className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", p.sourceType === "buy" ? "bg-gray-200 text-gray-700" : p.consumed ? "bg-green-100 text-green-800" : p.sourceType === "lot" ? "bg-green-100 text-green-800" : "bg-sky-100 text-sky-800")}>
+                        {p.sourceType === "buy" ? "Cần mua" : p.sourceType === "lot" ? (p.consumed ? "đã trừ" : "giữ") + ` lô #${p.sourceId ?? "?"}` : p.sourceType === "stock_purchase" ? `phiếu #${p.sourceId}` : `đợt #${p.sourceId}`}
+                        {g.parts.length > 1 ? ` ×${p.qty}` : ""}
+                      </span>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           {open.length ? (
             <Card title="Đang mua lưu kho (chưa về)">
@@ -162,6 +215,13 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                         {p.unitCostJpy ? ` · ¥${p.unitCostJpy.toLocaleString("ja-JP")}` : ""}
                         {p.expiry ? ` · HSD ${formatDate(p.expiry)}` : ""} · tạo {formatDate(p.createdAt)}
                       </span>
+                      {reservations
+                        .filter((r) => r.sourceType === "stock_purchase" && r.sourceId === p.id)
+                        .map((r) => (
+                          <Link key={r.itemId} href={`/admin/orders/${r.orderId}/`} className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800 no-underline hover:underline" title="Giữ cho đơn">
+                            #{r.orderNumber} ×{r.qty}
+                          </Link>
+                        ))}
                       <Link href="/admin/purchases/?tab=stock" className="text-lien-blue hover:underline">
                         cập nhật →
                       </Link>

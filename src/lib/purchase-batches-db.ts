@@ -2,8 +2,9 @@ import "server-only";
 import { createStockPurchase, deleteStockPurchase, setStockPurchaseStatus } from "./db";
 import { todayIso } from "./lots";
 import { isPurchaseStatus, type PurchaseStatus, purchaseIndex } from "./purchase";
-import { BATCH_DONE, batchCode, planLineCover, planSurplusTake } from "./purchase-batches";
+import { BATCH_DONE, batchCode } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
+import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync } from "./allocations-db";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock } from "@/types/shop";
@@ -81,7 +82,8 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
   // split off and kept in Japan: waiting (batch_id NULL) or already inside a later batch
   const held = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, b.code AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.origin_batch_id IN (${ph}) AND (sp.batch_id IS NULL OR sp.batch_id <> sp.origin_batch_id) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
   const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "" });
-  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE, batchId: s.batch_id, batchCode: s.cur_code ?? "", originBatchId: s.origin_batch_id });
+  const reservedMap = listReservationsForStockPurchases(db, [...stock, ...held].map((s) => s.id));
+  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE, batchId: s.batch_id, batchCode: s.cur_code ?? "", originBatchId: s.origin_batch_id, reserved: reservedMap.get(s.id) ?? [] });
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
@@ -161,6 +163,8 @@ export function addLinesToBatch(batchId: number, itemIds: number[]): { added: nu
       if (!line || (line.batch_id && line.batch_id !== batchId)) continue;
       const status = purchaseIndex(statusOf(line.purchase_status)) < purchaseIndex(target) ? target : statusOf(line.purchase_status);
       db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = CASE WHEN purchase_status <> ? THEN ? ELSE purchase_updated_at END WHERE id = ?").run(batchId, batch.source_key, status, status, now, itemId);
+      // the line's source is now "mua trong đợt này" (admin decision → manual, "Phân bổ lại" keeps it)
+      setManualAllocationSync(db, itemId, "batch", batchId);
       added++;
     }
     db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
@@ -170,7 +174,11 @@ export function addLinesToBatch(batchId: number, itemIds: number[]): { added: nu
 
 /** Take a line out of its batch (its purchase status stays as it is). */
 export function removeLineFromBatch(itemId: number): boolean {
-  return Number(getDb().prepare("UPDATE order_items SET batch_id = NULL WHERE id = ? AND batch_id IS NOT NULL").run(itemId).changes) > 0;
+  const db = getDb();
+  const cur = db.prepare("SELECT batch_id FROM order_items WHERE id = ?").get(itemId) as { batch_id: number | null } | undefined;
+  if (!cur?.batch_id) return false;
+  withTransaction(db, () => detachItemFromBatchSync(db, itemId, cur.batch_id as number));
+  return true;
 }
 
 /** Surplus bought in this batch with no order behind it → a stock purchase that follows the batch and becomes a lot at the shop. */
@@ -204,37 +212,41 @@ export async function addProductToBatch(batchId: number, input: { productId: num
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return null;
-  const open = db
-    .prepare("SELECT oi.id AS itemId, oi.quantity FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND oi.batch_id IS NULL ORDER BY o.created_at, oi.id")
-    .all(input.productId) as unknown as Array<{ itemId: number; quantity: number }>;
-  const plan = planLineCover(open, input.qty);
-  const now = new Date().toISOString();
-  const target = statusOf(batch.status);
-  withTransaction(db, () => {
-    // the goods were bought at THIS source — the covered lines record it (each product in a batch has its own)
-    const upd = db.prepare("UPDATE order_items SET batch_id = ?, source_key = ?, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?");
-    for (const l of plan.cover) upd.run(batchId, input.sourceKey || batch.source_key, target, now, `Tự động lấy từ mua theo đợt ${batch.code}`, l.itemId);
-    db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
-  });
-  let lotId: number | null = null;
-  if (plan.left > 0) {
-    const s = await addSurplusToBatch(batchId, { ...input, qty: plan.left });
-    lotId = s?.lotId ?? null;
+  // one stock row for everything bought; the lines still "Cần mua" reserve their units from it (oldest order first),
+  // the rest stays as stock for later orders — and each line carries the source it was really bought at
+  const s = await addSurplusToBatch(batchId, input);
+  if (!s) return null;
+  const served = withTransaction(db, () => allocatePendingForProductSync(db, input.productId));
+  if (served.length) {
+    const ph = served.map(() => "?").join(",");
+    db.prepare(`UPDATE order_items SET source_key = ? WHERE id IN (${ph}) AND id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'stock_purchase' AND source_id = ?)`).run(input.sourceKey || batch.source_key, ...served, s.id);
   }
-  return { code: batch.code, covered: plan.cover.length, orderUnits: input.qty - plan.left, stockUnits: plan.left, lotId };
+  const res = listReservationsForStockPurchases(db, [s.id]).get(s.id) ?? [];
+  const orderUnits = res.reduce((n, r) => n + r.qty, 0);
+  return { code: batch.code, covered: res.length, orderUnits, stockUnits: input.qty - orderUnits, lotId: s.lotId };
 }
 
 /** Surplus still unbooked in open batches, per product → [{batchId, code, qty}] (oldest batch first). */
 export function listOpenSurplus(): Map<number, Array<{ batchId: number; code: string; qty: number }>> {
   const rows = db_openSurplus();
   const out = new Map<number, Array<{ batchId: number; code: string; qty: number }>>();
-  for (const r of rows) out.set(r.product_id, [...(out.get(r.product_id) ?? []), { batchId: r.batch_id, code: r.code, qty: Number(r.qty) }]);
+  for (const r of rows) if (r.qty > 0) out.set(r.product_id, [...(out.get(r.product_id) ?? []), { batchId: r.batch_id, code: r.code, qty: Number(r.qty) }]);
   return out;
 }
+/** Units of batch stock rows not reserved by any order, per product × batch. */
 function db_openSurplus(): Array<{ product_id: number; batch_id: number; code: string; qty: number }> {
-  return getDb()
-    .prepare("SELECT sp.product_id, sp.batch_id, b.code, SUM(sp.qty) AS qty FROM stock_purchases sp JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.lot_id IS NULL AND b.status <> 'at_shop' GROUP BY sp.product_id, sp.batch_id ORDER BY sp.batch_id")
-    .all() as unknown as Array<{ product_id: number; batch_id: number; code: string; qty: number }>;
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT sp.id, sp.qty, sp.product_id, sp.batch_id, b.code FROM stock_purchases sp JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.lot_id IS NULL AND b.status <> 'at_shop' ORDER BY sp.batch_id")
+    .all() as unknown as Array<{ id: number; qty: number; product_id: number; batch_id: number; code: string }>;
+  const agg = new Map<string, { product_id: number; batch_id: number; code: string; qty: number }>();
+  for (const r of rows) {
+    const k = `${r.product_id}:${r.batch_id}`;
+    const cur = agg.get(k) ?? { product_id: r.product_id, batch_id: r.batch_id, code: r.code, qty: 0 };
+    cur.qty += Math.max(0, r.qty - reservedOn(db, "stock_purchase", r.id));
+    agg.set(k, cur);
+  }
+  return [...agg.values()];
 }
 
 /**
@@ -245,20 +257,8 @@ function db_openSurplus(): Array<{ product_id: number; batch_id: number; code: s
 export function autoAllocateOrderFromBatches(orderId: string): number {
   try {
     const db = getDb();
-    const lines = db.prepare("SELECT id, product_id, quantity FROM order_items WHERE order_id = ? AND (purchase_status IS NULL OR purchase_status = 'not_bought') AND batch_id IS NULL").all(orderId) as unknown as Array<{ id: number; product_id: number; quantity: number }>;
-    if (!lines.length) return 0;
-    let n = 0;
-    for (const l of lines) {
-      const surplus = db_openSurplus().filter((s) => s.product_id === l.product_id && Number(s.qty) >= l.quantity);
-      for (const s of surplus) {
-        const r = allocateSurplusToLine(s.batch_id, l.id, `Tự động lấy từ mua theo đợt ${s.code}`);
-        if (r.ok) {
-          n++;
-          break;
-        }
-      }
-    }
-    return n;
+    withTransaction(db, () => allocateOrderSync(db, orderId, false));
+    return 1;
   } catch {
     return 0;
   }
@@ -279,27 +279,18 @@ export function allocateSurplusToLine(batchId: number, itemId: number, note?: st
   if (!batch) return { ok: false, message: "Không tìm thấy đợt gửi." };
   const line = db.prepare("SELECT id, product_id, quantity, purchase_status, batch_id FROM order_items WHERE id = ?").get(itemId) as { id: number; product_id: number; quantity: number; purchase_status: string | null; batch_id: number | null } | undefined;
   if (!line) return { ok: false, message: "Không tìm thấy dòng đơn." };
-  if (line.batch_id) return { ok: false, message: "Dòng đơn đã nằm trong một đợt gửi." };
-  if (statusOf(line.purchase_status) !== "not_bought") return { ok: false, message: "Chỉ lấy hàng dư cho dòng còn “Chưa mua”." };
-  const surplus = db.prepare("SELECT id, qty, expiry, source_key FROM stock_purchases WHERE batch_id = ? AND product_id = ? AND lot_id IS NULL").all(batchId, line.product_id) as unknown as Array<{ id: number; qty: number; expiry: string | null; source_key: string }>;
-  const plan = planSurplusTake(surplus, line.quantity);
-  if (plan.short > 0) {
-    const have = surplus.reduce((n, s) => n + s.qty, 0);
-    return { ok: false, message: have ? `Hàng dư trong đợt chỉ còn ${have} đv, dòng đơn cần ${line.quantity}.` : "Đợt này không còn hàng dư của sản phẩm đó (hoặc hàng dư đã nhập kho thành lô — tồn kho sẽ tự trừ khi tạo đơn)." };
-  }
-  const now = new Date().toISOString();
-  withTransaction(db, () => {
-    for (const [spId, take] of plan.takes) {
-      const cur = db.prepare("SELECT qty FROM stock_purchases WHERE id = ?").get(spId) as { qty: number };
-      if (cur.qty - take <= 0) db.prepare("DELETE FROM stock_purchases WHERE id = ?").run(spId);
-      else db.prepare("UPDATE stock_purchases SET qty = ?, updated_at = ? WHERE id = ?").run(cur.qty - take, now, spId);
-    }
-    const status = statusOf(batch.status);
-    const fromSource = surplus.find((s) => s.id === plan.takes[0]?.[0])?.source_key || batch.source_key;
-    db.prepare("UPDATE order_items SET batch_id = ?, source_key = ?, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?").run(batchId, fromSource, status, now, note ?? `Lấy từ hàng dư mua theo đợt ${batch.code}`, itemId);
-    db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
-  });
-  return { ok: true, message: `Đã lấy ${line.quantity} đv hàng dư của đợt ${batch.code} cho dòng đơn.` };
+  void note;
+  const inBatch = new Set((db.prepare("SELECT id FROM stock_purchases WHERE batch_id = ? AND product_id = ? AND lot_id IS NULL").all(batchId, line.product_id) as Array<{ id: number }>).map((r) => r.id));
+  const best = candidatesFor(db, line.product_id, itemId)
+    .filter((c) => c.type === "stock_purchase" && inBatch.has(c.id))
+    .sort((a, b) => b.available - a.available)[0];
+  if (!best) return { ok: false, message: "Đợt này không còn đơn vị nào trống của sản phẩm đó." };
+  const r = withTransaction(db, () => setManualAllocationSync(db, itemId, "stock_purchase", best.id));
+  if (!r.ok) return r;
+  const fromSource = (db.prepare("SELECT source_key FROM stock_purchases WHERE id = ?").get(best.id) as { source_key: string }).source_key || batch.source_key;
+  db.prepare("UPDATE order_items SET source_key = ? WHERE id = ?").run(fromSource, itemId);
+  db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), batchId);
+  return { ok: true, message: best.available >= line.quantity ? `Đã giữ ${line.quantity} đv hàng lưu kho của đợt ${batch.code} cho dòng đơn.` : `Đợt ${batch.code} chỉ còn ${best.available} đv trống — đã giữ phần đó, phần còn lại là “Cần mua”.` };
 }
 
 /**
@@ -332,6 +323,7 @@ export async function setPurchaseBatchStatus(id: number, status: PurchaseStatus,
   const boughtAt = batch.bought_at ?? (purchaseIndex(target) >= purchaseIndex("bought") ? today : null);
   const shippedAt = batch.shipped_at ?? (purchaseIndex(target) >= purchaseIndex("shipped_jp_vn") ? today : null);
   db.prepare("UPDATE purchase_batches SET status = ?, bought_at = ?, shipped_at = ?, note = COALESCE(?, note), updated_at = ? WHERE id = ?").run(target, boughtAt, shippedAt, note ?? null, now, id);
+  onBatchChangedSync(db, id); // lines served from this batch (directly or through its stock rows) follow
   return { ok: true, lines: toRaise.length, lots };
 }
 
@@ -377,6 +369,9 @@ export async function updateBatchStock(spId: number, patch: { productId?: number
   if (!cur) return { ok: false, message: "Không tìm thấy dòng." };
   if (cur.lot_id) return { ok: false, message: "Dòng đã nhập kho thành lô — sửa lô trong Kho hàng." };
   if (patch.productId && !db.prepare("SELECT 1 FROM products WHERE id = ?").get(patch.productId)) return { ok: false, message: "Sản phẩm không tồn tại." };
+  const held = reservedOn(db, "stock_purchase", spId);
+  if (patch.qty && patch.qty > 0 && patch.qty < held) return { ok: false, message: `Dòng này đang giữ ${held} đv cho đơn khách — không giảm dưới số đó (đổi nguồn ở trang đơn trước).` };
+  if (patch.productId && patch.productId !== cur.product_id && held > 0) return { ok: false, message: "Dòng này đang giữ hàng cho đơn khách — bỏ giữ chỗ ở trang đơn trước khi đổi sản phẩm." };
   db.prepare("UPDATE stock_purchases SET product_id = ?, qty = ?, source_key = ?, expiry = ?, bought_at = ?, unit_cost_jpy = ?, note = ?, updated_at = ? WHERE id = ?").run(
     patch.productId ?? cur.product_id,
     patch.qty && patch.qty > 0 ? patch.qty : cur.qty,
@@ -391,7 +386,7 @@ export async function updateBatchStock(spId: number, patch: { productId?: number
   if (patch.status && patch.status !== cur.status) {
     const r = await setStockPurchaseStatus(spId, patch.status);
     if (!r.ok) return { ok: false, message: r.message };
-  }
+  } else onStockPurchaseChangedSync(db, spId);
   return { ok: true };
 }
 
@@ -405,6 +400,8 @@ export function splitBatchStock(spId: number, qty: number, mode: "hold" | "split
   if (!cur) return { ok: false, message: "Không tìm thấy dòng." };
   if (cur.lot_id) return { ok: false, message: "Dòng đã nhập kho thành lô — tách lô trong Kho hàng." };
   if (!Number.isInteger(qty) || qty <= 0 || qty >= cur.qty) return { ok: false, message: `Số tách phải từ 1 đến ${cur.qty - 1} (dòng đang có ${cur.qty} đv).` };
+  const held = reservedOn(db, "stock_purchase", spId);
+  if (cur.qty - qty < held) return { ok: false, message: `Dòng đang giữ ${held} đv cho đơn khách — chỉ tách được tối đa ${cur.qty - held} đv.` };
   const batch = cur.batch_id ? (db.prepare("SELECT code FROM purchase_batches WHERE id = ?").get(cur.batch_id) as { code: string } | undefined) : undefined;
   const now = new Date().toISOString();
   const hold = mode === "hold";
@@ -434,6 +431,7 @@ export function holdBatchRows(batchId: number, stockIds: number[], itemIds: numb
       if (!cur) continue;
       const status = purchaseIndex(statusOf(cur.status)) > purchaseIndex("bought") ? "bought" : cur.status;
       db.prepare("UPDATE stock_purchases SET batch_id = NULL, origin_batch_id = ?, status = ?, note = ?, updated_at = ? WHERE id = ?").run(batchId, status, [`Giữ lại Nhật từ đợt ${batch.code} · chờ đợt sau`, cur.note].filter(Boolean).join(" · "), now, id);
+      onStockPurchaseChangedSync(db, id);
       stock++;
     }
     if (itemIds.length) {
@@ -456,6 +454,7 @@ export async function moveStockToBatch(spIds: number[], batchId: number): Promis
     if (!cur || cur.batch_id === batchId) continue;
     db.prepare("UPDATE stock_purchases SET batch_id = ?, origin_batch_id = ?, updated_at = ? WHERE id = ?").run(batchId, cur.origin_batch_id ?? cur.batch_id, now, id);
     if (purchaseIndex(statusOf(cur.status)) < purchaseIndex(statusOf(batch.status))) await setStockPurchaseStatus(id, statusOf(batch.status));
+    else onStockPurchaseChangedSync(db, id);
     moved++;
   }
   if (moved) db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);

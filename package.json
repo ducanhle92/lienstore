@@ -60,7 +60,8 @@
     "test:fanpage": "npx -y tsx --conditions=react-server --test scripts/tests/fanpage.test.ts",
     "test:receipts": "npx -y tsx --conditions=react-server --test scripts/tests/receipts.test.ts",
     "test:prices": "npx -y tsx --conditions=react-server --test scripts/tests/price-display.test.ts",
-    "test:batches": "npx -y tsx --conditions=react-server --test scripts/tests/purchase-batches.test.ts"
+    "test:batches": "npx -y tsx --conditions=react-server --test scripts/tests/purchase-batches.test.ts",
+    "test:allocation": "npx -y tsx --conditions=react-server --test scripts/tests/allocation.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

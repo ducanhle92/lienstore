@@ -1,4 +1,5 @@
 import "server-only";
+import { allocatePendingForProductSync, listReservationsForStockPurchases } from "./allocations-db";
 import { createStockPurchase } from "./db";
 import { purchaseIndex, type PurchaseStatus } from "./purchase";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
@@ -194,36 +195,35 @@ export async function confirmReceipt(id: number, productByItem: Record<number, n
   const now = new Date().toISOString();
   let linesCovered = 0;
   let stockUnits = 0;
-  const leftovers: Array<{ productId: number; qty: number; unitJpy: number | null; name: string }> = [];
-  // booked into a shipment batch → covered lines and leftovers join the batch and take its status (at least "bought")
+  // booked into a shipment batch → the stock rows join the batch and take its status (at least "bought")
   const batch = receipt.batchId ? (db.prepare("SELECT id, code, status FROM purchase_batches WHERE id = ?").get(receipt.batchId) as { id: number; code: string; status: string } | undefined) : undefined;
   const batchStatus: PurchaseStatus = batch && purchaseIndex((batch.status as PurchaseStatus) || "not_bought") > purchaseIndex("bought") ? (batch.status as PurchaseStatus) : "bought";
+  const bought: Array<{ productId: number; qty: number; unitJpy: number | null }> = [];
   withTransaction(db, () => {
     const setItem = db.prepare("UPDATE purchase_receipt_items SET product_id = ? WHERE id = ?");
-    const openLines = db.prepare("SELECT oi.id, oi.quantity FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND oi.receipt_id IS NULL AND oi.batch_id IS NULL ORDER BY o.created_at, oi.id");
-    const takeLine = batch
-      ? db.prepare(`UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = '${batchStatus}', purchase_updated_at = ?, batch_id = ${batch.id}, purchase_note = CASE WHEN purchase_note = '' THEN 'Tự động lấy từ mua theo đợt ${batch.code}' ELSE purchase_note END WHERE id = ?`)
-      : db.prepare("UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = 'bought', purchase_updated_at = ? WHERE id = ?");
     for (const it of receipt.items) {
       const pid = productByItem[it.id] === undefined ? it.productId : productByItem[it.id];
       setItem.run(pid, it.id);
-      if (!pid) continue;
-      let left = it.qty;
-      for (const l of openLines.all(pid) as unknown as Array<{ id: number; quantity: number }>) {
-        if (left < l.quantity) break;
-        takeLine.run(id, receipt.sourceKey, now, l.id);
-        left -= l.quantity;
-        linesCovered++;
-      }
-      if (left > 0) leftovers.push({ productId: pid, qty: left, unitJpy: it.unitJpy, name: it.rawName });
+      if (pid) bought.push({ productId: pid, qty: it.qty, unitJpy: it.unitJpy });
     }
     db.prepare("UPDATE purchase_receipts SET status = 'bought', updated_at = ? WHERE id = ?").run(now, id);
     if (batch) db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batch.id);
   });
-  for (const l of leftovers) {
+  // every bill line becomes one stock row (bought, on this receipt); waiting order lines reserve from it
+  // (oldest order first — see lib/allocations-db.ts), the rest stays as stock for later orders
+  for (const l of bought) {
     const sp = await createStockPurchase({ productId: l.productId, qty: l.qty, sourceKey: receipt.sourceKey, unitCostJpy: l.unitJpy, expiry: null, boughtAt: receipt.boughtAt, warehouse: batch ? "vn" : "jp", location: "", note: batch ? `Đợt ${batch.code} · phiếu ${receipt.code}` : `Phiếu ${receipt.code}`, status: batchStatus, batchId: batch?.id ?? null });
     db.prepare("UPDATE stock_purchases SET receipt_id = ? WHERE id = ?").run(id, sp.id);
-    stockUnits += l.qty;
+    const served = withTransaction(db, () => allocatePendingForProductSync(db, l.productId));
+    const res = listReservationsForStockPurchases(db, [sp.id]).get(sp.id) ?? [];
+    if (res.length) {
+      // the covered lines remember the receipt and the source it was bought at
+      const ph = res.map(() => "?").join(",");
+      db.prepare(`UPDATE order_items SET receipt_id = ?, source_key = ? WHERE id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'stock_purchase' AND source_id = ?) AND order_id IN (${ph})`).run(id, receipt.sourceKey, sp.id, ...res.map((r) => r.orderId));
+    }
+    void served;
+    linesCovered += res.length;
+    stockUnits += Math.max(0, l.qty - res.reduce((n, r) => n + r.qty, 0));
   }
   return { linesCovered, stockUnits };
 }
