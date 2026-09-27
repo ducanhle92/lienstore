@@ -103,9 +103,9 @@ export default async function AdminProducts({ searchParams }: Props) {
       {deleted ? <Flash>Đã xoá sản phẩm.</Flash> : null}
 
       <Card>
-        <form method="get" className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_160px_115px_105px_105px_150px_170px_auto]">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={adminInput} />
-          <select name="category" defaultValue={category} className={adminInput}>
+        <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={`${adminInput} min-w-[220px] flex-1 !w-auto !py-1.5 !text-[13px]`} />
+          <select name="category" defaultValue={category} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[170px]`}>
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -113,22 +113,22 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <select name="status" defaultValue={status} className={adminInput}>
+          <select name="status" defaultValue={status} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`}>
             <option value="">Mọi trạng thái</option>
             <option value="publish">Đang bán</option>
             <option value="draft">Bản nháp</option>
           </select>
-          <select name="stock" defaultValue={stock} className={adminInput}>
+          <select name="stock" defaultValue={stock} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[130px]`}>
             <option value="">Mọi tồn kho</option>
             <option value="in">Còn hàng</option>
             <option value="out">Hết hàng (ngừng bán tại Nhật)</option>
           </select>
-          <select name="fulfillment" defaultValue={fulfillment} className={adminInput}>
+          <select name="fulfillment" defaultValue={fulfillment} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`}>
             <option value="">Mọi hình thức</option>
             <option value="stock">Lưu kho</option>
             <option value="order">Order</option>
           </select>
-          <select name="source" defaultValue={source} className={adminInput}>
+          <select name="source" defaultValue={source} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[160px]`}>
             <option value="">Mọi nguồn nhập</option>
             {sourceOptions.map((s) => (
               <option key={s.key} value={s.key}>
@@ -137,7 +137,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             ))}
             {hasNoSource ? <option value="none">Chưa gắn nguồn</option> : null}
           </select>
-          <select name="price" defaultValue={priceBucket} className={adminInput} aria-label="Giá thực tế trên website" data-testid="price-filter">
+          <select name="price" defaultValue={priceBucket} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[150px]`} aria-label="Giá thực tế trên website" data-testid="price-filter">
             <option value="">Mọi giá bán</option>
             {PRICE_BUCKETS.map((b) => (
               <option key={b.key} value={b.key}>
@@ -145,7 +145,7 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <button type="submit" className={btnPrimary}>
+          <button type="submit" className={`${btnPrimary} !py-1.5 !text-[13px]`}>
             Lọc
           </button>
         </form>

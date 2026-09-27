@@ -67,7 +67,7 @@ export default async function AdminTheme({ searchParams }: Props) {
               </div>
               <div>
                 <label className={adminLabel} htmlFor="slogan">
-                  Slogan (dưới logo, tiêu đề trang chủ, web app; để trống = “Chuyên hàng Nhật nội địa”)
+                  Slogan (tiêu đề trang chủ, dưới logo chân trang, web app; để trống = “Chuyên hàng Nhật nội địa”)
                 </label>
                 <input id="slogan" name="slogan" defaultValue={theme.slogan} maxLength={80} placeholder="Chuyên hàng Nhật nội địa" className={adminInput} />
               </div>
@@ -121,7 +121,6 @@ export default async function AdminTheme({ searchParams }: Props) {
             <div style={{ background: c.header }} className="flex items-center gap-4 px-4 py-2 text-white">
               <span className="flex flex-col items-center">
                 <Image src={theme.logoHeader} alt={theme.shopName} width={110} height={Math.round((110 * LOGO_RATIO.height) / LOGO_RATIO.width)} unoptimized className="h-auto w-[110px]" />
-                {theme.slogan ? <span className="mt-0.5 text-[10px] font-semibold tracking-wide">{theme.slogan}</span> : null}
               </span>
               <span className="text-[12px] font-bold uppercase">Danh mục ▾</span>
               <span className="rounded bg-[#ffd93b] px-1.5 py-0.5 text-[10px] font-black leading-tight text-[#c1121f]">

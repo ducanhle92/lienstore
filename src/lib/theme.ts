@@ -10,7 +10,7 @@ export type ThemeColors = Record<ThemeColorKey, string>;
 export interface SiteTheme {
   /** Brand name shown in titles, alt text and the footer. */
   shopName: string;
-  /** Tagline under the header logo, in the home title and the PWA manifest; never empty (falls back to the default). */
+  /** Tagline under the footer logo, in the home title and the PWA manifest; never empty (falls back to the default). */
   slogan: string;
   /** Logo on the coloured header bar (light artwork, transparent background). */
   logoHeader: string;

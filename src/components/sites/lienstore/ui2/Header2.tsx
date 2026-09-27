@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Be_Vietnam_Pro } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -12,9 +11,6 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { buildCategoryTree, shortName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 import { AccountDrawer, type HeaderCustomer } from "./AccountDrawer";
-
-/** Slogan under the logo uses the same heavy geometric style as the artwork; Be Vietnam Pro carries the Vietnamese diacritics. */
-const sloganFont = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["800"], display: "swap" });
 
 export interface HeaderCategory {
   name: string;
@@ -31,8 +27,6 @@ export interface HeaderLink {
 
 interface Header2Props {
   logo: { src: string; width: number; height: number; alt: string };
-  /** Tagline under the logo ("Chuyên hàng Nhật nội địa"); empty hides it. */
-  slogan?: string;
   categories: HeaderCategory[];
   supportLinks: HeaderLink[];
   newsLinks: HeaderLink[];
@@ -53,7 +47,7 @@ function Badge({ n }: { n: number }) {
  * Main header (sesofoods-style): logo · inline menu with "Danh mục" mega dropdown · pill search · account/wishlist/cart.
  * Collapses to a hamburger + drawer below 992px. Becomes compact and sticky after scrolling.
  */
-export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks, aboutHref, newsHref, customer = null }: Header2Props) {
+export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, newsHref, customer = null }: Header2Props) {
   const { t } = useLang();
   const { items, wishlist, hydrated, openDrawer } = useCart();
   // The drawer remembers who it was opened for, so it closes by itself once login/register/logout changes the customer.
@@ -100,9 +94,9 @@ export function Header2({ logo, slogan = "", categories, supportLinks, newsLinks
           <Fa name="bars" />
         </button>
 
+        {/* the header artwork already carries the slogan; the text version lives under the footer logo */}
         <Link href="/" className="flex shrink-0 flex-col items-start no-underline" aria-label={logo.alt}>
           <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[112px] transition-[width] sm:w-[132px]", stuck && "sm:w-[112px]")} />
-          {slogan ? <span className={cn(sloganFont.className, "mt-0.5 whitespace-nowrap text-[10.5px] font-extrabold leading-3 tracking-[-0.01em] text-white sm:text-[12px]", stuck && "sm:hidden")}>{slogan}</span> : null}
         </Link>
 
         <nav aria-label="Menu chính" className="hidden items-center lg:flex">

@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Thanh menu: bỏ dòng slogan chữ dưới logo (logo header đã có sẵn slogan nên bị hiện 2 lần); slogan chữ chuyển xuống dưới logo ở chân trang.
+- Admin › Sản phẩm: khối lọc thu gọn thành một hàng (ô tìm + các ô chọn nhỏ, tự xuống dòng khi hẹp) để bảng sản phẩm bên dưới rộng và hiện nhiều dòng hơn.
+
 ## [1.74.3] - 2026-09-25
 
 ### Fixed
