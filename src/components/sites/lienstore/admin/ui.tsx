@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FlashToast } from "./FlashToast";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/shop";
@@ -84,13 +85,9 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
   );
 }
 
+/** Saved / error notice — shown as a floating toast (bottom-right) so it never pushes the page content down. */
 export function Flash({ kind = "success", children }: { kind?: "success" | "error" | "warning"; children: ReactNode }) {
-  const cls = {
-    success: "border-green-200 bg-green-50 text-green-800",
-    error: "border-red-200 bg-red-50 text-red-800",
-    warning: "border-amber-200 bg-amber-50 text-amber-800",
-  }[kind];
-  return <div className={cn("mb-5 rounded-md border px-4 py-3 text-[14px] leading-5", cls)}>{children}</div>;
+  return <FlashToast kind={kind}>{children}</FlashToast>;
 }
 
 export const tableClass = "w-full border-collapse text-left text-[14px] leading-5 text-lien-text";

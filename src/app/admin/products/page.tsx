@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { deleteProductAction, generateSkusAction, importProductsCsvAction } from "@/app/admin/products/actions";
 import { groupProductsAction } from "@/app/admin/products/groups/actions";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
@@ -49,6 +50,9 @@ export default async function AdminProducts({ searchParams }: Props) {
   const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
   const missingPrice = items.filter((p) => p.price <= 0).length;
+  // "Gộp nhóm biến thể" tools open on demand (header button) so the table gets the room by default
+  const groupTools = first(sp.group) === "1";
+  const groupHref = `/admin/products/?${csvQs}${csvQs ? "&" : ""}${groupTools ? "" : "group=1"}`.replace(/\?$/, "");
 
   return (
     <>
@@ -73,7 +77,10 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <Fa name="upload" /> Nhập CSV
               </button>
             </form>
-            <Link href="/admin/products/groups/" className={btnSecondary} title="Gộp các sản phẩm cùng dòng (khác vị / dung tích / số viên) thành một thẻ ngoài kệ">
+            <Link href={groupHref || "/admin/products/"} className={cn(btnSecondary, groupTools && "!border-lien-blue !bg-lien-blue-soft")} title="Mở thanh gộp: tick các sản phẩm cùng dòng rồi gộp thành một nhóm biến thể" data-testid="toggle-group-tools">
+              <Fa name="tags" /> Gộp nhóm biến thể
+            </Link>
+            <Link href="/admin/products/groups/" className={btnSecondary} title="Danh sách các nhóm biến thể đã tạo">
               <Fa name="th-large" /> Nhóm biến thể ({groups.length})
             </Link>
             <Link href="/admin/products/new/" className={btnPrimary}>
@@ -151,7 +158,7 @@ export default async function AdminProducts({ searchParams }: Props) {
         </form>
 
         {/* bulk: tick rows (checkboxes carry form="bulk-group") → one family */}
-        <form id="bulk-group" action={groupProductsAction} className="mb-4 flex flex-wrap items-end gap-2 rounded-md border border-dashed border-[#d1d5db] bg-[#fafafa] px-3 py-2" data-testid="bulk-group">
+        <form id="bulk-group" action={groupProductsAction} className={cn("mb-3 flex flex-wrap items-end gap-2 rounded-md border border-dashed border-lien-blue/50 bg-lien-blue-soft/40 px-3 py-2", !groupTools && "hidden")} data-testid="bulk-group">
           <span className="text-[13px] font-semibold text-lien-heading">Tích chọn các sản phẩm cùng dòng →</span>
           <select name="groupId" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Nhóm">
             <option value="">Tạo nhóm mới</option>
@@ -166,6 +173,9 @@ export default async function AdminProducts({ searchParams }: Props) {
           <button type="submit" className={`${btnSecondary} !py-1.5 !text-[13px]`}>
             <Fa name="th-large" /> Gộp thành nhóm biến thể
           </button>
+          <Link href={`/admin/products/${csvQs ? `?${csvQs}` : ""}`} className="ml-auto text-[12px] text-lien-muted hover:text-lien-heart" title="Đóng thanh gộp">
+            ✕ Đóng
+          </Link>
         </form>
         <ResizableTable id="products">
           <table className={tableClass}>

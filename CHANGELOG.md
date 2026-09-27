@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Admin: thông báo “Đã lưu…” / lỗi hiện thành **toast nổi ở góc dưới phải** (tự ẩn sau 7 giây, lỗi giữ tới khi đóng) thay vì một dải trên đầu trang — bảng phía dưới cao thêm.
+- Admin › Sản phẩm: thanh **Gộp nhóm biến thể** không hiện mặc định nữa; bấm nút “Gộp nhóm biến thể” ở hàng nút phía trên để mở, tick sản phẩm rồi gộp; nút ✕ Đóng để thu lại.
+
 ## [1.77.1] - 2026-09-27
 
 ### Added
