@@ -6,11 +6,12 @@ import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus, type PurchaseStatus } from "@/lib/purchase";
 import { isBatchStatus } from "@/lib/purchase-batches";
-import { moveLotsToStatus, setOrderItemsPurchase, setStockPurchaseStatus, updateStockLot } from "@/lib/db";
+import { moveLotsToStatus, setOrderItemSource, setOrderItemsPurchase, setStockPurchaseStatus, updateOrderItemPurchaseFacts, updateStockLot } from "@/lib/db";
+import { createManualReceipt } from "@/lib/receipts-db";
 import { locationForStatus } from "@/lib/warehouses";
 import { getDb } from "@/lib/sqlite";
 import { statusForLocation } from "@/lib/warehouses";
-import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -83,7 +84,14 @@ export async function addProductAction(formData: FormData): Promise<void> {
   if (boughtAt === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
   const jpyRaw = text(formData, "unitCostJpy").replace(/[^\d]/g, "");
   const unitCostJpy = jpyRaw ? Number.parseInt(jpyRaw, 10) : null;
-  const r = await addProductToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200), sourceKey: text(formData, "sourceKey") });
+  // which bill paid for it: an existing one of the batch, a new empty one (same source / date), or none
+  const billRaw = text(formData, "billId");
+  let receiptId: number | null = null;
+  if (billRaw === "new") {
+    const rc = createManualReceipt({ sourceKey: text(formData, "sourceKey"), boughtAt: boughtAt ?? new Date().toISOString().slice(0, 10), batchId: batchId! });
+    receiptId = rc?.id ?? null;
+  } else if (/^\d+$/.test(billRaw)) receiptId = Number.parseInt(billRaw, 10);
+  const r = await addProductToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200), sourceKey: text(formData, "sourceKey"), receiptId });
   revalidatePath("/admin", "layout");
   if (!r) go("error", "Không tìm thấy đợt gửi.", batchId);
   const parts: string[] = [];
@@ -277,6 +285,13 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
     revalidatePath("/admin", "layout");
     go("saved", `Đã bỏ ${n} dòng khỏi đợt (dòng đơn giữ trạng thái, dòng lưu kho bị xoá).`, batchId);
   }
+  if (op === "bill") {
+    const billId = intOr(formData, "billId");
+    if (!billId) go("error", "Chọn bill để gắn.", batchId);
+    const n = assignReceiptToRows(billId!, { ids, sids, lotIds });
+    revalidatePath("/admin", "layout");
+    go("saved", `Đã gắn ${n} dòng vào bill.`, batchId);
+  }
   if (op === "status") {
     // one status for every ticked row: order lines, slips (become lots at "Tại kho Nhật"), lots (move place)
     const statusRaw = text(formData, "bulkStatus");
@@ -311,4 +326,132 @@ export async function moveStockToBatchAction(formData: FormData): Promise<void> 
   revalidatePath("/admin", "layout");
   if (!r) bounce("error", "Không tìm thấy đợt.");
   bounce("saved", `Đã đưa ${r!.moved} dòng vào đợt ${r!.code}.`);
+}
+
+/** "+ Tạo bill trống" inside a batch: a numbered bill for photos; rows get attached with "Gắn bill" or when adding products. */
+export async function createBillAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  if (!batchId) go("error", "Yêu cầu không hợp lệ.");
+  const boughtAt = dateOrNull(text(formData, "boughtAt"));
+  if (boughtAt === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
+  const rc = createManualReceipt({ sourceKey: text(formData, "sourceKey"), boughtAt: boughtAt ?? new Date().toISOString().slice(0, 10), orderRef: text(formData, "orderRef"), batchId: batchId! });
+  revalidatePath("/admin", "layout");
+  if (!rc) go("error", "Không tạo được bill.", batchId);
+  redirect(`${PAGE}&bills=${batchId}&saved=${encodeURIComponent(`Đã tạo bill ${rc!.code} — đính ảnh chụp ở khối Bill của đợt.`)}#receipt-${rc!.id}`);
+}
+
+/**
+ * "Lưu thay đổi" of a batch table: every row's inputs come in one form as l_<itemId>_*, s_<slipId>_*, lot_<lotId>_*.
+ * Only what differs from the current values is written, so an untouched row costs nothing (and moves no lot).
+ */
+export async function saveBatchRowsAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  if (!batchId) go("error", "Yêu cầu không hợp lệ.");
+  const batch = getPurchaseBatch(batchId!);
+  if (!batch) go("error", "Không tìm thấy đợt.");
+  const groups = new Map<string, Record<string, string>>();
+  for (const [k, v] of formData.entries()) {
+    const m = /^(l|s|lot)_(\d+)_(\w+)$/.exec(k);
+    if (!m || typeof v !== "string") continue;
+    const key = `${m[1]}_${m[2]}`;
+    const g = groups.get(key) ?? {};
+    g[m[3]] = v.trim();
+    groups.set(key, g);
+  }
+  const errors: string[] = [];
+  let changed = 0;
+  const jpyOf = (raw: string | undefined) => (raw === undefined ? undefined : raw.replace(/[^\d]/g, "") ? Number.parseInt(raw.replace(/[^\d]/g, ""), 10) : null);
+  const expiryOf = (raw: string | undefined, label: string): string | null | undefined => {
+    if (raw === undefined) return undefined;
+    if (!raw) return null;
+    const v = parseExpiry(raw);
+    if (!v) errors.push(`${label}: hạn dùng không hợp lệ.`);
+    return v ?? undefined;
+  };
+  const dateOf = (raw: string | undefined, label: string): string | null | undefined => {
+    if (raw === undefined) return undefined;
+    const v = dateOrNull(raw);
+    if (v === undefined) errors.push(`${label}: ngày mua không hợp lệ.`);
+    return v;
+  };
+  for (const [key, g] of groups) {
+    const [kind, idRaw] = key.split("_");
+    const id = Number.parseInt(idRaw, 10);
+    if (kind === "l") {
+      const cur = batch!.lines.find((l) => l.itemId === id);
+      if (!cur) continue;
+      const label = `Đơn #${cur.orderNumber}`;
+      const status = g.status && isPurchaseStatus(g.status) ? (g.status as PurchaseStatus) : cur.purchaseStatus;
+      const note = g.note ?? "";
+      if (status !== cur.purchaseStatus || note) {
+        await setOrderItemsPurchase([id], status, note || undefined);
+        changed++;
+      }
+      if (g.sourceKey !== undefined && g.sourceKey !== cur.sourceKey) {
+        await setOrderItemSource(id, g.sourceKey);
+        changed++;
+      }
+      const expiry = expiryOf(g.expiry, label);
+      const boughtAt = dateOf(g.boughtAt, label);
+      const costJpy = jpyOf(g.costJpy);
+      if ((expiry !== undefined && expiry !== cur.expiry) || (boughtAt !== undefined && boughtAt !== cur.boughtAt) || (costJpy !== undefined && costJpy !== cur.costJpy)) {
+        await updateOrderItemPurchaseFacts(id, { expiry, boughtAt, costJpy });
+        changed++;
+      }
+    } else if (kind === "s") {
+      const cur = batch!.stock.find((x) => x.id === id);
+      if (!cur) continue;
+      const label = `Phiếu #${id}`;
+      const patch: Parameters<typeof updateBatchStock>[1] = {};
+      const qty = g.qty !== undefined ? Number.parseInt(g.qty, 10) : undefined;
+      if (qty !== undefined && Number.isInteger(qty) && qty > 0 && qty !== cur.qty) patch.qty = qty;
+      if (g.sourceKey !== undefined && g.sourceKey && g.sourceKey !== cur.sourceKey) patch.sourceKey = g.sourceKey;
+      const expiry = expiryOf(g.expiry, label);
+      if (expiry !== undefined && expiry !== cur.expiry) patch.expiry = expiry;
+      const boughtAt = dateOf(g.boughtAt, label);
+      if (boughtAt !== undefined && boughtAt !== cur.boughtAt) patch.boughtAt = boughtAt;
+      const jpy = jpyOf(g.unitCostJpy);
+      if (jpy !== undefined && jpy !== cur.unitCostJpy) patch.unitCostJpy = jpy;
+      const curNote = cur.note.startsWith(`Đợt ${batch!.code}`) ? cur.note.slice(`Đợt ${batch!.code}`.length).replace(/^ · /, "") : cur.note;
+      if (g.note !== undefined && g.note !== curNote) patch.note = g.note.slice(0, 300);
+      if (g.status && isPurchaseStatus(g.status) && g.status !== cur.status) patch.status = g.status as PurchaseStatus;
+      if (Object.keys(patch).length) {
+        const r = await updateBatchStock(id, patch);
+        if (!r.ok) errors.push(`${label}: ${r.message}`);
+        else changed++;
+      }
+    } else if (kind === "lot") {
+      const cur = batch!.lots.find((x) => x.id === id);
+      if (!cur) continue;
+      const label = `Lô #${id}`;
+      const patch: Parameters<typeof updateStockLot>[1] = {};
+      const qty = g.qtyLeft !== undefined ? Number.parseInt(g.qtyLeft, 10) : undefined;
+      if (qty !== undefined && Number.isInteger(qty) && qty >= 0 && qty !== cur.qtyLeft) patch.qtyLeft = qty;
+      if (g.sourceKey !== undefined && g.sourceKey && g.sourceKey !== cur.sourceKey) patch.sourceKey = g.sourceKey;
+      const expiry = expiryOf(g.expiry, label);
+      if (expiry !== undefined && expiry !== cur.expiry) patch.expiry = expiry;
+      const boughtAt = dateOf(g.boughtAt, label);
+      if (boughtAt !== undefined && boughtAt !== cur.boughtAt) patch.boughtAt = boughtAt;
+      const jpy = jpyOf(g.unitCostJpy);
+      if (jpy !== undefined && jpy !== cur.unitCostJpy) patch.unitCostJpy = jpy;
+      const curNote = cur.note.startsWith(`Đợt ${batch!.code}`) ? cur.note.slice(`Đợt ${batch!.code}`.length).replace(/^ · /, "") : cur.note;
+      if (g.note !== undefined && g.note !== curNote) patch.note = g.note ? `Đợt ${batch!.code} · ${g.note.slice(0, 300)}` : `Đợt ${batch!.code}`;
+      if (Object.keys(patch).length) {
+        const ok = await updateStockLot(id, patch);
+        if (!ok) errors.push(`${label}: không lưu được.`);
+        else changed++;
+      }
+      const curStatus = statusForLocation(cur.warehouse, cur.inTransit);
+      if (g.status && isPurchaseStatus(g.status) && g.status !== curStatus) {
+        const r = await moveLotsToStatus([{ lotId: id }], g.status as PurchaseStatus);
+        if (!r.ok) errors.push(`${label}: ${r.message}`);
+        else changed++;
+      }
+    }
+  }
+  revalidatePath("/admin", "layout");
+  if (errors.length) go(changed ? "saved" : "error", `${changed ? `Đã lưu ${changed} thay đổi. ` : ""}Lỗi: ${errors.join(" · ")}`, batchId);
+  go("saved", changed ? `Đã lưu ${changed} thay đổi.` : "Không có gì thay đổi.", batchId);
 }

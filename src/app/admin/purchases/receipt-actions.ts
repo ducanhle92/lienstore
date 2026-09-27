@@ -12,6 +12,8 @@ const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const go = (key: "saved" | "error", msg: string, extra = "", back = ""): never => redirect(`${back || PAGE}&${key}=${encodeURIComponent(msg)}${extra}`);
 /** Tab the bill form was submitted from ("orders" | "stock" | "batches") → where to land afterwards. */
 const backOf = (fd: FormData) => {
+  const explicit = text(fd, "back");
+  if (explicit.startsWith("/admin/")) return explicit;
   const tab = text(fd, "fromTab");
   return tab === "stock" || tab === "batches" || tab === "orders" ? `/admin/purchases/?tab=${tab}&receipts=1` : "";
 };

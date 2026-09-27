@@ -7,6 +7,7 @@ import { isPurchaseStatus, type PurchaseStatus, purchaseIndex } from "./purchase
 import { BATCH_DONE, batchCode } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
 import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync, syncItemStatusSync } from "./allocations-db";
+import { parseReceiptFiles } from "./receipts-db";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock } from "@/types/shop";
@@ -68,6 +69,8 @@ interface StockRow {
   sku: string | null;
   thumb: string | null;
   cur_code: string | null;
+  receipt_id?: number | null;
+  receipt_code?: string | null;
 }
 
 const statusOf = (v: string | null): PurchaseStatus => (isPurchaseStatus(v) ? v : "not_bought");
@@ -86,23 +89,17 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
        WHERE oi.batch_id IN (${ph}) ORDER BY o.number, oi.id`,
     )
     .all(...ids) as unknown as LineRow[];
-  const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, NULL AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) AND sp.lot_id IS NULL ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
+  const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, NULL AS cur_code, (SELECT r.code FROM purchase_receipts r WHERE r.id = sp.receipt_id) AS receipt_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) AND sp.lot_id IS NULL ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
   const idSet = new Set(ids);
   const lotsAll = listLotViews(db, { includeEmpty: true }).filter((l) => l.batchId !== null && idSet.has(l.batchId) && (l.qtyLeft > 0 || l.reserved.some((r) => r.consumed)));
   // split off and kept in Japan: waiting (batch_id NULL) or already inside a later batch
-  const held = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, b.code AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.origin_batch_id IN (${ph}) AND (sp.batch_id IS NULL OR sp.batch_id <> sp.origin_batch_id) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
+  const held = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, b.code AS cur_code, NULL AS receipt_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.origin_batch_id IN (${ph}) AND (sp.batch_id IS NULL OR sp.batch_id <> sp.origin_batch_id) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
   const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "", expiry: l.purchase_expiry ?? null, boughtAt: l.purchase_bought_at ?? null, receiptId: l.receipt_id ?? null, receiptCode: l.receipt_code ?? "" });
-  const bills = db.prepare(`SELECT id, code, bought_at, source_key, files, batch_id FROM purchase_receipts WHERE batch_id IN (${ph}) ORDER BY bought_at DESC, id DESC`).all(...ids) as unknown as Array<{ id: number; code: string; bought_at: string; source_key: string; files: string | null; batch_id: number }>;
-  const filesCount = (raw: string | null) => {
-    try {
-      const v = JSON.parse(raw || "[]");
-      return Array.isArray(v) ? v.length : 0;
-    } catch {
-      return 0;
-    }
-  };
+  const bills = db
+    .prepare(`SELECT r.id, r.code, r.bought_at, r.source_key, r.order_ref, r.total_jpy, r.status, r.files, r.batch_id, (SELECT COUNT(*) FROM purchase_receipt_items i WHERE i.receipt_id = r.id) AS items FROM purchase_receipts r WHERE r.batch_id IN (${ph}) ORDER BY r.bought_at DESC, r.id DESC`)
+    .all(...ids) as unknown as Array<{ id: number; code: string; bought_at: string; source_key: string; order_ref: string | null; total_jpy: number | null; status: string; files: string | null; batch_id: number; items: number }>;
   const reservedMap = listReservationsForStockPurchases(db, [...stock, ...held].map((s) => s.id));
-  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE, batchId: s.batch_id, batchCode: s.cur_code ?? "", originBatchId: s.origin_batch_id, reserved: reservedMap.get(s.id) ?? [] });
+  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE, batchId: s.batch_id, batchCode: s.cur_code ?? "", originBatchId: s.origin_batch_id, reserved: reservedMap.get(s.id) ?? [], receiptId: s.receipt_id ?? null, receiptCode: s.receipt_code ?? "" });
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
@@ -116,7 +113,7 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lines: lines.filter((l) => l.batch_id === r.id).map(toLine),
-    receipts: bills.filter((x) => x.batch_id === r.id).map((x) => ({ id: x.id, code: x.code, boughtAt: x.bought_at, sourceKey: x.source_key, files: filesCount(x.files) })),
+    receipts: bills.filter((x) => x.batch_id === r.id).map((x) => ({ id: x.id, code: x.code, boughtAt: x.bought_at, sourceKey: x.source_key, orderRef: x.order_ref ?? "", totalJpy: x.total_jpy, status: x.status, items: Number(x.items), files: parseReceiptFiles(x.files) })),
     lots: lotsAll.filter((l) => l.batchId === r.id),
     stock: stock.filter((s) => s.batch_id === r.id).map(toStock),
     held: held.filter((s) => s.origin_batch_id === r.id).map(toStock),
@@ -228,7 +225,7 @@ export function removeLineFromBatch(itemId: number): boolean {
 }
 
 /** Surplus bought in this batch with no order behind it → a stock purchase that follows the batch and becomes a lot at the shop. */
-export async function addSurplusToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string }): Promise<PurchaseBatchStock | null> {
+export async function addSurplusToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string; receiptId?: number | null }): Promise<PurchaseBatchStock | null> {
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return null;
@@ -245,6 +242,7 @@ export async function addSurplusToBatch(batchId: number, input: { productId: num
     status: statusOf(batch.status),
     batchId,
   });
+  if (input.receiptId) db.prepare("UPDATE stock_purchases SET receipt_id = ? WHERE id = ?").run(input.receiptId, sp.id);
   db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), batchId);
   return getPurchaseBatch(batchId)?.stock.find((s) => s.id === sp.id) ?? null;
 }
@@ -254,7 +252,7 @@ export async function addSurplusToBatch(batchId: number, input: { productId: num
  * lines — they join the batch with the note "Tự động lấy từ mua theo đợt"), the rest is booked as surplus for stock
  * with its own expiry. Call once per expiry date when the same product came with several dates.
  */
-export async function addProductToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string }): Promise<{ code: string; covered: number; orderUnits: number; stockUnits: number; lotId: number | null } | null> {
+export async function addProductToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string; receiptId?: number | null }): Promise<{ code: string; covered: number; orderUnits: number; stockUnits: number; lotId: number | null } | null> {
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return null;
@@ -266,6 +264,8 @@ export async function addProductToBatch(batchId: number, input: { productId: num
   if (served.length) {
     const ph = served.map(() => "?").join(",");
     db.prepare(`UPDATE order_items SET source_key = ? WHERE id IN (${ph}) AND id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'stock_purchase' AND source_id = ?)`).run(input.sourceKey || batch.source_key, ...served, s.id);
+    // lines served from this purchase were paid on the same bill (a lot is created at "bought", so look through it too)
+    if (input.receiptId) db.prepare(`UPDATE order_items SET receipt_id = ? WHERE id IN (${ph}) AND (id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'stock_purchase' AND source_id = ?) OR (? IS NOT NULL AND id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?)))`).run(input.receiptId, ...served, s.id, s.lotId, s.lotId);
   }
   const res = listReservationsForStockPurchases(db, [s.id]).get(s.id) ?? [];
   const orderUnits = res.reduce((n, r) => n + r.qty, 0);
@@ -610,4 +610,28 @@ export function removeLotsFromBatch(lotIds: number[]): { ok: boolean; message: s
 /** Lots that can still be put into a shipment: at Kho Nhật (shop), not in any batch. */
 export function listLotsAvailableForBatch(): ReturnType<typeof listLotViews> {
   return listLotViews(getDb(), {}).filter((l) => l.warehouse === "jp" && !l.inTransit && !l.batchId);
+}
+
+/** Ticked rows belong to this bill (paper trail): order lines, slips, and lots (through their slip). */
+export function assignReceiptToRows(receiptId: number, rows: { ids: number[]; sids: number[]; lotIds: number[] }): number {
+  const db = getDb();
+  if (!db.prepare("SELECT 1 FROM purchase_receipts WHERE id = ?").get(receiptId)) return 0;
+  let n = 0;
+  withTransaction(db, () => {
+    if (rows.ids.length) n += Number(db.prepare(`UPDATE order_items SET receipt_id = ? WHERE id IN (${rows.ids.map(() => "?").join(",")})`).run(receiptId, ...rows.ids).changes);
+    if (rows.sids.length) n += Number(db.prepare(`UPDATE stock_purchases SET receipt_id = ? WHERE id IN (${rows.sids.map(() => "?").join(",")})`).run(receiptId, ...rows.sids).changes);
+    for (const lotId of rows.lotIds) {
+      const r = db.prepare("UPDATE stock_purchases SET receipt_id = ? WHERE lot_id = ?").run(receiptId, lotId);
+      if (Number(r.changes) === 0) {
+        // a lot entered by hand has no slip yet: make one so the bill reference has somewhere to live
+        const lot = db.prepare("SELECT product_id, qty_in, source_key, unit_cost_jpy, expiry, bought_at, warehouse, note, batch_id FROM stock_lots WHERE id = ?").get(lotId) as { product_id: number; qty_in: number; source_key: string; unit_cost_jpy: number | null; expiry: string | null; bought_at: string | null; warehouse: string; note: string; batch_id: number | null } | undefined;
+        if (!lot) continue;
+        const now = new Date().toISOString();
+        const ins = db.prepare("INSERT INTO stock_purchases (product_id, qty, source_key, unit_cost_jpy, status, expiry, bought_at, warehouse, location, note, lot_id, batch_id, receipt_id, created_at, updated_at) VALUES (?, ?, ?, ?, 'bought', ?, ?, ?, '', ?, ?, ?, ?, ?, ?)").run(lot.product_id, lot.qty_in, lot.source_key, lot.unit_cost_jpy, lot.expiry, lot.bought_at, lot.warehouse, lot.note, lotId, lot.batch_id, receiptId, now, now);
+        db.prepare("UPDATE stock_lots SET purchase_id = ? WHERE id = ? AND purchase_id IS NULL").run(Number(ins.lastInsertRowid), lotId);
+      }
+      n++;
+    }
+  });
+  return n;
 }

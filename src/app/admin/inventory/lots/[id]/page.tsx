@@ -9,6 +9,8 @@ import { requireAdmin } from "@/lib/auth";
 import { listReservationsForProduct } from "@/lib/allocations-db";
 import { getProductById, listPurchaseSources, listStockLots, listStockPurchases } from "@/lib/db";
 import { getDb } from "@/lib/sqlite";
+import { listLotViews } from "@/lib/lots-db";
+import { uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
@@ -35,6 +37,8 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
   if (!product) notFound();
   const open = purchases.filter((p) => p.productId === pid);
   const reservations = listReservationsForProduct(getDb(), pid);
+  // bill (phiếu mua) behind each lot — the paper trail to check against
+  const billOf = new Map(listLotViews(getDb(), { productId: pid, includeEmpty: true }).map((v) => [v.id, v]));
   // one line per order line of this product: its parts (lot / slip / batch / buy)
   const orderLines = Array.from(
     reservations.reduce((acc, r) => {
@@ -123,7 +127,25 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                           </form>
                           <input form={fid} name="receivedAt" defaultValue={l.receivedAt} className={`${adminInput} !mb-0 !w-[118px] !py-1 !text-[13px]`} aria-label="Ngày nhập" />
                           {l.boughtAt ? <span className="block text-[11px] text-lien-muted">mua tại Nhật {formatDate(l.boughtAt)}</span> : null}
-                          {l.purchaseId ? <span className="block text-[11px] text-lien-muted">phiếu mua #{l.purchaseId}</span> : null}
+                          {(() => {
+                            const v = billOf.get(l.id);
+                            if (!v?.receiptId) return l.batchId ? <span className="block text-[11px] text-lien-muted">chưa gắn bill</span> : null;
+                            return (
+                              <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px]">
+                                <Link href={`/admin/purchases/?tab=batches#receipt-${v.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill">
+                                  {v.receiptCode}
+                                </Link>
+                                <form action={uploadReceiptFilesAction} className="inline-flex items-center gap-1">
+                                  <input type="hidden" name="id" value={v.receiptId} />
+                                  <input type="hidden" name="back" value={`/admin/inventory/lots/${pid}/`} />
+                                  <input type="file" name="files" accept="image/*,application/pdf" multiple className="w-[150px] text-[11px]" aria-label="Ảnh bill" />
+                                  <button type="submit" className={`${btnSecondary} !px-1.5 !py-0.5 !text-[11px]`} title="Đính kèm ảnh chụp bill">
+                                    <Fa name="paperclip" /> ảnh bill
+                                  </button>
+                                </form>
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className={`${tdClass} whitespace-nowrap`}>
                           <input form={fid} name="qtyLeft" inputMode="numeric" defaultValue={l.qtyLeft} className={`${adminInput} !mb-0 inline-block !w-[64px] !py-1 text-center !text-[13px]`} aria-label="Số lượng còn" />

@@ -69,7 +69,7 @@ interface ReceiptRow {
   updated_at: string;
   files: string | null;
 }
-function parseFiles(raw: string | null): ReceiptFile[] {
+export function parseReceiptFiles(raw: string | null): ReceiptFile[] {
   try {
     const v = JSON.parse(raw || "[]");
     return Array.isArray(v) ? v.filter((f) => f && typeof f.path === "string" && typeof f.url === "string").map((f) => ({ path: String(f.path), url: String(f.url), name: String(f.name ?? ""), mime: String(f.mime ?? "") })) : [];
@@ -114,7 +114,7 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
     status: isStatus(r.status) ? r.status : "bought",
     createdAt: r.created_at,
     updatedAt: r.updated_at,
-    files: parseFiles(r.files),
+    files: parseReceiptFiles(r.files),
     items: items.filter((i) => i.receipt_id === r.id).map((i) => ({ id: i.id, receiptId: i.receipt_id, productId: i.product_id, productName: i.pname ?? "", productThumb: i.pthumb ?? "", rawName: i.raw_name ?? "", qty: i.qty, unitJpy: i.unit_jpy, asin: i.asin ?? "", matchScore: i.match_score })),
     lines: lines.filter((l) => l.receipt_id === r.id).map((l) => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, productName: l.name, quantity: l.quantity, purchaseStatus: l.purchase_status })),
     stockUnits: Number(stock.find((s) => s.receipt_id === r.id)?.n ?? 0),
@@ -292,7 +292,7 @@ export function addReceiptFiles(id: number, files: ReceiptFile[]): boolean {
   const db = getDb();
   const cur = db.prepare("SELECT files FROM purchase_receipts WHERE id = ?").get(id) as { files: string | null } | undefined;
   if (!cur) return false;
-  const next = [...parseFiles(cur.files), ...files];
+  const next = [...parseReceiptFiles(cur.files), ...files];
   db.prepare("UPDATE purchase_receipts SET files = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(next), new Date().toISOString(), id);
   return true;
 }
@@ -301,9 +301,22 @@ export function removeReceiptFile(id: number, path: string): ReceiptFile | null 
   const db = getDb();
   const cur = db.prepare("SELECT files FROM purchase_receipts WHERE id = ?").get(id) as { files: string | null } | undefined;
   if (!cur) return null;
-  const all = parseFiles(cur.files);
+  const all = parseReceiptFiles(cur.files);
   const hit = all.find((f) => f.path === path) ?? null;
   if (!hit) return null;
   db.prepare("UPDATE purchase_receipts SET files = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(all.filter((f) => f.path !== path)), new Date().toISOString(), id);
   return hit;
+}
+
+/** An empty bill (no parsed lines) — the paper trail for photos and for rows added by hand in a batch. */
+export function createManualReceipt(input: { sourceKey: string; boughtAt: string; orderRef?: string; note?: string; batchId?: number | null }): Receipt | null {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const boughtAt = input.boughtAt || now.slice(0, 10);
+  const id = withTransaction(db, () => {
+    const code = nextCode(boughtAt);
+    const r = db.prepare("INSERT INTO purchase_receipts (code, source_key, bought_at, order_ref, total_jpy, shipped_at, tracking, note, status, raw_text, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, NULL, '', ?, 'bought', '', ?, ?, ?)").run(code, input.sourceKey || UNKNOWN_SOURCE, boughtAt, (input.orderRef ?? "").slice(0, 80), (input.note ?? "").slice(0, 300), input.batchId ?? null, now, now);
+    return Number(r.lastInsertRowid);
+  });
+  return getReceipt(id);
 }

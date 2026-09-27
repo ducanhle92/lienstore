@@ -61,6 +61,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const bfrom = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.bfrom)) ? first(sp.bfrom) : "";
   const bto = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.bto)) ? first(sp.bto) : "";
   const billBatch = Number.parseInt(first(sp.bill), 10);
+  const billsOpenFor = Number.parseInt(first(sp.bills), 10);
   const batches = tab === "batches" ? listPurchaseBatches({ includeDone: includeDone || !!(bq || bfrom || bto), q: bq, from: bfrom, to: bto }) : [];
   const batchHeads = listBatchHeads();
   const openSurplus = listOpenSurplus();
@@ -124,18 +125,25 @@ export default async function AdminPurchases({ searchParams }: Props) {
       </div>
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} reserved={listReservationsForStockPurchases(getDb(), stockPurchases.map((p) => p.id))} lots={stockLots} /> : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} /> : null}
+      {tab === "batches" && receiptsOpen ? (
+        <div className="mb-5" id="receipts">
+          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)} />
+        </div>
+      ) : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}
+      {tab === "batches" ? null : (
       <details open={receiptsOpen} className="mt-6" id="receipts">
         <summary className="cursor-pointer text-[15px] font-bold text-lien-heading">
           Phiếu mua hàng · nhập bill <span className="text-[13px] font-normal text-lien-muted">({receipts.length} phiếu gần đây{receipts.some((r) => r.status === "draft") ? ` · ${receipts.filter((r) => r.status === "draft").length} nháp chờ xác nhận` : ""})</span>
         </summary>
         <div className="mt-3">
-          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={tab === "batches" ? (Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)) : null} />
+          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={null} />
         </div>
       </details>
+      )}
     </>
   );
 }

@@ -163,6 +163,19 @@ export interface PurchaseBatchLine {
   receiptCode: string;
 }
 
+export interface PurchaseBatchBill {
+  id: number;
+  code: string;
+  boughtAt: string;
+  sourceKey: string;
+  orderRef: string;
+  totalJpy: number | null;
+  status: string;
+  /** Lines parsed from the bill text. */
+  items: number;
+  files: import("@/lib/receipts-db").ReceiptFile[];
+}
+
 /** Surplus units bought in the same batch with no order behind them; becomes a lot when the batch reaches the shop. */
 export interface PurchaseBatchStock {
   id: number;
@@ -187,6 +200,9 @@ export interface PurchaseBatchStock {
   originBatchId: number | null;
   /** Units of this row already reserved for customer orders (see order_item_allocations). */
   reserved: Array<{ orderId: string; orderNumber: number; qty: number }>;
+  /** Bill the slip was bought on, if any. */
+  receiptId: number | null;
+  receiptCode: string;
 }
 
 /**
@@ -210,8 +226,8 @@ export interface PurchaseBatch {
   lines: PurchaseBatchLine[];
   /** Lots travelling in this shipment (a lot exists from "Tại kho Nhật" on). */
   lots: import("@/lib/lots-db").LotView[];
-  /** Bills booked into this batch (code, date, source, number of photos). */
-  receipts: Array<{ id: number; code: string; boughtAt: string; sourceKey: string; files: number }>;
+  /** Bills booked into this batch — the numbered paper trail. */
+  receipts: PurchaseBatchBill[];
   /** Purchase slips in the batch that are not lots yet (Chưa mua / Đã đặt mua). */
   stock: PurchaseBatchStock[];
   /** Rows split off this batch and kept in Japan: still waiting, or already travelling in a later batch. */

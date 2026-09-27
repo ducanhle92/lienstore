@@ -125,30 +125,9 @@ export function BatchFilter({ batchId, total, sources, statuses, orders }: Props
       }
     }
     if (countRef.current) countRef.current.textContent = `${n}/${total} dòng · ${units} đv${jpy ? ` · ≈¥${jpy.toLocaleString("ja-JP")}` : ""}`;
-    // one product row left after typing → the split box is ready for a number
-    if (n === 1 && q && last) {
-      const box = last.querySelector<HTMLInputElement>('input[name="splitQty"]');
-      if (box && document.activeElement !== box) box.focus();
-    }
     writeUrl(f);
   }, [f, batchId, total]);
 
-  // Enter = Giữ Nhật (the form's first submit button), Shift+Enter = Tách dòng
-  useEffect(() => {
-    const root = card();
-    if (!root) return;
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!(t instanceof HTMLInputElement) || t.name !== "splitQty" || e.key !== "Enter") return;
-      const formId = t.getAttribute("form");
-      if (!formId) return;
-      e.preventDefault();
-      const mode = e.shiftKey ? "split" : "hold";
-      root.querySelector<HTMLButtonElement>(`button[form="${formId}"][name="mode"][value="${mode}"]`)?.click();
-    };
-    root.addEventListener("keydown", onKey);
-    return () => root.removeEventListener("keydown", onKey);
-  }, [batchId]);
 
   const onQ = (v: string) => {
     setQInput(v);
@@ -170,7 +149,7 @@ export function BatchFilter({ batchId, total, sources, statuses, orders }: Props
     const root = card();
     if (!root) return;
     for (const r of root.querySelectorAll<HTMLTableRowElement>("tr[data-brow]:not(.hidden)")) {
-      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="ids"], input[type="checkbox"][name="sids"]');
+      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="ids"], input[type="checkbox"][name="sids"], input[type="checkbox"][name="lotIds"]');
       if (box) box.checked = checked;
     }
   };
