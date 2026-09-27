@@ -1663,11 +1663,12 @@ interface LotRow {
   location: string;
   note: string;
   purchase_id: number | null;
+  bought_at: string | null;
   created_at: string;
   updated_at: string;
 }
 const whOf = (v: string | null | undefined): Warehouse => (isWarehouse(v) ? v : DEFAULT_WAREHOUSE);
-const rowToLot = (r: LotRow): StockLot => ({ id: r.id, productId: r.product_id, qtyIn: r.qty_in, qtyLeft: r.qty_left, receivedAt: r.received_at, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, unitCostVnd: r.unit_cost_vnd, expiry: r.expiry, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", purchaseId: r.purchase_id, createdAt: r.created_at, updatedAt: r.updated_at });
+const rowToLot = (r: LotRow): StockLot => ({ id: r.id, productId: r.product_id, qtyIn: r.qty_in, qtyLeft: r.qty_left, receivedAt: r.received_at, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, unitCostVnd: r.unit_cost_vnd, expiry: r.expiry, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", purchaseId: r.purchase_id, boughtAt: r.bought_at ?? null, createdAt: r.created_at, updatedAt: r.updated_at });
 
 /** products.stock := sum of what is left in the lots (only when the product has lots). */
 function syncStockFromLots(db: DatabaseSync, productId: number, now: string): void {
@@ -1733,7 +1734,7 @@ export async function getStockLot(id: number): Promise<StockLot | null> {
   const r = getDb().prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
   return r ? rowToLot(r) : null;
 }
-export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string; purchaseId?: number | null }): Promise<StockLot> {
+export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string; purchaseId?: number | null }): Promise<StockLot> {
   const db = getDb();
   const now = new Date().toISOString();
   return withTransaction(db, () => {
@@ -1741,19 +1742,19 @@ export async function addStockLot(input: { productId: number; qty: number; recei
     if (!p) throw new Error("Sản phẩm không tồn tại.");
     const jpy = input.unitCostJpy ?? p.cost_jpy ?? null;
     const vnd = input.unitCostVnd ?? (jpy && jpy !== p.cost_jpy ? null : p.cost_price) ?? null;
-    const res = db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.qty, input.receivedAt || todayIso(), input.sourceKey || UNKNOWN_SOURCE, jpy, vnd, input.expiry ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.location ?? "", input.note ?? "", input.purchaseId ?? null, now, now);
+    const res = db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, bought_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.qty, input.receivedAt || todayIso(), input.boughtAt ?? null, input.sourceKey || UNKNOWN_SOURCE, jpy, vnd, input.expiry ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.location ?? "", input.note ?? "", input.purchaseId ?? null, now, now);
     syncStockFromLots(db, input.productId, now);
     return rowToLot(db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as LotRow);
   });
 }
-export async function updateStockLot(id: number, patch: { qtyLeft?: number; receivedAt?: string; sourceKey?: string; unitCostJpy?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string }): Promise<boolean> {
+export async function updateStockLot(id: number, patch: { qtyLeft?: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; expiry?: string | null; warehouse?: Warehouse; location?: string; note?: string }): Promise<boolean> {
   const db = getDb();
   const now = new Date().toISOString();
   return withTransaction(db, () => {
     const cur = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
     if (!cur) return false;
     const qtyLeft = patch.qtyLeft ?? cur.qty_left;
-    db.prepare("UPDATE stock_lots SET qty_left = ?, qty_in = MAX(qty_in, ?), received_at = ?, source_key = ?, unit_cost_jpy = ?, expiry = ?, warehouse = ?, location = ?, note = ?, updated_at = ? WHERE id = ?").run(qtyLeft, qtyLeft, patch.receivedAt ?? cur.received_at, patch.sourceKey ?? cur.source_key, patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy, patch.expiry === undefined ? cur.expiry : patch.expiry, patch.warehouse ?? whOf(cur.warehouse), patch.location ?? cur.location, patch.note ?? cur.note, now, id);
+    db.prepare("UPDATE stock_lots SET qty_left = ?, qty_in = MAX(qty_in, ?), received_at = ?, bought_at = ?, source_key = ?, unit_cost_jpy = ?, expiry = ?, warehouse = ?, location = ?, note = ?, updated_at = ? WHERE id = ?").run(qtyLeft, qtyLeft, patch.receivedAt ?? cur.received_at, patch.boughtAt === undefined ? cur.bought_at : patch.boughtAt, patch.sourceKey ?? cur.source_key, patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy, patch.expiry === undefined ? cur.expiry : patch.expiry, patch.warehouse ?? whOf(cur.warehouse), patch.location ?? cur.location, patch.note ?? cur.note, now, id);
     syncStockFromLots(db, cur.product_id, now);
     return true;
   });
@@ -1786,6 +1787,8 @@ interface StockPurchaseRow {
   location: string;
   note: string;
   lot_id: number | null;
+  batch_id: number | null;
+  bought_at: string | null;
   created_at: string;
   updated_at: string;
   name: string;
@@ -1793,18 +1796,19 @@ interface StockPurchaseRow {
   thumb: string;
 }
 const SP_SELECT = "SELECT sp.*, p.name, p.sku, p.thumb FROM stock_purchases sp JOIN products p ON p.id = sp.product_id";
-const rowToStockPurchase = (r: StockPurchaseRow): StockPurchase => ({ id: r.id, productId: r.product_id, productName: r.name, productSku: r.sku, productThumb: r.thumb ?? "", qty: r.qty, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, status: isPurchaseStatus(r.status) ? r.status : "not_bought", expiry: r.expiry, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", lotId: r.lot_id, createdAt: r.created_at, updatedAt: r.updated_at });
+const rowToStockPurchase = (r: StockPurchaseRow): StockPurchase => ({ id: r.id, productId: r.product_id, productName: r.name, productSku: r.sku, productThumb: r.thumb ?? "", qty: r.qty, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, status: isPurchaseStatus(r.status) ? r.status : "not_bought", expiry: r.expiry, boughtAt: r.bought_at ?? null, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", lotId: r.lot_id, batchId: r.batch_id ?? null, createdAt: r.created_at, updatedAt: r.updated_at });
 
 export async function listStockPurchases(includeDone = false): Promise<StockPurchase[]> {
   const rows = getDb().prepare(`${SP_SELECT} ${includeDone ? "" : "WHERE sp.lot_id IS NULL"} ORDER BY sp.id DESC`).all() as unknown as StockPurchaseRow[];
   return rows.map(rowToStockPurchase);
 }
-export async function createStockPurchase(input: { productId: number; qty: number; sourceKey: string; unitCostJpy: number | null; expiry: string | null; warehouse?: Warehouse; location: string; note: string; status?: PurchaseStatus }): Promise<StockPurchase> {
+export async function createStockPurchase(input: { productId: number; qty: number; sourceKey: string; unitCostJpy: number | null; expiry: string | null; boughtAt?: string | null; warehouse?: Warehouse; location: string; note: string; status?: PurchaseStatus; batchId?: number | null }): Promise<StockPurchase> {
   const db = getDb();
   const now = new Date().toISOString();
-  const res = db.prepare("INSERT INTO stock_purchases (product_id, qty, source_key, unit_cost_jpy, status, expiry, warehouse, location, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.sourceKey || UNKNOWN_SOURCE, input.unitCostJpy, input.status ?? "not_bought", input.expiry, input.warehouse ?? DEFAULT_WAREHOUSE, input.location, input.note, now, now);
+  const status = input.status ?? "not_bought";
+  const res = db.prepare("INSERT INTO stock_purchases (product_id, qty, source_key, unit_cost_jpy, status, expiry, bought_at, warehouse, location, note, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.sourceKey || UNKNOWN_SOURCE, input.unitCostJpy, purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status, input.expiry, input.boughtAt ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.location, input.note, input.batchId ?? null, now, now);
   const id = Number(res.lastInsertRowid);
-  if (input.status === "at_shop") await setStockPurchaseStatus(id, "at_shop");
+  if (purchaseIndex(status) >= purchaseIndex("at_shop")) await setStockPurchaseStatus(id, "at_shop");
   return rowToStockPurchase(db.prepare(`${SP_SELECT} WHERE sp.id = ?`).get(id) as unknown as StockPurchaseRow);
 }
 /** Move a stock purchase along the chain; reaching "at_shop" books the lot (once) and the stock follows. */
@@ -1816,7 +1820,7 @@ export async function setStockPurchaseStatus(id: number, status: PurchaseStatus,
   const now = new Date().toISOString();
   let lotId = cur.lot_id;
   if (purchaseIndex(status) >= purchaseIndex("at_shop") && !lotId) {
-    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, warehouse: whOf(cur.warehouse), location: cur.location, note: cur.note ? `Mua lưu kho #${cur.id} · ${cur.note}` : `Mua lưu kho #${cur.id}`, purchaseId: cur.id });
+    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, boughtAt: cur.bought_at ?? null, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, warehouse: whOf(cur.warehouse), location: cur.location, note: cur.note ? `Mua lưu kho #${cur.id} · ${cur.note}` : `Mua lưu kho #${cur.id}`, purchaseId: cur.id });
     lotId = lot.id;
   }
   db.prepare("UPDATE stock_purchases SET status = ?, note = COALESCE(?, note), lot_id = ?, updated_at = ? WHERE id = ?").run(purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status, note ?? null, lotId, now, id);
@@ -2962,6 +2966,9 @@ export interface PurchaseLine {
   sourceKey: string;
   receiptId: number | null;
   receiptCode: string;
+  /** Shipment batch (đợt gửi) the line travels in, if any. */
+  batchId: number | null;
+  batchCode: string;
 }
 
 /** Every line of the open orders (pending / processing); `includeDone` adds completed orders. Cancelled orders never. */
@@ -2970,13 +2977,13 @@ export async function getPurchaseLines(includeDone = false): Promise<PurchaseLin
   const rows = getDb()
     .prepare(
       `SELECT oi.id, oi.order_id, o.number, o.status, o.created_at, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity,
-              oi.purchase_status, oi.purchase_note, oi.purchase_updated_at, oi.source_key, oi.receipt_id, pr.code AS receipt_code, p.sku, p.thumb, p.cost_price, p.supplier_url
-       FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id LEFT JOIN purchase_receipts pr ON pr.id = oi.receipt_id
+              oi.purchase_status, oi.purchase_note, oi.purchase_updated_at, oi.source_key, oi.receipt_id, pr.code AS receipt_code, oi.batch_id, pb.code AS batch_code, p.sku, p.thumb, p.cost_price, p.supplier_url
+       FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id LEFT JOIN purchase_receipts pr ON pr.id = oi.receipt_id LEFT JOIN purchase_batches pb ON pb.id = oi.batch_id
        WHERE o.status IN ${statuses} ORDER BY o.created_at DESC, oi.id`,
     )
     .all() as unknown as Array<{
     id: number; order_id: string; number: number; status: OrderStatus; created_at: string; first_name: string; last_name: string; product_id: number; name: string; quantity: number;
-    purchase_status: string | null; purchase_note: string | null; purchase_updated_at: string | null; source_key: string | null; receipt_id: number | null; receipt_code: string | null; sku: string | null; thumb: string | null; cost_price: number | null; supplier_url: string | null;
+    purchase_status: string | null; purchase_note: string | null; purchase_updated_at: string | null; source_key: string | null; receipt_id: number | null; receipt_code: string | null; batch_id: number | null; batch_code: string | null; sku: string | null; thumb: string | null; cost_price: number | null; supplier_url: string | null;
   }>;
   return rows.map((r) => ({
     itemId: r.id,
@@ -2998,6 +3005,8 @@ export async function getPurchaseLines(includeDone = false): Promise<PurchaseLin
     sourceKey: r.source_key ?? "",
     receiptId: r.receipt_id ?? null,
     receiptCode: r.receipt_code ?? "",
+    batchId: r.batch_id ?? null,
+    batchCode: r.batch_code ?? "",
   }));
 }
 

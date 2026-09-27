@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
+import { addLinesToBatchAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
+import { PurchaseBatchPanel } from "@/components/sites/lienstore/admin/PurchaseBatchPanel";
+import { listBatchHeads, listPurchaseBatches } from "@/lib/purchase-batches-db";
 import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
 import { todayIso } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
@@ -36,7 +39,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const view = first(sp.view) === "product" ? "product" : "line";
   const includeDone = first(sp.done) === "1";
-  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "receipts" ? "receipts" : "orders";
+  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "receipts" ? "receipts" : first(sp.tab) === "batches" ? "batches" : "orders";
   // date range on the order's creation time (shop day, inclusive) + purchase source
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
@@ -44,6 +47,8 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
   const receipts = tab === "receipts" ? listReceipts(80) : [];
+  const batches = tab === "batches" ? listPurchaseBatches(includeDone) : [];
+  const batchHeads = listBatchHeads();
   const draftId = Number.parseInt(first(sp.draft), 10);
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
@@ -95,10 +100,14 @@ export default async function AdminPurchases({ searchParams }: Props) {
         <Link href="/admin/purchases/?tab=receipts" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "receipts" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-receipts">
           Phiếu mua hàng · nhập bill
         </Link>
+        <Link href="/admin/purchases/?tab=batches" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "batches" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-batches">
+          Đợt gửi · đơn + lưu kho ({batchHeads.length} đợt đang đi)
+        </Link>
       </div>
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
       {tab === "receipts" ? <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} /> : null}
 
       {/* compact stage counters (same density as Kho hàng) — the table below is the working view */}
       <div className={cn("mb-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 lg:grid-cols-9", tab !== "orders" && "hidden")}>
@@ -236,6 +245,23 @@ export default async function AdminPurchases({ searchParams }: Props) {
               <button type="submit" formAction={createReceiptFromLinesAction} className={cn(btnSecondary, "!py-1")} title="Gom các dòng đã tick thành một phiếu mua (mã PM-…), chuyển sang Đã mua và ghi nguồn">
                 <Fa name="file-text-o" /> Tạo phiếu mua
               </button>
+              {batchHeads.length ? (
+                <>
+                  <span className="mx-1 text-lien-muted">|</span>
+                  <span className="font-semibold text-lien-heading">hoặc vào đợt gửi:</span>
+                  <select name="batchId" defaultValue={batchHeads[0].id} className={cn(adminInput, "!w-auto !py-1")} aria-label="Đợt gửi">
+                    {batchHeads.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.code}
+                        {h.label ? ` · ${h.label}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" formAction={addLinesToBatchAction} className={cn(btnSecondary, "!py-1")} title="Đưa các dòng đã tick vào đợt gửi (đi chung chuyến với hàng mua dư lưu kho)">
+                    <Fa name="truck" /> Thêm vào đợt gửi
+                  </button>
+                </>
+              ) : null}
             </div>
             <ResizableTable id="purchases">
               <table className={tableClass}>
@@ -349,6 +375,11 @@ function LineRow({ line: l, back, sources }: { line: PurchaseLine; back: string;
           {l.receiptCode ? (
             <Link href={`/admin/purchases/?tab=receipts#receipt-${l.receiptId}`} className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-mono font-semibold text-[#3730a3] no-underline hover:underline" title="Phiếu mua hàng">
               {l.receiptCode}
+            </Link>
+          ) : null}
+          {l.batchCode ? (
+            <Link href={`/admin/purchases/?tab=batches#batch-${l.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline" title="Đợt gửi">
+              {l.batchCode}
             </Link>
           ) : null}
         </div>

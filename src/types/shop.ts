@@ -91,6 +91,8 @@ export interface StockLot {
   qtyLeft: number;
   /** ISO date the goods reached the shop. */
   receivedAt: string;
+  /** ISO date the goods were bought in Japan (traceability), or null when unknown. */
+  boughtAt: string | null;
   /** purchase_sources.key */
   sourceKey: string;
   unitCostJpy: number | null;
@@ -119,13 +121,70 @@ export interface StockPurchase {
   unitCostJpy: number | null;
   status: import("@/lib/purchase").PurchaseStatus;
   expiry: string | null;
+  /** ISO date bought in Japan; copied onto the lot. */
+  boughtAt: string | null;
   /** Warehouse the goods are bound for — the lot is booked there when they arrive. */
   warehouse: Warehouse;
   location: string;
   note: string;
   lotId: number | null;
+  /** Shipment batch (đợt gửi) this surplus belongs to. */
+  batchId: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One order line travelling inside a shipment batch. */
+export interface PurchaseBatchLine {
+  itemId: number;
+  orderId: string;
+  orderNumber: number;
+  customerName: string;
+  productId: number;
+  productName: string;
+  productSku: string | null;
+  productThumb: string;
+  quantity: number;
+  purchaseStatus: import("@/lib/purchase").PurchaseStatus;
+  costJpy: number | null;
+}
+
+/** Surplus units bought in the same batch with no order behind them; becomes a lot when the batch reaches the shop. */
+export interface PurchaseBatchStock {
+  id: number;
+  productId: number;
+  productName: string;
+  productSku: string | null;
+  productThumb: string;
+  qty: number;
+  expiry: string | null;
+  boughtAt: string | null;
+  unitCostJpy: number | null;
+  status: import("@/lib/purchase").PurchaseStatus;
+  warehouse: Warehouse;
+  lotId: number | null;
+  note: string;
+}
+
+/**
+ * "Đợt gửi": one Japan → shop shipment that carries order lines and surplus for stock together (one carrier fee).
+ * Its status drives every line and surplus row at once; reaching the shop books the surplus as lots.
+ */
+export interface PurchaseBatch {
+  id: number;
+  /** DG-YYMMDD-NN */
+  code: string;
+  label: string;
+  status: import("@/lib/purchase").PurchaseStatus;
+  sourceKey: string;
+  boughtAt: string | null;
+  shippedAt: string | null;
+  tracking: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+  lines: PurchaseBatchLine[];
+  stock: PurchaseBatchStock[];
 }
 
 export type PurchaseSourceKind = "website" | "store" | "auction" | "secondhand" | "other";

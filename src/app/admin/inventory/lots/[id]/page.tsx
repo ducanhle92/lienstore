@@ -96,6 +96,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                             <input type="hidden" name="lotId" value={l.id} />
                           </form>
                           <input form={fid} name="receivedAt" defaultValue={l.receivedAt} className={`${adminInput} !mb-0 !w-[118px] !py-1 !text-[13px]`} aria-label="Ngày nhập" />
+                          {l.boughtAt ? <span className="block text-[11px] text-lien-muted">mua tại Nhật {formatDate(l.boughtAt)}</span> : null}
                           {l.purchaseId ? <span className="block text-[11px] text-lien-muted">phiếu mua #{l.purchaseId}</span> : null}
                         </td>
                         <td className={`${tdClass} whitespace-nowrap`}>

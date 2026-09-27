@@ -89,6 +89,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
                     </td>
                     <td className={`${tdClass} text-[13px]`}>
                       {p.expiry ? formatDate(p.expiry) : <span className="text-lien-muted">—</span>}
+                      {p.boughtAt ? <span className="block text-[12px] text-lien-muted">mua {formatDate(p.boughtAt)}</span> : null}
                       <span className="block text-[12px] text-lien-muted" title={WAREHOUSE_HINT[p.warehouse]}>
                         → {WAREHOUSE_LABEL[p.warehouse]}
                         {p.location ? ` · ${p.location}` : ""}
@@ -182,11 +183,17 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone }
               <input id="spa-exp" name="expiry" placeholder="2027-03-31 · 03/2027" className={adminInput} />
             </div>
             <div>
-              <label className={adminLabel} htmlFor="spa-loc">
-                Vị trí trong kho
+              <label className={adminLabel} htmlFor="spa-bought">
+                Ngày mua tại Nhật
               </label>
-              <input id="spa-loc" name="location" placeholder="Kệ A2" className={adminInput} />
+              <input id="spa-bought" name="boughtAt" defaultValue={todayIso()} placeholder="2026-09-27" className={adminInput} />
             </div>
+          </div>
+          <div>
+            <label className={adminLabel} htmlFor="spa-loc">
+              Vị trí trong kho
+            </label>
+            <input id="spa-loc" name="location" placeholder="Kệ A2" className={adminInput} />
           </div>
           <div>
             <label className={adminLabel} htmlFor="spa-wh">

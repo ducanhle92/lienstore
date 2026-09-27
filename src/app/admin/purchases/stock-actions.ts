@@ -26,10 +26,13 @@ export async function createStockPurchaseAction(formData: FormData): Promise<voi
   const expiryRaw = text(formData, "expiry");
   const expiry = expiryRaw ? parseExpiry(expiryRaw) : null;
   if (expiryRaw && !expiry) back("error", "Hạn dùng không hợp lệ — ghi 2027-03-31, 31/03/2027 hoặc 2027-03.");
+  const boughtRaw = text(formData, "boughtAt");
+  const boughtAt = boughtRaw ? parseExpiry(boughtRaw) : null;
+  if (boughtRaw && !boughtAt) back("error", "Ngày mua không hợp lệ (VD 2026-09-27).");
   const statusRaw = text(formData, "status");
   const status = isPurchaseStatus(statusRaw) ? statusRaw : "bought";
   const wh = text(formData, "warehouse");
-  const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
+  const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, boughtAt, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
   revalidatePath("/admin", "layout");
   back("saved", status === "at_shop" ? `Đã nhập kho ${qty} × ${sp.productName} (tạo lô).` : `Đã tạo phiếu mua lưu kho #${sp.id}: ${qty} × ${sp.productName} — ${PURCHASE_LABEL[status]}.`);
 }

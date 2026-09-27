@@ -1201,6 +1201,33 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_search_log_time ON search_log(created_at)`,
     ],
   },
+  {
+    // "Đợt gửi" (purchase shipment batch): order lines + surplus bought for stock travel Japan → shop together.
+    // Surplus rows are stock_purchases; when the batch reaches the shop they become lots (with expiry + purchase date).
+    version: 56,
+    name: "purchase-batches",
+    up: [
+      `CREATE TABLE IF NOT EXISTS purchase_batches (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        code       TEXT NOT NULL UNIQUE,
+        label      TEXT NOT NULL DEFAULT '',
+        status     TEXT NOT NULL DEFAULT 'not_bought',
+        source_key TEXT NOT NULL DEFAULT 'unknown',
+        bought_at  TEXT,
+        shipped_at TEXT,
+        tracking   TEXT NOT NULL DEFAULT '',
+        note       TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `ALTER TABLE order_items ADD COLUMN batch_id INTEGER`,
+      `ALTER TABLE stock_purchases ADD COLUMN batch_id INTEGER`,
+      `ALTER TABLE stock_purchases ADD COLUMN bought_at TEXT`,
+      `ALTER TABLE stock_lots ADD COLUMN bought_at TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_order_items_batch ON order_items(batch_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_stock_purchases_batch ON stock_purchases(batch_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
