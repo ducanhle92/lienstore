@@ -20,12 +20,19 @@ interface Props {
   products: PickableProduct[];
   /** Draft opened from the "Nhập bill" flow — rendered first, expanded. */
   draftId: number | null;
+  /** Tab the panel sits in — actions land back there. */
+  fromTab?: "orders" | "stock" | "batches";
+  /** Open shipment batches a bill can be booked into (Mua theo đợt). */
+  batches?: Array<{ id: number; code: string; label: string }>;
+  /** Pre-selected batch for the bill form. */
+  defaultBatchId?: number | null;
 }
 
 const STATUS_CLS: Record<ReceiptStatus, string> = { draft: "bg-amber-100 text-amber-800", bought: "bg-sky-100 text-sky-800", shipped: "bg-green-100 text-green-800" };
 
 /** Quản lý mua hàng › tab "Phiếu mua": bill import + every receipt with its items, linked order lines and ship-out data. */
-export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
+export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = "orders", batches = [], defaultBatchId = null }: Props) {
+  const tabField = <input type="hidden" name="fromTab" value={fromTab} />;
   const srcName = (k: string) => purchaseSourceName(k, sources);
   const srcSelect = (name: string, value: string, id: string) => (
     <select id={id} name={name} defaultValue={value || "unknown"} className={adminInput} aria-label="Nguồn nhập">
@@ -50,8 +57,14 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
                 title={`${r.code} · ${srcName(r.sourceKey)} · mua ${formatDate(r.boughtAt)}`}
                 actions={
                   <span className="flex items-center gap-2">
+                    {r.batchCode ? (
+                      <Link href={`/admin/purchases/?tab=batches#batch-${r.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#065f46] no-underline hover:underline" title="Đợt gửi">
+                        {r.batchCode}
+                      </Link>
+                    ) : null}
                     <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", STATUS_CLS[r.status])}>{RECEIPT_STATUS_LABEL[r.status]}</span>
                     <form action={deleteReceiptAction}>
+                      {tabField}
                       <input type="hidden" name="id" value={r.id} />
                       <ConfirmSubmit message={isDraft ? `Xoá phiếu nháp ${r.code}?` : `Xoá phiếu ${r.code}? Các dòng đơn giữ trạng thái, chỉ bỏ liên kết phiếu.`} className="text-[12px] text-lien-heart hover:underline">
                         Xoá
@@ -69,7 +82,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
                   {r.tracking ? ` · ${r.tracking}` : ""}
                 </p>
                 {isDraft ? (
-                  <form action={confirmReceiptAction} className="mb-4 rounded-md border border-amber-200 bg-amber-50/60 p-3" data-testid="receipt-confirm">
+                  <form action={confirmReceiptAction} className="mb-4 rounded-md border border-amber-200 bg-amber-50/60 p-3" data-testid="receipt-confirm">{tabField}
                     <input type="hidden" name="id" value={r.id} />
                     <p className="m-0 mb-2 text-[13px] text-lien-text">Đọc từ bill — kiểm tra sản phẩm khớp (đổi nếu sai, để trống nếu không bán trên web) rồi bấm Xác nhận. Số lượng mua sẽ gán cho các đơn đang chờ (đơn cũ trước), phần dư thành phiếu mua lưu kho.</p>
                     <table className={tableClass}>
@@ -152,7 +165,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
                     </table>
                   </div>
                 )}
-                <form action={updateReceiptAction} className="grid gap-2 border-t border-[#e5e7eb] pt-3 sm:grid-cols-3 lg:grid-cols-6" id={fid}>
+                <form action={updateReceiptAction} className="grid gap-2 border-t border-[#e5e7eb] pt-3 sm:grid-cols-3 lg:grid-cols-6" id={fid}>{tabField}
                   <input type="hidden" name="id" value={r.id} />
                   <label className="text-[12px] text-lien-muted">
                     Nguồn
@@ -196,6 +209,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
       <div className="space-y-6">
         <Card title="Nhập bill mua hàng">
           <form action={parseBillAction} className="grid gap-3" data-testid="bill-import">
+            {tabField}
             <div>
               <label className={adminLabel} htmlFor="bill-text">
                 Nội dung bill <span className="font-normal text-lien-muted">— dán email đặt hàng Amazon / Rakuten, hoặc gõ mỗi dòng: tên · số lượng · giá</span>
@@ -222,6 +236,22 @@ export function ReceiptsPanel({ receipts, sources, products, draftId }: Props) {
               </label>
               <input id="bill-ref" name="orderRef" className={adminInput} />
             </div>
+            {batches.length ? (
+              <div>
+                <label className={adminLabel} htmlFor="bill-batch">
+                  Đưa vào đợt gửi <span className="font-normal text-lien-muted">— hàng trên bill đi chung chuyến với đợt; đơn đang chờ được gán trước, phần dư lưu kho</span>
+                </label>
+                <select id="bill-batch" name="batchId" defaultValue={defaultBatchId ?? ""} className={adminInput}>
+                  <option value="">— không vào đợt —</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.code}
+                      {b.label ? ` · ${b.label}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
               Đọc bill → tạo phiếu nháp
             </button>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { addLinesToBatchAction, addSurplusAction, allocateSurplusAction, createBatchAction, deleteBatchAction, removeLineFromBatchAction, removeSurplusAction, setBatchStatusAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";
+import { addLinesToBatchAction, addProductAction, allocateSurplusAction, createBatchAction, deleteBatchAction, removeLineFromBatchAction, removeSurplusAction, setBatchStatusAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";
 import type { PurchaseLine } from "@/lib/db";
 import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
 import { todayIso } from "@/lib/lots";
@@ -34,7 +34,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
       <div className="space-y-5">
         {batches.length === 0 ? (
           <Card>
-            <p className="m-0 text-[13px] text-lien-muted">Chưa có đợt gửi nào. Mở đợt ở khung bên phải, rồi gom các dòng đơn “Chưa mua” và hàng mua dư vào cùng một đợt để đi chung một chuyến.</p>
+            <p className="m-0 text-[13px] text-lien-muted">Chưa có đợt nào. Mở đợt ở khung bên phải, rồi thêm các sản phẩm đã mua (tìm theo tên, mỗi dòng một hạn dùng) — hệ thống tự gán cho đơn đang chờ trước, phần còn lại lưu kho.</p>
           </Card>
         ) : null}
         {batches.map((b) => (
@@ -90,10 +90,13 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         <Card title="Cách dùng">
           <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
             <li>
-              <b>Gom đơn:</b> trong thẻ đợt, tick các dòng “Chưa mua” rồi <i>Thêm vào đợt</i> (hoặc từ tab Theo đơn hàng → “Thêm vào đợt gửi”).
+              <b>Thêm sản phẩm đã mua:</b> tìm theo tên, nhập tổng SL, <b>HSD</b>, <b>ngày mua</b>, ¥. Cùng sản phẩm mà khác HSD → thêm nhiều dòng. Hệ thống tự gán cho các đơn đang chờ (ghi chú “Tự động lấy từ mua theo đợt”), phần còn lại là hàng lưu kho.
             </li>
             <li>
-              <b>Mua dư → kho:</b> thêm số lượng mua thêm cho sản phẩm hay bán, nhập <b>HSD</b> và <b>ngày mua</b> ngay lúc mua ở Nhật.
+              <b>Nhập bill:</b> khung “Phiếu mua hàng · nhập bill” bên dưới, chọn “Đưa vào đợt” → cả bill vào đợt, cũng tự gán đơn trước.
+            </li>
+            <li>
+              <b>Gán tay:</b> tick dòng “Chưa mua” rồi <i>Thêm vào đợt</i> (hoặc từ tab Mua theo đặt hàng → “Thêm vào đợt”).
             </li>
             <li>
               <b>Cập nhật cả đợt</b> một lần: Đã mua → tới ĐVVC Nhật → NB→VN → kho ĐVVC → về kho shop → <b>Tại kho</b>. Mọi dòng đơn và hàng dư đi theo.
@@ -102,7 +105,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
               Tới <b>Tại kho</b>: hàng dư tự thành <b>lô</b> trong Kho hàng (HSD, ngày mua, nguồn, ¥ đi theo lô); tồn kho tăng, bán dần theo hạn gần trước.
             </li>
             <li>
-              Khách đặt khi đợt còn trên đường: bấm <b>Lấy từ hàng dư</b> ở dòng đơn đó — hàng dư giảm, dòng đơn vào đợt và lấy luôn trạng thái của đợt.
+              Khách đặt khi đợt còn trên đường: đơn mới <b>tự lấy</b> từ hàng lưu kho của đợt (ghi chú “Tự động lấy từ mua theo đợt”); nếu chưa gán, bấm <b>Lấy từ đợt</b> ở dòng đơn.
             </li>
           </ol>
         </Card>
@@ -151,7 +154,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
           <span>· gửi NB→VN {b.shippedAt ? formatDate(b.shippedAt) : "—"}</span>
           {b.tracking ? <span>· tracking {b.tracking}</span> : null}
           <span className="ml-auto text-lien-heading">
-            theo đơn <b>{totals.orderUnits}</b> đv · mua dư <b>{totals.stockUnits}</b> đv · tổng <b>{totals.units}</b> đv{totals.jpy !== null ? ` · ≈ ¥${formatAmount(totals.jpy)}` : ""}
+            theo đặt hàng <b>{totals.orderUnits}</b> đv · lưu kho <b>{totals.stockUnits}</b> đv · tổng <b>{totals.units}</b> đv{totals.jpy !== null ? ` · ≈ ¥${formatAmount(totals.jpy)}` : ""}
           </span>
         </div>
 
@@ -176,8 +179,8 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
             <thead>
               <tr>
                 <th className={thClass}>Sản phẩm</th>
-                <th className={thClass}>Theo đơn</th>
-                <th className={thClass}>Mua dư → kho</th>
+                <th className={thClass}>Theo đặt hàng</th>
+                <th className={thClass}>Lưu kho (từng HSD)</th>
                 <th className={thClass}>Tổng mua</th>
                 <th className={thClass}>Tồn hiện tại</th>
               </tr>
@@ -186,7 +189,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className={`${tdClass} text-center text-lien-muted`}>
-                    Đợt chưa có gì — thêm dòng đơn hoặc hàng mua dư bên dưới.
+                    Đợt chưa có gì — thêm sản phẩm đã mua ở khung bên dưới.
                   </td>
                 </tr>
               ) : null}
@@ -271,11 +274,14 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
 
         {done ? null : (
           <>
-            <form action={addSurplusAction} className="mt-3 grid gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-3 py-2 md:grid-cols-[minmax(220px,1fr)_80px_130px_130px_110px_1fr_auto] md:items-end" data-testid={`surplus-${b.id}`}>
+            <form action={addProductAction} className="mt-3 grid gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-3 py-2 md:grid-cols-[minmax(260px,1fr)_80px_130px_130px_110px_1fr_auto] md:items-end" data-testid={`surplus-${b.id}`}>
               <input type="hidden" name="batchId" value={b.id} />
+              <div className="md:col-span-7 -mb-1 text-[12px] text-lien-muted">
+                <b className="text-lien-heading">Thêm sản phẩm đã mua vào đợt</b> — SL là tổng đã mua; tự gán cho đơn đang chờ trước, phần còn lại lưu kho. Cùng sản phẩm khác HSD → thêm từng dòng.
+              </div>
               <div>
-                <label className={adminLabel}>Mua dư → kho</label>
-                <ProductSearchSelect products={products} placeholder="Sản phẩm mua thêm để lưu kho…" />
+                <label className={adminLabel}>Sản phẩm (tìm theo tên)</label>
+                <ProductSearchSelect products={products} placeholder="Gõ tên Việt / Nhật hoặc SKU…" />
               </div>
               <div>
                 <label className={adminLabel} htmlFor={`sq-${b.id}`}>
@@ -307,14 +313,14 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
                 </label>
                 <input id={`sn-${b.id}`} name="note" maxLength={200} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
               </div>
-              <button type="submit" className={cn(btnSecondary, "!py-1.5 !text-[13px]")}>
-                + Mua dư
+              <button type="submit" className={cn(btnPrimary, "!py-1.5 !text-[13px]")}>
+                + Thêm vào đợt
               </button>
             </form>
 
             <details className="mt-3 rounded-md border border-[#e5e7eb] bg-white">
               <summary className="cursor-pointer px-3 py-2 text-[13px] font-semibold text-lien-heading">
-                Thêm dòng đơn “Chưa mua” vào đợt <span className="font-normal text-lien-muted">({openLines.length} dòng đang chờ)</span>
+                Gán tay dòng đơn “Chưa mua” vào đợt <span className="font-normal text-lien-muted">({openLines.length} dòng đang chờ)</span>
               </summary>
               {/* the add form is empty; row checkboxes attach to it with form=… so the per-row "Lấy từ hàng dư" forms can stand alone */}
               <form id={addFormId} action={addLinesToBatchAction}>
@@ -368,7 +374,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
                                 <input type="hidden" name="batchId" value={b.id} />
                                 <input type="hidden" name="itemId" value={l.itemId} />
                                 <button type="submit" className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title={`Đợt còn ${surplus} đv hàng dư — lấy ${l.quantity} đv cho đơn này`}>
-                                  Lấy từ hàng dư ({surplus})
+                                  Lấy từ hàng lưu kho của đợt ({surplus})
                                 </button>
                               </form>
                             ) : surplus ? (

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isBatchStatus } from "@/lib/purchase-batches";
-import { addLinesToBatch, addSurplusToBatch, allocateSurplusToLine, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addProductToBatch, allocateSurplusToLine, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -62,8 +62,8 @@ export async function removeLineFromBatchAction(formData: FormData): Promise<voi
   go(ok ? "saved" : "error", ok ? "Đã bỏ dòng đơn khỏi đợt (trạng thái mua giữ nguyên)." : "Không bỏ được dòng đơn.", batchId);
 }
 
-/** "Mua dư → kho": surplus units for a product, with expiry + purchase date entered on the Japan side. */
-export async function addSurplusAction(formData: FormData): Promise<void> {
+/** A product bought for the batch (one row per expiry): open order lines are covered first, the rest is stock. */
+export async function addProductAction(formData: FormData): Promise<void> {
   await requireAdmin("inventory");
   const batchId = intOr(formData, "batchId");
   if (!batchId) go("error", "Yêu cầu không hợp lệ.");
@@ -78,10 +78,13 @@ export async function addSurplusAction(formData: FormData): Promise<void> {
   if (boughtAt === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
   const jpyRaw = text(formData, "unitCostJpy").replace(/[^\d]/g, "");
   const unitCostJpy = jpyRaw ? Number.parseInt(jpyRaw, 10) : null;
-  const r = await addSurplusToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200) });
+  const r = await addProductToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200) });
   revalidatePath("/admin", "layout");
   if (!r) go("error", "Không tìm thấy đợt gửi.", batchId);
-  go("saved", r!.lotId ? `Đã nhập ${qty} đv ${r!.productName} vào kho (lô #${r!.lotId}) — đợt đã ở trạng thái Tại kho.` : `Đã thêm ${qty} đv ${r!.productName} mua dư vào đợt — sẽ tự nhập kho khi đợt tới kho shop.`, batchId);
+  const parts: string[] = [];
+  if (r!.covered) parts.push(`${r!.orderUnits} đv gán tự động cho ${r!.covered} dòng đơn đang chờ`);
+  if (r!.stockUnits) parts.push(r!.lotId ? `${r!.stockUnits} đv nhập kho ngay (lô #${r!.lotId})` : `${r!.stockUnits} đv lưu kho (nhập lô khi đợt về kho)`);
+  go("saved", `Đã thêm ${qty} đv vào đợt ${r!.code}: ${parts.join(" · ")}.`, batchId);
 }
 
 export async function removeSurplusAction(formData: FormData): Promise<void> {
@@ -101,6 +104,8 @@ export async function allocateSurplusAction(formData: FormData): Promise<void> {
   if (!batchId || !itemId) go("error", "Yêu cầu không hợp lệ.");
   const r = allocateSurplusToLine(batchId!, itemId!);
   revalidatePath("/admin", "layout");
+  const back = text(formData, "back");
+  if (back) redirect(`${back}${back.includes("?") ? "&" : "?"}${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
   go(r.ok ? "saved" : "error", r.message, batchId);
 }
 

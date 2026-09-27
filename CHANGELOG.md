@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Admin › Quản lý mua hàng: đổi tên 3 tab thành **Mua theo đặt hàng**, **Mua lưu kho**, **Mua theo đợt**; khung **Phiếu mua hàng · nhập bill** nằm dưới cả 3 tab (không còn tab riêng, link cũ vẫn mở đúng).
+- Mua theo đợt: khung “Thêm sản phẩm đã mua vào đợt” — tìm theo tên, nhập tổng SL, HSD, ngày mua, ¥; cùng sản phẩm khác HSD thì thêm từng dòng. Hệ thống **tự gán cho các đơn đang chờ trước** (dòng đơn vào đợt, ghi chú “Tự động lấy từ mua theo đợt DG-…”), phần còn lại là hàng lưu kho theo từng HSD.
+- Nhập bill có ô **Đưa vào đợt gửi**: hàng trên bill vào đợt, tự gán đơn trước, phần dư lưu kho theo đợt (migration 57).
+- Mua theo đặt hàng: dòng “Chưa mua” mà một đợt đang đi còn hàng lưu kho → nút **Lấy từ đợt DG-…**; dòng đã gán tự động hiện “DG-… · tự động”.
+- Khách đặt hàng mới: nếu tồn kho không đủ nhưng một đợt đang đi còn hàng lưu kho, dòng đơn **tự lấy từ đợt** (ghi chú tự động) — admin không phải nhập tay.
+
 ## [1.75.2] - 2026-09-27
 
 ### Fixed

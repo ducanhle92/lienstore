@@ -1228,6 +1228,12 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_stock_purchases_batch ON stock_purchases(batch_id)`,
     ],
   },
+  {
+    // A pasted bill can be booked straight into a shipment batch (Mua theo đợt › Nhập bill).
+    version: 57,
+    name: "receipt-batch",
+    up: [`ALTER TABLE purchase_receipts ADD COLUMN batch_id INTEGER`],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

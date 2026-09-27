@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
-import { addLinesToBatchAction } from "@/app/admin/purchases/batch-actions";
+import { addLinesToBatchAction, allocateSurplusAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
 import { PurchaseBatchPanel } from "@/components/sites/lienstore/admin/PurchaseBatchPanel";
-import { listBatchHeads, listPurchaseBatches } from "@/lib/purchase-batches-db";
+import { listBatchHeads, listOpenSurplus, listPurchaseBatches } from "@/lib/purchase-batches-db";
 import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
 import { todayIso } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
@@ -39,16 +39,19 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const view = first(sp.view) === "product" ? "product" : "line";
   const includeDone = first(sp.done) === "1";
-  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "receipts" ? "receipts" : first(sp.tab) === "batches" ? "batches" : "orders";
+  // three tabs; the old "receipts" tab maps to Mua theo đặt hàng with the bill section open
+  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "batches" ? "batches" : "orders";
+  const receiptsOpen = first(sp.receipts) === "1" || first(sp.tab) === "receipts" || !!first(sp.draft);
   // date range on the order's creation time (shop day, inclusive) + purchase source
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const source = first(sp.source);
   const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
-  const receipts = tab === "receipts" ? listReceipts(80) : [];
+  const receipts = listReceipts(40);
   const batches = tab === "batches" ? listPurchaseBatches(includeDone) : [];
   const batchHeads = listBatchHeads();
+  const openSurplus = listOpenSurplus();
   const draftId = Number.parseInt(first(sp.draft), 10);
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
@@ -92,21 +95,17 @@ export default async function AdminPurchases({ searchParams }: Props) {
 
       <div className="mb-5 flex flex-wrap gap-2" data-testid="purchase-tabs">
         <Link href="/admin/purchases/" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Theo đơn hàng ({all.length} dòng)
+          Mua theo đặt hàng ({all.length} dòng)
         </Link>
         <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
         </Link>
-        <Link href="/admin/purchases/?tab=receipts" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "receipts" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-receipts">
-          Phiếu mua hàng · nhập bill
-        </Link>
         <Link href="/admin/purchases/?tab=batches" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "batches" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-batches">
-          Đợt gửi · đơn + lưu kho ({batchHeads.length} đợt đang đi)
+          Mua theo đợt ({batchHeads.length} đợt đang đi)
         </Link>
       </div>
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} /> : null}
-      {tab === "receipts" ? <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} /> : null}
       {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} /> : null}
 
       {/* compact stage counters (same density as Kho hàng) — the table below is the working view */}
@@ -258,7 +257,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
                     ))}
                   </select>
                   <button type="submit" formAction={addLinesToBatchAction} className={cn(btnSecondary, "!py-1")} title="Đưa các dòng đã tick vào đợt gửi (đi chung chuyến với hàng mua dư lưu kho)">
-                    <Fa name="truck" /> Thêm vào đợt gửi
+                    <Fa name="truck" /> Thêm vào đợt
                   </button>
                 </>
               ) : null}
@@ -286,7 +285,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
                     </tr>
                   ) : null}
                   {lines.map((l) => (
-                    <LineRow key={l.itemId} line={l} back={self} sources={sources} />
+                    <LineRow key={l.itemId} line={l} back={self} sources={sources} surplus={l.purchaseStatus === "not_bought" && !l.batchId ? (openSurplus.get(l.productId) ?? []).filter((s) => s.qty >= l.quantity) : []} />
                   ))}
                 </tbody>
               </table>
@@ -302,12 +301,39 @@ export default async function AdminPurchases({ searchParams }: Props) {
               </form>
             ))
           : null}
+        {/* "Lấy từ đợt" forms live outside the bulk form too */}
+        {view !== "product"
+          ? lines.flatMap((l) =>
+              l.purchaseStatus === "not_bought" && !l.batchId
+                ? (openSurplus.get(l.productId) ?? [])
+                    .filter((s) => s.qty >= l.quantity)
+                    .slice(0, 1)
+                    .map((s) => (
+                      <form key={`alloc-${l.itemId}`} id={`alloc-${l.itemId}`} action={allocateSurplusAction}>
+                        <input type="hidden" name="batchId" value={s.batchId} />
+                        <input type="hidden" name="itemId" value={l.itemId} />
+                        <input type="hidden" name="back" value={self} />
+                      </form>
+                    ))
+                : [],
+            )
+          : null}
       </Card>
+
+      {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}
+      <details open={receiptsOpen} className="mt-6" id="receipts">
+        <summary className="cursor-pointer text-[15px] font-bold text-lien-heading">
+          Phiếu mua hàng · nhập bill <span className="text-[13px] font-normal text-lien-muted">({receipts.length} phiếu gần đây{receipts.some((r) => r.status === "draft") ? ` · ${receipts.filter((r) => r.status === "draft").length} nháp chờ xác nhận` : ""})</span>
+        </summary>
+        <div className="mt-3">
+          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={tab === "batches" ? (batchHeads[0]?.id ?? null) : null} />
+        </div>
+      </details>
     </>
   );
 }
 
-function LineRow({ line: l, back, sources }: { line: PurchaseLine; back: string; sources: PurchaseSource[] }) {
+function LineRow({ line: l, back, sources, surplus }: { line: PurchaseLine; back: string; sources: PurchaseSource[]; surplus: Array<{ batchId: number; code: string; qty: number }> }) {
   const st = PURCHASE_STAGES[purchaseIndex(l.purchaseStatus)];
   const fid = `pl-${l.itemId}`;
   void back;
@@ -378,9 +404,15 @@ function LineRow({ line: l, back, sources }: { line: PurchaseLine; back: string;
             </Link>
           ) : null}
           {l.batchCode ? (
-            <Link href={`/admin/purchases/?tab=batches#batch-${l.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline" title="Đợt gửi">
+            <Link href={`/admin/purchases/?tab=batches#batch-${l.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline" title={l.purchaseNote.startsWith("Tự động") ? "Mua theo đợt — gán tự động" : "Mua theo đợt"}>
               {l.batchCode}
+              {l.purchaseNote.startsWith("Tự động") ? " · tự động" : ""}
             </Link>
+          ) : null}
+          {surplus.length ? (
+            <button type="submit" form={`alloc-${l.itemId}`} className="rounded border border-[#a7f3d0] bg-[#ecfdf5] px-1.5 py-0.5 font-semibold text-[#065f46] hover:bg-[#d1fae5]" title={`Đợt ${surplus[0].code} còn ${surplus[0].qty} đv hàng lưu kho đang về — gán cho dòng này`}>
+              <Fa name="truck" /> Lấy từ đợt {surplus[0].code} ({surplus[0].qty} dư)
+            </button>
           ) : null}
         </div>
       </td>

@@ -40,6 +40,21 @@ export function planSurplusTake<T extends { id: number; qty: number; expiry: str
   return { takes, short: left };
 }
 
+/**
+ * Units bought for a product → which open order lines they cover (whole lines only, oldest first) and what is left
+ * for stock. Used when a purchased product is added to a batch ("mua theo đợt" feeds "mua theo đặt hàng" first).
+ */
+export function planLineCover<T extends { itemId: number; quantity: number }>(lines: T[], qty: number): { cover: T[]; left: number } {
+  const cover: T[] = [];
+  let left = Math.max(0, qty);
+  for (const l of lines) {
+    if (l.quantity <= 0 || left < l.quantity) continue;
+    cover.push(l);
+    left -= l.quantity;
+  }
+  return { cover, left };
+}
+
 export interface BatchTotals {
   orderUnits: number;
   stockUnits: number;

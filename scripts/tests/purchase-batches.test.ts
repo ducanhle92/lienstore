@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { BATCH_DONE, BATCH_STAGES, batchCode, batchTotals, groupBatchByProduct, isBatchStatus, planSurplusTake } from "../../src/lib/purchase-batches";
+import { BATCH_DONE, BATCH_STAGES, batchCode, batchTotals, groupBatchByProduct, isBatchStatus, planLineCover, planSurplusTake } from "../../src/lib/purchase-batches";
 
 describe("batchCode", () => {
   it("is DG-YYMMDD-NN", () => {
@@ -62,5 +62,19 @@ describe("batchTotals / groupBatchByProduct", () => {
     );
     assert.equal(rows[1].lines.length, 1);
     assert.equal(rows[1].stock.length, 1);
+  });
+});
+
+describe("planLineCover", () => {
+  const lines = [
+    { itemId: 1, quantity: 2 },
+    { itemId: 2, quantity: 3 },
+    { itemId: 3, quantity: 1 },
+  ];
+  it("covers whole lines oldest first and keeps the rest for stock", () => {
+    assert.deepEqual(planLineCover(lines, 4), { cover: [lines[0], lines[2]], left: 1 });
+    assert.deepEqual(planLineCover(lines, 6), { cover: lines, left: 0 });
+    assert.deepEqual(planLineCover(lines, 1), { cover: [lines[2]], left: 0 });
+    assert.deepEqual(planLineCover([], 5), { cover: [], left: 5 });
   });
 });

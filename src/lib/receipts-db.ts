@@ -21,6 +21,9 @@ export interface ReceiptItem {
 export interface Receipt {
   id: number;
   code: string;
+  /** Shipment batch the bill was booked into (Mua theo đợt), if any. */
+  batchId: number | null;
+  batchCode: string;
   sourceKey: string;
   boughtAt: string;
   orderRef: string;
@@ -41,6 +44,8 @@ export interface Receipt {
 interface ReceiptRow {
   id: number;
   code: string;
+  batch_id: number | null;
+  batch_code: string | null;
   source_key: string;
   bought_at: string;
   order_ref: string;
@@ -77,6 +82,8 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
+    batchId: r.batch_id ?? null,
+    batchCode: r.batch_code ?? "",
     sourceKey: r.source_key,
     boughtAt: r.bought_at,
     orderRef: r.order_ref ?? "",
@@ -93,11 +100,13 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
   }));
 }
 
+const RECEIPT_SELECT = "SELECT r.*, (SELECT b.code FROM purchase_batches b WHERE b.id = r.batch_id) AS batch_code FROM purchase_receipts r";
+
 export function listReceipts(limit = 60): Receipt[] {
-  return hydrate(getDb().prepare("SELECT * FROM purchase_receipts ORDER BY CASE status WHEN 'draft' THEN 0 ELSE 1 END, bought_at DESC, id DESC LIMIT ?").all(limit) as unknown as ReceiptRow[]);
+  return hydrate(getDb().prepare(`${RECEIPT_SELECT} ORDER BY CASE r.status WHEN 'draft' THEN 0 ELSE 1 END, r.bought_at DESC, r.id DESC LIMIT ?`).all(limit) as unknown as ReceiptRow[]);
 }
 export function getReceipt(id: number): Receipt | null {
-  const r = getDb().prepare("SELECT * FROM purchase_receipts WHERE id = ?").get(id) as ReceiptRow | undefined;
+  const r = getDb().prepare(`${RECEIPT_SELECT} WHERE r.id = ?`).get(id) as ReceiptRow | undefined;
   return r ? hydrate([r])[0] : null;
 }
 
@@ -149,7 +158,7 @@ export function matchCandidates(): MatchCandidate[] {
 }
 
 /** Pasted bill → draft receipt with parsed lines and suggested products (the admin confirms / corrects, then "Xác nhận"). */
-export function createDraftFromBill(text: string, input: { sourceKey: string; boughtAt: string; orderRef: string }): { receipt: Receipt; parsedItems: number } | null {
+export function createDraftFromBill(text: string, input: { sourceKey: string; boughtAt: string; orderRef: string; batchId?: number | null }): { receipt: Receipt; parsedItems: number } | null {
   const parsed = parseBillText(text);
   if (!parsed.items.length) return null;
   const db = getDb();
@@ -158,7 +167,7 @@ export function createDraftFromBill(text: string, input: { sourceKey: string; bo
   const cands = matchCandidates();
   const id = withTransaction(db, () => {
     const code = nextCode(boughtAt);
-    const r = db.prepare("INSERT INTO purchase_receipts (code, source_key, bought_at, order_ref, total_jpy, shipped_at, tracking, note, status, raw_text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, '', '', 'draft', ?, ?, ?)").run(code, input.sourceKey || UNKNOWN_SOURCE, boughtAt, input.orderRef || parsed.orderRef, parsed.items.reduce((s, i) => s + (i.unitJpy ?? 0) * i.qty, 0) || null, text.slice(0, 20000), now, now);
+    const r = db.prepare("INSERT INTO purchase_receipts (code, source_key, bought_at, order_ref, total_jpy, shipped_at, tracking, note, status, raw_text, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, '', '', 'draft', ?, ?, ?, ?)").run(code, input.sourceKey || UNKNOWN_SOURCE, boughtAt, input.orderRef || parsed.orderRef, parsed.items.reduce((s, i) => s + (i.unitJpy ?? 0) * i.qty, 0) || null, text.slice(0, 20000), input.batchId ?? null, now, now);
     const rid = Number(r.lastInsertRowid);
     const ins = db.prepare("INSERT INTO purchase_receipt_items (receipt_id, product_id, raw_name, qty, unit_jpy, asin, match_score) VALUES (?, ?, ?, ?, ?, ?, ?)");
     for (const it of parsed.items) {
@@ -184,10 +193,15 @@ export async function confirmReceipt(id: number, productByItem: Record<number, n
   let linesCovered = 0;
   let stockUnits = 0;
   const leftovers: Array<{ productId: number; qty: number; unitJpy: number | null; name: string }> = [];
+  // booked into a shipment batch → covered lines and leftovers join the batch and take its status (at least "bought")
+  const batch = receipt.batchId ? (db.prepare("SELECT id, code, status FROM purchase_batches WHERE id = ?").get(receipt.batchId) as { id: number; code: string; status: string } | undefined) : undefined;
+  const batchStatus: PurchaseStatus = batch && purchaseIndex((batch.status as PurchaseStatus) || "not_bought") > purchaseIndex("bought") ? (batch.status as PurchaseStatus) : "bought";
   withTransaction(db, () => {
     const setItem = db.prepare("UPDATE purchase_receipt_items SET product_id = ? WHERE id = ?");
-    const openLines = db.prepare("SELECT oi.id, oi.quantity FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND oi.receipt_id IS NULL ORDER BY o.created_at, oi.id");
-    const takeLine = db.prepare("UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = 'bought', purchase_updated_at = ? WHERE id = ?");
+    const openLines = db.prepare("SELECT oi.id, oi.quantity FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND oi.receipt_id IS NULL AND oi.batch_id IS NULL ORDER BY o.created_at, oi.id");
+    const takeLine = batch
+      ? db.prepare(`UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = '${batchStatus}', purchase_updated_at = ?, batch_id = ${batch.id}, purchase_note = CASE WHEN purchase_note = '' THEN 'Tự động lấy từ mua theo đợt ${batch.code}' ELSE purchase_note END WHERE id = ?`)
+      : db.prepare("UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = 'bought', purchase_updated_at = ? WHERE id = ?");
     for (const it of receipt.items) {
       const pid = productByItem[it.id] === undefined ? it.productId : productByItem[it.id];
       setItem.run(pid, it.id);
@@ -202,9 +216,10 @@ export async function confirmReceipt(id: number, productByItem: Record<number, n
       if (left > 0) leftovers.push({ productId: pid, qty: left, unitJpy: it.unitJpy, name: it.rawName });
     }
     db.prepare("UPDATE purchase_receipts SET status = 'bought', updated_at = ? WHERE id = ?").run(now, id);
+    if (batch) db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batch.id);
   });
   for (const l of leftovers) {
-    const sp = await createStockPurchase({ productId: l.productId, qty: l.qty, sourceKey: receipt.sourceKey, unitCostJpy: l.unitJpy, expiry: null, warehouse: "jp", location: "", note: `Phiếu ${receipt.code}`, status: "bought" });
+    const sp = await createStockPurchase({ productId: l.productId, qty: l.qty, sourceKey: receipt.sourceKey, unitCostJpy: l.unitJpy, expiry: null, boughtAt: receipt.boughtAt, warehouse: batch ? "vn" : "jp", location: "", note: batch ? `Đợt ${batch.code} · phiếu ${receipt.code}` : `Phiếu ${receipt.code}`, status: batchStatus, batchId: batch?.id ?? null });
     db.prepare("UPDATE stock_purchases SET receipt_id = ? WHERE id = ?").run(id, sp.id);
     stockUnits += l.qty;
   }

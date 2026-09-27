@@ -2,7 +2,7 @@ import "server-only";
 import { createStockPurchase, deleteStockPurchase, setStockPurchaseStatus } from "./db";
 import { todayIso } from "./lots";
 import { isPurchaseStatus, type PurchaseStatus, purchaseIndex } from "./purchase";
-import { BATCH_DONE, batchCode, planSurplusTake } from "./purchase-batches";
+import { BATCH_DONE, batchCode, planLineCover, planSurplusTake } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
@@ -188,6 +188,74 @@ export async function addSurplusToBatch(batchId: number, input: { productId: num
   return getPurchaseBatch(batchId)?.stock.find((s) => s.id === sp.id) ?? null;
 }
 
+/**
+ * A product bought in this batch: the units first cover the open "Chưa mua" lines of that product (oldest first, whole
+ * lines — they join the batch with the note "Tự động lấy từ mua theo đợt"), the rest is booked as surplus for stock
+ * with its own expiry. Call once per expiry date when the same product came with several dates.
+ */
+export async function addProductToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string }): Promise<{ code: string; covered: number; orderUnits: number; stockUnits: number; lotId: number | null } | null> {
+  const db = getDb();
+  const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
+  if (!batch) return null;
+  const open = db
+    .prepare("SELECT oi.id AS itemId, oi.quantity FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') AND (oi.purchase_status IS NULL OR oi.purchase_status = 'not_bought') AND oi.batch_id IS NULL ORDER BY o.created_at, oi.id")
+    .all(input.productId) as unknown as Array<{ itemId: number; quantity: number }>;
+  const plan = planLineCover(open, input.qty);
+  const now = new Date().toISOString();
+  const target = statusOf(batch.status);
+  withTransaction(db, () => {
+    const upd = db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?");
+    for (const l of plan.cover) upd.run(batchId, batch.source_key, target, now, `Tự động lấy từ mua theo đợt ${batch.code}`, l.itemId);
+    db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
+  });
+  let lotId: number | null = null;
+  if (plan.left > 0) {
+    const s = await addSurplusToBatch(batchId, { ...input, qty: plan.left });
+    lotId = s?.lotId ?? null;
+  }
+  return { code: batch.code, covered: plan.cover.length, orderUnits: input.qty - plan.left, stockUnits: plan.left, lotId };
+}
+
+/** Surplus still unbooked in open batches, per product → [{batchId, code, qty}] (oldest batch first). */
+export function listOpenSurplus(): Map<number, Array<{ batchId: number; code: string; qty: number }>> {
+  const rows = db_openSurplus();
+  const out = new Map<number, Array<{ batchId: number; code: string; qty: number }>>();
+  for (const r of rows) out.set(r.product_id, [...(out.get(r.product_id) ?? []), { batchId: r.batch_id, code: r.code, qty: Number(r.qty) }]);
+  return out;
+}
+function db_openSurplus(): Array<{ product_id: number; batch_id: number; code: string; qty: number }> {
+  return getDb()
+    .prepare("SELECT sp.product_id, sp.batch_id, b.code, SUM(sp.qty) AS qty FROM stock_purchases sp JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.lot_id IS NULL AND b.status <> 'at_shop' GROUP BY sp.product_id, sp.batch_id ORDER BY sp.batch_id")
+    .all() as unknown as Array<{ product_id: number; batch_id: number; code: string; qty: number }>;
+}
+
+/**
+ * Right after checkout: every line of the new order that stock could not cover is served from an open batch's surplus
+ * when one has enough units (oldest batch first) — "mua theo đặt hàng" fills itself from "mua theo đợt".
+ * Never throws (checkout must not fail because of this); returns how many lines were allocated.
+ */
+export function autoAllocateOrderFromBatches(orderId: string): number {
+  try {
+    const db = getDb();
+    const lines = db.prepare("SELECT id, product_id, quantity FROM order_items WHERE order_id = ? AND (purchase_status IS NULL OR purchase_status = 'not_bought') AND batch_id IS NULL").all(orderId) as unknown as Array<{ id: number; product_id: number; quantity: number }>;
+    if (!lines.length) return 0;
+    let n = 0;
+    for (const l of lines) {
+      const surplus = db_openSurplus().filter((s) => s.product_id === l.product_id && Number(s.qty) >= l.quantity);
+      for (const s of surplus) {
+        const r = allocateSurplusToLine(s.batch_id, l.id, `Tự động lấy từ mua theo đợt ${s.code}`);
+        if (r.ok) {
+          n++;
+          break;
+        }
+      }
+    }
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
 /** Drop a surplus row (refused once it has become a lot — manage the lot in Kho hàng instead). */
 export async function removeSurplusFromBatch(stockPurchaseId: number): Promise<boolean> {
   return deleteStockPurchase(stockPurchaseId);
@@ -197,7 +265,7 @@ export async function removeSurplusFromBatch(stockPurchaseId: number): Promise<b
  * A customer ordered while the batch is on its way: serve the line from the surplus (nearest expiry first).
  * The surplus rows shrink, the line joins the batch and takes its status.
  */
-export function allocateSurplusToLine(batchId: number, itemId: number): { ok: boolean; message: string } {
+export function allocateSurplusToLine(batchId: number, itemId: number, note?: string): { ok: boolean; message: string } {
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return { ok: false, message: "Không tìm thấy đợt gửi." };
@@ -219,7 +287,7 @@ export function allocateSurplusToLine(batchId: number, itemId: number): { ok: bo
       else db.prepare("UPDATE stock_purchases SET qty = ?, updated_at = ? WHERE id = ?").run(cur.qty - take, now, spId);
     }
     const status = statusOf(batch.status);
-    db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?").run(batchId, batch.source_key, status, now, `Lấy từ hàng dư đợt ${batch.code}`, itemId);
+    db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?").run(batchId, batch.source_key, status, now, note ?? `Lấy từ hàng dư mua theo đợt ${batch.code}`, itemId);
     db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
   });
   return { ok: true, message: `Đã lấy ${line.quantity} đv hàng dư của đợt ${batch.code} cho dòng đơn.` };

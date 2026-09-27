@@ -8,7 +8,12 @@ import { confirmReceipt, createDraftFromBill, createReceiptFromLines, deleteRece
 
 const PAGE = "/admin/purchases/?tab=receipts";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const go = (key: "saved" | "error", msg: string, extra = ""): never => redirect(`${PAGE}&${key}=${encodeURIComponent(msg)}${extra}`);
+const go = (key: "saved" | "error", msg: string, extra = "", back = ""): never => redirect(`${back || PAGE}&${key}=${encodeURIComponent(msg)}${extra}`);
+/** Tab the bill form was submitted from ("orders" | "stock" | "batches") → where to land afterwards. */
+const backOf = (fd: FormData) => {
+  const tab = text(fd, "fromTab");
+  return tab === "stock" || tab === "batches" || tab === "orders" ? `/admin/purchases/?tab=${tab}&receipts=1` : "";
+};
 const dateOr = (raw: string, fallback: string) => (raw ? parseExpiry(raw) ?? fallback : fallback);
 
 /** Ticked order lines → one receipt (Quản lý mua hàng › "Các dòng đã tick → Tạo phiếu mua"). */
@@ -28,10 +33,12 @@ export async function parseBillAction(formData: FormData): Promise<void> {
   await requireAdmin("inventory");
   const raw = text(formData, "bill");
   if (raw.length < 5) go("error", "Dán nội dung bill (email đặt hàng Amazon / Rakuten, hoặc danh sách: tên · số lượng · giá).");
-  const r = createDraftFromBill(raw, { sourceKey: text(formData, "sourceKey"), boughtAt: dateOr(text(formData, "boughtAt"), ""), orderRef: text(formData, "orderRef").slice(0, 80) });
+  const batchRaw = Number.parseInt(text(formData, "batchId"), 10);
+  const back = backOf(formData);
+  const r = createDraftFromBill(raw, { sourceKey: text(formData, "sourceKey"), boughtAt: dateOr(text(formData, "boughtAt"), ""), orderRef: text(formData, "orderRef").slice(0, 80), batchId: Number.isInteger(batchRaw) && batchRaw > 0 ? batchRaw : null });
   revalidatePath("/admin", "layout");
-  if (!r) go("error", "Không nhận ra dòng sản phẩm nào — mỗi dòng cần có số lượng (VD “数量: 2”, “x2”, “2 x Tên”).");
-  go("saved", `Đã đọc ${r!.parsedItems} dòng từ bill → phiếu nháp ${r!.receipt.code}. Kiểm tra sản phẩm khớp rồi bấm Xác nhận.`, `&draft=${r!.receipt.id}#receipt-${r!.receipt.id}`);
+  if (!r) go("error", "Không nhận ra dòng sản phẩm nào — mỗi dòng cần có số lượng (VD “数量: 2”, “x2”, “2 x Tên”).", "", back);
+  go("saved", `Đã đọc ${r!.parsedItems} dòng từ bill → phiếu nháp ${r!.receipt.code}${r!.receipt.batchCode ? ` (vào đợt ${r!.receipt.batchCode})` : ""}. Kiểm tra sản phẩm khớp rồi bấm Xác nhận.`, `&draft=${r!.receipt.id}#receipt-${r!.receipt.id}`, back);
 }
 
 /** Draft → real receipt: confirmed products cover open order lines, the rest becomes a lot purchase. */
@@ -46,10 +53,11 @@ export async function confirmReceiptAction(formData: FormData): Promise<void> {
     const pid = Number.parseInt(String(v), 10);
     map[Number(m[1])] = Number.isInteger(pid) && pid > 0 ? pid : null;
   }
+  const back = backOf(formData);
   const r = await confirmReceipt(id, map);
   revalidatePath("/admin", "layout");
-  if (!r) go("error", "Phiếu không còn ở trạng thái nháp.");
-  go("saved", `Đã xác nhận phiếu: ${r!.linesCovered} dòng đơn chuyển sang "Đã mua"${r!.stockUnits ? `, ${r!.stockUnits} đơn vị thành phiếu mua lưu kho (kho Nhật)` : ""}.`, `#receipt-${id}`);
+  if (!r) go("error", "Phiếu không còn ở trạng thái nháp.", "", back);
+  go("saved", `Đã xác nhận phiếu: ${r!.linesCovered} dòng đơn chuyển sang "Đã mua"${r!.stockUnits ? `, ${r!.stockUnits} đơn vị thành phiếu mua lưu kho` : ""}.`, `#receipt-${id}`, back);
 }
 
 export async function updateReceiptAction(formData: FormData): Promise<void> {
@@ -62,7 +70,7 @@ export async function updateReceiptAction(formData: FormData): Promise<void> {
   const ok = updateReceipt(id, { shippedAt, tracking: text(formData, "tracking").slice(0, 120), note: text(formData, "note").slice(0, 300), orderRef: text(formData, "orderRef").slice(0, 80), boughtAt: dateOr(text(formData, "boughtAt"), todayIso()), sourceKey: text(formData, "sourceKey") || undefined });
   revalidatePath("/admin", "layout");
   if (!ok) go("error", "Không tìm thấy phiếu.");
-  go("saved", shippedAt ? "Đã lưu phiếu — các dòng liên quan chuyển sang \"Tới ĐVVC Nhật\"." : "Đã lưu phiếu.", `#receipt-${id}`);
+  go("saved", shippedAt ? "Đã lưu phiếu — các dòng liên quan chuyển sang \"Tới ĐVVC Nhật\"." : "Đã lưu phiếu.", `#receipt-${id}`, backOf(formData));
 }
 
 export async function deleteReceiptAction(formData: FormData): Promise<void> {
@@ -70,5 +78,5 @@ export async function deleteReceiptAction(formData: FormData): Promise<void> {
   const id = Number.parseInt(text(formData, "id"), 10);
   const ok = Number.isInteger(id) && deleteReceipt(id);
   revalidatePath("/admin", "layout");
-  go(ok ? "saved" : "error", ok ? "Đã xoá phiếu (các dòng đơn giữ trạng thái, bỏ liên kết phiếu)." : "Không xoá được.");
+  go(ok ? "saved" : "error", ok ? "Đã xoá phiếu (các dòng đơn giữ trạng thái, bỏ liên kết phiếu)." : "Không xoá được.", "", backOf(formData));
 }
