@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.77.0] - 2026-09-27
+
 ### Changed
 - Mua theo đợt: bảng đợt thành **bảng chỉnh sửa từng dòng** — mỗi dòng đơn / dòng lưu kho có ô tick, SL, **nguồn nhập**, HSD, ngày mua, ¥, trạng thái, ghi chú và nút ✓ lưu; dòng lưu kho có “đổi sản phẩm” (tìm theo tên).
 - Mua theo đợt: **Tách** trên từng dòng lưu kho — *Giữ Nhật* (phần đó ở lại Nhật chờ đợt sau, rời đợt, trạng thái về “Đã mua”) hoặc *Tách dòng* (thành dòng riêng trong đợt, ví dụ HSD khác). Nhánh **“Giữ lại tại Nhật từ đợt này”** dưới bảng liệt kê hàng chờ và hàng đã đi đợt khác; có nút “Đưa vào đợt”.
