@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.75.0] - 2026-09-27
+
 ### Added
 - Admin › Kho hàng › Quản lý mua hàng: tab mới **Đợt gửi · đơn + lưu kho** — một đợt gom các dòng đơn “Chưa mua” và **hàng mua dư để lưu kho** đi chung một chuyến Nhật → kho shop (tiết kiệm phí gửi). Mã đợt DG-YYMMDD-NN, nguồn mua, ngày mua, ngày gửi, tracking.
   - Cập nhật trạng thái **cả đợt** một lần (Đã mua → tới ĐVVC Nhật → NB→VN → kho ĐVVC → về kho shop → Tại kho): mọi dòng đơn và hàng dư trong đợt chuyển theo.
