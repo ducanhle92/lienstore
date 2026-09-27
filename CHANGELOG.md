@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.79.3] - 2026-09-27
+
 ### Changed
 - Menu quản trị › Kho hàng: nhóm con **Chung** (Danh mục, Nguồn nhập, Địa chỉ kho, Công thức giá) đứng đầu, rồi Sản phẩm, Nhóm biến thể, **Quản lý mua hàng**, **Tồn kho** (tên mới của mục “Kho hàng”). Nhóm con mở/đóng như nhóm cha, tự mở khi đang ở trang bên trong.
 - Mua theo đợt: bỏ khối “Giữ lại tại Nhật từ đợt này” (không còn khái niệm giữ lại).
