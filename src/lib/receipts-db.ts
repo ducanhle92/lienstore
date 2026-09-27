@@ -309,14 +309,24 @@ export function removeReceiptFile(id: number, path: string): ReceiptFile | null 
 }
 
 /** An empty bill (no parsed lines) — the paper trail for photos and for rows added by hand in a batch. */
-export function createManualReceipt(input: { sourceKey: string; boughtAt: string; orderRef?: string; note?: string; batchId?: number | null }): Receipt | null {
+export function createManualReceipt(input: { sourceKey: string; boughtAt: string; orderRef?: string; note?: string; batchId?: number | null; /** the shop's own bill number; blank = PM-… generated */ code?: string }): Receipt | null {
   const db = getDb();
   const now = new Date().toISOString();
   const boughtAt = input.boughtAt || now.slice(0, 10);
+  const custom = (input.code ?? "").trim().slice(0, 60);
+  if (custom) {
+    const ex = db.prepare("SELECT id FROM purchase_receipts WHERE code = ?").get(custom) as { id: number } | undefined;
+    if (ex) return getReceipt(ex.id);
+  }
   const id = withTransaction(db, () => {
-    const code = nextCode(boughtAt);
+    const code = custom || nextCode(boughtAt);
     const r = db.prepare("INSERT INTO purchase_receipts (code, source_key, bought_at, order_ref, total_jpy, shipped_at, tracking, note, status, raw_text, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, NULL, '', ?, 'bought', '', ?, ?, ?)").run(code, input.sourceKey || UNKNOWN_SOURCE, boughtAt, (input.orderRef ?? "").slice(0, 80), (input.note ?? "").slice(0, 300), input.batchId ?? null, now, now);
     return Number(r.lastInsertRowid);
   });
   return getReceipt(id);
+}
+
+export function getReceiptByCode(code: string): Receipt | null {
+  const r = getDb().prepare(`${RECEIPT_SELECT} WHERE r.code = ?`).get(code.trim()) as ReceiptRow | undefined;
+  return r ? hydrate([r])[0] : null;
 }

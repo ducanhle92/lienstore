@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { addStockLot, deleteStockLot, listStockLots, updateStockLot } from "@/lib/db";
 import { listLotViews } from "@/lib/lots-db";
-import { setLotReceipt } from "@/lib/purchase-batches-db";
+import { ensureLotReceipt, setLotReceipt } from "@/lib/purchase-batches-db";
+import { addReceiptFiles } from "@/lib/receipts-db";
+import { extForMime, MAX_UPLOAD_BYTES, RECEIPT_MIMES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 import { getDb } from "@/lib/sqlite";
 import { parseExpiry } from "@/lib/lots";
 import { isWarehouse } from "@/lib/warehouses";
@@ -109,11 +111,13 @@ export async function saveLotsAction(formData: FormData): Promise<void> {
       await updateStockLot(id, patch);
       changed++;
     }
-    if (g.billId !== undefined) {
-      const want = g.billId ? Number.parseInt(g.billId, 10) : null;
-      const have = views.get(id)?.receiptId ?? null;
-      if ((Number.isInteger(want) || want === null) && want !== have) {
-        setLotReceipt(id, want);
+    // bill code typed by hand: blank clears, a new code creates the bill, an existing code links to it
+    if (g.billCode !== undefined) {
+      const code = g.billCode.trim().slice(0, 60);
+      const haveCode = views.get(id)?.receiptCode ?? "";
+      if (code !== haveCode) {
+        if (!code) setLotReceipt(id, null);
+        else ensureLotReceipt(id, { code });
         changed++;
       }
     }
@@ -121,4 +125,35 @@ export async function saveLotsAction(formData: FormData): Promise<void> {
   revalidatePath("/admin", "layout");
   if (errors.length) back(productId, changed ? "saved" : "error", `${changed ? `Đã lưu ${changed} thay đổi. ` : ""}Lỗi: ${errors.join(" · ")}`);
   back(productId, "saved", changed ? `Đã lưu ${changed} thay đổi.` : "Không có gì thay đổi.");
+}
+
+/** "Đính ảnh bill" on one lot: the lot gets a bill if it has none (PM-… or the code typed alongside), then the photos attach. */
+export async function uploadLotBillFilesAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const productId = Number.parseInt(text(formData, "productId"), 10);
+  const lotId = Number.parseInt(text(formData, "lotId"), 10);
+  if (!Number.isInteger(productId) || !Number.isInteger(lotId)) redirect("/admin/inventory/");
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (!files.length) back(productId, "error", "Chưa chọn ảnh nào.");
+  const receiptId = ensureLotReceipt(lotId, { code: text(formData, "billCode") });
+  if (!receiptId) back(productId, "error", "Không tạo được bill cho lô này.");
+  const saved: Array<{ path: string; url: string; name: string; mime: string }> = [];
+  let error = "";
+  for (const file of files) {
+    if (!RECEIPT_MIMES.has(file.type)) {
+      error = `Bỏ qua ${file.name}: chỉ nhận ảnh hoặc PDF.`;
+      continue;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      error = `Bỏ qua ${file.name}: vượt 10 MB.`;
+      continue;
+    }
+    const ext = extForMime(file.type) || ".bin";
+    const name = uniqueName(slugifyFileName(file.name), ext);
+    const stored = await saveUpload(`receipts/${receiptId}`, name, Buffer.from(await file.arrayBuffer()));
+    saved.push({ path: stored.rel, url: stored.url, name: file.name, mime: file.type });
+  }
+  if (saved.length) addReceiptFiles(receiptId!, saved);
+  revalidatePath("/admin", "layout");
+  back(productId, saved.length ? "saved" : "error", `${saved.length ? `Đã đính ${saved.length} ảnh vào bill của lô #${lotId}.` : ""}${error ? ` ${error}` : ""}`.trim());
 }

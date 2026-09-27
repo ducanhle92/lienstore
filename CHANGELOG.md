@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang lô của sản phẩm: cột **Bill** là ô **mã bill gõ tay** (mã của cửa hàng; gõ mã mới → tạo bill, gõ mã có sẵn → gắn vào bill đó, xoá trống → bỏ gắn; lưu bằng thanh Lưu thay đổi) kèm thumbnail ảnh, link “mở bill” và nút **đính ảnh** ngay trên từng dòng — lô chưa có bill thì bill được tạo luôn khi đính ảnh (mã PM-… tự sinh).
+
 ## [1.80.2] - 2026-09-27
 
 ### Changed

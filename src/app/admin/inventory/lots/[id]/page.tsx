@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addLotAction, saveLotsAction, updateLotAction } from "@/app/admin/inventory/lots/actions";
+import { addLotAction, saveLotsAction, updateLotAction, uploadLotBillFilesAction } from "@/app/admin/inventory/lots/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -12,7 +12,6 @@ import { listReservationsForProduct } from "@/lib/allocations-db";
 import { getProductById, listPurchaseSources, listStockLots, listStockPurchases } from "@/lib/db";
 import { getDb } from "@/lib/sqlite";
 import { listLotViews } from "@/lib/lots-db";
-import { uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { parseReceiptFiles } from "@/lib/receipts-db";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
@@ -98,6 +97,12 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card title={`Các lô đang có (${left} đơn vị)`}>
+            {/* bill codes already known (for the datalist on each row) */}
+            <datalist id="bill-codes">
+              {bills.map((b) => (
+                <option key={b.id} value={b.code} />
+              ))}
+            </datalist>
             {/* every input below belongs to this one form; the red bar saves all rows at once */}
             <form id="lots-save" action={saveLotsAction}>
               <input type="hidden" name="productId" value={pid} />
@@ -106,7 +111,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
               <table className={tableClass}>
                 <thead>
                   <tr>
-                    <th className={thClass}>Ngày nhập · bill</th>
+                    <th className={thClass}>Ngày nhập</th>
                     <th className={thClass}>Còn / nhập</th>
                     <th className={thClass}>Đã giữ cho đơn</th>
                     <th className={thClass}>Nguồn nhập</th>
@@ -144,26 +149,6 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                             <td className={tdClass}>
                               <input form="lots-save" name={`${p}receivedAt`} defaultValue={l.receivedAt} className={`${adminInput} !mb-0 !w-[118px] !py-1 !text-[13px]`} aria-label="Ngày nhập" />
                               {l.boughtAt ? <span className="block text-[11px] text-lien-muted">mua tại Nhật {formatDate(l.boughtAt)}</span> : null}
-                              {bill ? (
-                                <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
-                                  <Link href={`/admin/purchases/?tab=batches&bills=${v?.batchId ?? ""}#receipt-${bill.id}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Mở bill trong đợt mua">
-                                    {bill.code}
-                                  </Link>
-                                  {bill.files.map((f) => (
-                                    <a key={f.path} href={f.url} target="_blank" rel="noreferrer" title={f.name} className="no-underline">
-                                      {f.mime.startsWith("image/") ? <Image src={f.url} alt={f.name} width={36} height={36} unoptimized className="h-9 w-9 rounded border border-[#e5e7eb] object-cover" /> : <span className="text-lien-blue">📄</span>}
-                                    </a>
-                                  ))}
-                                  <form action={uploadReceiptFilesAction} className="inline-flex items-center gap-1">
-                                    <input type="hidden" name="id" value={bill.id} />
-                                    <input type="hidden" name="back" value={`/admin/inventory/lots/${pid}/`} />
-                                    <input type="file" name="files" accept="image/*,application/pdf" multiple className="w-[120px] text-[11px]" aria-label="Ảnh bill" />
-                                    <button type="submit" className={`${btnSecondary} !px-1.5 !py-0.5 !text-[11px]`} title="Đính kèm ảnh chụp bill">
-                                      <Fa name="paperclip" />
-                                    </button>
-                                  </form>
-                                </span>
-                              ) : null}
                             </td>
                             <td className={`${tdClass} whitespace-nowrap`}>
                               <input form="lots-save" name={`${p}qtyLeft`} inputMode="numeric" defaultValue={l.qtyLeft} className={`${adminInput} !mb-0 inline-block !w-[64px] !py-1 text-center !text-[13px]`} aria-label="Số lượng còn" />
@@ -203,14 +188,28 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                               {v?.shipmentCode ? <span className="block text-[11px] text-amber-800">chuyến {v.shipmentCode}</span> : null}
                             </td>
                             <td className={tdClass}>
-                              <select form="lots-save" name={`${p}billId`} defaultValue={v?.receiptId ?? ""} className={`${adminInput} !mb-0 !w-[150px] !py-1 !text-[12px]`} aria-label="Bill">
-                                <option value="">— chưa gắn bill —</option>
-                                {bills.map((b) => (
-                                  <option key={b.id} value={b.id}>
-                                    {b.code} · {formatDate(b.boughtAt)}
-                                  </option>
+                              {/* the bill number is typed by hand (a new one is created, an existing one is linked); photos attach per lot */}
+                              <input form="lots-save" name={`${p}billCode`} defaultValue={bill?.code ?? ""} list="bill-codes" placeholder="mã bill…" className={`${adminInput} !mb-0 !w-[150px] !py-1 font-mono !text-[12px]`} aria-label="Mã bill" title="Gõ mã bill của cửa hàng (trống = chưa gắn); mã có sẵn → gắn vào bill đó" />
+                              <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+                                {bill ? (
+                                  <Link href={`/admin/purchases/?tab=batches&bills=${v?.batchId ?? ""}#receipt-${bill.id}`} className="text-lien-blue no-underline hover:underline" title="Mở bill trong đợt mua">
+                                    mở bill →
+                                  </Link>
+                                ) : null}
+                                {(bill?.files ?? []).map((f) => (
+                                  <a key={f.path} href={f.url} target="_blank" rel="noreferrer" title={f.name} className="no-underline">
+                                    {f.mime.startsWith("image/") ? <Image src={f.url} alt={f.name} width={36} height={36} unoptimized className="h-9 w-9 rounded border border-[#e5e7eb] object-cover" /> : <span className="text-lien-blue">📄</span>}
+                                  </a>
                                 ))}
-                              </select>
+                                <form action={uploadLotBillFilesAction} className="inline-flex items-center gap-1" data-testid={`lot-bill-upload-${l.id}`}>
+                                  <input type="hidden" name="productId" value={pid} />
+                                  <input type="hidden" name="lotId" value={l.id} />
+                                  <input type="file" name="files" accept="image/*,application/pdf" multiple className="w-[118px] text-[11px]" aria-label="Ảnh bill" />
+                                  <button type="submit" className={`${btnSecondary} !px-1.5 !py-0.5 !text-[11px]`} title={bill ? "Đính thêm ảnh vào bill này" : "Đính ảnh — bill của lô được tạo luôn (mã PM-… hoặc mã đã gõ ở ô Mã bill sau khi lưu)"}>
+                                    <Fa name="paperclip" /> ảnh
+                                  </button>
+                                </form>
+                              </div>
                             </td>
                             <td className={tdClass}>
                               <input form="lots-save" name={`${p}note`} defaultValue={l.note} className={`${adminInput} !mb-0 !w-[180px] !py-1 !text-[13px]`} aria-label="Ghi chú" />

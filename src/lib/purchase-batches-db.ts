@@ -7,7 +7,7 @@ import { isPurchaseStatus, type PurchaseStatus, purchaseIndex } from "./purchase
 import { BATCH_DONE, batchCode } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
 import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync, syncItemStatusSync } from "./allocations-db";
-import { parseReceiptFiles } from "./receipts-db";
+import { createManualReceipt, parseReceiptFiles } from "./receipts-db";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock } from "@/types/shop";
@@ -643,4 +643,21 @@ export function setLotReceipt(lotId: number, receiptId: number | null): void {
     return;
   }
   getDb().prepare("UPDATE stock_purchases SET receipt_id = NULL WHERE lot_id = ?").run(lotId);
+}
+
+/** The bill of a lot, created on the spot when it has none (own code or PM-…), so photos / codes can attach per lot. */
+export function ensureLotReceipt(lotId: number, opts: { code?: string } = {}): number | null {
+  const db = getDb();
+  const lot = db.prepare("SELECT l.id, l.batch_id, l.source_key, l.bought_at, l.received_at, (SELECT sp.receipt_id FROM stock_purchases sp WHERE sp.lot_id = l.id AND sp.receipt_id IS NOT NULL LIMIT 1) AS receipt_id FROM stock_lots l WHERE l.id = ?").get(lotId) as { id: number; batch_id: number | null; source_key: string; bought_at: string | null; received_at: string; receipt_id: number | null } | undefined;
+  if (!lot) return null;
+  const code = (opts.code ?? "").trim();
+  if (lot.receipt_id && !code) return lot.receipt_id;
+  if (lot.receipt_id && code) {
+    const cur = db.prepare("SELECT code FROM purchase_receipts WHERE id = ?").get(lot.receipt_id) as { code: string } | undefined;
+    if (cur?.code === code) return lot.receipt_id;
+  }
+  const rc = createManualReceipt({ sourceKey: lot.source_key, boughtAt: lot.bought_at ?? lot.received_at, batchId: lot.batch_id, code: code || undefined });
+  if (!rc) return null;
+  setLotReceipt(lotId, rc.id);
+  return rc.id;
 }
