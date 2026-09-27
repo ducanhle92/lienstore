@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.76.4] - 2026-09-27
+
 ### Changed
 - Admin › Nhóm biến thể: cột **Thứ tự** có nút ▲ / ▼ ở hai bên — bấm là đổi chỗ với dòng kề và lưu ngay, không phải gõ số. Bảng biến thể sắp theo thứ tự này (cây phân nhánh bên trái vẫn theo thuộc tính).
 
