@@ -22,6 +22,8 @@ export interface BillItem {
   unitJpy: number | null;
   /** Amazon ASIN when the text carried one near the line. */
   asin: string | null;
+  /** JAN / EAN-13 barcode printed near the line (drugstore receipts). */
+  jan?: string | null;
 }
 export interface ParsedBill {
   orderRef: string;
@@ -57,6 +59,13 @@ export function parseBillText(text: string): ParsedBill {
     }
     return null;
   };
+  const janAt = (i: number) => {
+    for (const k of [i, i + 1, i - 1]) {
+      const m = k >= 0 && k < raw.length ? /(?:^|[^\d-])(\d{13})(?![\d-])/.exec(raw[k]) : null;
+      if (m) return m[1];
+    }
+    return null;
+  };
   const isNoise = (l: string) => !l || /^(小計|合計|送料|注文合計|ご注文|お届け|配送|支払|subtotal|total|shipping|tax|thanh toán|tổng|phí|http)/i.test(l) || /^[\d\s¥￥,.円-]+$/.test(l);
   for (let i = 0; i < raw.length; i++) {
     const line = raw[i];
@@ -75,6 +84,7 @@ export function parseBillText(text: string): ParsedBill {
       .replace(/[x×]\s?\d{1,3}(?=\s|$|[^\d,])/i, "")
       .replace(/[¥￥]\s?[\d,，.]+|[\d,，.]+\s?(?:円|yen|jpy)/gi, "")
       .replace(/\b(B0[A-Z0-9]{8})\b/, "")
+      .replace(/(?:jan|ean)?\s*[:：]?\s*\b\d{13}\b(?:\s*\(\d+\))?/gi, "")
       .replace(/[|｜\-–—:：]+$/g, "")
       .replace(/\s{2,}/g, " ")
       .trim();
@@ -90,7 +100,7 @@ export function parseBillText(text: string): ParsedBill {
     const price = /[¥￥]\s?([\d,，.]{2,})|([\d,，.]{2,})\s?(?:円|yen|jpy)/i.exec(`${line} ${raw[i + 1] ?? ""}`);
     const total = price ? money(price[1] ?? price[2]) : NaN;
     const unitJpy = Number.isFinite(total) && total > 0 ? Math.round(/(?:単価|unit|đơn giá)/i.test(line) ? total : total / (qty || 1)) : null;
-    if (name.length >= 3 && qty > 0 && qty < 1000) items.push({ name, qty, unitJpy, asin: asinAt(i) });
+    if (name.length >= 3 && qty > 0 && qty < 1000) items.push({ name, qty, unitJpy, asin: asinAt(i), jan: janAt(i) });
   }
   return { orderRef, boughtAt, items };
 }
@@ -101,6 +111,8 @@ export interface MatchCandidate {
   nameJa: string;
   /** Any known purchase URLs (cost sources, supplier link) — ASINs are read from them. */
   urls: string[];
+  /** JAN / EAN-13 codes known for the product (from its description / tags). */
+  jans?: string[];
 }
 
 const bigrams = (s: string) => {
@@ -116,10 +128,14 @@ const overlap = (a: Set<string>, b: Set<string>) => {
   return n / Math.min(a.size, b.size);
 };
 
-/** Best catalogue match for a bill line: exact ASIN in a known purchase URL wins; else name similarity (Vietnamese or Japanese). */
+/** Best catalogue match for a bill line: exact ASIN in a known purchase URL or a known JAN wins; else name similarity (Vietnamese or Japanese). */
 export function matchBillItem(item: BillItem, candidates: MatchCandidate[]): { id: number; score: number } | null {
   if (item.asin) {
     const hit = candidates.find((c) => c.urls.some((u) => u.toUpperCase().includes(item.asin as string)));
+    if (hit) return { id: hit.id, score: 1 };
+  }
+  if (item.jan) {
+    const hit = candidates.find((c) => c.jans?.includes(item.jan as string));
     if (hit) return { id: hit.id, score: 1 };
   }
   const q = item.name.toLowerCase();

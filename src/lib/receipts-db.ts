@@ -150,11 +150,13 @@ export function createReceiptFromLines(itemIds: number[], input: { sourceKey: st
 /** Candidates for matching bill lines: every product with its known purchase URLs. */
 export function matchCandidates(): MatchCandidate[] {
   const db = getDb();
-  const products = db.prepare("SELECT id, name, name_ja, supplier_url, cost_url FROM products").all() as unknown as Array<{ id: number; name: string; name_ja: string | null; supplier_url: string | null; cost_url: string | null }>;
+  const products = db.prepare("SELECT id, name, name_ja, supplier_url, cost_url, description, tags FROM products").all() as unknown as Array<{ id: number; name: string; name_ja: string | null; supplier_url: string | null; cost_url: string | null; description: string | null; tags: string | null }>;
+  // JAN codes live in the description ("JAN 4909978200879") and the tags — drugstore receipts print them under each line
+  const jansOf = (p: { description: string | null; tags: string | null }) => Array.from(new Set(`${p.description ?? ""} ${p.tags ?? ""}`.match(/(?<![\d-])\d{13}(?![\d-])/g) ?? []));
   const urls = db.prepare("SELECT product_id, url FROM product_cost_sources WHERE url <> ''").all() as unknown as Array<{ product_id: number; url: string }>;
   const byP = new Map<number, string[]>();
   for (const u of urls) byP.set(u.product_id, [...(byP.get(u.product_id) ?? []), u.url]);
-  return products.map((p) => ({ id: p.id, name: p.name, nameJa: p.name_ja ?? "", urls: [...(byP.get(p.id) ?? []), p.supplier_url ?? "", p.cost_url ?? ""].filter(Boolean) }));
+  return products.map((p) => ({ id: p.id, name: p.name, nameJa: p.name_ja ?? "", urls: [...(byP.get(p.id) ?? []), p.supplier_url ?? "", p.cost_url ?? ""].filter(Boolean), jans: jansOf(p) }));
 }
 
 /** Pasted bill → draft receipt with parsed lines and suggested products (the admin confirms / corrects, then "Xác nhận"). */

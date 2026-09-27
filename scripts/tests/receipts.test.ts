@@ -54,6 +54,10 @@ describe("matchBillItem", () => {
   ];
   it("ASIN wins", () => {
     assert.deepEqual(matchBillItem({ name: "whatever", qty: 1, unitJpy: null, asin: "B004312MSK" }, cands), { id: 193, score: 1 });
+    // a drugstore receipt: JAN printed under the line wins over the (fuzzy) name
+    assert.deepEqual(matchBillItem({ name: "パブロンゴールドＡ錠", qty: 1, unitJpy: 1518, asin: null, jan: "4987306045132" }, [...cands, { id: 2419, name: "Thuốc cảm cúm của Nhật Taisho Pavlon Gold A 210 viên", nameJa: "", urls: [], jans: ["4987306045132"] }]), { id: 2419, score: 1 });
+    const bill = parseBillText("1 x コンドロイチンZS錠 ¥6,985\nJAN 4987103049340\n1 x ☆パブロンゴールドA錠 ¥1,518\nJAN 4987306045132");
+    assert.deepEqual(bill.items.map((i) => [i.name, i.qty, i.unitJpy, i.jan]), [["コンドロイチンZS錠", 1, 6985, "4987103049340"], ["☆パブロンゴールドA錠", 1, 1518, "4987306045132"]]);
   });
   it("Japanese title matches nameJa; Vietnamese words match the name; nothing matches noise", () => {
     assert.equal(matchBillItem({ name: "DHC ビタミンC 60日分", qty: 1, unitJpy: null, asin: null }, cands)?.id, 1274);

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { confirmReceiptAction, deleteReceiptAction, parseBillAction, updateReceiptAction } from "@/app/admin/purchases/receipt-actions";
+import { BILL_PHOTO_PROMPT } from "@/lib/bill-prompt";
 import { formatAmount, formatDate } from "@/lib/format";
 import { todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex, type PurchaseStatus } from "@/lib/purchase";
@@ -258,8 +259,17 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
           </form>
           <p className="mt-3 mb-0 flex items-center gap-1 text-[12px] text-lien-muted">
             Tự tách sản phẩm · số lượng · giá ¥, khớp với sản phẩm trên web.
-            <InfoPopover>Hệ thống tách từng dòng sản phẩm (tên, số lượng, giá ¥), đọc mã đơn và ngày mua, khớp với sản phẩm trên web theo mã ASIN trong link mua hoặc theo tên (Việt / Nhật). Bạn kiểm tra rồi Xác nhận — số lượng mua tự gán cho các đơn khách đang chờ, phần dư thành phiếu mua lưu kho.</InfoPopover>
+            <InfoPopover>Hệ thống tách từng dòng sản phẩm (tên, số lượng, giá ¥), đọc mã đơn và ngày mua, khớp với sản phẩm trên web theo mã ASIN trong link mua, theo mã vạch JAN in trên bill, hoặc theo tên (Việt / Nhật). Bạn kiểm tra rồi Xác nhận — số lượng mua tự gán cho các đơn khách đang chờ, phần dư thành phiếu mua lưu kho.</InfoPopover>
           </p>
+          <details className="mt-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2">
+            <summary className="cursor-pointer text-[13px] font-semibold text-lien-heading">
+              Bill giấy chụp ảnh? Prompt cho Claude đọc ảnh → nội dung bill <span className="font-normal text-lien-muted">(bấm để mở, chép và gửi kèm ảnh)</span>
+            </summary>
+            <p className="mt-2 mb-1 text-[12px] text-lien-muted">Chép toàn bộ khung dưới, dán vào Claude cùng ảnh bill, rồi dán kết quả vào ô “Nội dung bill” ở trên. Mã JAN in trên bill giúp khớp đúng sản phẩm; hạn sử dụng nhập sau khi xác nhận phiếu.</p>
+            <pre className="m-0 max-h-[320px] overflow-auto whitespace-pre-wrap rounded border border-[#e5e7eb] bg-white p-2 text-[11.5px] leading-4 text-lien-text" data-testid="bill-prompt">
+              {BILL_PHOTO_PROMPT}
+            </pre>
+          </details>
         </Card>
         <Card title="Phiếu mua là gì?">
           <p className="m-0 text-[13px] leading-6 text-lien-text">Mỗi lần mua một lố hàng tại một nguồn = một phiếu với mã tự sinh <strong>PM-ngày-số</strong>. Phiếu ghi ngày mua, mã đơn của nguồn, các sản phẩm × số lượng × giá, và sau đó ngày gửi cho đơn vị vận chuyển + mã vận đơn. Từ dòng đơn của khách hay phiếu mua lưu kho đều thấy nó thuộc phiếu nào — nên biết hàng của đơn nào đã mua lúc nào, đi cùng lố nào.</p>
