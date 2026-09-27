@@ -57,6 +57,9 @@ describe("statusFromSource / combineStatuses", () => {
     assert.equal(statusFromSource({ type: "lot", warehouse: "vn" }), "at_shop");
     assert.equal(statusFromSource({ type: "lot", warehouse: "carrier" }), "at_carrier_vn");
     assert.equal(statusFromSource({ type: "lot", warehouse: "jp" }), "bought");
+    assert.equal(statusFromSource({ type: "lot", warehouse: "jp_carrier" }), "to_carrier_jp");
+    assert.equal(statusFromSource({ type: "lot", warehouse: "jp_carrier", inTransit: true }), "shipped_jp_vn");
+    assert.equal(statusFromSource({ type: "lot", warehouse: "carrier", inTransit: true }), "to_shop");
     assert.equal(statusFromSource({ type: "lot", warehouse: null, consumed: true }), "at_shop");
     assert.equal(statusFromSource({ type: "stock_purchase", status: "shipped_jp_vn" }), "shipped_jp_vn");
     assert.equal(statusFromSource({ type: "buy" }), "not_bought");

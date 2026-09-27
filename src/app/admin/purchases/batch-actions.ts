@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus } from "@/lib/purchase";
 import { isBatchStatus } from "@/lib/purchase-batches";
-import { addLinesToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -206,16 +206,22 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
   if (!batchId) go("error", "Yêu cầu không hợp lệ.");
   const sids = formData.getAll("sids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
   const ids = formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  const lotIds = formData.getAll("lotIds").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
   const op = text(formData, "op");
-  if (!sids.length && !ids.length) go("error", "Chưa tick dòng nào.", batchId);
+  if (!sids.length && !ids.length && !lotIds.length) go("error", "Chưa tick dòng nào.", batchId);
   if (op === "move") {
     const target = intOr(formData, "targetBatchId");
     if (!target || target === batchId) go("error", "Chọn đợt khác để chuyển sang.", batchId);
     const hold = ids.length ? holdBatchRows(batchId!, [], ids) : { lines: 0 };
     const linesAdded = ids.length ? addLinesToBatch(target!, ids)?.added ?? 0 : 0;
     const r = await moveStockToBatch(sids, target!);
+    let lotsMoved = 0;
+    if (lotIds.length) {
+      const rm = removeLotsFromBatch(lotIds);
+      if (rm.removed) lotsMoved = addLotsToBatch(target!, lotIds.map((lotId) => ({ lotId }))).added;
+    }
     revalidatePath("/admin", "layout");
-    go("saved", `Đã chuyển ${(r?.moved ?? 0) + linesAdded} dòng sang đợt ${r?.code ?? ""}${hold.lines ? "" : ""}.`, batchId);
+    go("saved", `Đã chuyển ${(r?.moved ?? 0) + linesAdded + lotsMoved} dòng sang chuyến ${r?.code ?? ""}${hold.lines ? "" : ""}.`, batchId);
   }
   if (op === "remove") {
     let n = 0;
@@ -224,9 +230,9 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
     revalidatePath("/admin", "layout");
     go("saved", `Đã bỏ ${n} dòng khỏi đợt (dòng đơn giữ trạng thái, dòng lưu kho bị xoá).`, batchId);
   }
-  const r = holdBatchRows(batchId!, sids, ids);
+  const r = holdBatchRows(batchId!, sids, ids, lotIds);
   revalidatePath("/admin", "layout");
-  go("saved", `Đã giữ lại tại Nhật ${r.stock} dòng lưu kho (chờ đợt sau)${r.lines ? ` · ${r.lines} dòng đơn rời đợt` : ""}.`, batchId);
+  go("saved", `Đã giữ lại Nhật ${r.lots} lô${r.stock ? ` · ${r.stock} phiếu chờ chuyến sau` : ""}${r.lines ? ` · ${r.lines} dòng đơn rời chuyến` : ""}.`, batchId);
 }
 
 /** Held rows (or plain stock slips from the "Mua lưu kho" tab) → into a batch. */

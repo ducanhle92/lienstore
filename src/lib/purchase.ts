@@ -7,16 +7,19 @@
  *   Chưa mua → Đã mua → Đã gửi tới ĐVVC (Kiến, Nhật) → Đã vận chuyển NB–VN → Đã về tới kho ĐVVC (Hà Nội)
  *   → Đã vận chuyển kho logistics → kho shop → Đã nhận được hàng (kho shop) → Đã vận chuyển cho khách → Khách nhận được hàng
  */
-export type PurchaseStatus = "not_bought" | "bought" | "to_carrier_jp" | "shipped_jp_vn" | "at_carrier_vn" | "to_shop" | "at_shop" | "shipped_to_customer" | "delivered";
+export type PurchaseStatus = "not_bought" | "ordered" | "bought" | "to_carrier_jp" | "shipped_jp_vn" | "at_carrier_vn" | "to_shop" | "at_shop" | "shipped_to_customer" | "delivered";
 
 export const PURCHASE_STAGES: Array<{ key: PurchaseStatus; label: string; short: string; cls: string; where: "jp" | "transit" | "vn_carrier" | "shop" | "customer" | "none" }> = [
   { key: "not_bought", label: "Chưa mua", short: "Chưa mua", cls: "bg-gray-200 text-gray-700", where: "none" },
-  { key: "bought", label: "Đã mua (tại Nhật)", short: "Đã mua", cls: "bg-amber-100 text-amber-800", where: "jp" },
+  // bought online (Amazon, Rakuten…) and on its way to the shop's place in Japan — no lot yet
+  { key: "ordered", label: "Đã đặt mua (chưa nhận)", short: "Đã đặt mua", cls: "bg-yellow-100 text-yellow-800", where: "none" },
+  // goods in hand = a lot in Kho Nhật (shop) from this moment on
+  { key: "bought", label: "Tại kho Nhật (shop)", short: "Kho Nhật", cls: "bg-amber-100 text-amber-800", where: "jp" },
   { key: "to_carrier_jp", label: "Đã gửi tới ĐVVC (kho Kiến Nhật)", short: "Tới ĐVVC Nhật", cls: "bg-orange-100 text-orange-800", where: "jp" },
   { key: "shipped_jp_vn", label: "Đã vận chuyển NB → VN", short: "NB → VN", cls: "bg-sky-100 text-sky-800", where: "transit" },
   { key: "at_carrier_vn", label: "Đã về tới kho ĐVVC (Hà Nội)", short: "Kho ĐVVC VN", cls: "bg-cyan-100 text-cyan-800", where: "vn_carrier" },
-  { key: "to_shop", label: "Đã vận chuyển kho logistics → kho shop", short: "Về kho shop", cls: "bg-indigo-100 text-indigo-800", where: "vn_carrier" },
-  { key: "at_shop", label: "Đã nhận được hàng (kho shop)", short: "Tại kho", cls: "bg-green-100 text-green-800", where: "shop" },
+  { key: "to_shop", label: "Đang về kho shop VN (từ kho ĐVVC)", short: "Về kho shop", cls: "bg-indigo-100 text-indigo-800", where: "vn_carrier" },
+  { key: "at_shop", label: "Tại kho Việt Nam (shop)", short: "Tại kho VN", cls: "bg-green-100 text-green-800", where: "shop" },
   { key: "shipped_to_customer", label: "Đã vận chuyển cho khách", short: "Đang giao", cls: "bg-lime-100 text-lime-800", where: "customer" },
   { key: "delivered", label: "Khách nhận được hàng", short: "Đã nhận", cls: "bg-emerald-100 text-emerald-800", where: "customer" },
 ];

@@ -16,6 +16,10 @@ import { listPurchaseSources } from "@/lib/db";
 import { applyInventoryView, EXPIRY_DAYS, inventoryHref, type InventoryView, matchesPstatus, type Pstatus, parseInventoryView, type SortKey, sortHref, STOCK_SUGGEST_MIN_SOLD } from "@/lib/inventory-view";
 import { cn } from "@/lib/utils";
 import { describeByWarehouse, TRANSIT_LABEL, WAREHOUSE_LABEL, WAREHOUSE_SHORT, WAREHOUSES } from "@/lib/warehouses";
+import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/LotsBoard";
+import { listLotViews, listOrdersReadyToShip } from "@/lib/lots-db";
+import { listBatchHeads } from "@/lib/purchase-batches-db";
+import { getDb } from "@/lib/sqlite";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +37,10 @@ const STATE_LABEL: Record<StockState, { label: string; cls: string }> = {
 };
 const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = {
   in_stock: "Đang lưu kho (tất cả kho)",
-  in_stock_jp: "Lưu kho · Kho Nhật",
-  in_stock_carrier: "Lưu kho · Kho ĐVVC",
-  in_stock_vn: "Lưu kho · Kho Việt Nam",
+  in_stock_jp: "Lưu kho · Kho Nhật (shop)",
+  in_stock_jp_carrier: "Lưu kho · Kho ĐVVC Nhật",
+  in_stock_carrier: "Lưu kho · Kho ĐVVC VN",
+  in_stock_vn: "Lưu kho · Kho Việt Nam (shop)",
   incoming: "Đang về (tất cả)",
   incoming_jp: "Đang về · còn tại Nhật",
   incoming_transit: "Đang về · NB → VN",
@@ -50,6 +55,17 @@ export default async function AdminInventory({ searchParams }: Props) {
   const saved = first(sp.saved);
 
   const [{ lines, summary }, categories, sources] = await Promise.all([getInventory(), getCategories(), listPurchaseSources(true)]);
+  // Kho hàng by lot (default): two sides, FEFO; the product table stays under ?view=products
+  const view = first(sp.view) === "products" ? "products" : "lots";
+  const side: "jp" | "vn" = first(sp.side) === "jp" ? "jp" : "vn";
+  const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: first(sp.mode) === "orders" ? "orders" : first(sp.mode) === "free" ? "free" : "" };
+  const allLots = view === "lots" ? listLotViews(getDb(), {}) : [];
+  const flying = allLots.filter((l) => l.warehouse === "jp_carrier" && l.inTransit);
+  const batchHeads = view === "lots" ? listBatchHeads() : [];
+  const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
+  const lotsBack = `/admin/inventory/?side=${side}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
+  const jpUnits = allLots.filter((l) => l.warehouse === "jp" || l.warehouse === "jp_carrier").reduce((n, l) => n + l.physical, 0);
+  const vnUnits = allLots.filter((l) => l.warehouse === "vn" || l.warehouse === "carrier").reduce((n, l) => n + l.physical, 0);
   const sourceName = (k: string) => purchaseSourceName(k, sources);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
@@ -102,8 +118,23 @@ export default async function AdminInventory({ searchParams }: Props) {
           ) : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
+      {/* view switch: by lot (two coloured sides) or by product (stocktake / CSV) */}
+      <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="inventory-tabs">
+        <Link href="/admin/inventory/?side=jp" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "jp" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100")}>
+          <Fa name="globe" /> Kho Nhật ({jpUnits} đv)
+        </Link>
+        <Link href="/admin/inventory/?side=vn" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "vn" ? "border-lien-heart bg-lien-heart text-white" : "border-red-300 bg-red-50 text-red-900 hover:bg-red-100")}>
+          <Fa name="archive" /> Kho Việt Nam ({vnUnits} đv)
+        </Link>
+        {view === "lots" && flying.length ? <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800"><Fa name="plane" /> đang bay {flying.reduce((n, l) => n + l.physical, 0)} đv</span> : null}
+        <Link href="/admin/inventory/?view=products" className={cn("ml-auto rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "products" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+          Theo sản phẩm · kiểm kê · CSV
+        </Link>
+      </div>
+      {view === "lots" ? <LotsBoard side={side} lots={allLots} flying={flying} filter={lotFilter} sources={sources} batches={batchHeads} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
-      <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>
         <Stat href={inventoryHref(v, { pstatus: "in_stock" })} label="Đang lưu kho" value={`${summary.inStockProducts} sp · ${summary.units} đv`} tone={summary.units ? "blue" : "gray"} hint={summary.units ? describeByWarehouse(summary.unitsByWarehouse) : "Bán từ kho trước khi order"} />
         <Stat href={inventoryHref(v, { pstatus: "incoming" })} label="Đang về kho (lô)" value={`${summary.stockIncomingUnits} đv`} tone={summary.stockIncomingUnits ? "blue" : "gray"} hint={summary.stockIncomingUnits ? `vốn ${formatPrice(summary.stockIncomingValue)}` : "Mua lưu kho đã mua, chưa tới"} />
         <Stat href="/admin/purchases/?tab=stock" label="Lô chờ mua" value={`${summary.plannedLotUnits} đv`} tone={summary.plannedLotUnits ? "amber" : "gray"} hint="Phiếu mua lưu kho chưa mua" />
@@ -112,8 +143,9 @@ export default async function AdminInventory({ searchParams }: Props) {
         <Stat href={inventoryHref(v, { track: "tracked", state: "" })} label="Hạn dùng cần chú ý" value={`${summary.expiringSoonUnits} sắp · ${summary.expiredUnits} hết`} tone={summary.expiredUnits ? "red" : summary.expiringSoonUnits ? "amber" : "gray"} hint="≤ 90 ngày = sắp hết hạn" />
       </div>
 
-      <Card>
+      <Card className={cn(view !== "products" && "hidden")}>
         <form method="get" className="mb-4 grid gap-3 md:grid-cols-[1fr_160px_150px_150px_170px_auto] md:items-end">
+          <input type="hidden" name="view" value="products" />
           {v.state ? <input type="hidden" name="state" value={v.state} /> : null}
           {v.need !== "all" ? <input type="hidden" name="need" value={v.need} /> : null}
           {first(sp.sort) ? <input type="hidden" name="sort" value={v.sort} /> : null}

@@ -4,7 +4,7 @@ import { todayIso } from "./lots";
 import { isPurchaseStatus, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex } from "./purchase";
 import { getDb, withTransaction } from "./sqlite";
 import { syncProductStock } from "./stock-sync";
-import { DEFAULT_WAREHOUSE, isWarehouse, WAREHOUSE_LABEL, WAREHOUSE_SHORT, type Warehouse } from "./warehouses";
+import { DEFAULT_WAREHOUSE, describeLocation, isWarehouse, WAREHOUSE_SHORT, type Warehouse } from "./warehouses";
 
 /**
  * order_item_allocations — which stock serves each order line (see lib/allocation.ts for the priority rule).
@@ -49,11 +49,11 @@ export function reservedOn(db: DatabaseSync, type: "lot" | "stock_purchase" | "b
 
 /** Everything of a product that could serve a line right now, with what is still free on each. */
 export function candidatesFor(db: DatabaseSync, productId: number, exceptItemId?: number): AllocCandidate[] {
-  const lots = db.prepare("SELECT id, qty_left, expiry, warehouse FROM stock_lots WHERE product_id = ? AND qty_left > 0").all(productId) as unknown as Array<{ id: number; qty_left: number; expiry: string | null; warehouse: string }>;
+  const lots = db.prepare("SELECT id, qty_left, expiry, warehouse, in_transit FROM stock_lots WHERE product_id = ? AND qty_left > 0").all(productId) as unknown as Array<{ id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number }>;
   const slips = db.prepare("SELECT id, qty, expiry, status, batch_id FROM stock_purchases WHERE product_id = ? AND lot_id IS NULL AND qty > 0").all(productId) as unknown as Array<{ id: number; qty: number; expiry: string | null; status: string; batch_id: number | null }>;
   const out: AllocCandidate[] = [];
-  for (const l of lots) out.push({ type: "lot", id: l.id, available: l.qty_left - reservedOn(db, "lot", l.id, exceptItemId), expiry: l.expiry, warehouse: whOf(l.warehouse), status: null, batchId: null });
-  for (const s of slips) out.push({ type: "stock_purchase", id: s.id, available: s.qty - reservedOn(db, "stock_purchase", s.id, exceptItemId), expiry: s.expiry, warehouse: null, status: statusOf(s.status), batchId: s.batch_id });
+  for (const l of lots) out.push({ type: "lot", id: l.id, available: l.qty_left - reservedOn(db, "lot", l.id, exceptItemId), expiry: l.expiry, warehouse: whOf(l.warehouse), inTransit: !!l.in_transit, status: null, batchId: null });
+  for (const s of slips) out.push({ type: "stock_purchase", id: s.id, available: s.qty - reservedOn(db, "stock_purchase", s.id, exceptItemId), expiry: s.expiry, warehouse: null, inTransit: false, status: statusOf(s.status), batchId: s.batch_id });
   return out.filter((c) => c.available > 0);
 }
 
@@ -86,8 +86,12 @@ export function syncItemStatusSync(db: DatabaseSync, itemId: number): void {
   let batchCode = "";
   for (const a of allocs) {
     if (a.source_type === "lot") {
-      const lot = a.source_id ? (db.prepare("SELECT warehouse FROM stock_lots WHERE id = ?").get(a.source_id) as { warehouse: string } | undefined) : undefined;
-      statuses.push(statusFromSource({ type: "lot", warehouse: lot ? whOf(lot.warehouse) : null, consumed: !!a.consumed_at }));
+      const lot = a.source_id ? (db.prepare("SELECT l.warehouse, l.in_transit, l.batch_id, b.code FROM stock_lots l LEFT JOIN purchase_batches b ON b.id = l.batch_id WHERE l.id = ?").get(a.source_id) as { warehouse: string; in_transit: number; batch_id: number | null; code: string | null } | undefined) : undefined;
+      statuses.push(statusFromSource({ type: "lot", warehouse: lot ? whOf(lot.warehouse) : null, inTransit: !!lot?.in_transit, consumed: !!a.consumed_at }));
+      if (lot?.batch_id && !batchId) {
+        batchId = lot.batch_id;
+        batchCode = lot.code ?? "";
+      }
     } else if (a.source_type === "stock_purchase") {
       const sp = a.source_id ? (db.prepare("SELECT sp.status, sp.batch_id, b.code FROM stock_purchases sp LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.id = ?").get(a.source_id) as { status: string; batch_id: number | null; code: string | null } | undefined) : undefined;
       statuses.push(statusFromSource({ type: "stock_purchase", status: sp ? statusOf(sp.status) : "not_bought" }));
@@ -289,9 +293,10 @@ export function onBatchChangedSync(db: DatabaseSync, batchId: number): void {
     .prepare(
       `SELECT DISTINCT a.order_item_id AS id FROM order_item_allocations a
        LEFT JOIN stock_purchases sp ON sp.id = a.source_id AND a.source_type = 'stock_purchase'
-       WHERE (a.source_type = 'batch' AND a.source_id = ?) OR (a.source_type = 'stock_purchase' AND sp.batch_id = ?)`,
+       LEFT JOIN stock_lots l ON l.id = a.source_id AND a.source_type = 'lot'
+       WHERE (a.source_type = 'batch' AND a.source_id = ?) OR (a.source_type = 'stock_purchase' AND sp.batch_id = ?) OR (a.source_type = 'lot' AND l.batch_id = ?)`,
     )
-    .all(batchId, batchId) as Array<{ id: number }>;
+    .all(batchId, batchId, batchId) as Array<{ id: number }>;
   for (const r of ids) syncItemStatusSync(db, r.id);
 }
 
@@ -344,11 +349,13 @@ export function listAllocationViews(db: DatabaseSync, itemIds: number[]): Alloca
   return rows.map((a) => {
     const base = { id: a.id, orderItemId: a.order_item_id, sourceType: a.source_type, sourceId: a.source_id, qty: a.qty, manual: a.manual === 1, consumedAt: a.consumed_at };
     if (a.source_type === "lot") {
-      const lot = a.source_id ? (db.prepare("SELECT id, qty_left, expiry, warehouse FROM stock_lots WHERE id = ?").get(a.source_id) as { id: number; qty_left: number; expiry: string | null; warehouse: string } | undefined) : undefined;
+      const lot = a.source_id ? (db.prepare("SELECT l.id, l.qty_left, l.expiry, l.warehouse, l.in_transit, b.code FROM stock_lots l LEFT JOIN purchase_batches b ON b.id = l.batch_id WHERE l.id = ?").get(a.source_id) as { id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number; code: string | null } | undefined) : undefined;
       const wh = lot ? whOf(lot.warehouse) : "vn";
-      const status = statusFromSource({ type: "lot", warehouse: lot ? wh : null, consumed: !!a.consumed_at });
-      const label = a.consumed_at ? `Đã trừ kho${lot ? ` · ${WAREHOUSE_LABEL[wh]}` : ""}` : wh === "vn" ? "Có sẵn · Kho VN" : `Có sẵn · ${WAREHOUSE_LABEL[wh]}, đang về`;
-      const detail = lot ? `lô #${lot.id}${lot.expiry ? ` · HSD ${fmtDate(lot.expiry)}` : ""} · còn ${lot.qty_left}` : "lô cũ (đã trừ khi đặt)";
+      const moving = !!lot?.in_transit;
+      const status = statusFromSource({ type: "lot", warehouse: lot ? wh : null, inTransit: moving, consumed: !!a.consumed_at });
+      const place = lot ? describeLocation(wh, moving) : "";
+      const label = a.consumed_at ? `Đã trừ kho${lot ? ` · ${place}` : ""}` : wh === "vn" ? "Có sẵn · Kho VN" : wh === "carrier" && !moving ? "Sắp về kho shop · Kho ĐVVC VN" : `Có sẵn · ${place}`;
+      const detail = lot ? `lô #${lot.id}${lot.expiry ? ` · HSD ${fmtDate(lot.expiry)}` : ""} · còn ${lot.qty_left}${lot.code ? ` · chuyến ${lot.code}` : ""}` : "lô cũ (đã trừ khi đặt)";
       return { ...base, label, detail, status, tone: a.consumed_at ? "green" : wh === "vn" ? "green" : "sky" } as AllocationView;
     }
     if (a.source_type === "stock_purchase") {
@@ -381,7 +388,7 @@ export function listSourceOptions(db: DatabaseSync, productId: number, itemId: n
   for (const c of candidatesFor(db, productId, itemId)) {
     if (c.type === "lot") {
       const wh = c.warehouse ?? "vn";
-      out.push({ type: "lot", id: c.id, label: `Lô #${c.id} · ${WAREHOUSE_SHORT[wh]}${c.expiry ? ` · HSD ${fmtDate(c.expiry)}` : ""} · trống ${c.available}`, available: c.available });
+      out.push({ type: "lot", id: c.id, label: `Lô #${c.id} · ${WAREHOUSE_SHORT[wh]}${c.inTransit ? " (đang đi)" : ""}${c.expiry ? ` · HSD ${fmtDate(c.expiry)}` : ""} · trống ${c.available}`, available: c.available });
     } else {
       const sp = db.prepare("SELECT sp.source_key, b.code FROM stock_purchases sp LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.id = ?").get(c.id) as { source_key: string; code: string | null } | undefined;
       out.push({ type: "stock_purchase", id: c.id, label: `Phiếu #${c.id} · ${PURCHASE_STAGES[purchaseIndex(c.status ?? "not_bought")].short}${sp?.code ? ` · đợt ${sp.code}` : ""}${c.expiry ? ` · HSD ${fmtDate(c.expiry)}` : ""} · trống ${c.available}`, available: c.available });
@@ -460,4 +467,21 @@ export async function backfillAllocationsOnce(): Promise<number> {
     db.prepare("INSERT INTO settings (key, value) VALUES ('alloc_backfill_rev', '1') ON CONFLICT(key) DO UPDATE SET value = '1'").run();
   });
   return n;
+}
+
+/** One-off after migration 61: every product with lots gets its stock recomputed and its waiting lines re-tried. */
+export async function resyncStockAfterLotsOnce(): Promise<number> {
+  const db = getDb();
+  const flag = db.prepare("SELECT value FROM settings WHERE key = 'lots_resync_rev'").get() as { value: string } | undefined;
+  if (flag?.value === "1") return 0;
+  const ids = (db.prepare("SELECT DISTINCT product_id FROM stock_lots").all() as Array<{ product_id: number }>).map((r) => r.product_id);
+  const ts = now();
+  withTransaction(db, () => {
+    for (const p of ids) {
+      syncProductStock(db, p, ts);
+      allocatePendingForProductSync(db, p);
+    }
+    db.prepare("INSERT INTO settings (key, value) VALUES ('lots_resync_rev', '1') ON CONFLICT(key) DO UPDATE SET value = '1'").run();
+  });
+  return ids.length;
 }

@@ -8,13 +8,13 @@ import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource, StockPurchase } from "@/types/shop";
-import { WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSE_SHORT, WAREHOUSES } from "@/lib/warehouses";
+
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
-/** Statuses that make sense for goods bought for stock (they stop at the shop warehouse). */
-const STOCK_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) <= purchaseIndex("at_shop"));
+/** Statuses a slip can have before it is a lot (from "Tại kho Nhật" on the lot itself is managed in Kho hàng). */
+const STOCK_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) <= purchaseIndex("bought"));
 
 interface Props {
   purchases: StockPurchase[];
@@ -23,13 +23,15 @@ interface Props {
   includeDone: boolean;
   /** Open shipment batches — ticked slips can be sent into one. */
   batches?: Array<{ id: number; code: string; label: string }>;
+  /** Reservations per slip id (orders holding units of a slip that is not a lot yet). */
+  reserved?: Map<number, Array<{ orderId: string; orderNumber: number; qty: number }>>;
 }
 
 /** Quản lý mua hàng › tab "Mua lưu kho": buy-for-stock slips (no order behind them) + their journey to the warehouse. */
-export function StockPurchasePanel({ purchases, products, sources, includeDone, batches = [] }: Props) {
+export function StockPurchasePanel({ purchases, products, sources, includeDone, batches = [], reserved = new Map() }: Props) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <Card title={`Phiếu mua lưu kho (${purchases.length})`} actions={<Link href={`/admin/purchases/?tab=stock${includeDone ? "" : "&done=1"}`} className="text-[13px] text-lien-blue hover:underline">{includeDone ? "Ẩn phiếu đã nhập kho" : "Xem cả phiếu đã nhập kho"}</Link>}>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <Card title={`Phiếu chưa thành lô (${purchases.filter((p) => !p.lotId).length})`} actions={<Link href={`/admin/purchases/?tab=stock${includeDone ? "" : "&done=1"}`} className="text-[13px] text-lien-blue hover:underline">{includeDone ? "Ẩn phiếu đã thành lô" : "Xem cả phiếu đã thành lô"}</Link>}>
         <form action={bulkStockPurchaseAction} id="bulk-stock">
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
             <span className="font-semibold text-lien-heading">Các phiếu đã tick →</span>
@@ -62,7 +64,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
                 </button>
               </>
             ) : null}
-            <span className="text-lien-muted">Tới “Đã nhận được hàng (kho shop)” → tự tạo lô trong Kho hàng, tồn kho tăng.</span>
+            <span className="text-lien-muted">Tới “Tại kho Nhật (shop)” → phiếu thành lô ở Kho hàng › Kho Nhật; từ đó chọn gửi về ở Kho hàng.</span>
           </div>
         </form>
         <div className="overflow-x-auto">
@@ -73,7 +75,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>SL</th>
                 <th className={thClass}>Nguồn · ¥</th>
-                <th className={thClass}>HSD · kho</th>
+                <th className={thClass}>HSD · ngày mua</th>
                 <th className={thClass}>Trạng thái</th>
                 <th className={thClass}>Ghi chú</th>
                 <th className={thClass} />
@@ -103,7 +105,10 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
                         </span>
                       </div>
                     </td>
-                    <td className={`${tdClass} font-semibold`}>{p.qty}</td>
+                    <td className={`${tdClass} font-semibold`}>
+                      {p.qty}
+                      {reserved.get(p.id)?.length ? <span className="block text-[11px] font-normal text-lien-muted">giữ cho {reserved.get(p.id)!.map((r) => `#${r.orderNumber}×${r.qty}`).join(", ")}</span> : null}
+                    </td>
                     <td className={`${tdClass} text-[13px]`}>
                       {purchaseSourceName(p.sourceKey, sources)}
                       {p.unitCostJpy ? <span className="block text-[12px] text-lien-muted">¥{p.unitCostJpy.toLocaleString("ja-JP")}/đv · ¥{formatAmount(p.unitCostJpy * p.qty)}</span> : null}
@@ -111,15 +116,12 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
                     <td className={`${tdClass} text-[13px]`}>
                       {p.expiry ? formatDate(p.expiry) : <span className="text-lien-muted">—</span>}
                       {p.boughtAt ? <span className="block text-[12px] text-lien-muted">mua {formatDate(p.boughtAt)}</span> : null}
-                      <span className="block text-[12px] text-lien-muted" title={WAREHOUSE_HINT[p.warehouse]}>
-                        → {WAREHOUSE_LABEL[p.warehouse]}
-                        {p.location ? ` · ${p.location}` : ""}
-                      </span>
+                      {p.location ? <span className="block text-[12px] text-lien-muted">{p.location}</span> : null}
                     </td>
                     <td className={tdClass}>
                       {p.lotId ? (
                         <Link href={`/admin/inventory/lots/${p.productId}/`} className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800 no-underline hover:bg-green-200">
-                          Đã nhập kho · lô #{p.lotId}
+                          Xem lô đã nhập · #{p.lotId}
                         </Link>
                       ) : (
                         <div className="flex items-center gap-1">
@@ -217,29 +219,18 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
             <input id="spa-loc" name="location" placeholder="Kệ A2" className={adminInput} />
           </div>
           <div>
-            <label className={adminLabel} htmlFor="spa-wh">
-              Nhập vào kho <span className="font-normal text-lien-muted">— khi tới “Đã nhận được hàng”, lô được ghi vào kho này</span>
-            </label>
-            <select id="spa-wh" name="warehouse" defaultValue="vn" className={adminInput}>
-              {WAREHOUSES.map((w) => (
-                <option key={w} value={w}>
-                  {WAREHOUSE_LABEL[w]} ({WAREHOUSE_SHORT[w]}) — {WAREHOUSE_HINT[w]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={adminLabel} htmlFor="spa-status">
-              Trạng thái lúc tạo
-            </label>
-            <select id="spa-status" name="status" defaultValue="bought" className={adminInput}>
-              {STOCK_STAGES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                  {s.key === "at_shop" ? " — nhập kho ngay" : ""}
-                </option>
-              ))}
-            </select>
+            <span className={adminLabel}>Tình trạng</span>
+            <div className="grid gap-1.5 text-[13px]">
+              <label className="inline-flex items-center gap-2">
+                <input type="radio" name="status" value="ordered" className="h-4 w-4" /> Đã đặt mua online (Amazon, Rakuten…) — chờ nhận, chưa thành lô
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="radio" name="status" value="bought" defaultChecked className="h-4 w-4" /> Đã cầm hàng (tại quầy) — thành lô ở Kho Nhật (shop) ngay
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="radio" name="status" value="not_bought" className="h-4 w-4" /> Chưa mua — chỉ ghi kế hoạch
+              </label>
+            </div>
           </div>
           <div>
             <label className={adminLabel} htmlFor="spa-note">

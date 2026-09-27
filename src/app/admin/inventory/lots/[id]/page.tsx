@@ -1,3 +1,4 @@
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,7 +14,7 @@ import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
-import { WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSES } from "@/lib/warehouses";
+import { describeLocation, WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSE_SIDE, WAREHOUSES } from "@/lib/warehouses";
 
 export const dynamic = "force-dynamic";
 
@@ -98,12 +99,23 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {lots.map((l) => {
+                  {[...lots]
+                    .sort((a, b) => WAREHOUSES.indexOf(a.warehouse) - WAREHOUSES.indexOf(b.warehouse))
+                    .map((l, i, arr) => {
                     const fid = `lot-${l.id}`;
+                    const sideHeader = i === 0 || WAREHOUSE_SIDE[arr[i - 1].warehouse] !== WAREHOUSE_SIDE[l.warehouse] ? (
+                      <tr key={`side-${l.warehouse}`} className={WAREHOUSE_SIDE[l.warehouse] === "jp" ? "bg-sky-50" : "bg-red-50"}>
+                        <td colSpan={10} className="px-4 py-1 text-[12px] font-semibold uppercase tracking-wide">
+                          {WAREHOUSE_SIDE[l.warehouse] === "jp" ? "Kho Nhật (shop · ĐVVC Nhật)" : "Kho Việt Nam (ĐVVC VN · shop)"}
+                        </td>
+                      </tr>
+                    ) : null;
                     const st = expiryState(l.expiry);
                     const days = daysToExpiry(l.expiry);
                     return (
-                      <tr key={l.id} className={cn(l.qtyLeft === 0 && "opacity-50")} data-testid={`lot-${l.id}`}>
+                      <React.Fragment key={l.id}>
+                      {sideHeader}
+                      <tr className={cn(l.qtyLeft === 0 && "opacity-50")} data-testid={`lot-${l.id}`}>
                         <td className={tdClass}>
                           <form id={fid} action={updateLotAction}>
                             <input type="hidden" name="productId" value={pid} />
@@ -147,7 +159,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                             {days !== null ? ` · ${days < 0 ? `${-days} ngày trước` : `${days} ngày`}` : ""}
                           </span>
                         </td>
-                        <td className={tdClass}>{whField(l.warehouse, `${fid}-wh`)}</td>
+                        <td className={tdClass}>{whField(l.warehouse, `${fid}-wh`)}{l.inTransit ? <span className="block text-[11px] text-indigo-700">{describeLocation(l.warehouse, true)}</span> : null}{l.batchId ? <span className="block text-[11px] text-lien-muted">chuyến #{l.batchId}</span> : null}</td>
                         <td className={tdClass}>
                           <input form={fid} name="location" defaultValue={l.location} placeholder="Kệ A2 / thùng 3" className={`${adminInput} !mb-0 !w-[120px] !py-1 !text-[13px]`} aria-label="Vị trí" />
                         </td>
@@ -165,6 +177,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                           </div>
                         </td>
                       </tr>
+                      </React.Fragment>
                     );
                   })}
                   {lots.length === 0 ? (

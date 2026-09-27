@@ -114,6 +114,16 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
+  // one-time after migration 61: lots created from bought slips → recompute products.stock and serve waiting lines
+  setTimeout(async () => {
+    try {
+      const { resyncStockAfterLotsOnce } = await import("./lib/allocations-db");
+      const n = await resyncStockAfterLotsOnce();
+      if (n) console.info(`[lots] resynced stock for ${n} product(s)`);
+    } catch (e) {
+      console.warn(`[lots] resync failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 22_000);
   // one-time after migration 59: legacy "Cần mua" lines take the stock that already exists (see lib/allocations-db.ts)
   setTimeout(async () => {
     try {

@@ -9,10 +9,10 @@ export type Track = "all" | "tracked" | "untracked";
 export type Need = "all" | "order" | "restock";
 /** "Trạng thái theo dõi": a stage, or a stage narrowed to WHERE — in stock at one warehouse, or on the way at one point of the route. */
 export type Pstatus = "" | Exclude<PipelineStage, null> | `in_stock_${Warehouse}` | `incoming_${TransitWhere}`;
-export const PSTATUS_VALUES: readonly Pstatus[] = ["", "in_stock", "in_stock_jp", "in_stock_carrier", "in_stock_vn", "incoming", "incoming_jp", "incoming_transit", "incoming_carrier", "unbought"];
+export const PSTATUS_VALUES: readonly Pstatus[] = ["", "in_stock", "in_stock_jp", "in_stock_jp_carrier", "in_stock_carrier", "in_stock_vn", "incoming", "incoming_jp", "incoming_transit", "incoming_carrier", "unbought"];
 /** Warehouse a "in_stock_*" filter points at (for the per-warehouse stocktake CSV); null otherwise. */
 export function warehouseOfPstatus(p: Pstatus): Warehouse | null {
-  return p === "in_stock_jp" ? "jp" : p === "in_stock_carrier" ? "carrier" : p === "in_stock_vn" ? "vn" : null;
+  return p === "in_stock_jp" ? "jp" : p === "in_stock_jp_carrier" ? "jp_carrier" : p === "in_stock_carrier" ? "carrier" : p === "in_stock_vn" ? "vn" : null;
 }
 export function matchesPstatus(l: InventoryLine, p: Pstatus): boolean {
   if (!p) return true;
@@ -73,6 +73,7 @@ export function inventoryHref(v: InventoryView, over: Partial<InventoryView> = {
   const n = { ...v, ...over };
   if (over.track && over.track !== "tracked" && over.state === undefined) n.state = "";
   const qs = new URLSearchParams();
+  if (base === "/admin/inventory/") qs.set("view", "products"); // the product table lives under its own view; lots are the default
   if (n.track !== "all") qs.set("track", n.track);
   if (n.state) qs.set("state", n.state);
   if (n.need !== "all") qs.set("need", n.need);

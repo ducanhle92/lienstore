@@ -19,6 +19,8 @@ export interface AllocCandidate {
   expiry: string | null;
   /** Lots only. */
   warehouse: Warehouse | null;
+  /** Lots only: on the plane / truck between two warehouses. */
+  inTransit?: boolean;
   /** Stock purchases only (lots are implicitly "at their warehouse"). */
   status: PurchaseStatus | null;
   /** Stock purchases only: the gathering batch they belong to. */
@@ -31,7 +33,7 @@ export interface AllocTake {
   qty: number;
 }
 
-const WH_RANK: Record<Warehouse, number> = { vn: 0, carrier: 1, jp: 2 };
+const WH_RANK: Record<Warehouse, number> = { vn: 0, carrier: 1, jp_carrier: 2, jp: 3 };
 const FAR = "9999-12-31";
 
 /** 0 = already bought (lots + bought slips), 1 = slip waiting in a batch, 2 = slip waiting outside a batch. */
@@ -77,9 +79,15 @@ export function planAllocation(need: number, cands: AllocCandidate[]): { takes: 
 }
 
 /** Purchase status an order line inherits from one of its sources. */
-export function statusFromSource(src: { type: AllocSourceType; warehouse?: Warehouse | null; status?: PurchaseStatus | null; consumed?: boolean }): PurchaseStatus {
+export function statusFromSource(src: { type: AllocSourceType; warehouse?: Warehouse | null; inTransit?: boolean; status?: PurchaseStatus | null; consumed?: boolean }): PurchaseStatus {
   if (src.type === "buy") return "not_bought";
-  if (src.type === "lot") return src.warehouse === "vn" || src.consumed ? "at_shop" : src.warehouse === "carrier" ? "at_carrier_vn" : "bought";
+  if (src.type === "lot") {
+    if (!src.warehouse) return "at_shop"; // legacy row: the lot was deducted at order time
+    if (src.warehouse === "vn") return "at_shop";
+    if (src.warehouse === "carrier") return src.inTransit ? "to_shop" : "at_carrier_vn";
+    if (src.warehouse === "jp_carrier") return src.inTransit ? "shipped_jp_vn" : "to_carrier_jp";
+    return "bought";
+  }
   const s = src.status ?? "not_bought";
   return purchaseIndex(s) > purchaseIndex("at_shop") ? "at_shop" : s;
 }

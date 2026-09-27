@@ -85,7 +85,15 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                 {isDraft ? (
                   <form action={confirmReceiptAction} className="mb-4 rounded-md border border-amber-200 bg-amber-50/60 p-3" data-testid="receipt-confirm">{tabField}
                     <input type="hidden" name="id" value={r.id} />
-                    <p className="m-0 mb-2 text-[13px] text-lien-text">Đọc từ bill — kiểm tra sản phẩm khớp (đổi nếu sai, để trống nếu không bán trên web) rồi bấm Xác nhận. Số lượng mua sẽ gán cho các đơn đang chờ (đơn cũ trước), phần dư thành phiếu mua lưu kho.</p>
+                    <p className="m-0 mb-2 text-[13px] text-lien-text">Đọc từ bill — kiểm tra sản phẩm khớp (đổi nếu sai, để trống nếu không bán trên web) rồi bấm Xác nhận. Số lượng mua gán cho các đơn đang chờ (đơn cũ trước), phần còn lại là hàng lưu kho.</p>
+                    <div className="mb-2 flex flex-wrap gap-3 text-[13px]">
+                      <label className="inline-flex items-center gap-1.5">
+                        <input type="radio" name="received" value="1" defaultChecked={sources.find((s) => s.key === r.sourceKey)?.kind !== "website"} className="h-4 w-4" /> Đã cầm hàng (tại quầy) → lô ở Kho Nhật (shop)
+                      </label>
+                      <label className="inline-flex items-center gap-1.5">
+                        <input type="radio" name="received" value="0" defaultChecked={sources.find((s) => s.key === r.sourceKey)?.kind === "website"} className="h-4 w-4" /> Đã đặt mua online → chờ nhận
+                      </label>
+                    </div>
                     <table className={tableClass}>
                       <thead>
                         <tr>

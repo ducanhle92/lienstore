@@ -1288,6 +1288,35 @@ export const MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    // Lots follow the shipment chain: a lot exists from "Tại kho Nhật (shop)" on, sits in one of four places
+    // (jp / jp_carrier / carrier / vn), may be in transit, may travel in a batch, may be split off a parent lot.
+    // Stock purchases that were already bought but had no lot yet become lots at the place their status implies;
+    // their reservations move to the new lots.
+    version: 61,
+    name: "lot-locations",
+    up: [
+      `ALTER TABLE stock_lots ADD COLUMN in_transit INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE stock_lots ADD COLUMN batch_id INTEGER`,
+      `ALTER TABLE stock_lots ADD COLUMN parent_lot_id INTEGER`,
+      `CREATE INDEX IF NOT EXISTS idx_stock_lots_batch ON stock_lots(batch_id)`,
+      `INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, bought_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, in_transit, location, note, purchase_id, batch_id, created_at, updated_at)
+         SELECT sp.product_id, sp.qty, sp.qty, COALESCE(sp.bought_at, substr(sp.created_at, 1, 10)), sp.bought_at, sp.source_key, sp.unit_cost_jpy,
+                CASE WHEN sp.unit_cost_jpy IS NULL OR sp.unit_cost_jpy = p.cost_jpy THEN p.cost_price ELSE NULL END,
+                sp.expiry,
+                CASE sp.status WHEN 'bought' THEN 'jp' WHEN 'to_carrier_jp' THEN 'jp_carrier' WHEN 'shipped_jp_vn' THEN 'jp_carrier' WHEN 'at_carrier_vn' THEN 'carrier' WHEN 'to_shop' THEN 'carrier' ELSE 'vn' END,
+                CASE sp.status WHEN 'shipped_jp_vn' THEN 1 WHEN 'to_shop' THEN 1 ELSE 0 END,
+                sp.location, sp.note, sp.id, sp.batch_id, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM stock_purchases sp JOIN products p ON p.id = sp.product_id
+         WHERE sp.lot_id IS NULL AND sp.status IN ('bought','to_carrier_jp','shipped_jp_vn','at_carrier_vn','to_shop')`,
+      `UPDATE stock_purchases SET lot_id = (SELECT l.id FROM stock_lots l WHERE l.purchase_id = stock_purchases.id ORDER BY l.id DESC LIMIT 1)
+         WHERE lot_id IS NULL AND status IN ('bought','to_carrier_jp','shipped_jp_vn','at_carrier_vn','to_shop')`,
+      `UPDATE order_item_allocations SET source_type = 'lot', source_id = (SELECT sp.lot_id FROM stock_purchases sp WHERE sp.id = order_item_allocations.source_id)
+         WHERE source_type = 'stock_purchase' AND source_id IN (SELECT id FROM stock_purchases WHERE lot_id IS NOT NULL)`,
+      `UPDATE stock_lots SET batch_id = (SELECT sp.batch_id FROM stock_purchases sp WHERE sp.lot_id = stock_lots.id)
+         WHERE batch_id IS NULL AND purchase_id IS NOT NULL AND EXISTS (SELECT 1 FROM stock_purchases sp WHERE sp.lot_id = stock_lots.id AND sp.batch_id IS NOT NULL)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

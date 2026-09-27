@@ -7,7 +7,7 @@ import { suggestStandardStock } from "../../src/lib/stock-advice";
 import { parseStocktakeCsv } from "../../src/lib/stocktake-csv";
 import { displayTags } from "../../src/lib/tags";
 import { extraAddressesFromForm, parseExtraAddresses } from "../../src/lib/warehouse-addresses";
-import { describeByWarehouse, parseWarehouse, transitWhereOf } from "../../src/lib/warehouses";
+import { describeByWarehouse, describeLocation, locationForStatus, parseWarehouse, statusForLocation, transitWhereOf } from "../../src/lib/warehouses";
 
 describe("warehouses", () => {
   it("recognises keys, labels and short forms", () => {
@@ -28,7 +28,7 @@ describe("warehouses", () => {
     assert.equal(transitWhereOf("not_bought"), null);
   });
   it("describes stock by warehouse, biggest first", () => {
-    assert.equal(describeByWarehouse({ jp: 2, carrier: 0, vn: 5 }), "Kho Việt Nam 5 · Kho Nhật 2");
+    assert.equal(describeByWarehouse({ jp: 2, jp_carrier: 0, carrier: 0, vn: 5 }), "Kho Việt Nam (shop) 5 · Kho Nhật (shop) 2");
   });
   it("stocktake CSV carries the warehouse of a per-warehouse sheet", () => {
     const csv = '"ID","Kho kiểm kê","Kiểm đếm thực tế"\n"1","Kho Nhật","4"\n"2","","7"\n"3","Kho lạ","1"';
@@ -137,5 +137,24 @@ describe("extra warehouse addresses", () => {
     assert.equal(list.length, 1);
     assert.equal(list[0].note, "gọi trước");
     assert.ok(list[0].id.length > 0);
+  });
+});
+
+describe("lot locations ↔ purchase status", () => {
+  it("maps every shipment step to a place (and back)", () => {
+    assert.deepEqual(locationForStatus("bought"), { warehouse: "jp", inTransit: false });
+    assert.deepEqual(locationForStatus("to_carrier_jp"), { warehouse: "jp_carrier", inTransit: false });
+    assert.deepEqual(locationForStatus("shipped_jp_vn"), { warehouse: "jp_carrier", inTransit: true });
+    assert.deepEqual(locationForStatus("at_carrier_vn"), { warehouse: "carrier", inTransit: false });
+    assert.deepEqual(locationForStatus("to_shop"), { warehouse: "carrier", inTransit: true });
+    assert.deepEqual(locationForStatus("at_shop"), { warehouse: "vn", inTransit: false });
+    assert.equal(locationForStatus("ordered"), null);
+    assert.equal(locationForStatus("not_bought"), null);
+    for (const s of ["bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] as const) {
+      const loc = locationForStatus(s)!;
+      assert.equal(statusForLocation(loc.warehouse, loc.inTransit), s);
+    }
+    assert.equal(describeLocation("jp_carrier", true), "Đang bay NB→VN");
+    assert.equal(parseWarehouse("Kho ĐVVC Nhật"), "jp_carrier");
   });
 });

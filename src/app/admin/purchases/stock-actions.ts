@@ -29,8 +29,9 @@ export async function createStockPurchaseAction(formData: FormData): Promise<voi
   const boughtRaw = text(formData, "boughtAt");
   const boughtAt = boughtRaw ? parseExpiry(boughtRaw) : null;
   if (boughtRaw && !boughtAt) back("error", "Ngày mua không hợp lệ (VD 2026-09-27).");
+  // "Đã cầm hàng (tại quầy)" = a lot at Kho Nhật (shop) right away; "Đã đặt mua online" = slip waiting to be received
   const statusRaw = text(formData, "status");
-  const status = isPurchaseStatus(statusRaw) ? statusRaw : "bought";
+  const status = statusRaw === "ordered" || statusRaw === "not_bought" ? statusRaw : isPurchaseStatus(statusRaw) ? statusRaw : "bought";
   const wh = text(formData, "warehouse");
   const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, boughtAt, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
   revalidatePath("/admin", "layout");

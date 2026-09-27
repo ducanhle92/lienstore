@@ -1,10 +1,12 @@
 import "server-only";
-import { createStockPurchase, deleteStockPurchase, setStockPurchaseStatus } from "./db";
+import { createStockPurchase, deleteStockPurchase, heldAllocationsSync, mergeLotBackSync, setLotLocationSync, setStockPurchaseStatus, splitLotSync } from "./db";
+import { listLotViews } from "./lots-db";
+import { locationForStatus } from "./warehouses";
 import { todayIso } from "./lots";
 import { isPurchaseStatus, type PurchaseStatus, purchaseIndex } from "./purchase";
 import { BATCH_DONE, batchCode } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
-import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync } from "./allocations-db";
+import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync, syncItemStatusSync } from "./allocations-db";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock } from "@/types/shop";
@@ -78,7 +80,9 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
        WHERE oi.batch_id IN (${ph}) ORDER BY o.number, oi.id`,
     )
     .all(...ids) as unknown as LineRow[];
-  const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, NULL AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
+  const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, NULL AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) AND sp.lot_id IS NULL ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
+  const idSet = new Set(ids);
+  const lotsAll = listLotViews(db, { includeEmpty: true }).filter((l) => l.batchId !== null && idSet.has(l.batchId) && (l.qtyLeft > 0 || l.reserved.some((r) => r.consumed)));
   // split off and kept in Japan: waiting (batch_id NULL) or already inside a later batch
   const held = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, b.code AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.origin_batch_id IN (${ph}) AND (sp.batch_id IS NULL OR sp.batch_id <> sp.origin_batch_id) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
   const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "" });
@@ -97,6 +101,7 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lines: lines.filter((l) => l.batch_id === r.id).map(toLine),
+    lots: lotsAll.filter((l) => l.batchId === r.id),
     stock: stock.filter((s) => s.batch_id === r.id).map(toStock),
     held: held.filter((s) => s.origin_batch_id === r.id).map(toStock),
   }));
@@ -239,13 +244,18 @@ function db_openSurplus(): Array<{ product_id: number; batch_id: number; code: s
   const rows = db
     .prepare("SELECT sp.id, sp.qty, sp.product_id, sp.batch_id, b.code FROM stock_purchases sp JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.lot_id IS NULL AND b.status <> 'at_shop' ORDER BY sp.batch_id")
     .all() as unknown as Array<{ id: number; qty: number; product_id: number; batch_id: number; code: string }>;
+  const lots = db
+    .prepare("SELECT l.id, l.qty_left AS qty, l.product_id, l.batch_id, b.code FROM stock_lots l JOIN purchase_batches b ON b.id = l.batch_id WHERE l.qty_left > 0 AND b.status <> 'at_shop' ORDER BY l.batch_id")
+    .all() as unknown as Array<{ id: number; qty: number; product_id: number; batch_id: number; code: string }>;
   const agg = new Map<string, { product_id: number; batch_id: number; code: string; qty: number }>();
-  for (const r of rows) {
+  const add = (r: { id: number; qty: number; product_id: number; batch_id: number; code: string }, type: "stock_purchase" | "lot") => {
     const k = `${r.product_id}:${r.batch_id}`;
     const cur = agg.get(k) ?? { product_id: r.product_id, batch_id: r.batch_id, code: r.code, qty: 0 };
-    cur.qty += Math.max(0, r.qty - reservedOn(db, "stock_purchase", r.id));
+    cur.qty += Math.max(0, r.qty - reservedOn(db, type, r.id));
     agg.set(k, cur);
-  }
+  };
+  for (const r of rows) add(r, "stock_purchase");
+  for (const r of lots) add(r, "lot");
   return [...agg.values()];
 }
 
@@ -281,13 +291,14 @@ export function allocateSurplusToLine(batchId: number, itemId: number, note?: st
   if (!line) return { ok: false, message: "Không tìm thấy dòng đơn." };
   void note;
   const inBatch = new Set((db.prepare("SELECT id FROM stock_purchases WHERE batch_id = ? AND product_id = ? AND lot_id IS NULL").all(batchId, line.product_id) as Array<{ id: number }>).map((r) => r.id));
+  const lotsInBatch = new Set((db.prepare("SELECT id FROM stock_lots WHERE batch_id = ? AND product_id = ? AND qty_left > 0").all(batchId, line.product_id) as Array<{ id: number }>).map((r) => r.id));
   const best = candidatesFor(db, line.product_id, itemId)
-    .filter((c) => c.type === "stock_purchase" && inBatch.has(c.id))
-    .sort((a, b) => b.available - a.available)[0];
+    .filter((c) => (c.type === "stock_purchase" && inBatch.has(c.id)) || (c.type === "lot" && lotsInBatch.has(c.id)))
+    .sort((a, b) => (a.type === b.type ? b.available - a.available : a.type === "lot" ? -1 : 1))[0];
   if (!best) return { ok: false, message: "Đợt này không còn đơn vị nào trống của sản phẩm đó." };
-  const r = withTransaction(db, () => setManualAllocationSync(db, itemId, "stock_purchase", best.id));
+  const r = withTransaction(db, () => setManualAllocationSync(db, itemId, best.type, best.id));
   if (!r.ok) return r;
-  const fromSource = (db.prepare("SELECT source_key FROM stock_purchases WHERE id = ?").get(best.id) as { source_key: string }).source_key || batch.source_key;
+  const fromSource = (db.prepare(best.type === "lot" ? "SELECT source_key FROM stock_lots WHERE id = ?" : "SELECT source_key FROM stock_purchases WHERE id = ?").get(best.id) as { source_key: string }).source_key || batch.source_key;
   db.prepare("UPDATE order_items SET source_key = ? WHERE id = ?").run(fromSource, itemId);
   db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), batchId);
   return { ok: true, message: best.available >= line.quantity ? `Đã giữ ${line.quantity} đv hàng lưu kho của đợt ${batch.code} cho dòng đơn.` : `Đợt ${batch.code} chỉ còn ${best.available} đv trống — đã giữ phần đó, phần còn lại là “Cần mua”.` };
@@ -311,7 +322,7 @@ export async function setPurchaseBatchStatus(id: number, status: PurchaseStatus,
     const ph = toRaise.map(() => "?").join(",");
     db.prepare(`UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id IN (${ph})`).run(target, now, ...toRaise);
   }
-  // surplus rows: follow the batch (lots are booked at the shop)
+  // slips not yet lots follow the batch (they become lots at "Tại kho Nhật"); lots already in the batch move to the place the status implies
   const stock = db.prepare("SELECT id, status, lot_id FROM stock_purchases WHERE batch_id = ?").all(id) as unknown as Array<{ id: number; status: string; lot_id: number | null }>;
   let lots = 0;
   for (const s of stock) {
@@ -319,6 +330,11 @@ export async function setPurchaseBatchStatus(id: number, status: PurchaseStatus,
     if (purchaseIndex(statusOf(s.status)) >= purchaseIndex(target)) continue;
     const r = await setStockPurchaseStatus(s.id, target);
     if (r.ok && r.lotId) lots++;
+  }
+  const loc = locationForStatus(target);
+  if (loc) {
+    const lotIds = (db.prepare("SELECT id FROM stock_lots WHERE batch_id = ?").all(id) as Array<{ id: number }>).map((r) => r.id);
+    withTransaction(db, () => setLotLocationSync(db, lotIds, loc.warehouse, loc.inTransit));
   }
   const boughtAt = batch.bought_at ?? (purchaseIndex(target) >= purchaseIndex("bought") ? today : null);
   const shippedAt = batch.shipped_at ?? (purchaseIndex(target) >= purchaseIndex("shipped_jp_vn") ? today : null);
@@ -332,11 +348,16 @@ export async function deletePurchaseBatch(id: number): Promise<{ ok: boolean; me
   const db = getDb();
   const batch = db.prepare("SELECT id FROM purchase_batches WHERE id = ?").get(id) as { id: number } | undefined;
   if (!batch) return { ok: false, message: "Không tìm thấy đợt gửi." };
-  const lotted = db.prepare("SELECT COUNT(*) AS n FROM stock_purchases WHERE batch_id = ? AND lot_id IS NOT NULL").get(id) as { n: number };
-  if (Number(lotted.n) > 0) return { ok: false, message: "Đợt đã có hàng dư nhập kho thành lô — không xoá được. Sửa lô trong Kho hàng nếu cần." };
+  const st = db.prepare("SELECT status FROM purchase_batches WHERE id = ?").get(id) as { status: string };
+  if (purchaseIndex(statusOf(st.status)) > purchaseIndex("bought")) return { ok: false, message: "Chuyến đã rời kho Nhật — không xoá được." };
   withTransaction(db, () => {
+    // members go back to Kho Nhật (shop) / stay as open slips; nothing is deleted
     db.prepare("UPDATE order_items SET batch_id = NULL WHERE batch_id = ?").run(id);
-    db.prepare("DELETE FROM stock_purchases WHERE batch_id = ?").run(id);
+    db.prepare("UPDATE stock_purchases SET batch_id = NULL, updated_at = ? WHERE batch_id = ?").run(new Date().toISOString(), id);
+    const lotIds = (db.prepare("SELECT id FROM stock_lots WHERE batch_id = ?").all(id) as Array<{ id: number }>).map((r) => r.id);
+    db.prepare("UPDATE stock_lots SET batch_id = NULL WHERE batch_id = ?").run(id);
+    setLotLocationSync(db, lotIds, "jp", false);
+    db.prepare("UPDATE order_item_allocations SET source_type = 'buy', source_id = NULL, manual = 0 WHERE source_type = 'batch' AND source_id = ?").run(id);
     db.prepare("DELETE FROM purchase_batches WHERE id = ?").run(id);
   });
   return { ok: true };
@@ -424,10 +445,11 @@ export function splitBatchStock(spId: number, qty: number, mode: "hold" | "split
 }
 
 /** Ticked rows: stock rows are kept in Japan for a later batch (origin remembered), order lines simply leave the batch. */
-export function holdBatchRows(batchId: number, stockIds: number[], itemIds: number[]): { stock: number; lines: number } {
+export function holdBatchRows(batchId: number, stockIds: number[], itemIds: number[], lotIds: number[] = []): { stock: number; lines: number; lots: number } {
+  const lotsRes = lotIds.length ? removeLotsFromBatch(lotIds) : { removed: 0 };
   const db = getDb();
   const batch = db.prepare("SELECT code FROM purchase_batches WHERE id = ?").get(batchId) as { code: string } | undefined;
-  if (!batch) return { stock: 0, lines: 0 };
+  if (!batch) return { stock: 0, lines: 0, lots: lotsRes.removed };
   const now = new Date().toISOString();
   let stock = 0;
   let lines = 0;
@@ -445,7 +467,7 @@ export function holdBatchRows(batchId: number, stockIds: number[], itemIds: numb
       lines = Number(db.prepare(`UPDATE order_items SET batch_id = NULL WHERE batch_id = ? AND id IN (${ph})`).run(batchId, ...itemIds).changes);
     }
   });
-  return { stock, lines };
+  return { stock, lines, lots: lotsRes.removed };
 }
 
 /** Stock rows (held in Japan, or plain "mua lưu kho" slips) → into a batch; the row catches up with the batch status. */
@@ -465,4 +487,86 @@ export async function moveStockToBatch(spIds: number[], batchId: number): Promis
   }
   if (moved) db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
   return { moved, code: batch.code };
+}
+
+// ---------- lots in a shipment (Kho Nhật → chuyến) ----------
+
+const LOCK_FROM: PurchaseStatus = "shipped_jp_vn";
+
+/** Lots at Kho Nhật (shop) go into a gathering / bought batch; a partial quantity splits the lot first (reservations travel). */
+export function addLotsToBatch(batchId: number, items: Array<{ lotId: number; qty?: number | null }>): { ok: boolean; message: string; added: number } {
+  const db = getDb();
+  const batch = db.prepare("SELECT id, code, status FROM purchase_batches WHERE id = ?").get(batchId) as { id: number; code: string; status: string } | undefined;
+  if (!batch) return { ok: false, message: "Không tìm thấy chuyến.", added: 0 };
+  if (purchaseIndex(statusOf(batch.status)) >= purchaseIndex(LOCK_FROM)) return { ok: false, message: `Chuyến ${batch.code} đã bay NB→VN — không thêm lô được nữa.`, added: 0 };
+  let added = 0;
+  const skipped: string[] = [];
+  const now = new Date().toISOString();
+  withTransaction(db, () => {
+    for (const it of items) {
+      const lot = db.prepare("SELECT id, qty_left, warehouse, in_transit, batch_id FROM stock_lots WHERE id = ?").get(it.lotId) as { id: number; qty_left: number; warehouse: string; in_transit: number; batch_id: number | null } | undefined;
+      if (!lot) continue;
+      const heldUnits = heldAllocationsSync(db, lot.id).reduce((n, a) => n + a.qty, 0);
+      if (lot.qty_left <= 0 && heldUnits <= 0) continue;
+      if (lot.batch_id && lot.batch_id !== batchId) {
+        skipped.push(`lô #${lot.id} đang ở chuyến khác`);
+        continue;
+      }
+      if (lot.warehouse !== "jp" || lot.in_transit) {
+        skipped.push(`lô #${lot.id} không ở Kho Nhật (shop)`);
+        continue;
+      }
+      // a number below the unsold count splits: that many unsold units + every unit customers already paid for
+      const qty = typeof it.qty === "number" && it.qty >= 0 && it.qty < lot.qty_left ? it.qty : null;
+      if (qty !== null) {
+        const r = splitLotSync(db, lot.id, qty, { moveReservations: true, batchId });
+        if (!r.ok) {
+          skipped.push(`lô #${lot.id}: ${r.message}`);
+          continue;
+        }
+        added++;
+      } else if (lot.batch_id !== batchId) {
+        db.prepare("UPDATE stock_lots SET batch_id = ?, updated_at = ? WHERE id = ?").run(batchId, now, lot.id);
+        added++;
+      }
+    }
+    const lotIds = (db.prepare("SELECT id FROM stock_lots WHERE batch_id = ?").all(batchId) as Array<{ id: number }>).map((r) => r.id);
+    // lines served from these lots now show the batch
+    for (const id of lotIds) for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(id) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
+    db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
+  });
+  return { ok: added > 0 || !skipped.length, message: `Đã đưa ${added} lô vào chuyến ${batch.code}${skipped.length ? ` · bỏ qua: ${skipped.join("; ")}` : ""}.`, added };
+}
+
+/** "Giữ lại Nhật": lots leave the batch and stand at Kho Nhật (shop) again — allowed until the batch has flown. */
+export function removeLotsFromBatch(lotIds: number[]): { ok: boolean; message: string; removed: number } {
+  const db = getDb();
+  let removed = 0;
+  let merged = 0;
+  const refused: string[] = [];
+  withTransaction(db, () => {
+    for (const id of lotIds) {
+      const lot = db.prepare("SELECT l.id, l.batch_id, b.code, b.status FROM stock_lots l LEFT JOIN purchase_batches b ON b.id = l.batch_id WHERE l.id = ?").get(id) as { id: number; batch_id: number | null; code: string | null; status: string | null } | undefined;
+      if (!lot || !lot.batch_id) continue;
+      if (purchaseIndex(statusOf(lot.status)) >= purchaseIndex(LOCK_FROM)) {
+        refused.push(`lô #${id} (chuyến ${lot.code} đã bay)`);
+        continue;
+      }
+      db.prepare("UPDATE stock_lots SET batch_id = NULL WHERE id = ?").run(id);
+      setLotLocationSync(db, [id], "jp", false);
+      removed++;
+      // a part split off for this shipment rejoins its parent lot if that one still waits at Kho Nhật outside any shipment
+      const parent = db.prepare("SELECT p.id FROM stock_lots c JOIN stock_lots p ON p.id = c.parent_lot_id WHERE c.id = ? AND p.warehouse = 'jp' AND COALESCE(p.in_transit, 0) = 0 AND p.batch_id IS NULL AND p.qty_left > 0").get(id) as { id: number } | undefined;
+      if (parent) {
+        const m = mergeLotBackSync(db, id);
+        if (m.ok) merged++;
+      }
+    }
+  });
+  return { ok: removed > 0 || !refused.length, message: `Đã giữ lại Nhật ${removed} lô${merged ? ` (gộp lại ${merged} lô về lô gốc)` : ""}${refused.length ? ` · không rút được: ${refused.join("; ")}` : ""}.`, removed };
+}
+
+/** Lots that can still be put into a shipment: at Kho Nhật (shop), not in any batch. */
+export function listLotsAvailableForBatch(): ReturnType<typeof listLotViews> {
+  return listLotViews(getDb(), {}).filter((l) => l.warehouse === "jp" && !l.inTransit && !l.batchId);
 }

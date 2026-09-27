@@ -140,7 +140,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     const lotDays = (lotsByProduct.get(p.id) ?? []).map((l) => daysToExpiry(l.expiry)).filter((d): d is number => d !== null);
     const stockByWarehouse = emptyByWarehouse();
     for (const l of lotsByProduct.get(p.id) ?? []) stockByWarehouse[l.warehouse] += l.qtyLeft;
-    const lotted = stockByWarehouse.jp + stockByWarehouse.carrier + stockByWarehouse.vn;
+    const lotted = stockByWarehouse.jp + stockByWarehouse.jp_carrier + stockByWarehouse.carrier + stockByWarehouse.vn;
     if ((p.stock ?? 0) > lotted) stockByWarehouse[DEFAULT_WAREHOUSE] += (p.stock ?? 0) - lotted;
     return {
       stockByWarehouse,
@@ -177,7 +177,7 @@ export async function getInventory(): Promise<{ lines: InventoryLine[]; summary:
     inTransitUnits: lines.reduce((s, l) => s + l.pipeline.inTransit, 0),
     inTransitValue: lines.reduce((s, l) => s + l.pipeline.inTransit * (l.product.costPrice ?? 0), 0),
     atShopUnits: lines.reduce((s, l) => s + l.pipeline.atShop, 0),
-    unitsByWarehouse: lines.reduce((acc, l) => ({ jp: acc.jp + l.stockByWarehouse.jp, carrier: acc.carrier + l.stockByWarehouse.carrier, vn: acc.vn + l.stockByWarehouse.vn }), emptyByWarehouse()),
+    unitsByWarehouse: lines.reduce((acc, l) => ({ jp: acc.jp + l.stockByWarehouse.jp, jp_carrier: acc.jp_carrier + l.stockByWarehouse.jp_carrier, carrier: acc.carrier + l.stockByWarehouse.carrier, vn: acc.vn + l.stockByWarehouse.vn }), emptyByWarehouse()),
     expiringSoonUnits: allLots.filter((l) => expiryState(l.expiry) === "soon").reduce((s, l) => s + l.qtyLeft, 0),
     expiredUnits: allLots.filter((l) => expiryState(l.expiry) === "expired").reduce((s, l) => s + l.qtyLeft, 0),
     inStockProducts: lines.filter((l) => (l.product.stock ?? 0) > 0).length,

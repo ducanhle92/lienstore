@@ -99,8 +99,14 @@ export interface StockLot {
   unitCostVnd: number | null;
   /** ISO date (YYYY-MM-DD) or null. */
   expiry: string | null;
-  /** Which warehouse the lot sits in (Kho Nhật / Kho ĐVVC / Kho Việt Nam). */
+  /** Which warehouse the lot sits in (Kho Nhật shop / ĐVVC Nhật / ĐVVC VN / Kho Việt Nam shop). */
   warehouse: Warehouse;
+  /** On the way between two warehouses (flying NB→VN from jp_carrier, or on the truck to the shop from carrier). */
+  inTransit: boolean;
+  /** Shipment (đợt gửi / chuyến hàng) the lot travels in, if any. */
+  batchId: number | null;
+  /** Lot this one was split off from ("tách một phần lô"). */
+  parentLotId: number | null;
   /** Shelf / box / room, free text. */
   location: string;
   note: string;
@@ -196,6 +202,9 @@ export interface PurchaseBatch {
   createdAt: string;
   updatedAt: string;
   lines: PurchaseBatchLine[];
+  /** Lots travelling in this shipment (a lot exists from "Tại kho Nhật" on). */
+  lots: import("@/lib/lots-db").LotView[];
+  /** Purchase slips in the batch that are not lots yet (Chưa mua / Đã đặt mua). */
   stock: PurchaseBatchStock[];
   /** Rows split off this batch and kept in Japan: still waiting, or already travelling in a later batch. */
   held: PurchaseBatchStock[];

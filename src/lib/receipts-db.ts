@@ -188,7 +188,7 @@ export function createDraftFromBill(text: string, input: { sourceKey: string; bo
  * lines become "Đã mua" on this receipt — and whatever is left over becomes a warehouse-lot purchase ("mua lưu kho",
  * bought, bound for the Japan warehouse) on the same receipt.
  */
-export async function confirmReceipt(id: number, productByItem: Record<number, number | null>): Promise<{ linesCovered: number; stockUnits: number } | null> {
+export async function confirmReceipt(id: number, productByItem: Record<number, number | null>, opts: { received?: boolean } = {}): Promise<{ linesCovered: number; stockUnits: number } | null> {
   const db = getDb();
   const receipt = getReceipt(id);
   if (!receipt || receipt.status !== "draft") return null;
@@ -197,7 +197,9 @@ export async function confirmReceipt(id: number, productByItem: Record<number, n
   let stockUnits = 0;
   // booked into a shipment batch → the stock rows join the batch and take its status (at least "bought")
   const batch = receipt.batchId ? (db.prepare("SELECT id, code, status FROM purchase_batches WHERE id = ?").get(receipt.batchId) as { id: number; code: string; status: string } | undefined) : undefined;
-  const batchStatus: PurchaseStatus = batch && purchaseIndex((batch.status as PurchaseStatus) || "not_bought") > purchaseIndex("bought") ? (batch.status as PurchaseStatus) : "bought";
+  // in hand (counter purchase) → lot at Kho Nhật now (or wherever the batch already is); ordered online → slip until "Đã nhận"
+  const received = opts.received !== false;
+  const batchStatus: PurchaseStatus = !received ? "ordered" : batch && purchaseIndex((batch.status as PurchaseStatus) || "not_bought") > purchaseIndex("bought") ? (batch.status as PurchaseStatus) : "bought";
   const bought: Array<{ productId: number; qty: number; unitJpy: number | null }> = [];
   withTransaction(db, () => {
     const setItem = db.prepare("UPDATE purchase_receipt_items SET product_id = ? WHERE id = ?");

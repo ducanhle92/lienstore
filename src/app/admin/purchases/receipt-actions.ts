@@ -54,10 +54,10 @@ export async function confirmReceiptAction(formData: FormData): Promise<void> {
     map[Number(m[1])] = Number.isInteger(pid) && pid > 0 ? pid : null;
   }
   const back = backOf(formData);
-  const r = await confirmReceipt(id, map);
+  const r = await confirmReceipt(id, map, { received: text(formData, "received") !== "0" });
   revalidatePath("/admin", "layout");
   if (!r) go("error", "Phiếu không còn ở trạng thái nháp.", "", back);
-  go("saved", `Đã xác nhận phiếu: ${r!.linesCovered} dòng đơn chuyển sang "Đã mua"${r!.stockUnits ? `, ${r!.stockUnits} đơn vị thành phiếu mua lưu kho` : ""}.`, `#receipt-${id}`, back);
+  go("saved", `Đã xác nhận phiếu: ${r!.linesCovered} dòng đơn có nguồn${r!.stockUnits ? `, ${r!.stockUnits} đơn vị lưu kho` : ""} — ${text(formData, "received") !== "0" ? "hàng đã cầm, thành lô ở Kho Nhật (shop)" : "đã đặt mua online, chờ nhận"}.`, `#receipt-${id}`, back);
 }
 
 export async function updateReceiptAction(formData: FormData): Promise<void> {
