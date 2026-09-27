@@ -8,6 +8,8 @@ import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource, StockPurchase } from "@/types/shop";
+import type { LotView } from "@/lib/lots-db";
+import { describeLocation } from "@/lib/warehouses";
 
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
@@ -25,12 +27,71 @@ interface Props {
   batches?: Array<{ id: number; code: string; label: string }>;
   /** Reservations per slip id (orders holding units of a slip that is not a lot yet). */
   reserved?: Map<number, Array<{ orderId: string; orderNumber: number; qty: number }>>;
+  /** Lots with free units (bought in a batch, not sold yet): what is on its way / in stock. */
+  lots?: LotView[];
 }
 
 /** Quản lý mua hàng › tab "Mua lưu kho": buy-for-stock slips (no order behind them) + their journey to the warehouse. */
-export function StockPurchasePanel({ purchases, products, sources, includeDone, batches = [], reserved = new Map() }: Props) {
+export function StockPurchasePanel({ purchases, products, sources, includeDone, batches = [], reserved = new Map(), lots = [] }: Props) {
+  const freeUnits = lots.reduce((n, l) => n + l.free, 0);
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="min-w-0 space-y-6">
+      <Card title={`Hàng lưu kho từ các đợt mua (${lots.length} lô · ${freeUnits} đv chưa bán)`} actions={<Link href="/admin/inventory/?side=jp" className="text-[13px] text-lien-blue hover:underline">Kho hàng →</Link>}>
+        <p className="m-0 mb-2 text-[12px] text-lien-muted">Mua ở tab “Mua theo đợt” mà chưa gắn đơn nào = hàng lưu kho, đang ở vị trí bên dưới (Kho Nhật → ĐVVC → Kho VN). Sửa lô ở tab Mua theo đợt hoặc trang lô của sản phẩm.</p>
+        {lots.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Chưa có lô nào còn hàng chưa bán.</p> : null}
+        {lots.length ? (
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr>
+                  <th className={thClass}>Sản phẩm</th>
+                  <th className={thClass}>Lô #</th>
+                  <th className={thClass}>Vị trí</th>
+                  <th className={thClass}>Đợt</th>
+                  <th className={thClass}>HSD</th>
+                  <th className={thClass}>Chưa bán / còn</th>
+                  <th className={thClass}>Mua ở · ¥</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lots.map((l) => (
+                  <tr key={l.id} className="hover:bg-[#fafafa]" data-testid={`stock-lot-${l.id}`}>
+                    <td className={`${tdClass} min-w-[200px]`}>
+                      <Link href={`/admin/inventory/lots/${l.productId}/`} className="text-[13px] font-semibold text-lien-heading hover:text-lien-blue">
+                        {l.productName}
+                      </Link>
+                      <span className="block text-[11px] text-lien-muted">
+                        #{l.productId}
+                        {l.productSku ? ` · ${l.productSku}` : ""}
+                      </span>
+                    </td>
+                    <td className={`${tdClass} text-[12px]`}>#{l.id}</td>
+                    <td className={`${tdClass} text-[12px]`}>{describeLocation(l.warehouse, l.inTransit)}</td>
+                    <td className={`${tdClass} text-[12px]`}>
+                      {l.batchId ? (
+                        <Link href={`/admin/purchases/?tab=batches#batch-${l.batchId}`} className="font-mono text-[11px] text-lien-blue hover:underline">
+                          {l.batchCode}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className={`${tdClass} text-[12px]`}>{l.expiry ? formatDate(l.expiry) : "—"}</td>
+                    <td className={`${tdClass} text-[12px]`}>
+                      <b>{l.free}</b> / {l.physical}
+                    </td>
+                    <td className={`${tdClass} text-[12px]`}>
+                      {purchaseSourceName(l.sourceKey, sources)}
+                      {l.unitCostJpy ? ` · ¥${formatAmount(l.unitCostJpy)}` : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
       <Card title={`Phiếu chưa thành lô (${purchases.filter((p) => !p.lotId).length})`} actions={<Link href={`/admin/purchases/?tab=stock${includeDone ? "" : "&done=1"}`} className="text-[13px] text-lien-blue hover:underline">{includeDone ? "Ẩn phiếu đã thành lô" : "Xem cả phiếu đã thành lô"}</Link>}>
         <form action={bulkStockPurchaseAction} id="bulk-stock">
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
@@ -166,6 +227,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
         </div>
       </Card>
 
+      </div>
       <Card title="Mua lưu kho (không theo đơn)">
         <form action={createStockPurchaseAction} className="grid gap-3" data-testid="stock-purchase-add">
           <div>

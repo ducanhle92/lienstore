@@ -49,7 +49,7 @@ import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, SHIP_STAGES, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
 import { liveGhnTransferMethod } from "./carriers/ghn-transfer";
-import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
+import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
@@ -2021,6 +2021,33 @@ export function splitLotSync(db: DatabaseSync, lotId: number, qty: number, opts:
   for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(childId) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
   return { ok: true, childId, message: `Đã tách ${qty} đv${heldUnits ? ` + ${heldUnits} đv đã thanh toán` : ""} thành lô #${childId}.` };
 }
+/** Ticked lots (a part of each when qty is given: that many unsold units + the paid units) move to the place `status` means. */
+export async function moveLotsToStatus(items: Array<{ lotId: number; qty?: number | null }>, status: PurchaseStatus): Promise<{ ok: boolean; message: string; moved: number }> {
+  const db = getDb();
+  const loc = locationForStatus(status);
+  if (!loc) return { ok: false, message: "Trạng thái này không ứng với vị trí kho.", moved: 0 };
+  const skipped: string[] = [];
+  let moved = 0;
+  withTransaction(db, () => {
+    for (const it of items) {
+      const lot = db.prepare("SELECT id, qty_left FROM stock_lots WHERE id = ?").get(it.lotId) as { id: number; qty_left: number } | undefined;
+      if (!lot) continue;
+      let id = lot.id;
+      if (typeof it.qty === "number" && it.qty >= 0 && it.qty < lot.qty_left) {
+        const r = splitLotSync(db, lot.id, it.qty, { moveReservations: true });
+        if (!r.ok) {
+          skipped.push(`lô #${lot.id}: ${r.message}`);
+          continue;
+        }
+        id = r.childId!;
+      }
+      setLotLocationSync(db, [id], loc.warehouse, loc.inTransit);
+      moved++;
+    }
+  });
+  return { ok: moved > 0 || !skipped.length, message: `Đã chuyển ${moved} lô → ${PURCHASE_STAGES[purchaseIndex(status)].label}${skipped.length ? ` · bỏ qua: ${skipped.join("; ")}` : ""}.`, moved };
+}
+
 /** "Gộp lại": a split-off lot returns to its parent — same place, same shipment (or none), same expiry; reservations follow. */
 export function mergeLotBackSync(db: DatabaseSync, childId: number): { ok: boolean; parentId?: number; message: string } {
   const c = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(childId) as LotRow | undefined;

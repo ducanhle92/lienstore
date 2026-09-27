@@ -8,7 +8,8 @@ import { PurchaseBatchPanel } from "@/components/sites/lienstore/admin/PurchaseB
 import { listAllocationViews, listReservationsForStockPurchases } from "@/lib/allocations-db";
 import { itemIdsNeedingPurchase } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
-import { listBatchHeads, listLotsAvailableForBatch, listOpenSurplus, listPurchaseBatches } from "@/lib/purchase-batches-db";
+import { listBatchHeads, listOpenSurplus, listPurchaseBatches } from "@/lib/purchase-batches-db";
+import { listLotViews } from "@/lib/lots-db";
 import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
 import { todayIso } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
@@ -46,7 +47,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const showAll = first(sp.all) === "1";
   const needIds = itemIdsNeedingPurchase(getDb());
   // three tabs; the old "receipts" tab maps to Mua theo đặt hàng with the bill section open
-  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "batches" ? "batches" : "orders";
+  const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "orders" ? "orders" : "batches";
   const receiptsOpen = first(sp.receipts) === "1" || first(sp.tab) === "receipts" || !!first(sp.draft);
   // date range on the order's creation time (shop day, inclusive) + purchase source
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
@@ -60,7 +61,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const openSurplus = listOpenSurplus();
   void openSurplus;
   const allocViews = tab === "orders" ? listAllocationViews(getDb(), all.map((l) => l.itemId)) : [];
-  const jpLots = tab === "batches" ? listLotsAvailableForBatch() : [];
+  const stockLots = tab === "stock" ? listLotViews(getDb(), {}).filter((l) => l.free > 0) : [];
   const draftId = Number.parseInt(first(sp.draft), 10);
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
   const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
@@ -105,19 +106,20 @@ export default async function AdminPurchases({ searchParams }: Props) {
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
       <div className="mb-5 flex flex-wrap gap-2" data-testid="purchase-tabs">
-        <Link href="/admin/purchases/" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+        <Link href="/admin/purchases/?tab=batches" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "batches" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-batches">
+          Mua theo đợt ({batchHeads.length} đợt đang mở)
+        </Link>
+        <Link href="/admin/purchases/?tab=orders" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Mua theo đặt hàng ({needCount} dòng cần mua)
         </Link>
         <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
         </Link>
-        <Link href="/admin/purchases/?tab=batches" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "batches" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-batches">
-          Chuyến hàng NB→VN ({batchHeads.length} chuyến)
-        </Link>
+
       </div>
 
-      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} reserved={listReservationsForStockPurchases(getDb(), stockPurchases.map((p) => p.id))} /> : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} jpLots={jpLots} /> : null}
+      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} reserved={listReservationsForStockPurchases(getDb(), stockPurchases.map((p) => p.id))} lots={stockLots} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}

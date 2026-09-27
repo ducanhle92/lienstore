@@ -67,7 +67,7 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
   const short = all.length - ready;
   const needUnits = all.reduce((n, g) => n + g.needUnits, 0);
   const chip = (v: "" | "need" | "ready", label: string) => (
-    <Link key={v} href={`/admin/purchases/?${new URLSearchParams({ ...(filter.q ? { q: filter.q } : {}), ...(v ? { only: v } : {}) }).toString()}`} className={cn("rounded-full border px-2.5 py-0.5 text-[12px] font-semibold no-underline", filter.only === v ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:border-lien-blue")}>
+    <Link key={v} href={`/admin/purchases/?${new URLSearchParams({ tab: "orders", ...(filter.q ? { q: filter.q } : {}), ...(v ? { only: v } : {}) }).toString()}`} className={cn("rounded-full border px-2.5 py-0.5 text-[12px] font-semibold no-underline", filter.only === v ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:border-lien-blue")}>
       {label}
     </Link>
   );
@@ -90,6 +90,7 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
 
       <Card>
         <form method="get" className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+          <input type="hidden" name="tab" value="orders" />
           {filter.only ? <input type="hidden" name="only" value={filter.only} /> : null}
           <input name="q" defaultValue={filter.q} placeholder="Tìm #đơn, tên khách, sản phẩm, SKU…" className={cn(adminInput, "!mb-0 !w-[280px] !py-1")} aria-label="Tìm đơn" />
           <button type="submit" className={cn(btnSecondary, "!py-1")}>

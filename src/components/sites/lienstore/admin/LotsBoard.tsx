@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { holdLotsAction, mergeLotAction, sendLotsToBatchAction, splitLotAction } from "@/app/admin/inventory/lot-actions";
+import { mergeLotAction, moveLotsAction, splitLotAction } from "@/app/admin/inventory/lot-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount, formatDate, formatPrice } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
@@ -60,6 +60,9 @@ export function applyLotsFilter(lots: LotView[], f: LotsFilter): LotView[] {
  * Kho hàng by lot: two coloured tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho shop" (actions) and "Tại kho ĐVVC"
  * (read-only), the NB→VN flight strip in between. FEFO order everywhere.
  */
+/** Places a lot at Kho Nhật (shop) can be sent to. */
+const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchaseIndex("bought") && purchaseIndex(s.key) <= purchaseIndex("at_shop"));
+
 export function LotsBoard({ side, lots, flying, filter, sources, batches, readyOrders, backUrl }: Props) {
   const totals = lotTotals(lots, side);
   const shopWh = side === "jp" ? "jp" : "vn";
@@ -71,9 +74,8 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, readyO
   const atShop = shown.filter((l) => l.warehouse === shopWh);
   const atCarrier = shown.filter((l) => l.warehouse === carrierWh);
   const accent = side === "jp" ? "blue" : "red";
-  const gathering = batches.filter((b) => purchaseIndex((b.status as never) || "not_bought") < purchaseIndex("shipped_jp_vn"));
+  void batches;
   const srcOptions = Array.from(new Set(lots.map((l) => l.sourceKey))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
-  const hasHeld = atShop.some((l) => l.batchId);
   const formId = `lots-${side}`;
   return (
     <div className="space-y-4" data-testid={`lots-board-${side}`}>
@@ -127,31 +129,23 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, readyO
       <Card title={`${WAREHOUSE_LABEL[shopWh]} — tại kho shop (${atShop.length} lô · ${atShop.reduce((n, l) => n + l.physical, 0)} đv)`}>
         {side === "jp" ? (
           <>
-            <form id={formId} action={sendLotsToBatchAction}>
+            <form id={formId} action={moveLotsAction}>
               <input type="hidden" name="back" value={backUrl} />
             </form>
             <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid="jp-bulk-bar">
               <LotPicker formId={formId} scope={`shop-${side}`} />
               <span className="mx-1 text-lien-muted">|</span>
               <span className="font-semibold text-lien-heading">Lô đã tick →</span>
-              <select name="batchId" form={formId} defaultValue={gathering[0]?.id ?? "new"} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyến">
-                {gathering.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.code}
-                    {b.label ? ` · ${b.label}` : ""}
+              <select name="status" form={formId} defaultValue="to_carrier_jp" className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
+                {MOVE_STAGES.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
                   </option>
                 ))}
-                <option value="new">+ Chuyến mới</option>
               </select>
-              <input name="newLabel" form={formId} placeholder="tên chuyến mới (tuỳ chọn)" className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[12px]")} aria-label="Tên chuyến mới" />
-              <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Đưa các lô đã tick (hoặc phần SL đã nhập) vào chuyến; lô đã giữ lại trước đó gộp lại cũng bằng nút này">
-                <Fa name="truck" /> Đưa vào chuyến / gộp lại
+              <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển các lô đã tick (hoặc phần SL đã nhập) sang vị trí đã chọn; đợt mua của lô giữ nguyên">
+                <Fa name="truck" /> Chuyển
               </button>
-              {hasHeld ? (
-                <button type="submit" form={formId} formAction={holdLotsAction} className={cn(btnSecondary, "!py-1")} title="Rút lô đã tick khỏi chuyến đang gom (chỉ khi chuyến chưa bay)">
-                  <Fa name="archive" /> Giữ lại
-                </button>
-              ) : null}
             </div>
           </>
         ) : null}
@@ -188,7 +182,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, readyO
 
       {/* carrier block (read-only) */}
       <Card title={`${WAREHOUSE_LABEL[carrierWh]} — tại kho ĐVVC (${atCarrier.length} lô · ${atCarrier.reduce((n, l) => n + l.physical, 0)} đv)`}>
-        <p className="m-0 mb-2 text-[12px] text-lien-muted">{side === "jp" ? "Đã giao cho Kiến Express tại Nhật, chờ bay. Chỉ xem; trạng thái đổi theo chuyến ở Quản lý mua hàng › Chuyến hàng." : "Đã về Hà Nội, chờ chuyển tới kho shop. Lô đang trên đường tới shop có nhãn “đang về”."}</p>
+        <p className="m-0 mb-2 text-[12px] text-lien-muted">{side === "jp" ? "Đã giao cho Kiến Express tại Nhật, chờ bay. Chỉ xem; đổi trạng thái ở Quản lý mua hàng › Mua theo đợt (từng dòng hoặc cả đợt)." : "Đã về Hà Nội, chờ chuyển tới kho shop. Lô đang trên đường tới shop có nhãn “đang về”."}</p>
         <LotTable lots={atCarrier} sources={sources} scope={`carrier-${side}`} formId={null} backUrl={backUrl} readOnly />
       </Card>
 
@@ -202,7 +196,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, readyO
               {flying.map((l) => (
                 <li key={l.id}>
                   lô #{l.id} · {l.productName} ×{l.physical}
-                  {l.batchCode ? ` · chuyến ${l.batchCode}` : ""}
+                  {l.batchCode ? ` · đợt ${l.batchCode}` : ""}
                   {l.reserved.length ? ` · giữ cho ${l.reserved.map((r) => `#${r.orderNumber}×${r.qty}`).join(", ")}` : ""}
                 </li>
               ))}
@@ -242,7 +236,7 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
             <th className={thClass}>Giữ cho đơn</th>
             <th className={thClass}>Tự do</th>
             <th className={thClass}>¥/đv</th>
-            <th className={thClass}>Chuyến</th>
+            <th className={thClass}>Đợt mua</th>
             <th className={thClass}>Ghi chú</th>
             {formId ? <th className={thClass}>Gửi SL</th> : null}
             {!readOnly ? <th className={thClass}>Tách</th> : null}
@@ -332,7 +326,7 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
                 </td>
                 {formId ? (
                   <td className={tdClass}>
-                    <input name={`qty_${l.id}`} form={formId} inputMode="numeric" placeholder={String(l.qtyLeft)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số đơn vị chưa bán đưa vào chuyến (trống = cả lô)" title="Trống = cả lô; số nhỏ hơn = tách bấy nhiêu đv chưa bán (hàng khách đã thanh toán luôn đi cùng); 0 = chỉ hàng đã thanh toán" />
+                    <input name={`qty_${l.id}`} form={formId} inputMode="numeric" placeholder={String(l.qtyLeft)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số đơn vị chưa bán chuyển đi (trống = cả lô)" title="Trống = cả lô; số nhỏ hơn = tách bấy nhiêu đv chưa bán (hàng khách đã thanh toán luôn đi cùng); 0 = chỉ hàng đã thanh toán" />
                   </td>
                 ) : null}
                 {!readOnly ? (

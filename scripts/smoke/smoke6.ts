@@ -3,7 +3,7 @@
 // places; removing a lot is allowed before NB→VN and refused after; pickup/delivery readiness only from Kho VN (shop).
 import assert from "node:assert/strict";
 import { allocateOrderSync, listAllocationViews } from "../../src/lib/allocations-db";
-import { addStockLot, deleteStockLot, listStockLots, setOrderTransferReceived } from "../../src/lib/db";
+import { addStockLot, deleteStockLot, listStockLots, moveLotsToStatus, setOrderTransferReceived } from "../../src/lib/db";
 import { listLotViews, listOrdersReadyToShip } from "../../src/lib/lots-db";
 import { addLotsToBatch, createPurchaseBatch, deletePurchaseBatch, listLotsAvailableForBatch, removeLotsFromBatch, setPurchaseBatchStatus } from "../../src/lib/purchase-batches-db";
 import { getDb, withTransaction } from "../../src/lib/sqlite";
@@ -134,6 +134,19 @@ async function main() {
   assert.equal((db.prepare("SELECT COUNT(*) AS n FROM stock_lots WHERE product_id = ? AND batch_id = ?").get(pid, b2.id) as { n: number }).n, 0);
   assert.ok((db.prepare("SELECT warehouse FROM stock_lots WHERE product_id = ? AND batch_id IS NULL").all(pid) as Array<{ warehouse: string }>).every((l) => l.warehouse === "jp" || l.warehouse === "vn"));
   assert.equal(stockOf(pid), 13, "stock = units left − open reservations, across every place");
+
+  // G. Kho hàng "Chuyển": part of a lot (2 unsold) goes to ĐVVC Nhật, the rest stays; the batch of the lot is unchanged
+  const mv = await moveLotsToStatus([{ lotId: A.id, qty: 2 }], "to_carrier_jp");
+  assert.ok(mv.ok && mv.moved === 1, mv.message);
+  const part = db.prepare("SELECT id, qty_left, warehouse, batch_id FROM stock_lots WHERE parent_lot_id = ? AND warehouse = 'jp_carrier'").get(A.id) as { id: number; qty_left: number; warehouse: string; batch_id: number | null };
+  assert.ok(part, "split part at the carrier");
+  assert.equal(part.qty_left, 2);
+  assert.equal(part.batch_id, lot(A.id)!.batch_id, "batch (đợt mua) stays");
+  assert.equal(lot(A.id)!.qty_left, 3);
+  assert.equal(lot(A.id)!.warehouse, "jp");
+  assert.ok((await moveLotsToStatus([{ lotId: part.id }], "at_shop")).ok);
+  assert.equal(lot(part.id)!.warehouse, "vn");
+  assert.equal(stockOf(pid), 13);
   console.log("SMOKE6 OK");
 }
 main().catch((e) => {

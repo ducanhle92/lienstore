@@ -6,6 +6,9 @@ import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus } from "@/lib/purchase";
 import { isBatchStatus } from "@/lib/purchase-batches";
+import { moveLotsToStatus, updateStockLot } from "@/lib/db";
+import { getDb } from "@/lib/sqlite";
+import { statusForLocation } from "@/lib/warehouses";
 import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
@@ -137,6 +140,49 @@ export async function deleteBatchAction(formData: FormData): Promise<void> {
 }
 
 /** One stock row of a batch (SL, nguồn, HSD, ngày mua, ¥, ghi chú, trạng thái — or just the product from "đổi sản phẩm"). */
+/** ✓ on a lot row of a batch: unsold qty, source, HSD, bought date, ¥, note, and the status (= place) of the lot. */
+export async function updateBatchLotAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  const lotId = intOr(formData, "lotId");
+  if (!batchId || !lotId) go("error", "Yêu cầu không hợp lệ.");
+  const patch: Parameters<typeof updateStockLot>[1] = {};
+  if (formData.has("qtyLeft")) {
+    const q = intOr(formData, "qtyLeft");
+    if (q === null || q < 0) go("error", "Số lượng không hợp lệ.", batchId);
+    patch.qtyLeft = q!;
+  }
+  if (formData.has("sourceKey")) patch.sourceKey = text(formData, "sourceKey");
+  if (formData.has("expiry")) {
+    const raw = text(formData, "expiry");
+    const v = raw ? parseExpiry(raw) : null;
+    if (raw && !v) go("error", "Hạn dùng không hợp lệ (VD 2027-03-31, 03/2027).", batchId);
+    patch.expiry = v;
+  }
+  if (formData.has("boughtAt")) {
+    const v = dateOrNull(text(formData, "boughtAt"));
+    if (v === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
+    patch.boughtAt = v ?? null;
+  }
+  if (formData.has("unitCostJpy")) {
+    const raw = text(formData, "unitCostJpy").replace(/[^\d]/g, "");
+    patch.unitCostJpy = raw ? Number.parseInt(raw, 10) : null;
+  }
+  if (formData.has("note")) patch.note = text(formData, "note").slice(0, 300);
+  const ok = await updateStockLot(lotId!, patch);
+  if (!ok) go("error", "Không tìm thấy lô.", batchId);
+  const status = text(formData, "status");
+  if (status && isPurchaseStatus(status)) {
+    const cur = getDb().prepare("SELECT warehouse, in_transit FROM stock_lots WHERE id = ?").get(lotId!) as { warehouse: string; in_transit: number } | undefined;
+    if (cur && statusForLocation(cur.warehouse as never, !!cur.in_transit) !== status) {
+      const r = await moveLotsToStatus([{ lotId: lotId! }], status);
+      if (!r.ok) go("error", r.message, batchId);
+    }
+  }
+  revalidatePath("/admin", "layout");
+  go("saved", `Đã lưu lô #${lotId}.`, batchId);
+}
+
 export async function updateBatchStockAction(formData: FormData): Promise<void> {
   await requireAdmin("inventory");
   const batchId = intOr(formData, "batchId");

@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Quản lý mua hàng: tab **Mua theo đợt** đứng đầu và là tab mặc định (một đợt = một lần đi mua / một bill, hàng nằm ở shop Nhật chờ gửi về); tab Mua theo đặt hàng và Mua lưu kho đứng sau.
+- Mua theo đợt: bỏ khái niệm “chuyến hàng NB→VN” (1.79.0). Dòng lô trong đợt **sửa được mọi trường như trước**: SL chưa bán (kèm “+n đã TT” = hàng khách đã thanh toán còn trong lô), mua ở, HSD, ngày mua, ¥/đv, trạng thái (= vị trí lô: Tại kho Nhật → ĐVVC Nhật → NB→VN → kho ĐVVC VN → Tại kho VN), cột **Cửa hàng · ghi chú**, nút ✓ lưu và tách lô. Dòng đơn trong đợt sửa như cũ. Form **Thêm sản phẩm đã mua vào đợt** trở lại (tìm tên, mua ở, SL, HSD, ngày mua, ¥, ghi chú) — hàng thêm thành lô ở Kho Nhật (shop) ngay và tự gán cho đơn đang chờ. Bỏ hoàn toàn “Giữ Nhật” (từng dòng và hàng loạt) và khung “Chọn lô từ Kho Nhật”; “Cả đợt →” vẫn đổi trạng thái mọi dòng một lần.
+- Mua lưu kho: thêm bảng **Hàng lưu kho từ các đợt mua** (lô còn hàng chưa bán: vị trí, đợt, HSD, chưa bán / còn, mua ở · ¥) ăn theo tab Mua theo đợt; phía dưới vẫn là phiếu chưa thành lô.
+- Kho hàng › Kho Nhật › tại kho shop: thanh “Lô đã tick → [vị trí] Chuyển” thay cho Đưa vào chuyến / Giữ lại; SL nhập = phần chưa bán chuyển đi (0 = chỉ hàng khách đã thanh toán), đợt mua của lô giữ nguyên; cột “Chuyến” đổi thành “Đợt mua”.
+
 ## [1.79.0] - 2026-09-27
 
 ### Changed
