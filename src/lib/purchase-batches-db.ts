@@ -372,6 +372,12 @@ export async function updateBatchStock(spId: number, patch: { productId?: number
   const held = reservedOn(db, "stock_purchase", spId);
   if (patch.qty && patch.qty > 0 && patch.qty < held) return { ok: false, message: `Dòng này đang giữ ${held} đv cho đơn khách — không giảm dưới số đó (đổi nguồn ở trang đơn trước).` };
   if (patch.productId && patch.productId !== cur.product_id && held > 0) return { ok: false, message: "Dòng này đang giữ hàng cho đơn khách — bỏ giữ chỗ ở trang đơn trước khi đổi sản phẩm." };
+  // the table shows the note without its "Đợt CODE · " prefix; put it back so the slip still says which batch it came with
+  let note = patch.note ?? cur.note;
+  if (patch.note !== undefined && cur.batch_id) {
+    const code = (db.prepare("SELECT code FROM purchase_batches WHERE id = ?").get(cur.batch_id) as { code: string } | undefined)?.code;
+    if (code && !note.startsWith(`Đợt ${code}`)) note = note ? `Đợt ${code} · ${note}` : `Đợt ${code}`;
+  }
   db.prepare("UPDATE stock_purchases SET product_id = ?, qty = ?, source_key = ?, expiry = ?, bought_at = ?, unit_cost_jpy = ?, note = ?, updated_at = ? WHERE id = ?").run(
     patch.productId ?? cur.product_id,
     patch.qty && patch.qty > 0 ? patch.qty : cur.qty,
@@ -379,7 +385,7 @@ export async function updateBatchStock(spId: number, patch: { productId?: number
     patch.expiry === undefined ? cur.expiry : patch.expiry,
     patch.boughtAt === undefined ? cur.bought_at : patch.boughtAt,
     patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy,
-    patch.note ?? cur.note,
+    note,
     new Date().toISOString(),
     spId,
   );

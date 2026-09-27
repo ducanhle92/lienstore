@@ -13,7 +13,16 @@ import { cn } from "@/lib/utils";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock, PurchaseSource } from "@/types/shop";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
+import { BatchFilter } from "./BatchFilter";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+
+/** The stored note starts with "Đợt DG-… · " on batch rows; the table shows only what comes after it. */
+const noteBody = (note: string, code: string) => {
+  const p = `Đợt ${code}`;
+  if (!note.startsWith(p)) return note;
+  const rest = note.slice(p.length);
+  return rest.startsWith(" · ") ? rest.slice(3) : rest.trim() === "" ? "" : note;
+};
 
 interface Props {
   batches: PurchaseBatch[];
@@ -133,7 +142,13 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
   const addFormId = `bl-${b.id}`;
   const bulkId = `bb-${b.id}`;
   const stockById = new Map(products.map((p) => [p.id, p.stock]));
+  const jaById = new Map(products.map((p) => [p.id, p.nameJa ?? ""]));
+  const searchOf = (productId: number, name: string, sku: string | null) => `${name} ${jaById.get(productId) ?? ""} ${sku ?? ""} #${productId}`;
   const waiting = b.held.filter((h) => !h.batchId);
+  // chips / suggestions for the filter bar, built from what the batch actually holds
+  const filterSources = Array.from(new Set([...b.lines.map((l) => l.sourceKey), ...b.stock.map((s) => s.sourceKey), ...b.held.map((h) => h.sourceKey)].filter(Boolean))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
+  const filterStatuses = Array.from(new Set([...b.lines.map((l) => l.purchaseStatus), ...b.stock.map((s) => s.status), ...b.held.map((h) => h.status)])).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
+  const filterOrders = Array.from(new Map(b.lines.map((l) => [l.orderNumber, { number: l.orderNumber, customer: l.customerName }])).values()).sort((x, y) => y.number - x.number);
   // one editable row per order line / stock row, grouped by product name (order lines first)
   const rows: Row[] = [...b.lines.map((l): Row => ({ kind: "line", key: `l-${l.itemId}`, name: l.productName, line: l })), ...b.stock.map((s): Row => ({ kind: "stock", key: `s-${s.id}`, name: s.productName, stock: s }))].sort((x, y) => x.name.localeCompare(y.name, "vi") || (x.kind === y.kind ? 0 : x.kind === "line" ? -1 : 1));
   const srcSelect: SrcSelect = (form, value, label) => (
@@ -227,6 +242,7 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
           </div>
         )}
 
+        <BatchFilter batchId={b.id} total={rows.length + b.held.length} sources={filterSources} statuses={filterStatuses} orders={filterOrders} />
         <div className="overflow-x-auto">
           <table className={tableClass}>
             <thead>
@@ -255,9 +271,9 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
               ) : null}
               {rows.map((r) =>
                 r.kind === "line" ? (
-                  <LineRow key={r.key} b={b} l={r.line} done={done} bulkId={bulkId} srcSelect={srcSelect} />
+                  <LineRow key={r.key} b={b} l={r.line} done={done} bulkId={bulkId} srcSelect={srcSelect} search={searchOf(r.line.productId, r.line.productName, r.line.productSku)} />
                 ) : (
-                  <StockRow key={r.key} b={b} s={r.stock} done={done} bulkId={bulkId} srcSelect={srcSelect} products={products} sources={sources} stock={stockById.get(r.stock.productId) ?? null} />
+                  <StockRow key={r.key} b={b} s={r.stock} done={done} bulkId={bulkId} srcSelect={srcSelect} products={products} sources={sources} stock={stockById.get(r.stock.productId) ?? null} search={searchOf(r.stock.productId, r.stock.productName, r.stock.productSku)} />
                 ),
               )}
             </tbody>
@@ -291,7 +307,7 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
             <table className={tableClass}>
               <tbody>
                 {b.held.map((h) => (
-                  <tr key={h.id} className="text-[13px]">
+                  <tr key={h.id} className="text-[13px]" data-brow="1" data-kind="held" data-search={searchOf(h.productId, h.productName, h.productSku)} data-product={h.productId} data-src={h.sourceKey} data-status={h.status} data-note={noteBody(h.note, b.code) ? "1" : "0"} data-qty={h.qty} data-jpy={(h.unitCostJpy ?? 0) * h.qty}>
                     <td className={`${tdClass} min-w-[200px]`}>
                       <Link href={`/admin/inventory/lots/${h.productId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                         {h.productName}
@@ -571,11 +587,11 @@ function ProductCell({ productId, name, sku, thumb, sub }: { productId: number; 
   );
 }
 
-function LineRow({ b, l, done, bulkId, srcSelect }: { b: PurchaseBatch; l: PurchaseBatchLine; done: boolean; bulkId: string; srcSelect: SrcSelect }) {
+function LineRow({ b, l, done, bulkId, srcSelect, search }: { b: PurchaseBatch; l: PurchaseBatchLine; done: boolean; bulkId: string; srcSelect: SrcSelect; search: string }) {
   const fid = `pl-${l.itemId}`;
   const ls = PURCHASE_STAGES[purchaseIndex(l.purchaseStatus)];
   return (
-    <tr className="align-top hover:bg-[#fafafa]" data-testid={`bline-${l.itemId}`}>
+    <tr className="align-top hover:bg-[#fafafa]" data-testid={`bline-${l.itemId}`} data-brow="1" data-kind="line" data-search={search} data-product={l.productId} data-order={l.orderNumber} data-customer={l.customerName} data-src={l.sourceKey} data-status={l.purchaseStatus} data-note="0" data-qty={l.quantity} data-jpy={(l.costJpy ?? 0) * l.quantity}>
       <td className={`${tdClass} w-8`}>{done ? null : <input type="checkbox" name="ids" value={l.itemId} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng đơn #${l.orderNumber}`} />}</td>
       <td className={`${tdClass} min-w-[200px]`}>
         <ProductCell productId={l.productId} name={l.productName} sku={l.productSku} thumb={l.productThumb} />
@@ -625,13 +641,14 @@ function LineRow({ b, l, done, bulkId, srcSelect }: { b: PurchaseBatch; l: Purch
   );
 }
 
-function StockRow({ b, s, done, bulkId, srcSelect, products, sources, stock }: { b: PurchaseBatch; s: PurchaseBatchStock; done: boolean; bulkId: string; srcSelect: SrcSelect; products: PickableProduct[]; sources: PurchaseSource[]; stock: number | null }) {
+function StockRow({ b, s, done, bulkId, srcSelect, products, sources, stock, search }: { b: PurchaseBatch; s: PurchaseBatchStock; done: boolean; bulkId: string; srcSelect: SrcSelect; products: PickableProduct[]; sources: PurchaseSource[]; stock: number | null; search: string }) {
   const fid = `bs-${s.id}`;
   const sid = `sp-${s.id}`;
   const ss = PURCHASE_STAGES[purchaseIndex(s.status)];
   const locked = !!s.lotId;
+  const note = noteBody(s.note, b.code);
   return (
-    <tr className={cn("align-top hover:bg-[#fafafa]", locked && "opacity-70")} data-testid={`bstock-${s.id}`}>
+    <tr className={cn("align-top hover:bg-[#fafafa]", locked && "opacity-70")} data-testid={`bstock-${s.id}`} data-brow="1" data-kind="stock" data-search={search} data-product={s.productId} data-src={s.sourceKey} data-status={s.status} data-note={note ? "1" : "0"} data-qty={s.qty} data-jpy={(s.unitCostJpy ?? 0) * s.qty}>
       <td className={`${tdClass} w-8`}>{done || locked ? null : <input type="checkbox" name="sids" value={s.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng lưu kho #${s.id}`} />}</td>
       <td className={`${tdClass} min-w-[200px]`}>
         <ProductCell
@@ -695,7 +712,7 @@ function StockRow({ b, s, done, bulkId, srcSelect, products, sources, stock }: {
           </>
         )}
       </td>
-      <td className={tdClass}>{locked ? <span className="text-[12px] text-lien-muted">{s.note || "—"}</span> : <input name="note" form={fid} defaultValue={s.note} className={cn(adminInput, cell, "!w-[140px]")} aria-label="Ghi chú" />}</td>
+      <td className={tdClass}>{locked ? <span className="text-[12px] text-lien-muted">{note || "—"}</span> : <input name="note" form={fid} defaultValue={note} placeholder="nơi mua, ghi chú…" title={s.note} className={cn(adminInput, cell, "!w-[140px]")} aria-label="Ghi chú" />}</td>
       <td className={`${tdClass} whitespace-nowrap`}>
         {locked ? null : (
           <>
