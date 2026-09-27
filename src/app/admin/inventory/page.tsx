@@ -20,6 +20,9 @@ import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/L
 import { listLotViews, listOrdersReadyToShip } from "@/lib/lots-db";
 import { listBatchHeads } from "@/lib/purchase-batches-db";
 import { listOpenShipments } from "@/lib/shipments-db";
+import { OrdersStockPanel } from "@/components/sites/lienstore/admin/OrdersStockPanel";
+import { listAllocationViews } from "@/lib/allocations-db";
+import { getPurchaseLines } from "@/lib/db";
 import { getDb } from "@/lib/sqlite";
 
 export const dynamic = "force-dynamic";
@@ -58,14 +61,24 @@ export default async function AdminInventory({ searchParams }: Props) {
   const [{ lines, summary }, categories, sources] = await Promise.all([getInventory(), getCategories(), listPurchaseSources(true)]);
   // Kho hàng by lot (default): two sides, FEFO; the product table stays under ?view=products
   const view = first(sp.view) === "products" ? "products" : "lots";
-  const side: "jp" | "vn" = first(sp.side) === "jp" ? "jp" : "vn";
+  const side: "jp" | "vn" | "orders" = first(sp.side) === "jp" ? "jp" : first(sp.side) === "orders" ? "orders" : "vn";
   const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: first(sp.mode) === "orders" ? "orders" : first(sp.mode) === "free" ? "free" : "" };
   const allLots = view === "lots" ? listLotViews(getDb(), {}) : [];
   const flying = allLots.filter((l) => l.warehouse === "jp_carrier" && l.inTransit);
   const batchHeads = view === "lots" ? listBatchHeads() : [];
   const openShipments = view === "lots" && side === "jp" ? listOpenShipments() : [];
+  const lotSide: "jp" | "vn" = side === "jp" ? "jp" : "vn";
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
-  const lotsBack = `/admin/inventory/?side=${side}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
+  // Hàng theo đơn: every open order's lines with where the goods are right now
+  const orderLines = view === "lots" && side === "orders" ? await getPurchaseLines(false) : [];
+  const orderAllocs = orderLines.length ? listAllocationViews(getDb(), orderLines.map((l) => l.itemId)) : [];
+  const stageByOrder = new Map<string, string>();
+  if (orderLines.length) {
+    const ids = Array.from(new Set(orderLines.map((l) => l.orderId)));
+    for (const r of getDb().prepare(`SELECT id, ship_stage FROM orders WHERE id IN (${ids.map(() => "?").join(",")})`).all(...ids) as Array<{ id: string; ship_stage: string }>) stageByOrder.set(r.id, r.ship_stage);
+  }
+  const openOrderCount = view === "lots" ? (getDb().prepare("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')").get() as { n: number }).n : 0;
+  const lotsBack = `/admin/inventory/?side=${lotSide}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
   const jpUnits = allLots.filter((l) => l.warehouse === "jp" || l.warehouse === "jp_carrier").reduce((n, l) => n + l.physical, 0);
   const vnUnits = allLots.filter((l) => l.warehouse === "vn" || l.warehouse === "carrier").reduce((n, l) => n + l.physical, 0);
   const sourceName = (k: string) => purchaseSourceName(k, sources);
@@ -129,11 +142,15 @@ export default async function AdminInventory({ searchParams }: Props) {
           <Fa name="archive" /> Kho Việt Nam ({vnUnits} đv)
         </Link>
         {view === "lots" && flying.length ? <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800"><Fa name="plane" /> đang bay {flying.reduce((n, l) => n + l.physical, 0)} đv</span> : null}
+        <Link href="/admin/inventory/?side=orders" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "orders" ? "border-green-700 bg-green-700 text-white" : "border-green-300 bg-green-50 text-green-900 hover:bg-green-100")}>
+          <Fa name="user" /> Hàng theo đơn ({openOrderCount} đơn)
+        </Link>
         <Link href="/admin/inventory/?view=products" className={cn("ml-auto rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "products" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Theo sản phẩm · kiểm kê · CSV
         </Link>
       </div>
-      {view === "lots" ? <LotsBoard side={side} lots={allLots} flying={flying} filter={lotFilter} sources={sources} batches={batchHeads} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+      {view === "lots" && side === "orders" ? <OrdersStockPanel lines={orderLines} allocations={orderAllocs} stageByOrder={stageByOrder} filter={{ q: first(sp.q), only: first(sp.only) === "short" ? "short" : first(sp.only) === "ready" ? "ready" : "" }} /> : null}
+      {view === "lots" && side !== "orders" ? <LotsBoard side={lotSide} lots={allLots} flying={flying} filter={lotFilter} sources={sources} batches={batchHeads} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

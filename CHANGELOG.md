@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Tồn kho: sheet thứ ba **Hàng theo đơn** — mỗi đơn đang xử lý một khối (số đơn, khách, ngày, thanh toán, tiến độ) với từng sản phẩm và **hàng đang ở đâu** (lô · vị trí · đợt / chuyến, đã trừ tồn hay chỉ giữ chỗ, Cần mua); ô tổng và chip “Còn chờ hàng” / “Đủ hàng tại kho VN”, ô tìm.
+
+### Changed
+- Trang lô của sản phẩm: bảng là **một form** — sửa nhiều ô rồi bấm **Lưu thay đổi** (thanh đỏ dính cuối màn) hoặc **Huỷ** (trả về giá trị đang lưu); bỏ nút Lưu từng dòng (giữ nút xoá lô có hỏi lại). Mỗi lô có cột **Bill** (chọn bill của đợt mua) và hiện mã bill + thumbnail ảnh bill + nút đính ảnh. Bỏ cột “Vị trí trong kho” (cả trong khung Nhập lô trực tiếp).
+- Tồn kho › Kho Nhật: bỏ cột “Gửi SL” và “Tách” — chuyển / đóng theo cả lô; đóng một phần theo số lượng làm ở màn Đóng hàng.
+
 ## [1.80.0] - 2026-09-27
 
 ### Added

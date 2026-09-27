@@ -635,3 +635,12 @@ export function assignReceiptToRows(receiptId: number, rows: { ids: number[]; si
   });
   return n;
 }
+
+/** The bill a lot was bought on (through its slip); null clears it. */
+export function setLotReceipt(lotId: number, receiptId: number | null): void {
+  if (receiptId) {
+    assignReceiptToRows(receiptId, { ids: [], sids: [], lotIds: [lotId] });
+    return;
+  }
+  getDb().prepare("UPDATE stock_purchases SET receipt_id = NULL WHERE lot_id = ?").run(lotId);
+}

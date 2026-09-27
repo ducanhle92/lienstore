@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { mergeLotAction, moveLotsAction, packLotsAction, splitLotAction } from "@/app/admin/inventory/lot-actions";
+import { moveLotsAction, packLotsAction } from "@/app/admin/inventory/lot-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount, formatDate, formatPrice } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
@@ -149,7 +149,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
                   </option>
                 ))}
               </select>
-              <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển các lô đã tick (hoặc phần SL đã nhập) sang vị trí đã chọn; đợt mua của lô giữ nguyên">
+              <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển cả lô đã tick sang vị trí đã chọn (đóng một phần lô → màn Đóng hàng); đợt mua của lô giữ nguyên">
                 <Fa name="truck" /> Chuyển
               </button>
               <span className="mx-1 text-lien-muted">|</span>
@@ -163,7 +163,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
                       </option>
                     ))}
                   </select>
-                  <button type="submit" form={formId} formAction={packLotsAction} className={cn(btnSecondary, "!py-1")} title="Đóng các lô đã tick (hoặc phần SL đã nhập) vào chuyến; hàng rời kệ, chờ xuất ĐVVC">
+                  <button type="submit" form={formId} formAction={packLotsAction} className={cn(btnSecondary, "!py-1")} title="Đóng cả lô đã tick vào chuyến (đóng theo số lượng → màn Đóng hàng); hàng rời kệ, chờ xuất ĐVVC">
                     <Fa name="cube" /> Đóng vào chuyến
                   </button>
                 </>
@@ -265,6 +265,8 @@ function Tile({ label, value, accent }: { label: string; value: string; accent: 
 }
 
 function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: { lots: LotView[]; sources: PurchaseSource[]; scope: string; formId: string | null; backUrl: string; readOnly?: boolean }) {
+  void backUrl;
+  void readOnly;
   return (
     <div className="overflow-x-auto">
       <table className={tableClass}>
@@ -282,14 +284,12 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
             <th className={thClass}>¥/đv</th>
             <th className={thClass}>Đợt mua</th>
             <th className={thClass}>Ghi chú</th>
-            {formId ? <th className={thClass}>Gửi SL</th> : null}
-            {!readOnly ? <th className={thClass}>Tách</th> : null}
           </tr>
         </thead>
         <tbody>
           {lots.length === 0 ? (
             <tr>
-              <td colSpan={14} className={`${tdClass} text-center text-lien-muted`}>
+              <td colSpan={12} className={`${tdClass} text-center text-lien-muted`}>
                 Không có lô nào.
               </td>
             </tr>
@@ -368,36 +368,6 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
                 <td className={`${tdClass} max-w-[180px] truncate text-[12px] text-lien-muted`} title={l.note}>
                   {l.note || "—"}
                 </td>
-                {formId ? (
-                  <td className={tdClass}>
-                    <input name={`qty_${l.id}`} form={formId} inputMode="numeric" placeholder={String(l.qtyLeft)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số đơn vị chưa bán chuyển đi (trống = cả lô)" title="Trống = cả lô; số nhỏ hơn = tách bấy nhiêu đv chưa bán (hàng khách đã thanh toán luôn đi cùng); 0 = chỉ hàng đã thanh toán" />
-                  </td>
-                ) : null}
-                {!readOnly ? (
-                  <td className={`${tdClass} whitespace-nowrap`}>
-                    {l.parentLotId && lots.some((p) => p.id === l.parentLotId && p.warehouse === l.warehouse && p.inTransit === l.inTransit && p.batchId === l.batchId) ? (
-                      <form action={mergeLotAction} className="mb-1 inline-flex">
-                        <input type="hidden" name="lotId" value={l.id} />
-                        <input type="hidden" name="back" value={backUrl} />
-                        <button type="submit" className={cn(btnSecondary, "!px-2 !py-1 !text-[12px]")} title={`Gộp lại về lô gốc #${l.parentLotId}`}>
-                          <Fa name="cubes" /> Gộp về #{l.parentLotId}
-                        </button>
-                      </form>
-                    ) : null}
-                    {l.qtyLeft >= 2 ? (
-                      <form action={splitLotAction} className="inline-flex items-center gap-1">
-                        <input type="hidden" name="lotId" value={l.id} />
-                        <input type="hidden" name="back" value={backUrl} />
-                        <input name="qty" inputMode="numeric" placeholder="SL" className={cn(adminInput, "!mb-0 !w-12 !py-1 !text-center !text-[12px]")} aria-label="Số đơn vị tách thành lô riêng" />
-                        <button type="submit" className={cn(btnSecondary, "!px-2 !py-1 !text-[12px]")} title="Tách thành lô riêng (giữ tham chiếu lô gốc)">
-                          <Fa name="cubes" />
-                        </button>
-                      </form>
-                    ) : (
-                      <span className="text-[12px] text-lien-muted">—</span>
-                    )}
-                  </td>
-                ) : null}
               </tr>
             );
           })}
