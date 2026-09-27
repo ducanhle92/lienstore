@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.81.0] - 2026-09-27
+
 ### Added
 - Mua theo đợt: **Làm lại từ đầu** (chỉ chủ shop, gõ XOA để xác nhận) — xoá mọi đợt mua, phiếu, bill (kèm ảnh), lô hàng, chuyến đóng hàng; dòng của đơn đang xử lý trở về “Cần mua”; sản phẩm chỉ có tồn từ lô trở về hàng order.
 - Mua theo đợt: **Xoá dòng đã tick** (dòng đơn về “Cần mua” và rời đợt, phiếu và lô bị xoá) bên cạnh Bỏ khỏi đợt; ô “chọn tất cả đang hiện” tick cả lô.
