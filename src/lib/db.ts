@@ -55,6 +55,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 import { allocateOrderSync, allocatePendingForProductSync, commitOrderSync, onStockPurchaseChangedSync, onStockPurchaseDeletedSync, releaseOrderSync } from "./allocations-db";
 import { syncProductStock } from "./stock-sync";
+import { isRegularBy, normalizePhone } from "./regular-customers";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
@@ -335,6 +336,32 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
 /** Admin › Khách hàng: tick / untick "Khách quen". */
 export async function setCustomerRegular(id: string, regular: boolean): Promise<boolean> {
   return Number(getDb().prepare("UPDATE customers SET is_regular = ?, updated_at = ? WHERE id = ?").run(regular ? 1 : 0, new Date().toISOString(), id).changes) > 0;
+}
+/** Phone numbers of walk-in regulars (normalised, see lib/regular-customers.ts). */
+export function regularPhonesSync(db: DatabaseSync): Set<string> {
+  return new Set((db.prepare("SELECT phone FROM regular_phones").all() as Array<{ phone: string }>).map((r) => r.phone));
+}
+export async function listRegularSets(): Promise<{ customerIds: Set<string>; phones: Set<string> }> {
+  const db = getDb();
+  const ids = (db.prepare("SELECT id FROM customers WHERE is_regular = 1").all() as Array<{ id: string }>).map((r) => r.id);
+  return { customerIds: new Set(ids), phones: regularPhonesSync(db) };
+}
+/** Regular by account flag or by phone. */
+export function isRegularCustomerSync(db: DatabaseSync, customerId: string | null | undefined, phone: string | null | undefined): boolean {
+  const acc = customerId ? ((db.prepare("SELECT is_regular FROM customers WHERE id = ?").get(customerId) as { is_regular: number | null } | undefined)?.is_regular ?? 0) === 1 : false;
+  return isRegularBy({ accountRegular: acc, phone, regularPhones: regularPhonesSync(db) });
+}
+/** Remember a customer as regular: the account flag when there is one, otherwise the phone number. */
+export function markRegularSync(db: DatabaseSync, customerId: string | null | undefined, phone: string | null | undefined, note = ""): "account" | "phone" | null {
+  const now = new Date().toISOString();
+  if (customerId && db.prepare("SELECT 1 FROM customers WHERE id = ?").get(customerId)) {
+    db.prepare("UPDATE customers SET is_regular = 1, updated_at = ? WHERE id = ?").run(now, customerId);
+    return "account";
+  }
+  const p = normalizePhone(phone);
+  if (!p) return null;
+  db.prepare("INSERT INTO regular_phones (phone, note, created_at) VALUES (?, ?, ?) ON CONFLICT(phone) DO NOTHING").run(p, note, now);
+  return "phone";
 }
 
 // ---------- Products ----------
@@ -893,7 +920,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let weightG = 0;
     let special = false;
     // "Khách quen" may pay on delivery even for made-to-order lines
-    const regular = input.customerId ? ((db.prepare("SELECT is_regular FROM customers WHERE id = ?").get(input.customerId) as { is_regular: number | null } | undefined)?.is_regular ?? 0) === 1 : false;
+    const regular = isRegularCustomerSync(db, input.customerId, input.customer.phone);
     for (const it of input.items) {
       const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
         | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
@@ -1232,18 +1259,36 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   return getOrderById(id);
 }
 
-/** Admin: a regular customer's order switches to pay-on-delivery — the reserved lot units are deducted now. */
-export async function setOrderCod(id: string): Promise<{ ok: boolean; message: string }> {
+/**
+ * Admin, on the order: "Thanh toán khi nhận hàng" — the order becomes COD, the reserved lot units are deducted now,
+ * the timeline passes "Đã xác nhận thanh toán" (shown as "Thu khi giao"). Optionally remember the customer as regular.
+ */
+export async function setOrderCod(id: string, opts: { markRegular?: boolean } = {}): Promise<{ ok: boolean; message: string }> {
   const db = getDb();
-  const o = db.prepare("SELECT o.status, o.customer_id, c.is_regular FROM orders o LEFT JOIN customers c ON c.id = o.customer_id WHERE o.id = ?").get(id) as { status: string; customer_id: string | null; is_regular: number | null } | undefined;
+  const o = db.prepare("SELECT status, customer_id, phone, number, ship_stage FROM orders WHERE id = ?").get(id) as { status: string; customer_id: string | null; phone: string; number: number; ship_stage: string | null } | undefined;
   if (!o) return { ok: false, message: "Không tìm thấy đơn." };
   if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ." };
-  if ((o.is_regular ?? 0) !== 1) return { ok: false, message: "Chỉ khách quen mới được thanh toán khi nhận hàng — tick “Khách quen” ở trang khách hàng trước." };
+  let remembered: "account" | "phone" | null = null;
   withTransaction(db, () => {
     db.prepare("UPDATE orders SET payment_method = 'cod', prepaid_required = 0, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
     commitOrderSync(db, id);
+    if (opts.markRegular) remembered = markRegularSync(db, o.customer_id, o.phone, `Đơn #${o.number}`);
   });
-  return { ok: true, message: "Đơn chuyển sang thu khi giao — tồn kho đã trừ theo đơn." };
+  if (SHIP_STAGES.findIndex((s) => s.key === (o.ship_stage ?? "ordered")) < SHIP_STAGES.findIndex((s) => s.key === "paid")) await setOrderStage(id, "paid", "Thu khi giao (COD)");
+  const extra = remembered === "account" ? " Đã đánh dấu tài khoản là khách quen." : remembered === "phone" ? ` Đã ghi nhớ số ${normalizePhone(o.phone)} là khách quen cho các đơn sau.` : "";
+  return { ok: true, message: `Đơn chuyển sang thu khi giao — tồn kho đã trừ theo đơn.${extra}` };
+}
+
+/** "Đã nhận chuyển khoản": payment confirmed. Stock is deducted once (idempotent) — a COD order switching back is not deducted twice. */
+export async function setOrderTransferReceived(id: string): Promise<{ ok: boolean; message: string }> {
+  const db = getDb();
+  const o = db.prepare("SELECT status, ship_stage, payment_method FROM orders WHERE id = ?").get(id) as { status: string; ship_stage: string | null; payment_method: string } | undefined;
+  if (!o) return { ok: false, message: "Không tìm thấy đơn." };
+  if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ." };
+  db.prepare("UPDATE orders SET payment_method = 'bacs', updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+  if (SHIP_STAGES.findIndex((s) => s.key === (o.ship_stage ?? "ordered")) < SHIP_STAGES.findIndex((s) => s.key === "paid")) await setOrderStage(id, "paid", "");
+  else withTransaction(db, () => commitOrderSync(db, id));
+  return { ok: true, message: o.payment_method === "cod" ? "Đã ghi nhận chuyển khoản — đơn không còn thu khi giao (tồn kho đã trừ trước đó, không trừ lại)." : "Đã xác nhận thanh toán — tồn kho đã trừ theo đơn." };
 }
 
 /** Admin override of what the customer pays for delivery; total is recomputed. */

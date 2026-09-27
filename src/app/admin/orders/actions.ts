@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
-import { addOrderMessage, deleteOrder, setOrderCod, setOrderStage, updateOrderStatus } from "@/lib/db";
+import { addOrderMessage, deleteOrder, setOrderCod, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { isShipStage } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
@@ -107,13 +107,22 @@ export async function setItemSourceAction(formData: FormData): Promise<void> {
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
 }
 
-/** Regular customer: the order switches to pay-on-delivery and the reserved stock is deducted now. */
+/** "Thanh toán khi nhận hàng" on the order: COD, stock deducted now, timeline passes the payment step; optionally remember the customer. */
 export async function setOrderCodAction(formData: FormData): Promise<void> {
   if (!(await can("orders"))) redirect("/admin/login/");
   const id = String(formData.get("id") ?? "");
-  const r = await setOrderCod(id);
+  const r = await setOrderCod(id, { markRegular: formData.get("markRegular") === "1" });
   revalidatePath("/admin", "layout");
-  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
+}
+
+/** "Đã nhận chuyển khoản": confirm payment (also for a COD order that paid before delivery — no second deduction). */
+export async function markTransferReceivedAction(formData: FormData): Promise<void> {
+  if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const r = await setOrderTransferReceived(id);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
 }
 
 /** Shop → customer message on an order. */

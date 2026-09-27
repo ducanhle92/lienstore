@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { type AllocCandidate, candidateTier, combineStatuses, planAllocation, sortCandidates, statusFromSource } from "../../src/lib/allocation";
+import { isRegularBy, normalizePhone } from "../../src/lib/regular-customers";
 
 const lot = (id: number, warehouse: "vn" | "carrier" | "jp", available: number, expiry: string | null): AllocCandidate => ({ type: "lot", id, available, expiry, warehouse, status: null, batchId: null });
 const slip = (id: number, status: AllocCandidate["status"], available: number, expiry: string | null, batchId: number | null = null): AllocCandidate => ({ type: "stock_purchase", id, available, expiry, warehouse: null, status, batchId });
@@ -64,5 +65,19 @@ describe("statusFromSource / combineStatuses", () => {
     assert.equal(combineStatuses(["at_shop", "bought"]), "bought");
     assert.equal(combineStatuses(["at_shop", "not_bought"]), "not_bought");
     assert.equal(combineStatuses([]), "not_bought");
+  });
+});
+
+describe("regular customers", () => {
+  it("normalises phone numbers so +84 and 0 spellings match", () => {
+    assert.equal(normalizePhone("+84 964 839 769"), "0964839769");
+    assert.equal(normalizePhone("0964.839.769"), "0964839769");
+    assert.equal(normalizePhone(""), "");
+  });
+  it("is regular by account flag or remembered phone", () => {
+    const phones = new Set(["0964839769"]);
+    assert.equal(isRegularBy({ accountRegular: true, phone: "", regularPhones: phones }), true);
+    assert.equal(isRegularBy({ accountRegular: false, phone: "+84964839769", regularPhones: phones }), true);
+    assert.equal(isRegularBy({ accountRegular: false, phone: "0900000000", regularPhones: phones }), false);
   });
 });

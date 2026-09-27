@@ -6,7 +6,8 @@ import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSeconda
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
-import { getOrders, getUnreadMessageCounts } from "@/lib/db";
+import { getOrders, getUnreadMessageCounts, listRegularSets } from "@/lib/db";
+import { isRegularBy } from "@/lib/regular-customers";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { isShipStage, SHIP_STAGES, type ShipStage, stageIndex } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
@@ -42,13 +43,16 @@ export default async function AdminOrders({ searchParams }: Props) {
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const q = first(sp.q).trim().toLowerCase();
-  const [all, unread] = await Promise.all([getOrders(), getUnreadMessageCounts("admin")]);
+  const [all, unread, regular] = await Promise.all([getOrders(), getUnreadMessageCounts("admin"), listRegularSets()]);
+  const isReg = (o: (typeof all)[number]) => isRegularBy({ accountRegular: !!o.customerId && regular.customerIds.has(o.customerId), phone: o.customer.phone, regularPhones: regular.phones });
+  const onlyRegular = first(sp.regular) === "1";
   // order dates are stored in UTC; compare on the shop's local day
   const localDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const items = all
     .filter((o) => !status || o.status === status)
     .filter((o) => !stage || (o.shipStage === stage && o.status !== "cancelled"))
     .filter((o) => !payment || o.paymentMethod === payment)
+    .filter((o) => !onlyRegular || isReg(o))
     .filter((o) => !from || localDay(o.createdAt) >= from)
     .filter((o) => !to || localDay(o.createdAt) <= to)
     .filter((o) => !q || `#${o.number} ${o.customer.lastName} ${o.customer.firstName} ${o.customer.phone} ${o.customer.email}`.toLowerCase().includes(q));
@@ -56,7 +60,7 @@ export default async function AdminOrders({ searchParams }: Props) {
   const stageCount = (k: ShipStage) => all.filter((o) => o.shipStage === k && o.status !== "cancelled").length;
   const keep = (over: Record<string, string | undefined>) => {
     const qs = new URLSearchParams();
-    const cur: Record<string, string> = { status: status ?? "", stage: stage ?? "", payment, from, to, q, ...over } as Record<string, string>;
+    const cur: Record<string, string> = { status: status ?? "", stage: stage ?? "", payment, from, to, q, regular: onlyRegular ? "1" : "", ...over } as Record<string, string>;
     for (const [k, v] of Object.entries(cur)) if (v) qs.set(k, v);
     const s = qs.toString();
     return `/admin/orders/${s ? `?${s}` : ""}`;
@@ -111,6 +115,9 @@ export default async function AdminOrders({ searchParams }: Props) {
               <option value="bacs">Chuyển khoản</option>
               <option value="cod">COD</option>
             </select>
+          </label>
+          <label className="inline-flex items-center gap-2 self-end pb-2 text-[13px]" title="Chỉ đơn của khách quen (tài khoản được đánh dấu hoặc số điện thoại đã ghi nhớ)">
+            <input type="checkbox" name="regular" value="1" defaultChecked={onlyRegular} className="h-4 w-4" /> Khách quen
           </label>
           <button type="submit" className={btnPrimary}>
             <Fa name="check" /> Lọc
@@ -174,10 +181,23 @@ export default async function AdminOrders({ searchParams }: Props) {
                       <td className={`${tdClass} whitespace-nowrap`}>{formatDateTime(o.createdAt)}</td>
                       <td className={tdClass}>
                         {o.customer.lastName} {o.customer.firstName}
+                        {isReg(o) ? (
+                          <span className="ml-1.5 rounded-full bg-lien-blue-soft px-1.5 py-0.5 text-[10px] font-semibold text-lien-blue" title="Khách quen">
+                            <Fa name="star" /> quen
+                          </span>
+                        ) : null}
                         <div className="text-[12px] text-lien-muted">{o.customer.phone}</div>
                       </td>
                       <td className={tdClass}>{o.items.reduce((n, it) => n + it.quantity, 0)}</td>
-                      <td className={`${tdClass} whitespace-nowrap`}>{PAYMENT[o.paymentMethod]}</td>
+                      <td className={`${tdClass} whitespace-nowrap`}>
+                        {o.paymentMethod === "cod" ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" title={o.stockCommittedAt ? `Thu khi giao · tồn kho đã trừ lúc ${formatDateTime(o.stockCommittedAt)}` : "Thu khi giao"}>
+                            COD
+                          </span>
+                        ) : (
+                          PAYMENT[o.paymentMethod]
+                        )}
+                      </td>
                       <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(o.total, o.currency)}</td>
                       <td className={`${tdClass} whitespace-nowrap font-semibold`}>
                         {(() => {

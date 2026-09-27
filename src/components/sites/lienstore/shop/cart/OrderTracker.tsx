@@ -11,9 +11,11 @@ import type { Order } from "@/types/shop";
  * Mercari-style progress line: one dot per logistics stage, reached stages coloured, the current one highlighted,
  * dates from the stage log underneath. Server-renderable (no state).
  */
-export function OrderTracker({ order, className, compact = false }: { order: Pick<Order, "shipStage" | "stageLog" | "status">; className?: string; compact?: boolean }) {
+export function OrderTracker({ order, className, compact = false }: { order: Pick<Order, "shipStage" | "stageLog" | "status"> & Partial<Pick<Order, "paymentMethod" | "stockCommittedAt">>; className?: string; compact?: boolean }) {
   const { lang, t } = useLang();
-  const label = (key: string, fallback: string) => (lang === "ja" ? t(`stage_${key}` as I18nKey) : fallback);
+  const cod = order.paymentMethod === "cod";
+  // a pay-on-delivery order passes the payment step as "Thu khi giao" (stock was deducted when the admin granted it)
+  const label = (key: string, fallback: string) => (cod && key === "paid" ? (lang === "ja" ? "代引き" : "Thu khi giao") : lang === "ja" ? t(`stage_${key}` as I18nKey) : fallback);
   const cur = stageIndex(order.shipStage);
   const cancelled = order.status === "cancelled";
   const reachedAt = (key: string) => order.stageLog.filter((l) => l.stage === key).at(-1)?.at;
@@ -32,7 +34,7 @@ export function OrderTracker({ order, className, compact = false }: { order: Pic
           const current = i === cur && !cancelled;
           const at = reachedAt(s.key);
           return (
-            <li key={s.key} className="relative flex flex-col items-center text-center" title={s.hint}>
+            <li key={s.key} className="relative flex flex-col items-center text-center" title={cod && s.key === "paid" ? `Thu khi giao${order.stockCommittedAt ? ` · trừ tồn kho lúc ${formatDateTime(order.stockCommittedAt)}` : ""}` : s.hint}>
               <span
                 className={cn(
                   "relative z-[1] block h-[17px] w-[17px] rounded-full border-[3px] bg-white",
@@ -43,7 +45,7 @@ export function OrderTracker({ order, className, compact = false }: { order: Pic
                 {done ? <span className={cn("absolute inset-[3px] rounded-full", current ? "bg-lien-heart" : "bg-lien-heart/70")} /> : null}
               </span>
               <span className={cn("mt-2 text-[11px] leading-4 sm:text-[12px]", current ? "font-bold text-lien-heart" : done ? "font-semibold text-lien-heading" : "text-lien-muted", compact && "hidden sm:block")}>
-                <span className="sm:hidden">{s.short}</span>
+                <span className="sm:hidden">{cod && s.key === "paid" ? (lang === "ja" ? "代引き" : "Thu khi giao") : s.short}</span>
                 <span className="hidden sm:inline">{label(s.key, s.label)}</span>
               </span>
               {at && done && !compact ? <span className="mt-0.5 hidden text-[10px] leading-4 text-lien-muted md:block">{formatDateTime(at)}</span> : null}

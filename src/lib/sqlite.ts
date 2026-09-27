@@ -1276,6 +1276,18 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE orders SET stock_committed_at = updated_at WHERE stock_committed_at IS NULL AND ship_stage IN ('paid','in_transit','vn_warehouse','delivering','delivered')`,
     ],
   },
+  {
+    // Walk-in "khách quen" remembered by phone number (accounts carry customers.is_regular).
+    version: 60,
+    name: "regular-phones",
+    up: [
+      `CREATE TABLE IF NOT EXISTS regular_phones (
+        phone      TEXT PRIMARY KEY,
+        note       TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

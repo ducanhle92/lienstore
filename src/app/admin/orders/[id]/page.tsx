@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderCodAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, markTransferReceivedAction, reallocateOrderAction, setItemSourceAction, setOrderCodAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { isRegularBy } from "@/lib/regular-customers";
 import { listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
 import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
@@ -13,7 +14,7 @@ import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerById, getCustomerOverview, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
+import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { getDb, getSetting } from "@/lib/sqlite";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
@@ -40,7 +41,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   const allocViews = order ? listAllocationViews(getDb(), itemIds) : [];
   const sourceOptions = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, listSourceOptions(getDb(), it.productId, it.itemId as number)] as const) : []);
   const regularCustomer = order?.customerId ? await getCustomerById(order.customerId) : null;
-  const isRegular = !!regularCustomer?.isRegular;
+  const regularSets = await listRegularSets();
+  const paidAt = order?.stageLog.filter((l) => l.stage === "paid").at(-1)?.at ?? null;
+  const isRegular = !!order && isRegularBy({ accountRegular: regularCustomer?.isRegular, phone: order.customer.phone, regularPhones: regularSets.phones });
   const TONE: Record<string, string> = { green: "bg-green-100 text-green-800", sky: "bg-sky-100 text-sky-800", amber: "bg-amber-100 text-amber-800", gray: "bg-gray-200 text-gray-700" };
   let transferQuotes: TransferQuotesView | null = null;
   try {
@@ -249,18 +252,53 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             </form>
           </Card>
 
-          <Card title="Tiến độ vận chuyển">
+          <Card title="Tiến độ đơn hàng">
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact />
             </div>
             <p className="mb-3 text-[13px] leading-5 text-lien-text">
-              Hiện tại: <strong className="text-lien-heart">{SHIP_STAGES[curStage].label}</strong>
+              Hiện tại: <strong className="text-lien-heart">{order.paymentMethod === "cod" && order.shipStage === "paid" ? "Thu khi giao" : SHIP_STAGES[curStage].label}</strong>
               <span className="block text-[12px] text-lien-muted">{SHIP_STAGES[curStage].hint}</span>
             </p>
+            {/* payment decision: shown at "Đã đặt hàng", or again from the "đổi" link while the order has not left for the customer */}
+            {(order.shipStage === "ordered" || (first(sp.pay) === "1" && stageIndex(order.shipStage) < stageIndex("delivering"))) && order.status !== "cancelled" ? (
+              <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] p-3" data-testid="payment-choice">
+                <p className="m-0 mb-2 text-[13px] font-semibold text-lien-heading">Thanh toán của đơn này</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <form action={markTransferReceivedAction}>
+                    <input type="hidden" name="id" value={order.id} />
+                    <button type="submit" className={`${btnPrimary} w-full`} title={order.paymentMethod === "cod" ? "Khách đã chuyển khoản trước khi giao — chỉ đổi hình thức, tồn kho không trừ lần hai" : "Sang Đã xác nhận thanh toán — tồn kho trừ theo đơn"}>
+                      <Fa name="check" /> Đã nhận chuyển khoản
+                    </button>
+                  </form>
+                  <details open={isRegular && order.paymentMethod !== "cod"} className="rounded-md border border-[#d1d5db] bg-white">
+                    <summary className="cursor-pointer select-none px-3 py-2 text-[13px] font-semibold text-lien-heading">
+                      {order.paymentMethod === "cod" ? "☑" : "☐"} Thanh toán khi nhận hàng (COD)
+                      {isRegular ? <span className="ml-2 rounded-full bg-lien-blue-soft px-1.5 py-0.5 text-[10px] font-semibold text-lien-blue">khách quen</span> : null}
+                    </summary>
+                    <form action={setOrderCodAction} className="grid gap-2 border-t border-[#f0f0f0] px-3 py-2">
+                      <input type="hidden" name="id" value={order.id} />
+                      <label className="inline-flex items-start gap-2 text-[12px] leading-4 text-lien-text">
+                        <input type="checkbox" name="markRegular" value="1" defaultChecked className="mt-0.5 h-4 w-4" />
+                        <span>
+                          Đánh dấu khách này là <b>Khách quen</b> cho các đơn sau
+                          <span className="block text-lien-muted">{order.customerId ? "ghi vào tài khoản" : `ghi nhớ theo số điện thoại ${order.customer.phone}`}</span>
+                        </span>
+                      </label>
+                      <button type="submit" className={`${btnSecondary} justify-self-start !py-1 !text-[12px]`} disabled={order.paymentMethod === "cod"} title="Đơn thành thu khi giao, tồn kho trừ ngay, tiến độ qua bước thanh toán">
+                        <Fa name="check-circle" /> {order.paymentMethod === "cod" ? "Đang thu khi giao" : "Xác nhận"}
+                      </button>
+                    </form>
+                  </details>
+                </div>
+              </div>
+            ) : null}
             <form action={setStageAction} className="grid gap-2">
               <input type="hidden" name="id" value={order.id} />
               <input name="note" placeholder="Ghi chú cho khách (tuỳ chọn), vd: mã vận đơn, ngày dự kiến" className={adminInput} />
-              {nextStage ? (
+              {nextStage && order.shipStage === "ordered" ? (
+                <p className="m-0 text-[12px] text-lien-muted">Bước tiếp theo mở sau khi chọn hình thức thanh toán ở trên.</p>
+              ) : nextStage ? (
                 <button type="submit" name="stage" value={nextStage.key} className={btnPrimary}>
                   <Fa name="check" /> Chuyển sang: {nextStage.label}
                 </button>
@@ -281,21 +319,18 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           </Card>
           <Card title="Trạng thái">
             <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid="payment-box">
-              <div>
-                Thanh toán: <b>{order.paymentMethod === "cod" ? "Thu khi giao" : PAYMENT[order.paymentMethod] ?? order.paymentMethod}</b>
-                {order.stockCommittedAt ? <span className="block text-[12px] text-lien-muted">Tồn kho đã trừ theo đơn lúc {formatDateTime(order.stockCommittedAt)}.</span> : <span className="block text-[12px] text-lien-muted">Hàng đang được giữ chỗ; trừ tồn thật khi xác nhận thanh toán.</span>}
-              </div>
-              {order.paymentMethod !== "cod" && order.status !== "cancelled" ? (
-                isRegular ? (
-                  <form action={setOrderCodAction} className="mt-2">
-                    <input type="hidden" name="id" value={order.id} />
-                    <button type="submit" className={`${btnSecondary} !py-1 !text-[12px]`} title="Khách quen: không cần chuyển khoản trước — đổi sang thu khi giao và trừ tồn kho ngay">
-                      <Fa name="check-circle" /> Đổi sang thanh toán khi nhận hàng
-                    </button>
-                  </form>
-                ) : (
-                  <p className="m-0 mt-1 text-[12px] text-lien-muted">Muốn cho thu khi giao? Tick “Khách quen” ở trang khách hàng trước.</p>
-                )
+              Thanh toán:{" "}
+              <b>
+                {order.paymentMethod === "cod"
+                  ? `Thu khi giao (COD)${order.stockCommittedAt ? ` · đã trừ tồn kho lúc ${formatDateTime(order.stockCommittedAt)}` : ""}`
+                  : paidAt
+                    ? `Đã nhận chuyển khoản lúc ${formatDateTime(paidAt)}`
+                    : "Chuyển khoản · chưa nhận"}
+              </b>
+              {order.status !== "cancelled" && stageIndex(order.shipStage) < stageIndex("delivering") ? (
+                <Link href={`/admin/orders/${order.id}/?pay=1#tracking`} className="ml-2 text-[12px] text-lien-blue hover:underline">
+                  đổi
+                </Link>
               ) : null}
             </div>
             <form action={updateOrderStatusAction} className="grid gap-3">

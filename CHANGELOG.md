@@ -5,6 +5,11 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang đơn: khung “Tiến độ vận chuyển” đổi thành **Tiến độ đơn hàng**; ở bước Đã đặt hàng có hai lựa chọn cạnh nhau **Đã nhận chuyển khoản** / **Thanh toán khi nhận hàng (COD)**. Chọn COD → đơn thành thu khi giao, tồn kho trừ ngay, tiến độ qua bước thanh toán (hiện “Thu khi giao”, cả ngoài web cho khách), kèm ô “Đánh dấu khách quen cho các đơn sau” (tick sẵn): khách có tài khoản → gắn cờ tài khoản, khách vãng lai → ghi nhớ theo số điện thoại (migration 60). Không còn bắt buộc là khách quen mới được COD; khách quen chỉ được chọn sẵn.
+- Trang đơn: khung Trạng thái hiện gọn “Thanh toán: Chuyển khoản · chưa nhận / Đã nhận chuyển khoản lúc … / Thu khi giao (COD) · đã trừ tồn kho lúc …” với link “đổi” mở lại lựa chọn (đến trước Đang giao). Đơn COD mà khách chuyển khoản trước khi giao: bấm “Đã nhận chuyển khoản” chỉ đổi hình thức, không trừ tồn lần hai.
+- Danh sách đơn: badge **COD** ở cột Thanh toán, badge **quen** cạnh tên khách, bộ lọc “Khách quen”.
+
 ## [1.78.0] - 2026-09-27
 
 ### Added
