@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đóng hàng: khối chọn hàng **mở sẵn** cho mỗi chuyến đang mở và chia hai nhóm — **① Hàng theo đơn đang ở Kho Nhật** (hiện trước, **tick sẵn**, SL điền sẵn đúng số khách cần; hàng đã thanh toán đi cùng) và **② Hàng tồn kho không theo đơn** (thu gọn, bấm mở). Bấm “Thêm vào chuyến (đã tick)” ở thanh cố định là đóng ngay hàng cho khách; chọn theo đơn / đợt mua / tìm để thu hẹp.
+
 ## [1.80.3] - 2026-09-27
 
 ### Changed
