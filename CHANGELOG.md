@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.76.1] - 2026-09-27
+
 ### Added
 - Nhập bill: khớp sản phẩm theo **mã vạch JAN** in trên bill (đọc từ mô tả / từ khoá sản phẩm) — bill giấy drugstore, siêu thị khớp chính xác hơn tên.
 - Nhập bill: khung **“Prompt cho Claude đọc ảnh bill”** dưới form — chép prompt, gửi kèm ảnh bill cho Claude, dán kết quả vào ô Nội dung bill (giá đã gồm thuế, JAN dưới từng dòng; hạn dùng nhập sau).
