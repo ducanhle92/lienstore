@@ -117,3 +117,9 @@ describe("customer-facing tags", () => {
     assert.deepEqual(displayTags(tags, "Sữa rửa mặt Hatomugi"), ["hạt ý dĩ", "kem chong nang", "chống nắng"]);
   });
 });
+
+describe("displayTags — barcodes", () => {
+  it("hides bare JAN / EAN codes", () => {
+    assert.deepEqual(displayTags(["Shiseido", "4909978200879", "chống nắng"], "Gel chống nắng Anessa"), ["Shiseido", "chống nắng"]);
+  });
+});

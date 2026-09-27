@@ -27,6 +27,7 @@ export function displayTags(tags: string[], productName: string): string[] {
     if (!tag) continue;
     if (CJK.test(tag)) continue;
     if (SPEC.test(tag)) continue;
+    if (/^\d{8,14}$/.test(tag)) continue; // JAN / EAN barcode — internal
     const f = foldVi(tag);
     if (seen.has(f)) continue;
     // "sua tam" next to "sữa tắm" — keep the accented one only

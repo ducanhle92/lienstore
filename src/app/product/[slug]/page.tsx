@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/format";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -107,6 +108,11 @@ export default async function ProductPage({ params }: PageProps) {
             name={product.name}
             productId={product.id}
             description={product.description}
+            extraFacts={
+              product.dimsConfidence === "high"
+                ? [...(product.weightG ? [{ key: "weight" as const, value: `${formatAmount(product.weightG)} g` }] : []), ...(product.dimsCm ? [{ key: "dims" as const, value: `${product.dimsCm.replace(/x/g, "×")} cm` }] : [])]
+                : []
+            }
             reviews={reviews}
             reviewer={reviewer}
             shipping={

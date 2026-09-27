@@ -10,13 +10,15 @@ import { formatDateTime } from "@/lib/format";
 import { maskReviewer } from "@/lib/reviews";
 import { cn } from "@/lib/utils";
 import type { ProductReview } from "@/types/shop";
-import { ProductDescription } from "./ProductDescription";
+import { ProductDescription, type ProductFactExtra } from "./ProductDescription";
 
 interface ProductTabsProps {
   name: string;
   productId: number;
   /** Sanitised HTML description. */
   description: string;
+  /** Weight / size cards under the description (only when the figures are reliable). */
+  extraFacts?: ProductFactExtra[];
   /** Approved reviews, newest first. */
   reviews: ProductReview[];
   /** Account name of the signed-in customer (null when signed out). */
@@ -33,7 +35,7 @@ const FIELD =
 const REQUIRED = <span className="required text-[#e2401c]">*</span>;
 
 /** `.woocommerce-tabs`: "Thông tin sản phẩm" / "Đánh giá (n)" tabs with the grey tab strip. */
-export function ProductTabs({ name, productId, description, reviews, reviewer, shipping }: ProductTabsProps) {
+export function ProductTabs({ name, productId, description, extraFacts, reviews, reviewer, shipping }: ProductTabsProps) {
   const [tab, setTab] = useState<TabKey>("description");
   const base = useId();
   const { t } = useLang();
@@ -73,7 +75,7 @@ export function ProductTabs({ name, productId, description, reviews, reviewer, s
       {tab === "description" ? (
         <div role="tabpanel" id={`${base}-panel-description`} aria-labelledby={`${base}-tab-description`} className="woocommerce-Tabs-panel woocommerce-Tabs-panel--description panel entry-content mb-8">
           <h2 className={H2}>Mô tả</h2>
-          <ProductDescription name={name} description={description} />
+          <ProductDescription name={name} description={description} extraFacts={extraFacts} />
         </div>
       ) : tab === "shipping" ? (
         <div role="tabpanel" id={`${base}-panel-shipping`} aria-labelledby={`${base}-tab-shipping`} className="panel mb-8">

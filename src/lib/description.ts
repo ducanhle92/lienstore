@@ -162,8 +162,26 @@ function factLabelOf(rawLabel: string): string | undefined {
   return FACT_LABELS.find(([re]) => re.test(folded) || re.test(raw))?.[1];
 }
 
+/** "Mã vạch (JAN): 4511413408247" / "JAN code: …" — internal codes the shopper never needs; such lines are dropped. */
+export function isBarcodeLabel(rawLabel: string): boolean {
+  return /^(ma\s*vach|ma\s*so\s*(jan|ean|upc)?|jan|ean|upc|barcode|janコード|jan\s*code)\b/.test(fold(rawLabel).trim());
+}
+
+/** Barcodes (JAN / EAN / UPC, "mã vạch") are internal — drop them from a fact value ("1 tuýp 90g; JAN 4909978200879" → "1 tuýp 90g"). */
+export function cleanFactValue(value: string): string {
+  return value
+    .replace(/(?:^|[;,·|(]\s*)(?:mã\s*(?:vạch|jan|ean|upc)|jan|ean|upc|barcode)\s*[:：]?\s*\d{8,14}\s*\)?/gi, "")
+    .replace(/(?:^|[;,·|]\s*)\d{8,14}(?=\s*$)/g, "")
+    .replace(/^[\s;,·|]+|[\s;,·|]+$/g, "")
+    .trim();
+}
+
 /** Pull "Label: value" facts out of <li> / short <p> blocks; returns remaining blocks. */
 function extractFacts(blocks: string[], facts: DescriptionFact[]): string[] {
+  const push = (label: string, value: string) => {
+    const v = cleanFactValue(value);
+    if (v) facts.push({ label, value: v });
+  };
   const remaining: string[] = [];
   for (const b of blocks) {
     if (/^<ul/i.test(b)) {
@@ -172,16 +190,18 @@ function extractFacts(blocks: string[], facts: DescriptionFact[]): string[] {
       for (const li of items) {
         const text = stripTags(li);
         const m = text.match(/^([^:]{2,30}):\s*(.{1,80})$/);
+        if (m && isBarcodeLabel(m[1])) continue;
         const label = m ? factLabelOf(m[1]) : undefined;
-        if (m && label && !facts.some((f) => f.label === label)) facts.push({ label, value: m[2].trim() });
+        if (m && label && !facts.some((f) => f.label === label)) push(label, m[2].trim());
         else keep.push(li);
       }
       if (keep.length) remaining.push(`<ul>${keep.map((li) => `<li>${li}</li>`).join("")}</ul>`);
     } else if (/^<p/i.test(b)) {
       const text = stripTags(b);
       const m = text.match(/^([^:]{2,30}):\s*(.{1,80})$/);
+      if (m && isBarcodeLabel(m[1])) continue;
       const label = m ? factLabelOf(m[1]) : undefined;
-      if (m && label && !facts.some((f) => f.label === label)) facts.push({ label, value: m[2].trim() });
+      if (m && label && !facts.some((f) => f.label === label)) push(label, m[2].trim());
       else remaining.push(b);
     } else {
       remaining.push(b);

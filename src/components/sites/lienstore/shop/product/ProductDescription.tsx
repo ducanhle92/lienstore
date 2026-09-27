@@ -26,11 +26,21 @@ const FACT_ICONS: Record<string, FaName> = {
   "Quy cách": "cube",
   "Hạn sử dụng": "clock-o",
   "Đối tượng": "user",
+  "Khối lượng": "tachometer",
+  "Kích thước": "cubes",
 };
+
+/** Facts that come from product fields rather than the description text (weight / size), shown as extra cards. */
+export interface ProductFactExtra {
+  key: "weight" | "dims";
+  value: string;
+}
 
 interface Props {
   name: string;
   description: string;
+  /** Weight / size cards appended after the facts parsed from the text. */
+  extraFacts?: ProductFactExtra[];
   className?: string;
 }
 
@@ -39,13 +49,33 @@ interface Props {
  * (Công dụng / Thành phần / Hướng dẫn sử dụng / Lưu ý…). Falls back to the raw HTML when the text has no
  * recognisable sections.
  */
-export function ProductDescription({ name, description, className }: Props) {
+export function ProductDescription({ name, description, extraFacts = [], className }: Props) {
   const { t } = useLang();
   const d = structureDescription(description, name);
   const secTitle = (s: { key: SectionKey; title: string }) => (s.key === "other" ? s.title : t(SECTION_KEY[s.key]));
   const factLabel = (label: string) => (FACT_KEY[label] ? t(FACT_KEY[label]) : label);
+  // weight / size are keyed by their Vietnamese label so icons and translations line up with the parsed facts
+  const facts = [...(d.structured ? d.facts : []), ...extraFacts.map((f) => ({ label: f.key === "weight" ? "Khối lượng" : "Kích thước", value: f.value }))];
+  const factCards = facts.length ? (
+    <dl className="mt-6 mb-0 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" data-testid="product-facts">
+      {facts.map((f) => (
+        <div key={f.label} className="rounded-md border border-lien-widget-border bg-lien-blue-soft/60 px-3 py-2">
+          <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">
+            <Fa name={FACT_ICONS[f.label] ?? "info-circle"} className="text-lien-blue" />
+            {f.label === "Khối lượng" ? t("weight") : f.label === "Kích thước" ? t("dims") : factLabel(f.label)}
+          </dt>
+          <dd className="mt-0.5 text-[15px] leading-6 text-lien-heading">{f.value}</dd>
+        </div>
+      ))}
+    </dl>
+  ) : null;
   if (!d.structured) {
-    return <div className={cn("lien-prose", className)} dangerouslySetInnerHTML={{ __html: description }} />;
+    return (
+      <div className={className}>
+        <div className="lien-prose" dangerouslySetInnerHTML={{ __html: description }} />
+        {factCards}
+      </div>
+    );
   }
   const withIntro = d.introHtml.trim().length > 0;
   return (
@@ -66,19 +96,7 @@ export function ProductDescription({ name, description, className }: Props) {
         ))}
       </div>
 
-      {d.facts.length ? (
-        <dl className="mt-6 mb-0 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {d.facts.map((f) => (
-            <div key={f.label} className="rounded-md border border-lien-widget-border bg-lien-blue-soft/60 px-3 py-2">
-              <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-lien-muted">
-                <Fa name={FACT_ICONS[f.label] ?? "info-circle"} className="text-lien-blue" />
-                {factLabel(f.label)}
-              </dt>
-              <dd className="mt-0.5 text-[15px] leading-6 text-lien-heading">{f.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      {factCards}
     </div>
   );
 }

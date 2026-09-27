@@ -1,7 +1,7 @@
 /** Inline-label description → headed sections — pure unit tests:  npm run test:description */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { structureDescription } from "../../src/lib/description";
+import { cleanFactValue, structureDescription } from "../../src/lib/description";
 import { restructureInlineDescription } from "../../src/lib/description-restructure";
 
 const facts = `<ul><li>Thương hiệu: DHC</li><li>Xuất xứ: Nhật Bản</li><li>Dung tích: 30日分・48.0g（1.6g×30本）</li><li>Mã vạch (JAN): 4511413408247</li></ul>`;
@@ -49,5 +49,24 @@ describe("restructureInlineDescription", () => {
     const out = restructureInlineDescription(`<p>Công dụng: hỗ trợ. Vitamin C: 1000mg mỗi viên. Lưu ý: bảo quản nơi khô ráo.</p>`)!;
     assert.match(out, /<h3>Công dụng<\/h3><p>Hỗ trợ\. Vitamin C: 1000mg mỗi viên\.<\/p>/);
     assert.equal((out.match(/<h3>/g) ?? []).length, 2);
+  });
+});
+
+describe("cleanFactValue", () => {
+  it("drops JAN / EAN barcodes from a fact value", () => {
+    assert.equal(cleanFactValue("1 tuýp 90g; JAN 4909978200879"), "1 tuýp 90g");
+    assert.equal(cleanFactValue("1 tuýp 90g (JAN: 4909978200879)"), "1 tuýp 90g");
+    assert.equal(cleanFactValue("Mã vạch 4909978200879"), "");
+    assert.equal(cleanFactValue("120 viên · 4909978200879"), "120 viên");
+    assert.equal(cleanFactValue("1 hộp 30 gói"), "1 hộp 30 gói");
+  });
+  it("drops whole barcode lines from the body", () => {
+    const d = structureDescription("<ul><li>Xuất xứ: Nhật Bản</li><li>Dung tích: 48g</li><li>Mã vạch (JAN): 4511413408247</li><li>Màu: trắng</li></ul>", "Bột DHC");
+    assert.ok(!JSON.stringify(d).includes("4511413408247"), "barcode gone");
+    assert.ok(JSON.stringify(d).includes("Màu: trắng"), "other bullets stay");
+  });
+  it("structureDescription never shows a barcode in Quy cách", () => {
+    const d = structureDescription("<ul><li>Quy cách: 1 tuýp 90g; JAN 4909978200879</li><li>Xuất xứ: Nhật Bản</li></ul>", "Gel Anessa");
+    assert.deepEqual(d.facts.find((f) => f.label === "Quy cách"), { label: "Quy cách", value: "1 tuýp 90g" });
   });
 });
