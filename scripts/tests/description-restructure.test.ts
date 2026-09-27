@@ -59,6 +59,7 @@ describe("cleanFactValue", () => {
     assert.equal(cleanFactValue("Mã vạch 4909978200879"), "");
     assert.equal(cleanFactValue("120 viên · 4909978200879"), "120 viên");
     assert.equal(cleanFactValue("1 hộp 30 gói"), "1 hộp 30 gói");
+    assert.equal(cleanFactValue("90g／JAN 4909978200879"), "90g");
   });
   it("drops whole barcode lines from the body", () => {
     const d = structureDescription("<ul><li>Xuất xứ: Nhật Bản</li><li>Dung tích: 48g</li><li>Mã vạch (JAN): 4511413408247</li><li>Màu: trắng</li></ul>", "Bột DHC");

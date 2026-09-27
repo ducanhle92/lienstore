@@ -170,9 +170,9 @@ export function isBarcodeLabel(rawLabel: string): boolean {
 /** Barcodes (JAN / EAN / UPC, "mã vạch") are internal — drop them from a fact value ("1 tuýp 90g; JAN 4909978200879" → "1 tuýp 90g"). */
 export function cleanFactValue(value: string): string {
   return value
-    .replace(/(?:^|[;,·|(]\s*)(?:mã\s*(?:vạch|jan|ean|upc)|jan|ean|upc|barcode)\s*[:：]?\s*\d{8,14}\s*\)?/gi, "")
-    .replace(/(?:^|[;,·|]\s*)\d{8,14}(?=\s*$)/g, "")
-    .replace(/^[\s;,·|]+|[\s;,·|]+$/g, "")
+    .replace(/(?:^|[;,·|(／/]\s*)(?:mã\s*(?:vạch|jan|ean|upc)|jan|ean|upc|barcode)\s*[:：]?\s*\d{8,14}\s*\)?/gi, "")
+    .replace(/(?:^|[;,·|／/]\s*)\d{8,14}(?=\s*$)/g, "")
+    .replace(/^[\s;,·|／/]+|[\s;,·|／/]+$/g, "")
     .trim();
 }
 
