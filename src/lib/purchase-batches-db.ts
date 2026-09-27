@@ -38,6 +38,7 @@ interface LineRow {
   quantity: number;
   purchase_status: string | null;
   batch_id: number;
+  source_key: string | null;
   sku: string | null;
   thumb: string | null;
   cost_jpy: number | null;
@@ -54,6 +55,7 @@ interface StockRow {
   lot_id: number | null;
   note: string;
   batch_id: number;
+  source_key: string;
   name: string;
   sku: string | null;
   thumb: string | null;
@@ -68,14 +70,14 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
   const ph = ids.map(() => "?").join(",");
   const lines = db
     .prepare(
-      `SELECT oi.id, oi.order_id, o.number, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity, oi.purchase_status, oi.batch_id, p.sku, p.thumb, p.cost_jpy
+      `SELECT oi.id, oi.order_id, o.number, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity, oi.purchase_status, oi.batch_id, oi.source_key, p.sku, p.thumb, p.cost_jpy
        FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id
        WHERE oi.batch_id IN (${ph}) ORDER BY o.number, oi.id`,
     )
     .all(...ids) as unknown as LineRow[];
   const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
-  const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy });
-  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "" });
+  const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "" });
+  const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE });
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
@@ -167,14 +169,14 @@ export function removeLineFromBatch(itemId: number): boolean {
 }
 
 /** Surplus bought in this batch with no order behind it → a stock purchase that follows the batch and becomes a lot at the shop. */
-export async function addSurplusToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string }): Promise<PurchaseBatchStock | null> {
+export async function addSurplusToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string }): Promise<PurchaseBatchStock | null> {
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return null;
   const sp = await createStockPurchase({
     productId: input.productId,
     qty: input.qty,
-    sourceKey: batch.source_key,
+    sourceKey: input.sourceKey || batch.source_key,
     unitCostJpy: input.unitCostJpy,
     expiry: input.expiry,
     boughtAt: input.boughtAt ?? batch.bought_at,
@@ -193,7 +195,7 @@ export async function addSurplusToBatch(batchId: number, input: { productId: num
  * lines — they join the batch with the note "Tự động lấy từ mua theo đợt"), the rest is booked as surplus for stock
  * with its own expiry. Call once per expiry date when the same product came with several dates.
  */
-export async function addProductToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string }): Promise<{ code: string; covered: number; orderUnits: number; stockUnits: number; lotId: number | null } | null> {
+export async function addProductToBatch(batchId: number, input: { productId: number; qty: number; expiry: string | null; boughtAt: string | null; unitCostJpy: number | null; note: string; sourceKey?: string }): Promise<{ code: string; covered: number; orderUnits: number; stockUnits: number; lotId: number | null } | null> {
   const db = getDb();
   const batch = db.prepare("SELECT * FROM purchase_batches WHERE id = ?").get(batchId) as BatchRow | undefined;
   if (!batch) return null;
@@ -204,8 +206,9 @@ export async function addProductToBatch(batchId: number, input: { productId: num
   const now = new Date().toISOString();
   const target = statusOf(batch.status);
   withTransaction(db, () => {
-    const upd = db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?");
-    for (const l of plan.cover) upd.run(batchId, batch.source_key, target, now, `Tự động lấy từ mua theo đợt ${batch.code}`, l.itemId);
+    // the goods were bought at THIS source — the covered lines record it (each product in a batch has its own)
+    const upd = db.prepare("UPDATE order_items SET batch_id = ?, source_key = ?, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?");
+    for (const l of plan.cover) upd.run(batchId, input.sourceKey || batch.source_key, target, now, `Tự động lấy từ mua theo đợt ${batch.code}`, l.itemId);
     db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
   });
   let lotId: number | null = null;
@@ -273,7 +276,7 @@ export function allocateSurplusToLine(batchId: number, itemId: number, note?: st
   if (!line) return { ok: false, message: "Không tìm thấy dòng đơn." };
   if (line.batch_id) return { ok: false, message: "Dòng đơn đã nằm trong một đợt gửi." };
   if (statusOf(line.purchase_status) !== "not_bought") return { ok: false, message: "Chỉ lấy hàng dư cho dòng còn “Chưa mua”." };
-  const surplus = db.prepare("SELECT id, qty, expiry FROM stock_purchases WHERE batch_id = ? AND product_id = ? AND lot_id IS NULL").all(batchId, line.product_id) as unknown as Array<{ id: number; qty: number; expiry: string | null }>;
+  const surplus = db.prepare("SELECT id, qty, expiry, source_key FROM stock_purchases WHERE batch_id = ? AND product_id = ? AND lot_id IS NULL").all(batchId, line.product_id) as unknown as Array<{ id: number; qty: number; expiry: string | null; source_key: string }>;
   const plan = planSurplusTake(surplus, line.quantity);
   if (plan.short > 0) {
     const have = surplus.reduce((n, s) => n + s.qty, 0);
@@ -287,7 +290,8 @@ export function allocateSurplusToLine(batchId: number, itemId: number, note?: st
       else db.prepare("UPDATE stock_purchases SET qty = ?, updated_at = ? WHERE id = ?").run(cur.qty - take, now, spId);
     }
     const status = statusOf(batch.status);
-    db.prepare("UPDATE order_items SET batch_id = ?, source_key = CASE WHEN COALESCE(source_key, '') = '' THEN ? ELSE source_key END, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?").run(batchId, batch.source_key, status, now, note ?? `Lấy từ hàng dư mua theo đợt ${batch.code}`, itemId);
+    const fromSource = surplus.find((s) => s.id === plan.takes[0]?.[0])?.source_key || batch.source_key;
+    db.prepare("UPDATE order_items SET batch_id = ?, source_key = ?, purchase_status = ?, purchase_updated_at = ?, purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE id = ?").run(batchId, fromSource, status, now, note ?? `Lấy từ hàng dư mua theo đợt ${batch.code}`, itemId);
     db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batchId);
   });
   return { ok: true, message: `Đã lấy ${line.quantity} đv hàng dư của đợt ${batch.code} cho dòng đơn.` };

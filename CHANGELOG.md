@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Mua theo đợt: **mỗi sản phẩm thêm vào đợt chọn nguồn mua riêng** (ô “Mua ở” trong khung thêm sản phẩm; Amazon, drugstore, siêu thị… trong cùng một đợt). Dòng đơn được gán tự động và hàng lưu kho ghi đúng nguồn của dòng đó; “Lấy từ đợt” cũng lấy nguồn của hàng dư. Nguồn của đợt chỉ còn là nguồn chọn sẵn.
+
 ## [1.76.4] - 2026-09-27
 
 ### Changed

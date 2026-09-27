@@ -78,7 +78,7 @@ export async function addProductAction(formData: FormData): Promise<void> {
   if (boughtAt === undefined) go("error", "Ngày mua không hợp lệ (VD 2026-09-27).", batchId);
   const jpyRaw = text(formData, "unitCostJpy").replace(/[^\d]/g, "");
   const unitCostJpy = jpyRaw ? Number.parseInt(jpyRaw, 10) : null;
-  const r = await addProductToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200) });
+  const r = await addProductToBatch(batchId!, { productId: productId!, qty: qty!, expiry, boughtAt: boughtAt ?? null, unitCostJpy, note: text(formData, "note").slice(0, 200), sourceKey: text(formData, "sourceKey") });
   revalidatePath("/admin", "layout");
   if (!r) go("error", "Không tìm thấy đợt gửi.", batchId);
   const parts: string[] = [];

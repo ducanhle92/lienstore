@@ -59,7 +59,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={adminLabel} htmlFor="nb-src">
-                  Mua ở
+                  Nguồn mặc định <span className="font-normal text-lien-muted">— từng sản phẩm chọn nguồn riêng khi thêm</span>
                 </label>
                 <select id="nb-src" name="sourceKey" defaultValue="amazon" className={adminInput}>
                   {sources.map((s) => (
@@ -90,7 +90,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         <Card title="Cách dùng">
           <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
             <li>
-              <b>Thêm sản phẩm đã mua:</b> tìm theo tên, nhập tổng SL, <b>HSD</b>, <b>ngày mua</b>, ¥. Cùng sản phẩm mà khác HSD → thêm nhiều dòng. Hệ thống tự gán cho các đơn đang chờ (ghi chú “Tự động lấy từ mua theo đợt”), phần còn lại là hàng lưu kho.
+              <b>Thêm sản phẩm đã mua:</b> tìm theo tên, chọn <b>nơi mua</b> cho từng dòng (Amazon, drugstore, siêu thị…), nhập tổng SL, <b>HSD</b>, <b>ngày mua</b>, ¥. Cùng sản phẩm mà khác HSD / khác nguồn → thêm nhiều dòng. Hệ thống tự gán cho các đơn đang chờ (ghi chú “Tự động lấy từ mua theo đợt”), phần còn lại là hàng lưu kho.
             </li>
             <li>
               <b>Nhập bill:</b> khung “Phiếu mua hàng · nhập bill” bên dưới, chọn “Đưa vào đợt” → cả bill vào đợt, cũng tự gán đơn trước.
@@ -148,7 +148,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
       >
         <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-lien-muted">
           <span>
-            Mua ở <b className="text-lien-heading">{purchaseSourceName(b.sourceKey, sources)}</b>
+            Nguồn mặc định <b className="text-lien-heading">{purchaseSourceName(b.sourceKey, sources)}</b> <span title="Mỗi sản phẩm thêm vào đợt chọn nguồn riêng; đây chỉ là nguồn chọn sẵn">(mỗi dòng có thể khác)</span>
           </span>
           <span>· ngày mua {b.boughtAt ? formatDate(b.boughtAt) : "—"}</span>
           <span>· gửi NB→VN {b.shippedAt ? formatDate(b.shippedAt) : "—"}</span>
@@ -225,6 +225,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
                           <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", ls.cls)} title={ls.label}>
                             {ls.short}
                           </span>
+                          {l.sourceKey ? <span className="text-[11px] text-lien-muted">· {purchaseSourceName(l.sourceKey, sources)}</span> : null}
                           {done ? null : (
                             <form action={removeLineFromBatchAction} className="inline">
                               <input type="hidden" name="batchId" value={b.id} />
@@ -247,6 +248,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
                         <span className="text-lien-muted">HSD {s.expiry ? formatDate(s.expiry) : "—"}</span>
                         <span className="text-lien-muted">· mua {s.boughtAt ? formatDate(s.boughtAt) : "—"}</span>
                         {s.unitCostJpy ? <span className="text-lien-muted">· ¥{formatAmount(s.unitCostJpy)}/đv</span> : null}
+                        <span className="text-[11px] text-lien-muted">· {purchaseSourceName(s.sourceKey, sources)}</span>
                         {s.lotId ? (
                           <Link href={`/admin/inventory/lots/${s.productId}/`} className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-800 no-underline hover:bg-green-200">
                             lô #{s.lotId}
@@ -274,14 +276,26 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
 
         {done ? null : (
           <>
-            <form action={addProductAction} className="mt-3 grid gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-3 py-2 md:grid-cols-[minmax(260px,1fr)_80px_130px_130px_110px_1fr_auto] md:items-end" data-testid={`surplus-${b.id}`}>
+            <form action={addProductAction} className="mt-3 grid gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-3 py-2 md:grid-cols-[minmax(240px,1fr)_150px_70px_120px_120px_100px_1fr_auto] md:items-end" data-testid={`surplus-${b.id}`}>
               <input type="hidden" name="batchId" value={b.id} />
-              <div className="md:col-span-7 -mb-1 text-[12px] text-lien-muted">
-                <b className="text-lien-heading">Thêm sản phẩm đã mua vào đợt</b> — SL là tổng đã mua; tự gán cho đơn đang chờ trước, phần còn lại lưu kho. Cùng sản phẩm khác HSD → thêm từng dòng.
+              <div className="md:col-span-8 -mb-1 text-[12px] text-lien-muted">
+                <b className="text-lien-heading">Thêm sản phẩm đã mua vào đợt</b> — SL là tổng đã mua; tự gán cho đơn đang chờ trước, phần còn lại lưu kho. Cùng sản phẩm khác HSD hoặc khác nguồn → thêm từng dòng.
               </div>
               <div>
                 <label className={adminLabel}>Sản phẩm (tìm theo tên)</label>
                 <ProductSearchSelect products={products} placeholder="Gõ tên Việt / Nhật hoặc SKU…" />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor={`ss-${b.id}`}>
+                  Mua ở
+                </label>
+                <select id={`ss-${b.id}`} name="sourceKey" defaultValue={b.sourceKey} className={cn(adminInput, "!py-1.5 !text-[13px]")}>
+                  {sources.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={adminLabel} htmlFor={`sq-${b.id}`}>
@@ -410,7 +424,7 @@ function BatchCard({ batch: b, openLines, products, sources }: { batch: Purchase
             </div>
             <div>
               <label className={adminLabel} htmlFor={`us-${b.id}`}>
-                Mua ở
+                Nguồn mặc định
               </label>
               <select id={`us-${b.id}`} name="sourceKey" defaultValue={b.sourceKey} className={cn(adminInput, "!py-1.5 !text-[13px]")}>
                 {sources.map((s) => (

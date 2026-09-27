@@ -147,6 +147,8 @@ export interface PurchaseBatchLine {
   quantity: number;
   purchaseStatus: import("@/lib/purchase").PurchaseStatus;
   costJpy: number | null;
+  /** Where this line was bought (purchase_sources.key); "" = not decided. */
+  sourceKey: string;
 }
 
 /** Surplus units bought in the same batch with no order behind them; becomes a lot when the batch reaches the shop. */
@@ -164,6 +166,8 @@ export interface PurchaseBatchStock {
   warehouse: Warehouse;
   lotId: number | null;
   note: string;
+  /** Where these units were bought — each product in a batch can come from its own source. */
+  sourceKey: string;
 }
 
 /**
@@ -176,6 +180,7 @@ export interface PurchaseBatch {
   code: string;
   label: string;
   status: import("@/lib/purchase").PurchaseStatus;
+  /** Default source for new rows; every product row carries its own. */
   sourceKey: string;
   boughtAt: string | null;
   shippedAt: string | null;
