@@ -69,7 +69,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
       <PageHeader
         title={product.name}
         subtitle={`Lô hàng · tồn ${product.stock ?? 0} đơn vị trong ${lots.filter((l) => l.qtyLeft > 0).length} lô${open.length ? ` · ${open.reduce((s, p) => s + p.qty, 0)} đv đang mua lưu kho` : ""}`}
-        back={{ href: "/admin/inventory/", label: "Kho hàng" }}
+        back={{ href: "/admin/inventory/", label: "Tồn kho" }}
         actions={
           <Link href={`/admin/products/${product.id}/`} className="text-[14px] text-lien-blue hover:underline">
             Sửa sản phẩm →

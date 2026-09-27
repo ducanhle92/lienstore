@@ -37,7 +37,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="min-w-0 space-y-6">
-      <Card title={`Hàng lưu kho từ các đợt mua (${lots.length} lô · ${freeUnits} đv chưa bán)`} actions={<Link href="/admin/inventory/?side=jp" className="text-[13px] text-lien-blue hover:underline">Kho hàng →</Link>}>
+      <Card title={`Hàng lưu kho từ các đợt mua (${lots.length} lô · ${freeUnits} đv chưa bán)`} actions={<Link href="/admin/inventory/?side=jp" className="text-[13px] text-lien-blue hover:underline">Tồn kho →</Link>}>
         <p className="m-0 mb-2 text-[12px] text-lien-muted">Mua ở tab “Mua theo đợt” mà chưa gắn đơn nào = hàng lưu kho, đang ở vị trí bên dưới (Kho Nhật → ĐVVC → Kho VN). Sửa lô ở tab Mua theo đợt hoặc trang lô của sản phẩm.</p>
         {lots.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Chưa có lô nào còn hàng chưa bán.</p> : null}
         {lots.length ? (
@@ -125,7 +125,7 @@ export function StockPurchasePanel({ purchases, products, sources, includeDone, 
                 </button>
               </>
             ) : null}
-            <span className="text-lien-muted">Tới “Tại kho Nhật (shop)” → phiếu thành lô ở Kho hàng › Kho Nhật; từ đó chọn gửi về ở Kho hàng.</span>
+            <span className="text-lien-muted">Tới “Tại kho Nhật (shop)” → phiếu thành lô ở Tồn kho › Kho Nhật; từ đó chọn gửi về ở Tồn kho hoặc đổi trạng thái ở Mua theo đợt.</span>
           </div>
         </form>
         <div className="overflow-x-auto">

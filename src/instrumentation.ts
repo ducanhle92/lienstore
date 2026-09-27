@@ -114,6 +114,16 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
+  // every start: slips / allocations left behind by a hand-deleted lot
+  setTimeout(async () => {
+    try {
+      const { cleanupOrphanLotRefs } = await import("./lib/allocations-db");
+      const r = await cleanupOrphanLotRefs();
+      if (r.slips || r.allocations) console.info(`[lots] cleaned ${r.slips} orphan slip(s), ${r.allocations} orphan allocation(s)`);
+    } catch (e) {
+      console.warn(`[lots] orphan cleanup failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 24_000);
   // one-time after migration 61: lots created from bought slips → recompute products.stock and serve waiting lines
   setTimeout(async () => {
     try {

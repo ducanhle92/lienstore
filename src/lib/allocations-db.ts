@@ -485,3 +485,18 @@ export async function resyncStockAfterLotsOnce(): Promise<number> {
   });
   return ids.length;
 }
+
+/**
+ * A lot deleted by hand leaves its slip (Mua theo đợt showed it as "giữ lại Nhật") and any allocation dangling.
+ * Drop those references and give the affected lines a fresh source. Idempotent; runs at every start.
+ */
+export async function cleanupOrphanLotRefs(): Promise<{ slips: number; allocations: number }> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const slips = Number(db.prepare("DELETE FROM stock_purchases WHERE lot_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM stock_lots l WHERE l.id = stock_purchases.lot_id)").run().changes);
+    const items = (db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations a WHERE a.source_type = 'lot' AND NOT EXISTS (SELECT 1 FROM stock_lots l WHERE l.id = a.source_id)").all() as Array<{ id: number }>).map((r) => r.id);
+    const allocations = Number(db.prepare("DELETE FROM order_item_allocations WHERE source_type = 'lot' AND NOT EXISTS (SELECT 1 FROM stock_lots l WHERE l.id = order_item_allocations.source_id)").run().changes);
+    for (const id of items) allocateItemSync(db, id, true);
+    return { slips, allocations };
+  });
+}

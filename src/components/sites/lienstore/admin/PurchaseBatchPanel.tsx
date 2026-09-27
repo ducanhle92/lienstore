@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { setPurchaseAction } from "@/app/admin/purchases/actions";
 import { splitLotAction } from "@/app/admin/inventory/lot-actions";
-import { addLinesToBatchAction, addProductAction, allocateSurplusAction, bulkBatchRowsAction, createBatchAction, deleteBatchAction, moveStockToBatchAction, removeLineFromBatchAction, removeSurplusAction, setBatchStatusAction, splitBatchStockAction, updateBatchAction, updateBatchLotAction, updateBatchStockAction } from "@/app/admin/purchases/batch-actions";
+import { addLinesToBatchAction, addProductAction, allocateSurplusAction, bulkBatchRowsAction, createBatchAction, deleteBatchAction, removeLineFromBatchAction, removeSurplusAction, setBatchStatusAction, splitBatchStockAction, updateBatchAction, updateBatchLotAction, updateBatchStockAction } from "@/app/admin/purchases/batch-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import type { PurchaseLine } from "@/lib/db";
 import type { LotView } from "@/lib/lots-db";
@@ -11,7 +11,7 @@ import { describeLocation, statusForLocation } from "@/lib/warehouses";
 import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
 import { todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
-import { BATCH_DONE, BATCH_STAGES, batchTotals, groupBatchByProduct } from "@/lib/purchase-batches";
+import { BATCH_DONE, BATCH_STAGES, batchTotals } from "@/lib/purchase-batches";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock, PurchaseSource } from "@/types/shop";
@@ -173,7 +173,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
   const st = PURCHASE_STAGES[purchaseIndex(b.status)];
   const stage = BATCH_STAGES.find((s) => s.key === b.status) ?? BATCH_STAGES[0];
   const totals = batchTotals(b.lines, [...b.stock, ...b.lots.map((l) => ({ qty: l.physical, unitCostJpy: l.unitCostJpy }))]);
-  const grouped = groupBatchByProduct(b.lines, [...b.stock, ...b.lots.map((l) => ({ productId: l.productId, productName: l.productName, productSku: l.productSku, productThumb: l.productThumb, qty: l.physical }))]);
   const done = b.status === BATCH_DONE;
   const hasLots = b.stock.some((s) => s.lotId);
   const surplusByProduct = new Map<number, number>();
@@ -184,7 +183,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
   const stockById = new Map(products.map((p) => [p.id, p.stock]));
   const jaById = new Map(products.map((p) => [p.id, p.nameJa ?? ""]));
   const searchOf = (productId: number, name: string, sku: string | null) => `${name} ${jaById.get(productId) ?? ""} ${sku ?? ""} #${productId}`;
-  const waiting = b.held.filter((h) => !h.batchId);
   // chips / suggestions for the filter bar, built from what the batch actually holds
   const filterSources = Array.from(new Set([...b.lines.map((l) => l.sourceKey), ...b.stock.map((s) => s.sourceKey), ...b.held.map((h) => h.sourceKey)].filter(Boolean))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
   const filterStatuses = Array.from(new Set([...b.lines.map((l) => l.purchaseStatus), ...b.stock.map((s) => s.status), ...b.held.map((h) => h.status)])).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
@@ -230,7 +228,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
           {b.tracking ? <span>· tracking {b.tracking}</span> : null}
           <span className="ml-auto text-lien-heading">
             theo đặt hàng <b>{totals.orderUnits}</b> đv · lưu kho <b>{totals.stockUnits}</b> đv · tổng <b>{totals.units}</b> đv{totals.jpy !== null ? ` · ≈ ¥${formatAmount(totals.jpy)}` : ""}
-            {waiting.length ? ` · giữ lại Nhật ${waiting.reduce((n, h) => n + h.qty, 0)} đv` : ""}
           </span>
         </div>
 
@@ -307,7 +304,7 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
           )}
         </div>
 
-        <BatchFilter batchId={b.id} total={rows.length + b.held.length} sources={filterSources} statuses={filterStatuses} orders={filterOrders} />
+        <BatchFilter batchId={b.id} total={rows.length} sources={filterSources} statuses={filterStatuses} orders={filterOrders} />
         <div className="overflow-x-auto">
           <table className={cn(tableClass, "max-lg:block")}>
             <thead className="max-lg:hidden">
@@ -361,89 +358,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
             </form>
           </span>
         ))}
-
-        {b.held.length ? (
-          <div className="mt-3 rounded-md border border-dashed border-amber-300 bg-amber-50/50 px-3 py-2" data-testid={`held-${b.id}`}>
-            <p className="m-0 mb-1 text-[13px] font-semibold text-lien-heading">
-              Giữ lại tại Nhật từ đợt này <span className="font-normal text-lien-muted">({waiting.length} dòng chờ đợt sau{b.held.length - waiting.length ? ` · ${b.held.length - waiting.length} dòng đã đi đợt khác` : ""})</span>
-            </p>
-            <table className={tableClass}>
-              <tbody>
-                {b.held.map((h) => (
-                  <tr key={h.id} className="text-[13px]" data-brow="1" data-kind="held" data-search={searchOf(h.productId, h.productName, h.productSku)} data-product={h.productId} data-src={h.sourceKey} data-status={h.status} data-note={noteBody(h.note, b.code) ? "1" : "0"} data-qty={h.qty} data-jpy={(h.unitCostJpy ?? 0) * h.qty}>
-                    <td className={`${tdClass} min-w-[200px]`}>
-                      <Link href={`/admin/inventory/lots/${h.productId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
-                        {h.productName}
-                      </Link>
-                      <span className="block text-[12px] text-lien-muted">
-                        phiếu #{h.id}
-                        {h.productSku ? ` · ${h.productSku}` : ""}
-                      </span>
-                    </td>
-                    <td className={`${tdClass} font-semibold`}>×{h.qty}</td>
-                    <td className={`${tdClass} text-lien-muted`}>HSD {h.expiry ? formatDate(h.expiry) : "—"}</td>
-                    <td className={`${tdClass} text-lien-muted`}>{purchaseSourceName(h.sourceKey, sources)}</td>
-                    <td className={tdClass}>
-                      <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", PURCHASE_STAGES[purchaseIndex(h.status)].cls)}>{PURCHASE_STAGES[purchaseIndex(h.status)].short}</span>
-                    </td>
-                    <td className={`${tdClass} whitespace-nowrap`}>
-                      {h.batchId ? (
-                        <Link href={`${BACK}#batch-${h.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#065f46] no-underline hover:underline">
-                          đã vào {h.batchCode}
-                        </Link>
-                      ) : heads.length ? (
-                        <form action={moveStockToBatchAction} className="flex items-center gap-1">
-                          <input type="hidden" name="spids" value={h.id} />
-                          <input type="hidden" name="fromBatchId" value={b.id} />
-                          <select name="batchId" defaultValue={heads[0].id} className={cn(adminInput, cell, "!w-auto")} aria-label="Đưa vào đợt">
-                            {heads.map((x) => (
-                              <option key={x.id} value={x.id}>
-                                {x.code}
-                              </option>
-                            ))}
-                          </select>
-                          <button type="submit" className={cn(btnSecondary, "!px-2 !py-1 !text-[12px]")}>
-                            Đưa vào đợt
-                          </button>
-                        </form>
-                      ) : (
-                        <span className="text-[12px] text-lien-muted">chờ đợt sau (mở đợt mới rồi đưa vào)</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-
-        {grouped.length ? (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-[12px] text-lien-blue">Tổng theo sản phẩm ({grouped.length})</summary>
-            <table className={cn(tableClass, "mt-1")}>
-              <thead>
-                <tr>
-                  <th className={thClass}>Sản phẩm</th>
-                  <th className={thClass}>Theo đặt hàng</th>
-                  <th className={thClass}>Lưu kho</th>
-                  <th className={thClass}>Tổng</th>
-                  <th className={thClass}>Tồn hiện tại</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped.map((g) => (
-                  <tr key={g.productId} className="text-[13px]">
-                    <td className={tdClass}>{g.name}</td>
-                    <td className={tdClass}>{g.orderUnits || "—"}</td>
-                    <td className={tdClass}>{g.stockUnits || "—"}</td>
-                    <td className={`${tdClass} font-semibold`}>{g.orderUnits + g.stockUnits}</td>
-                    <td className={`${tdClass} text-lien-muted`}>{stockById.get(g.productId) ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </details>
-        ) : null}
 
         {done ? null : (
           <>

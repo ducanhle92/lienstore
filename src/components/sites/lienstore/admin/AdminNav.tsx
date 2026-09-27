@@ -13,6 +13,8 @@ interface NavLeaf {
   icon: FaName;
   module?: string;
   exact?: boolean;
+  /** A sub-group inside a group (one more level, e.g. Kho hàng › Chung). */
+  children?: NavLeaf[];
 }
 
 /** A parent row: either a plain link or a group whose children appear only when the row is opened. */
@@ -38,14 +40,21 @@ const NAV: NavGroup[] = [
     label: "Kho hàng",
     icon: "cubes",
     children: [
-      { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
+      {
+        href: "/admin/categories/",
+        label: "Chung",
+        icon: "cog",
+        children: [
+          { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
+          { href: "/admin/products/sources/", label: "Nguồn nhập", icon: "shopping-bag", module: "products" },
+          { href: "/admin/inventory/warehouses/", label: "Địa chỉ kho", icon: "map-marker", module: "inventory" },
+          { href: "/admin/products/pricing/", label: "Công thức giá", icon: "money", module: "products" },
+        ],
+      },
       { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
       { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
-      { href: "/admin/products/sources/", label: "Nguồn nhập", icon: "shopping-bag", module: "products" },
-      { href: "/admin/inventory/", label: "Kho hàng", icon: "archive", module: "inventory" },
       { href: "/admin/purchases/", label: "Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
-      { href: "/admin/inventory/warehouses/", label: "Địa chỉ kho", icon: "map-marker", module: "inventory" },
-      { href: "/admin/products/pricing/", label: "Công thức giá", icon: "money", module: "products" },
+      { href: "/admin/inventory/", label: "Tồn kho", icon: "archive", module: "inventory" },
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
@@ -112,7 +121,8 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
   const allowed = (l: NavLeaf) => !l.module || permissions.includes(l.module);
 
   // Groups keep only the children the account may open; a group with no visible child disappears.
-  const nav = NAV.map((g) => (g.children ? { ...g, children: g.children.filter(allowed) } : g)).filter((g) => (g.children ? g.children.length > 0 : allowed(g)));
+  const visible = (items: NavLeaf[]): NavLeaf[] => items.map((c) => (c.children ? { ...c, children: c.children.filter(allowed) } : c)).filter((c) => (c.children ? c.children.length > 0 : allowed(c)));
+  const nav = NAV.map((g) => (g.children ? { ...g, children: visible(g.children) } : g)).filter((g) => (g.children ? g.children.length > 0 : allowed(g)));
 
   const leafActive = (l: NavLeaf) => {
     const [path, query] = l.href.split("?");
@@ -125,9 +135,12 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
       return true;
     }
     if (l.exact) return pathname === path || pathname === path.slice(0, -1);
+    // "/admin/inventory/" must not light up for "/admin/inventory/warehouses/" (a sibling leaf owns that)
+    if (path === "/admin/inventory/" && pathname.startsWith("/admin/inventory/warehouses")) return false;
     return pathname.startsWith(path.slice(0, -1));
   };
-  const groupActive = (g: NavGroup) => (g.children ? g.children.some(leafActive) : leafActive(g));
+  const anyActive = (l: NavLeaf): boolean => (l.children ? l.children.some(anyActive) : leafActive(l));
+  const groupActive = (g: NavGroup) => (g.children ? g.children.some(anyActive) : leafActive(g));
 
   // Children stay hidden until the parent row is clicked; the group holding the current page starts open
   // (until the user toggles it), so a deep link still shows where you are.
@@ -202,12 +215,36 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
                 <Fa name={isOpen ? "angle-up" : "angle-down"} className="text-[12px] text-white/60" />
               </button>
               {isOpen
-                ? g.children.map((c) => (
-                    <Link key={c.href} href={c.href} className={cn(rowBase, "ml-5 py-1.5 text-[13px]", leafActive(c) ? rowActive : rowIdle)}>
-                      <Fa name={c.icon} className="w-4 text-center text-[12px]" />
-                      {c.label}
-                    </Link>
-                  ))
+                ? g.children.map((c) => {
+                    if (!c.children) {
+                      return (
+                        <Link key={c.href} href={c.href} className={cn(rowBase, "ml-5 py-1.5 text-[13px]", leafActive(c) ? rowActive : rowIdle)}>
+                          <Fa name={c.icon} className="w-4 text-center text-[12px]" />
+                          {c.label}
+                        </Link>
+                      );
+                    }
+                    const key = `${g.label}/${c.label}`;
+                    const subActive = anyActive(c);
+                    const subOpen = open[key] ?? subActive;
+                    return (
+                      <div key={key} className="contents">
+                        <button type="button" onClick={() => setOpen((o) => ({ ...o, [key]: !subOpen }))} aria-expanded={subOpen} className={cn(rowBase, "ml-5 w-[calc(100%-1.25rem)] py-1.5 text-left text-[13px]", subActive && !subOpen ? "bg-white/10 text-white" : rowIdle)}>
+                          <Fa name={c.icon} className="w-4 text-center text-[12px]" />
+                          <span className="flex-1">{c.label}</span>
+                          <Fa name={subOpen ? "angle-up" : "angle-down"} className="text-[11px] text-white/60" />
+                        </button>
+                        {subOpen
+                          ? c.children.map((s) => (
+                              <Link key={s.href} href={s.href} className={cn(rowBase, "ml-10 py-1.5 text-[13px]", leafActive(s) ? rowActive : rowIdle)}>
+                                <Fa name={s.icon} className="w-4 text-center text-[12px]" />
+                                {s.label}
+                              </Link>
+                            ))
+                          : null}
+                      </div>
+                    );
+                  })
                 : null}
             </div>
           );

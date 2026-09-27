@@ -77,7 +77,7 @@ export default async function AdminInventory({ searchParams }: Props) {
   return (
     <>
       <PageHeader
-        title="Kho hàng"
+        title="Tồn kho"
         subtitle={`Mặc định hàng order · ${summary.inStockProducts} sản phẩm có tồn kho (${summary.units} đơn vị) · ${summary.stockIncomingUnits} đơn vị đang về kho · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
         actions={
           <>
