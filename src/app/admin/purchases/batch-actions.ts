@@ -187,6 +187,12 @@ export async function splitBatchStockAction(formData: FormData): Promise<void> {
   const qty = intOr(formData, "splitQty");
   const mode = text(formData, "mode") === "split" ? "split" : "hold";
   if (!batchId || !spId) go("error", "Yêu cầu không hợp lệ.");
+  if (mode === "hold" && !qty) {
+    // empty box → the whole row stays in Japan for a later batch
+    const r = holdBatchRows(batchId!, [spId!], []);
+    revalidatePath("/admin", "layout");
+    go(r.stock ? "saved" : "error", r.stock ? "Đã giữ lại Nhật cả dòng (chờ đợt sau)." : "Không giữ được dòng này (đã nhập kho thành lô?).", batchId);
+  }
   if (!qty) go("error", "Nhập số đơn vị muốn tách.", batchId);
   const r = splitBatchStock(spId!, qty!, mode);
   revalidatePath("/admin", "layout");
