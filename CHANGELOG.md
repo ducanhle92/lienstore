@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Admin › Sản phẩm: ô tìm không giãn hết chiều ngang nữa nên nút **Lọc** nằm cùng hàng với các ô lọc — bảng bên dưới cao thêm một hàng.
+
 ## [1.76.1] - 2026-09-27
 
 ### Added

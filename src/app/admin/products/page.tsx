@@ -104,7 +104,7 @@ export default async function AdminProducts({ searchParams }: Props) {
 
       <Card>
         <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={`${adminInput} min-w-[220px] flex-1 !w-auto !py-1.5 !text-[13px]`} />
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={`${adminInput} min-w-[150px] max-w-[240px] flex-1 !w-auto !py-1.5 !text-[13px]`} />
           <select name="category" defaultValue={category} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[170px]`}>
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => (
@@ -145,7 +145,7 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <button type="submit" className={`${btnPrimary} !py-1.5 !text-[13px]`}>
+          <button type="submit" className={`${btnPrimary} shrink-0 !py-1.5 !text-[13px]`}>
             Lọc
           </button>
         </form>
