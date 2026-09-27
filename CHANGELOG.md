@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.75.1] - 2026-09-27
+
 ### Changed
 - Trang sản phẩm: **Khối lượng** và **Kích thước** không còn nằm cạnh “Tình trạng” mà chuyển xuống các thẻ thông số dưới mô tả (cùng Thương hiệu, Xuất xứ, Quy cách…).
 - Trang sản phẩm: **mã JAN / mã vạch** không hiển thị cho khách nữa — bị lược khỏi thẻ Quy cách, khỏi danh sách Từ khóa và các dòng “Mã vạch (JAN): …” trong mô tả (dữ liệu trong admin giữ nguyên).
