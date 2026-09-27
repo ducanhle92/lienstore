@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 import { allocateOrderSync } from "../../src/lib/allocations-db";
 import { addStockLot, deleteStockLot, listStockLots, setOrderTransferReceived } from "../../src/lib/db";
 import { listLotViews } from "../../src/lib/lots-db";
-import { createShipment, deleteShipment, getShipment, packLots, packProduct, setShipmentStatus, unpackLot } from "../../src/lib/shipments-db";
+import { createShipment, deleteShipment, getShipment, listPackCandidates, listPackSources, packCandidates, packLots, packProduct, setShipmentStatus, unpackLot } from "../../src/lib/shipments-db";
 import { getDb, withTransaction } from "../../src/lib/sqlite";
+import { syncProductStock } from "../../src/lib/stock-sync";
 
 const db = getDb();
 let seq = 0;
@@ -93,6 +94,35 @@ async function main() {
   assert.ok(d.ok, d.message);
   assert.equal(shelf(pid), 6, "units back on the shelf (merged into B)");
   assert.equal((db.prepare("SELECT COUNT(*) AS n FROM stock_lots WHERE product_id = ? AND warehouse = 'jp'").get(pid) as { n: number }).n, 1, "the split part merged back");
+
+  // H. picker: a paid order line bought at the shop without a lot (legacy "Đã mua") shows up, gets a lot and is packed
+  const o2 = fakeOrder(pid, 1);
+  db.prepare("UPDATE order_items SET purchase_status = 'bought' WHERE id = ?").run(o2.itemId);
+  db.prepare("UPDATE order_item_allocations SET source_type = 'batch', source_id = 0 WHERE order_item_id = ?").run(o2.itemId);
+  syncProductStock(db, pid, new Date().toISOString()); // the hand-made allocation no longer holds a lot
+  assert.ok((await setOrderTransferReceived(o2.orderId)).ok);
+  const cands = listPackCandidates(db, { orderId: o2.orderId });
+  assert.equal(cands.length, 1);
+  assert.equal(cands[0].kind, "line");
+  assert.equal(cands[0].heldQty, 1, "paid line");
+  assert.ok(listPackSources(db).orders.some((o) => o.orderId === o2.orderId));
+  assert.ok(listPackCandidates(db, { q: String(960000 + seq) }).length >= 1, "search by order number");
+  const sh3 = createShipment({ label: "smoke8-3", plannedAt: null, note: "" });
+  const stockBefore = stockOf(pid);
+  const pc = packCandidates(sh3.id, [{ key: cands[0].key }]);
+  assert.ok(pc.ok, pc.message);
+  assert.equal(pc.units, 1);
+  const s3 = getShipment(sh3.id)!;
+  assert.equal(s3.units, 1);
+  assert.equal(s3.heldUnits, 1);
+  const alloc = db.prepare("SELECT source_type, source_id, consumed_at FROM order_item_allocations WHERE order_item_id = ?").get(o2.itemId) as { source_type: string; source_id: number; consumed_at: string | null };
+  assert.equal(alloc.source_type, "lot");
+  assert.equal(alloc.source_id, s3.lots[0].id, "line now points at its lot, boxed in the run");
+  assert.ok(alloc.consumed_at, "paid → deducted on the new lot");
+  assert.equal(stockOf(pid), stockBefore, "web stock unchanged by materialising a paid line");
+  assert.equal(listPackCandidates(db, { orderId: o2.orderId }).length, 0, "no longer a candidate");
+  assert.ok((await setShipmentStatus(sh3.id, "handed")).ok);
+  assert.equal((db.prepare("SELECT purchase_status FROM order_items WHERE id = ?").get(o2.itemId) as { purchase_status: string }).purchase_status, "to_carrier_jp");
   console.log("SMOKE8 OK");
 }
 main().catch((e) => {

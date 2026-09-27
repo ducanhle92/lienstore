@@ -1,18 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createShipmentAction, deleteShipmentAction, packProductAction, setShipmentStatusAction, unpackLotAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, unpackLotAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
+import { SelectAll } from "@/components/sites/lienstore/admin/SelectAll";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
-import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, listPurchaseSources } from "@/lib/db";
+import { listPurchaseSources } from "@/lib/db";
 import { formatAmount, formatDate } from "@/lib/format";
-import { listLotViews } from "@/lib/lots-db";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { SHIPMENT_STAGES, shipmentEditable, shipmentStage } from "@/lib/shipments";
-import { listShipments, type Shipment } from "@/lib/shipments-db";
+import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
@@ -33,21 +33,28 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   await requireAdmin("inventory");
   const sp = await searchParams;
   const includeDone = first(sp.done) === "1";
-  const [shipments, allProducts, sources] = await Promise.all([Promise.resolve(listShipments(includeDone)), getAllProducts(true), listPurchaseSources()]);
+  const [shipments, sources] = await Promise.all([Promise.resolve(listShipments(includeDone)), listPurchaseSources()]);
   const db = getDb();
-  // what could still be packed: units on the shelf at Kho Nhật (shop) per product
-  const shelf = listLotViews(db, { side: "jp" }).filter((l) => l.warehouse === "jp" && !l.inTransit && l.shipmentId === null);
-  const shelfByProduct = new Map<number, number>();
-  for (const l of shelf) shelfByProduct.set(l.productId, (shelfByProduct.get(l.productId) ?? 0) + l.physical);
-  const pickable: PickableProduct[] = allProducts.filter((p) => shelfByProduct.has(p.id)).map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: shelfByProduct.get(p.id) ?? 0 }));
-  const shelfUnits = shelf.reduce((n, l) => n + l.physical, 0);
+  // what could still be packed: lots on the shelf at Kho Nhật (shop) + bought order lines without a lot yet
+  const allCands = listPackCandidates(db);
+  const shelfUnits = allCands.reduce((n, c) => n + c.qty, 0);
+  const shelfProducts = new Set(allCands.map((c) => c.productId)).size;
+  const pickSources = listPackSources(db);
+  // the picker of one run: ?pick=<shipmentId>&by=order|batch|q&order=…&batch=…&q=…
+  const pickFor = Number.parseInt(first(sp.pick), 10);
+  const by = first(sp.by) === "order" ? "order" : first(sp.by) === "batch" ? "batch" : first(sp.by) === "q" ? "q" : "";
+  const pickOrder = first(sp.order);
+  const pickBatch = Number.parseInt(first(sp.batch), 10);
+  const pickQ = first(sp.q).trim();
+  const pickFilter = by === "order" && pickOrder ? { orderId: pickOrder } : by === "batch" && Number.isInteger(pickBatch) ? { batchId: pickBatch } : by === "q" ? { q: pickQ } : null;
+  const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
   const saved = first(sp.saved);
   const error = first(sp.error);
   return (
     <>
       <PageHeader
         title="Đóng hàng"
-        subtitle={`Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.filter((s) => s.status !== "done").length} chuyến đang mở · trên kệ Kho Nhật còn ${shelfUnits} đv (${shelfByProduct.size} sản phẩm) chưa đóng`}
+        subtitle={`Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.filter((s) => s.status !== "done").length} chuyến đang mở · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
         actions={
           <Link href="/admin/inventory/?side=jp" className={btnSecondary}>
             <Fa name="archive" /> Tồn kho › Kho Nhật
@@ -56,6 +63,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
+      {Number.isInteger(pickFor) && picked.length ? <FixedSaveBar forms={[`pk-${pickFor}`]} label="Thêm vào chuyến (đã tick)" resetLabel="Bỏ tick" hint="Tick các dòng ở bảng “Chọn hàng đóng vào chuyến” rồi bấm; SL = số đơn vị đóng (trống = cả dòng)." /> : null}
 
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         <details className="min-w-0" open={shipments.length === 0} data-testid="new-shipment">
@@ -94,7 +102,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
             <Card title="Cách dùng">
               <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
                 <li>
-                  <b>Mở chuyến</b> (một thùng / một lần gửi), rồi trong chuyến <b>tìm sản phẩm</b> và nhập <b>số lượng đóng</b> → hàng rời kệ Kho Nhật ngay (lấy lô hạn gần trước, hàng khách đã thanh toán đi trước).
+                  <b>Mở chuyến</b> (một thùng / một lần gửi), rồi trong chuyến <b>chọn hàng đóng</b>: theo <b>đơn</b> (mọi sản phẩm của đơn), theo <b>đợt mua</b> (mọi hàng của đợt còn ở Kho Nhật) hoặc <b>tìm</b> sản phẩm / đơn. Tick dòng (hoặc chọn tất cả), sửa SL nếu chỉ đóng một phần, bấm <b>Thêm vào chuyến</b> → hàng rời kệ Kho Nhật ngay.
                 </li>
                 <li>
                   Hàng đã đóng nằm ở nhánh <b>“Đã đóng hàng, chờ xuất ĐVVC”</b> trong Tồn kho › Kho Nhật; số “tại kho shop” giảm tương ứng. Rút lại được khi chuyến chưa xuất.
@@ -116,7 +124,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {shipments.map((s) => (
-          <ShipmentCard key={s.id} s={s} products={pickable} sources={sources} />
+          <ShipmentCard key={s.id} s={s} sources={sources} pick={s.id === pickFor ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : null} pickSources={pickSources} />
         ))}
         <p className="m-0 text-[12px] text-lien-muted">
           <Link href={`/admin/inventory/shipments/${includeDone ? "" : "?done=1"}`} className="text-lien-blue hover:underline">
@@ -128,9 +136,19 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   );
 }
 
-function ShipmentCard({ s, products, sources }: { s: Shipment; products: PickableProduct[]; sources: PurchaseSource[] }) {
+interface Pick {
+  by: "" | "order" | "batch" | "q";
+  order: string;
+  batch: number | null;
+  q: string;
+  rows: PackCandidate[];
+}
+type PickSources = ReturnType<typeof listPackSources>;
+
+function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources }) {
   const stage = shipmentStage(s.status);
   const editable = shipmentEditable(s.status);
+  const pkId = `pk-${s.id}`;
   return (
     <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`}>
       <Card
@@ -258,24 +276,162 @@ function ShipmentCard({ s, products, sources }: { s: Shipment; products: Pickabl
         </div>
 
         {editable ? (
-          <form action={packProductAction} className="mt-3 grid gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-3 py-2 lg:grid-cols-[minmax(260px,1fr)_110px_auto] lg:items-end" data-testid={`pack-${s.id}`}>
-            <input type="hidden" name="shipmentId" value={s.id} />
-            <div>
-              <label className={adminLabel}>
-                Thêm vào chuyến <span className="font-normal text-lien-muted">— chỉ sản phẩm đang có trên kệ Kho Nhật (số trong ngoặc = còn trên kệ)</span>
-              </label>
-              <ProductSearchSelect products={products} placeholder="Gõ tên Việt / Nhật hoặc SKU…" />
+          <details className="mt-3 rounded-md border border-dashed border-[#d1d5db] bg-white" open={!!pick} data-testid={`pick-${s.id}`}>
+            <summary className="cursor-pointer px-3 py-2 text-[13px] font-semibold text-lien-heading">
+              Chọn hàng đóng vào chuyến <span className="font-normal text-lien-muted">— theo đơn, theo đợt mua, hoặc tìm sản phẩm / đơn</span>
+            </summary>
+            <div className="px-3 pb-3">
+              {/* three ways to list candidates; each is a GET so the list renders server-side */}
+              <div className="grid gap-2 lg:grid-cols-3">
+                <form method="get" className="flex items-end gap-1" data-testid={`pick-order-${s.id}`}>
+                  <input type="hidden" name="pick" value={s.id} />
+                  <input type="hidden" name="by" value="order" />
+                  <div className="min-w-0 flex-1">
+                    <label className={adminLabel} htmlFor={`po-${s.id}`}>
+                      Theo đơn <span className="font-normal text-lien-muted">({pickSources.orders.length} đơn có hàng ở Kho Nhật)</span>
+                    </label>
+                    <select id={`po-${s.id}`} name="order" defaultValue={pick?.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")}>
+                      <option value="">— chọn đơn —</option>
+                      {pickSources.orders.map((o) => (
+                        <option key={o.orderId} value={o.orderId}>
+                          #{o.orderNumber} · {o.customer} · {o.units} đv
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button type="submit" className={cn(btnSecondary, "!py-1")}>
+                    Xem
+                  </button>
+                </form>
+                <form method="get" className="flex items-end gap-1" data-testid={`pick-batch-${s.id}`}>
+                  <input type="hidden" name="pick" value={s.id} />
+                  <input type="hidden" name="by" value="batch" />
+                  <div className="min-w-0 flex-1">
+                    <label className={adminLabel} htmlFor={`pb-${s.id}`}>
+                      Theo đợt mua <span className="font-normal text-lien-muted">(hàng của đợt còn ở Kho Nhật)</span>
+                    </label>
+                    <select id={`pb-${s.id}`} name="batch" defaultValue={pick?.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")}>
+                      <option value="">— chọn đợt —</option>
+                      {pickSources.batches.map((b) => (
+                        <option key={b.batchId} value={b.batchId}>
+                          {b.code} · {b.units} đv
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button type="submit" className={cn(btnSecondary, "!py-1")}>
+                    Xem
+                  </button>
+                </form>
+                <form method="get" className="flex items-end gap-1" data-testid={`pick-q-${s.id}`}>
+                  <input type="hidden" name="pick" value={s.id} />
+                  <input type="hidden" name="by" value="q" />
+                  <div className="min-w-0 flex-1">
+                    <label className={adminLabel} htmlFor={`pq-${s.id}`}>
+                      Tìm sản phẩm / đơn <span className="font-normal text-lien-muted">(trống = tất cả)</span>
+                    </label>
+                    <input id={`pq-${s.id}`} name="q" defaultValue={pick?.by === "q" ? pick.q : ""} placeholder="tên, SKU, #đơn, tên khách…" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} />
+                  </div>
+                  <button type="submit" className={cn(btnSecondary, "!py-1")}>
+                    Tìm
+                  </button>
+                </form>
+              </div>
+
+              {pick ? (
+                <>
+                  <form id={pkId} action={packCandidatesAction}>
+                    <input type="hidden" name="shipmentId" value={s.id} />
+                  </form>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px]">
+                    <SelectAll scope={pkId} />
+                    <span className="text-lien-muted">
+                      {pick.rows.length} dòng · {pick.rows.reduce((n, c) => n + c.qty, 0)} đv
+                      {pick.by === "order" ? " của đơn đã chọn" : pick.by === "batch" ? " của đợt đã chọn" : pick.q ? ` khớp “${pick.q}”` : " ở Kho Nhật"}
+                    </span>
+                    <button type="submit" form={pkId} className={cn(btnPrimary, "ml-auto !py-1 !text-[13px]")}>
+                      + Thêm vào chuyến (đã tick)
+                    </button>
+                  </div>
+                  <div className="mt-2 overflow-x-auto" data-select-scope={pkId}>
+                    <table className={tableClass}>
+                      <thead>
+                        <tr>
+                          <th className={cn(thClass, "w-8")} />
+                          <th className={thClass}>Sản phẩm</th>
+                          <th className={thClass}>Ở Kho Nhật</th>
+                          <th className={thClass}>SL đóng</th>
+                          <th className={thClass}>Đơn</th>
+                          <th className={thClass}>Đợt mua</th>
+                          <th className={thClass}>HSD</th>
+                          <th className={thClass}>Mua ở · ¥</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pick.rows.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
+                              Không có gì để đóng theo lựa chọn này.
+                            </td>
+                          </tr>
+                        ) : null}
+                        {pick.rows.map((c) => (
+                          <tr key={c.key} className="hover:bg-[#fafafa]" data-testid={`cand-${c.key.replace(":", "-")}`}>
+                            <td className={`${tdClass} w-8`}>
+                              <input type="checkbox" name="keys" value={c.key} form={pkId} className="h-4 w-4" aria-label={`Chọn ${c.productName}`} />
+                            </td>
+                            <td className={`${tdClass} min-w-[220px]`}>
+                              <div className="flex items-center gap-2">
+                                {c.productThumb ? <Image src={c.productThumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
+                                <span className="flex min-w-0 flex-col leading-4">
+                                  <span className="line-clamp-2 text-[13px] font-semibold text-lien-heading">{c.productName}</span>
+                                  <span className="text-[11px] text-lien-muted">
+                                    #{c.productId}
+                                    {c.productSku ? ` · ${c.productSku}` : ""}
+                                    {c.kind === "lot" ? ` · lô #${c.lotId}` : " · hàng theo đơn (chưa có lô)"}
+                                  </span>
+                                </span>
+                              </div>
+                            </td>
+                            <td className={`${tdClass} font-semibold`}>
+                              {c.qty}
+                              {c.heldQty ? <span className="block text-[11px] font-normal text-green-700">{c.heldQty} đã TT</span> : null}
+                            </td>
+                            <td className={tdClass}>
+                              {c.kind === "lot" && c.qty - c.heldQty >= 1 ? (
+                                (() => {
+                                  // "theo đơn": prefill with that order's unpaid units (paid ones travel by themselves)
+                                  const mine = pick.by === "order" ? c.orders.find((o) => o.orderId === pick.order) : undefined;
+                                  const def = mine ? (mine.committed ? 0 : Math.min(mine.qty, c.qty - c.heldQty)) : undefined;
+                                  return <input name={`qty_${c.key.replace(":", "_")}`} form={pkId} inputMode="numeric" defaultValue={def === undefined ? "" : String(def)} placeholder={String(c.qty - c.heldQty)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số đơn vị chưa bán đóng (trống = cả dòng)" title="Trống = cả dòng; số nhỏ hơn = chỉ đóng bấy nhiêu đơn vị chưa bán (hàng khách đã thanh toán luôn đi cùng); 0 = chỉ hàng đã thanh toán" />;
+                                })()
+                              ) : (
+                                <span className="text-[12px] text-lien-muted">cả dòng</span>
+                              )}
+                            </td>
+                            <td className={`${tdClass} text-[12px]`}>
+                              {c.orders.length === 0 ? <span className="text-lien-muted">— lưu kho</span> : null}
+                              {c.orders.map((o) => (
+                                <Link key={o.orderId} href={`/admin/orders/${o.orderId}/`} className={cn("mr-1 inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", o.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={o.customer}>
+                                  #{o.orderNumber} ×{o.qty}
+                                </Link>
+                              ))}
+                            </td>
+                            <td className={`${tdClass} text-[12px]`}>{c.batchCode || "—"}</td>
+                            <td className={`${tdClass} whitespace-nowrap text-[12px]`}>{c.expiry ? formatDate(c.expiry) : "—"}</td>
+                            <td className={`${tdClass} text-[12px]`}>
+                              {purchaseSourceName(c.sourceKey, sources)}
+                              {c.unitCostJpy ? ` · ¥${formatAmount(c.unitCostJpy)}` : ""}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : null}
             </div>
-            <div>
-              <label className={adminLabel} htmlFor={`pq-${s.id}`}>
-                Số lượng đóng
-              </label>
-              <input id={`pq-${s.id}`} name="qty" inputMode="numeric" required className={cn(adminInput, "!py-1.5 !text-[13px]")} />
-            </div>
-            <button type="submit" className={cn(btnPrimary, "!py-1.5 !text-[13px]")}>
-              + Thêm
-            </button>
-          </form>
+          </details>
         ) : null}
 
         <details className="mt-3">

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isShipmentStatus, type ShipmentStatus } from "@/lib/shipments";
-import { createShipment, deleteShipment, packProduct, setShipmentStatus, unpackLot, updateShipment } from "@/lib/shipments-db";
+import { createShipment, deleteShipment, packCandidates, packProduct, setShipmentStatus, unpackLot, updateShipment } from "@/lib/shipments-db";
 
 const PAGE = "/admin/inventory/shipments/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -80,4 +80,20 @@ export async function deleteShipmentAction(formData: FormData): Promise<void> {
   const r = deleteShipment(id!);
   revalidatePath("/admin", "layout");
   go(r.ok ? "saved" : "error", r.message, r.ok ? null : id);
+}
+
+/** "Thêm vào chuyến (đã tick)": candidate keys (lot:<id> / line:<itemId>) with optional qty_<key>. */
+export async function packCandidatesAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const id = intOr(formData, "shipmentId");
+  if (!id) go("error", "Yêu cầu không hợp lệ.");
+  const keys = formData.getAll("keys").map((v) => String(v)).filter((k) => /^(lot|line):\d+$/.test(k));
+  if (!keys.length) go("error", "Chưa tick dòng nào.", id);
+  const items = keys.map((key) => {
+    const q = Number.parseInt(text(formData, `qty_${key.replace(":", "_")}`), 10);
+    return { key, qty: Number.isInteger(q) && q >= 0 ? q : null };
+  });
+  const r = packCandidates(id!, items);
+  revalidatePath("/admin", "layout");
+  go(r.ok ? "saved" : "error", r.message, id);
 }

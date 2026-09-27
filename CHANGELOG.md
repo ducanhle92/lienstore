@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đóng hàng: thay ô tìm sản phẩm bằng khối **Chọn hàng đóng vào chuyến** với ba cách: **theo đơn** (mọi sản phẩm của đơn đang có ở Kho Nhật), **theo đợt mua** (mọi hàng của đợt còn ở Kho Nhật), **tìm** sản phẩm / #đơn / tên khách. Danh sách có ô tick từng dòng và **chọn tất cả**, cột SL đóng (theo đơn thì điền sẵn đúng số của đơn; hàng khách đã thanh toán luôn đi cùng), đơn, đợt, HSD, mua ở · ¥. Hàng mua theo đơn từ đợt mà chưa có lô (dòng “Đã mua” cũ) cũng hiện và được tạo lô khi đóng, đơn giữ đúng lô đó.
+- **Thanh Lưu / Huỷ cố định dưới màn hình** (như màn Sản phẩm) cho trang lô sản phẩm, tab Mua theo đợt (một thanh chung, lưu khối vừa sửa, đếm số ô đã đổi) và Đóng hàng (“Thêm vào chuyến (đã tick)” / “Bỏ tick”); bỏ các thanh dính trong từng khối.
+
 ## [1.80.1] - 2026-09-27
 
 ### Added

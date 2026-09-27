@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { describeLocation, statusForLocation } from "@/lib/warehouses";
 import type { PurchaseBatch, PurchaseBatchBill, PurchaseBatchLine, PurchaseBatchStock, PurchaseSource } from "@/types/shop";
 import { BatchFilter } from "./BatchFilter";
+import { FixedSaveBar } from "./FixedSaveBar";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -147,6 +148,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </details>
       </div>
       {searching && batches.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đợt nào khớp tìm kiếm.</p> : null}
+      {batches.some((b) => b.status !== BATCH_DONE) ? <FixedSaveBar forms={batches.filter((b) => b.status !== BATCH_DONE).map((b) => `bsave-${b.id}`)} hint="Sửa các ô trong bảng của đợt rồi lưu một lần; trạng thái đổi → lô đổi vị trí theo." /> : null}
 
       <div className="space-y-5">
         {batches.length === 0 && !searching ? (
@@ -338,18 +340,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
             </tbody>
           </table>
         </div>
-
-        {/* the save bar sticks to the bottom of the screen while the card is in view */}
-        {done || rows.length === 0 ? null : (
-          <div className="sticky bottom-0 z-20 -mx-1 mt-2 flex flex-wrap items-center gap-3 rounded-md border border-[#e5e7eb] bg-white/95 px-3 py-2 shadow-[0_-6px_12px_-8px_rgba(0,0,0,0.25)] backdrop-blur" data-testid={`savebar-${b.id}`}>
-            <button type="submit" form={saveId} className={cn(btnPrimary, "!px-5 !py-2 !text-[14px]")} title="Lưu mọi ô đã sửa trong bảng của đợt này">
-              <Fa name="check" /> Lưu thay đổi
-            </button>
-            <span className="text-[12px] text-lien-muted">
-              {rows.length} dòng · sửa nhiều ô rồi lưu một lần; trạng thái đổi → lô đổi vị trí theo.
-            </span>
-          </div>
-        )}
 
         {done ? null : (
           <>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addLotAction, saveLotsAction, updateLotAction } from "@/app/admin/inventory/lots/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -238,17 +239,7 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
                 </tbody>
               </table>
             </div>
-            {lots.length ? (
-              <div className="sticky bottom-0 z-20 -mx-1 mt-2 flex flex-wrap items-center gap-3 rounded-md border border-[#e5e7eb] bg-white/95 px-3 py-2 shadow-[0_-6px_12px_-8px_rgba(0,0,0,0.25)] backdrop-blur" data-testid="lots-savebar">
-                <button type="submit" form="lots-save" className={`${btnPrimary} !px-5 !py-2 !text-[14px]`} title="Lưu mọi ô đã sửa ở mọi lô">
-                  <Fa name="check" /> Lưu thay đổi
-                </button>
-                <button type="reset" form="lots-save" className={btnSecondary} title="Trả các ô về giá trị đang lưu">
-                  Huỷ
-                </button>
-                <span className="text-[12px] text-lien-muted">Sửa nhiều ô rồi lưu một lần; đổi “Kho” = chuyển lô sang vị trí khác.</span>
-              </div>
-            ) : null}
+            {lots.length ? <FixedSaveBar forms={["lots-save"]} hint="Sửa nhiều ô rồi lưu một lần; đổi “Kho” = chuyển lô sang vị trí khác." /> : null}
             <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, đơn giữ chỗ trên lô có hạn dùng gần nhất trước (FEFO, kể cả lô đang ở Nhật); số “còn” chỉ trừ thật khi đơn được xác nhận thanh toán hoặc thu khi giao. Tồn kho ngoài web = tổng “còn” của các lô ở cả bốn vị trí trừ phần đã giữ.</p>
           </Card>
 
