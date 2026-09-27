@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.78.3] - 2026-09-27
+
 ### Changed
 - Mua theo đợt: **bảng dòng vừa một màn 1920px** (kể cả khi sidebar mở) — cột Sản phẩm rút gọn (ảnh 32px, tên 2 dòng, “#id · SKU · đổi sản phẩm” một dòng, badge Đơn #… / Lưu kho · phiếu #… dưới tên), HSD · ngày mua · ¥/đv gộp thành cột “Mua”, select Mua ở / Trạng thái thu hẹp (badge trạng thái chỉ hiện khi khác trạng thái đợt), ghi chú w-32 mở rộng khi focus. Cột thao tác (✓ ✕ + ô SL tách + nút Giữ Nhật / Tách dòng) và ô tick **ghim hai bên** khi bảng phải cuộn ngang (1440px vẫn dùng được). Dưới 1200px bảng chuyển thành **card 2 cột**.
 - Mua theo đợt: thanh “Cả đợt →” và “Đã tick →” gộp thành **một hàng công cụ dính trên** khi cuộn; khung Mở đợt mới / Cách dùng chuyển lên trên, đợt chiếm trọn chiều ngang.
