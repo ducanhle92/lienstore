@@ -1,10 +1,12 @@
 import { saveWarehouseAddressesAction } from "@/app/admin/inventory/warehouses/actions";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
+import { WarehouseAddressList } from "@/components/sites/lienstore/admin/WarehouseAddressList";
 import { adminInput, adminLabel, btnPrimary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { KIEN_JP_ADDRESS, KIEN_VN_ADDRESS, WAREHOUSE_ADDRESS_KEYS } from "@/lib/default-flow-job";
 import { getDb, getSetting } from "@/lib/sqlite";
+import { EXTRA_ADDRESSES_KEY, parseExtraAddresses } from "@/lib/warehouse-addresses";
 import { WAREHOUSE_LABEL } from "@/lib/warehouses";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ export default async function WarehouseAddresses({ searchParams }: Props) {
   const sp = await searchParams;
   const db = getDb();
   const val = (k: string, fallback = "") => getSetting(db, k) || fallback;
+  const extras = parseExtraAddresses(getSetting(db, EXTRA_ADDRESSES_KEY));
   const fields = [
     { key: WAREHOUSE_ADDRESS_KEYS.jpShop, label: `${WAREHOUSE_LABEL.jp} (kho / nhà của shop tại Nhật)`, value: val(WAREHOUSE_ADDRESS_KEYS.jpShop, val("jp_sender_address")), hint: "Nơi gom hàng mua về trước khi giao cho ĐVVC; là điểm gửi của chặng ①b." },
     { key: WAREHOUSE_ADDRESS_KEYS.jpCarrier, label: "Kho ĐVVC tại Nhật (Kiến Express)", value: val(WAREHOUSE_ADDRESS_KEYS.jpCarrier, KIEN_JP_ADDRESS), hint: "Địa chỉ nhận hàng của Kiến Express tại Nhật — điểm đến của chặng ①b, điểm gửi chặng ②." },
@@ -28,7 +31,7 @@ export default async function WarehouseAddresses({ searchParams }: Props) {
   ];
   return (
     <>
-      <PageHeader title="Địa chỉ kho" subtitle="Bốn điểm hàng đi qua: kho shop tại Nhật → kho ĐVVC tại Nhật → kho ĐVVC tại Việt Nam → kho shop tại Việt Nam." back={{ href: "/admin/inventory/", label: "Kho hàng" }} />
+      <PageHeader title="Địa chỉ kho" subtitle="Bốn điểm hàng đi qua: kho shop tại Nhật → kho ĐVVC tại Nhật → kho ĐVVC tại Việt Nam → kho shop tại Việt Nam — cộng thêm các địa chỉ khác của shop (kho VN thứ hai, điểm gom ở Nhật, kho tạm…)." back={{ href: "/admin/inventory/", label: "Kho hàng" }} />
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       <Card>
@@ -42,6 +45,12 @@ export default async function WarehouseAddresses({ searchParams }: Props) {
               <textarea id={f.key} name={f.key} rows={2} defaultValue={f.value} className={adminInput} />
             </div>
           ))}
+          <div className="lg:col-span-2 border-t border-[#e5e7eb] pt-4">
+            <p className="m-0 mb-2 text-[13px] font-semibold text-lien-heading">
+              Địa chỉ khác của shop <span className="font-normal text-lien-muted">— kho VN thứ hai, nhà / điểm gom ở Nhật, kho tạm, điểm giao nhận… ({extras.length})</span>
+            </p>
+            <WarehouseAddressList initial={extras} />
+          </div>
           <div className="lg:col-span-2">
             <button type="submit" className={btnPrimary}>
               <Fa name="check" /> Lưu địa chỉ

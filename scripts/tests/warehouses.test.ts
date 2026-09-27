@@ -6,6 +6,7 @@ import { htmlToPlain, isSimpleHtml, plainToHtml } from "../../src/lib/plain-html
 import { suggestStandardStock } from "../../src/lib/stock-advice";
 import { parseStocktakeCsv } from "../../src/lib/stocktake-csv";
 import { displayTags } from "../../src/lib/tags";
+import { extraAddressesFromForm, parseExtraAddresses } from "../../src/lib/warehouse-addresses";
 import { describeByWarehouse, parseWarehouse, transitWhereOf } from "../../src/lib/warehouses";
 
 describe("warehouses", () => {
@@ -121,5 +122,20 @@ describe("customer-facing tags", () => {
 describe("displayTags — barcodes", () => {
   it("hides bare JAN / EAN codes", () => {
     assert.deepEqual(displayTags(["Shiseido", "4909978200879", "chống nắng"], "Gel chống nắng Anessa"), ["Shiseido", "chống nắng"]);
+  });
+});
+
+describe("extra warehouse addresses", () => {
+  it("parses tolerant JSON and drops rows without an address", () => {
+    const list = parseExtraAddresses(JSON.stringify([{ id: "a1", label: "Kho Hà Nội", kind: "vn", address: "S203 Vinhomes", note: "" }, { label: "trống", kind: "vn", address: "  " }, { address: "Nhà bạn ở Tokyo", kind: "nope" }, "junk"]));
+    assert.deepEqual(list.map((a) => [a.label, a.kind, a.address]), [["Kho Hà Nội", "vn", "S203 Vinhomes"], ["", "other", "Nhà bạn ở Tokyo"]]);
+    assert.deepEqual(parseExtraAddresses("not json"), []);
+    assert.deepEqual(parseExtraAddresses(""), []);
+  });
+  it("builds the list from posted rows", () => {
+    const list = extraAddressesFromForm([{ id: "", label: "Kho tạm", kind: "vn", address: "Thanh Hóa", note: "gọi trước" }, { id: "x", label: "", kind: "vn", address: "", note: "" }]);
+    assert.equal(list.length, 1);
+    assert.equal(list[0].note, "gọi trước");
+    assert.ok(list[0].id.length > 0);
   });
 });
