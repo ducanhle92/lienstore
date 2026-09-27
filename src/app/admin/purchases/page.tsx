@@ -37,7 +37,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
  * "how many units of X are still to buy, on the way, or already in Vietnam".
  */
 export default async function AdminPurchases({ searchParams }: Props) {
-  await requireAdmin("inventory");
+  const session = await requireAdmin("inventory");
   const sp = await searchParams;
   const status = first(sp.status);
   const q = first(sp.q).trim().toLowerCase();
@@ -130,7 +130,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
           <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)} />
         </div>
       ) : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} isOwner={session.role === "owner"} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}

@@ -25,6 +25,8 @@ export interface AllocCandidate {
   status: PurchaseStatus | null;
   /** Stock purchases only: the gathering batch they belong to. */
   batchId: number | null;
+  /** Bought / received date — earlier bills serve orders first. */
+  boughtAt?: string | null;
 }
 
 export interface AllocTake {
@@ -43,12 +45,12 @@ export function candidateTier(c: AllocCandidate): 0 | 1 | 2 {
   return c.batchId ? 1 : 2;
 }
 
-/** Lower = served first. Tier, then FEFO (bought tier only), then nearer to Vietnam, then oldest id. */
-export function candidateRank(c: AllocCandidate): [number, string, number, number] {
+/** Lower = served first. Tier, then FEFO (bought tier only), then nearer to Vietnam, then bought earlier, then oldest id. */
+export function candidateRank(c: AllocCandidate): [number, string, number, string, number] {
   const tier = candidateTier(c);
   const expiry = tier === 0 ? (c.expiry ?? FAR) : FAR;
   const place = c.type === "lot" ? WH_RANK[c.warehouse ?? "jp"] : 3 + Math.max(0, purchaseIndex("at_shop") - purchaseIndex(c.status ?? "not_bought"));
-  return [tier, expiry, place, c.id];
+  return [tier, expiry, place, c.boughtAt ?? FAR, c.id];
 }
 
 export function sortCandidates<T extends AllocCandidate>(cands: T[]): T[] {

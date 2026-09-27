@@ -49,11 +49,11 @@ export function reservedOn(db: DatabaseSync, type: "lot" | "stock_purchase" | "b
 
 /** Everything of a product that could serve a line right now, with what is still free on each. */
 export function candidatesFor(db: DatabaseSync, productId: number, exceptItemId?: number): AllocCandidate[] {
-  const lots = db.prepare("SELECT id, qty_left, expiry, warehouse, in_transit FROM stock_lots WHERE product_id = ? AND qty_left > 0").all(productId) as unknown as Array<{ id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number }>;
-  const slips = db.prepare("SELECT id, qty, expiry, status, batch_id FROM stock_purchases WHERE product_id = ? AND lot_id IS NULL AND qty > 0").all(productId) as unknown as Array<{ id: number; qty: number; expiry: string | null; status: string; batch_id: number | null }>;
+  const lots = db.prepare("SELECT id, qty_left, expiry, warehouse, in_transit, COALESCE(bought_at, received_at) AS bought_at FROM stock_lots WHERE product_id = ? AND qty_left > 0").all(productId) as unknown as Array<{ id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number; bought_at: string | null }>;
+  const slips = db.prepare("SELECT id, qty, expiry, status, batch_id, COALESCE(bought_at, substr(created_at, 1, 10)) AS bought_at FROM stock_purchases WHERE product_id = ? AND lot_id IS NULL AND qty > 0").all(productId) as unknown as Array<{ id: number; qty: number; expiry: string | null; status: string; batch_id: number | null; bought_at: string | null }>;
   const out: AllocCandidate[] = [];
-  for (const l of lots) out.push({ type: "lot", id: l.id, available: l.qty_left - reservedOn(db, "lot", l.id, exceptItemId), expiry: l.expiry, warehouse: whOf(l.warehouse), inTransit: !!l.in_transit, status: null, batchId: null });
-  for (const s of slips) out.push({ type: "stock_purchase", id: s.id, available: s.qty - reservedOn(db, "stock_purchase", s.id, exceptItemId), expiry: s.expiry, warehouse: null, inTransit: false, status: statusOf(s.status), batchId: s.batch_id });
+  for (const l of lots) out.push({ type: "lot", id: l.id, available: l.qty_left - reservedOn(db, "lot", l.id, exceptItemId), expiry: l.expiry, warehouse: whOf(l.warehouse), inTransit: !!l.in_transit, status: null, batchId: null, boughtAt: l.bought_at });
+  for (const s of slips) out.push({ type: "stock_purchase", id: s.id, available: s.qty - reservedOn(db, "stock_purchase", s.id, exceptItemId), expiry: s.expiry, warehouse: null, inTransit: false, status: statusOf(s.status), batchId: s.batch_id, boughtAt: s.bought_at });
   return out.filter((c) => c.available > 0);
 }
 

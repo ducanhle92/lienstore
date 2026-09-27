@@ -12,10 +12,13 @@ interface ConfirmSubmitProps {
   children: ReactNode;
   /** id of the form to submit when the button sits outside it (or inside another form). */
   form?: string;
+  /** Submitted with the form (like a normal submit button's name / value). */
+  name?: string;
+  value?: string;
 }
 
 /** Submit button that opens a styled confirmation dialog before submitting its form. */
-export function ConfirmSubmit({ message, title, details, confirmLabel, className, children, form }: ConfirmSubmitProps) {
+export function ConfirmSubmit({ message, title, details, confirmLabel, className, children, form, name, value }: ConfirmSubmitProps) {
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
   return (
@@ -24,6 +27,8 @@ export function ConfirmSubmit({ message, title, details, confirmLabel, className
         ref={btn}
         type="submit"
         form={form}
+        name={name}
+        value={value}
         className={className}
         onClick={(e) => {
           e.preventDefault();
@@ -42,7 +47,7 @@ export function ConfirmSubmit({ message, title, details, confirmLabel, className
         onConfirm={() => {
           setOpen(false);
           const f = btn.current?.form ?? (form ? (document.getElementById(form) as HTMLFormElement | null) : null);
-          f?.requestSubmit();
+          f?.requestSubmit(name && btn.current ? btn.current : undefined);
         }}
       />
     </>

@@ -1,5 +1,5 @@
 import "server-only";
-import { createStockPurchase, deleteStockPurchase, heldAllocationsSync, mergeLotBackSync, setLotLocationSync, setStockPurchaseStatus, splitLotSync } from "./db";
+import { createStockPurchase, deleteStockPurchase, heldAllocationsSync, listPurchaseSources, mergeLotBackSync, savePurchaseSource, setLotLocationSync, setStockPurchaseStatus, splitLotSync } from "./db";
 import { listLotViews } from "./lots-db";
 import { locationForStatus } from "./warehouses";
 import { todayIso } from "./lots";
@@ -8,6 +8,7 @@ import { BATCH_DONE, batchCode } from "./purchase-batches";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
 import { allocatePendingForProductSync, allocateOrderSync, candidatesFor, detachItemFromBatchSync, listReservationsForStockPurchases, onBatchChangedSync, onStockPurchaseChangedSync, reservedOn, setManualAllocationSync, syncItemStatusSync } from "./allocations-db";
 import { createManualReceipt, parseReceiptFiles } from "./receipts-db";
+import { resolvePurchaseSourceKey } from "./purchase-sources";
 import { getDb, withTransaction } from "./sqlite";
 import { DEFAULT_WAREHOUSE, isWarehouse } from "./warehouses";
 import type { PurchaseBatch, PurchaseBatchLine, PurchaseBatchStock } from "@/types/shop";
@@ -660,4 +661,95 @@ export function ensureLotReceipt(lotId: number, opts: { code?: string } = {}): n
   if (!rc) return null;
   setLotReceipt(lotId, rc.id);
   return rc.id;
+}
+
+/**
+ * "Làm lại từ đầu": wipes every purchasing record — batches, slips, bills (+ photos), lots, packing runs, order-line
+ * sources — and puts the open orders' lines back to "Cần mua". Products that only had lot-derived stock go back to
+ * "hàng order" (stock NULL). Owner only; irreversible.
+ */
+export function resetPurchasingData(): { batches: number; slips: number; receipts: number; lots: number; shipments: number; lines: number; files: string[] } {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const files = (db.prepare("SELECT files FROM purchase_receipts").all() as Array<{ files: string | null }>).flatMap((r) => parseReceiptFiles(r.files).map((f) => f.path));
+  const count = (sql: string) => Number((db.prepare(sql).get() as { n: number }).n);
+  const out = { batches: count("SELECT COUNT(*) AS n FROM purchase_batches"), slips: count("SELECT COUNT(*) AS n FROM stock_purchases"), receipts: count("SELECT COUNT(*) AS n FROM purchase_receipts"), lots: count("SELECT COUNT(*) AS n FROM stock_lots"), shipments: count("SELECT COUNT(*) AS n FROM shipments"), lines: 0, files };
+  withTransaction(db, () => {
+    const lotProducts = (db.prepare("SELECT DISTINCT product_id FROM stock_lots").all() as Array<{ product_id: number }>).map((r) => r.product_id);
+    db.prepare("DELETE FROM order_item_allocations").run();
+    db.prepare("DELETE FROM purchase_receipt_items").run();
+    db.prepare("DELETE FROM purchase_receipts").run();
+    db.prepare("DELETE FROM stock_purchases").run();
+    db.prepare("DELETE FROM purchase_batches").run();
+    db.prepare("DELETE FROM stock_lots").run();
+    db.prepare("DELETE FROM shipments").run();
+    out.lines = Number(db.prepare("UPDATE order_items SET purchase_status = 'not_bought', purchase_note = '', batch_id = NULL, receipt_id = NULL, source_key = '', purchase_expiry = NULL, purchase_bought_at = NULL, purchase_cost_jpy = NULL, purchase_updated_at = ? WHERE order_id IN (SELECT id FROM orders WHERE status IN ('pending','processing'))").run(now).changes);
+    if (lotProducts.length) db.prepare(`UPDATE products SET stock = NULL, updated_at = ? WHERE id IN (${lotProducts.map(() => "?").join(",")})`).run(now, ...lotProducts);
+    for (const o of db.prepare("SELECT id FROM orders WHERE status IN ('pending','processing')").all() as Array<{ id: string }>) allocateOrderSync(db, o.id, true);
+  });
+  return out;
+}
+
+/**
+ * "Nhập nhanh nhiều bill": one bill per line — `mã | cửa hàng | nội dung | tổng` (tabs or | as separators); a line
+ * starting with "@" names the source for the lines below ("@ OS Drug Store"). The date comes from a code like
+ * BILL-260927-1200 (yymmdd), else the batch's bought date. Unknown sources are created as stores.
+ */
+export async function importBillsFromText(batchId: number, text: string): Promise<{ created: number; skipped: string[]; sources: string[] }> {
+  const db = getDb();
+  const batch = db.prepare("SELECT id, code, source_key, bought_at FROM purchase_batches WHERE id = ?").get(batchId) as { id: number; code: string; source_key: string; bought_at: string | null } | undefined;
+  if (!batch) return { created: 0, skipped: ["Không tìm thấy đợt."], sources: [] };
+  const sources = await listPurchaseSources(true);
+  const known = new Map(sources.map((s) => [s.key, s.name]));
+  let sourceKey = batch.source_key || UNKNOWN_SOURCE;
+  const created: string[] = [];
+  const skipped: string[] = [];
+  const newSources: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim().replace(/^\|\s*|\s*\|$/g, "");
+    if (!line) continue;
+    if (line.startsWith("@")) {
+      const name = line.slice(1).trim().replace(/\s*\(\d+\s*bill\)\s*$/i, "");
+      if (!name) continue;
+      const hit = resolvePurchaseSourceKey(name, sources) ?? sources.find((s) => name.toLowerCase().includes(s.name.toLowerCase()) || s.name.toLowerCase().includes(name.toLowerCase()))?.key ?? null;
+      if (hit) sourceKey = hit;
+      else {
+        const s = await savePurchaseSource({ name, kind: "store", url: "", address: "", branch: "", note: "" });
+        sources.push(s);
+        known.set(s.key, s.name);
+        newSources.push(s.name);
+        sourceKey = s.key;
+      }
+      continue;
+    }
+    if (/^(mã bill|ma bill|code)\b/i.test(line)) continue; // header row
+    const cells = line.split(/\t|\s*\|\s*/).map((c) => c.trim()).filter((c, i, arr) => !(c === "" && (i === 0 || i === arr.length - 1)));
+    if (cells.length < 2) {
+      skipped.push(line.slice(0, 40));
+      continue;
+    }
+    const code = cells[0].slice(0, 60);
+    if (!code) continue;
+    const last = cells[cells.length - 1];
+    const totalMatch = last.replace(/,/g, "").match(/(\d+)/);
+    const totalJpy = totalMatch ? Number.parseInt(totalMatch[1], 10) : null;
+    const payment = totalMatch ? last.replace(/[¥￥]?[\d,]+/, "").trim() : "";
+    const middle = cells.slice(1, totalMatch ? -1 : undefined);
+    const store = middle.length > 1 ? middle[0] : "";
+    const content = middle.length > 1 ? middle.slice(1).join(" · ") : (middle[0] ?? "");
+    const m = code.match(/-(\d{2})(\d{2})(\d{2})-/);
+    const boughtAt = m ? `20${m[1]}-${m[2]}-${m[3]}` : (batch.bought_at ?? new Date().toISOString().slice(0, 10));
+    if (db.prepare("SELECT 1 FROM purchase_receipts WHERE code = ?").get(code)) {
+      skipped.push(`${code} (đã có)`);
+      continue;
+    }
+    const rc = createManualReceipt({ code, sourceKey, boughtAt, orderRef: store.slice(0, 80), note: [content, payment].filter(Boolean).join(" · ").slice(0, 300), batchId });
+    if (!rc) {
+      skipped.push(code);
+      continue;
+    }
+    if (totalJpy !== null) db.prepare("UPDATE purchase_receipts SET total_jpy = ? WHERE id = ?").run(totalJpy, rc.id);
+    created.push(code);
+  }
+  return { created: created.length, skipped, sources: newSources };
 }

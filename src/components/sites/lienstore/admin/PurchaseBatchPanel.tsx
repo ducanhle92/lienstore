@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { addLinesToBatchAction, addProductAction, allocateSurplusAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, saveBatchRowsAction, setBatchStatusAction, updateBatchAction, updateBatchStockAction } from "@/app/admin/purchases/batch-actions";
+import { addLinesToBatchAction, addProductAction, allocateSurplusAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, importBillsAction, resetPurchasingAction, saveBatchRowsAction, setBatchStatusAction, updateBatchAction, updateBatchStockAction } from "@/app/admin/purchases/batch-actions";
 import { deleteReceiptFileAction, parseBillAction, uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import type { PurchaseLine } from "@/lib/db";
@@ -39,6 +39,8 @@ interface Props {
   search: { q: string; from: string; to: string };
   /** Batch whose Bill block starts open (after creating a bill / attaching a photo). */
   openBillsFor?: number | null;
+  /** The signed-in account owns the shop (may wipe purchasing data). */
+  isOwner?: boolean;
 }
 
 const cell = "!mb-0 !py-1 !text-[13px]";
@@ -52,7 +54,7 @@ const LOT_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchas
  * bottom of the screen while the card is in view. Bills (phiếu mua, PM-…) are the paper trail: each row says which bill
  * it came from; photos attach on the bill inside the card.
  */
-export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null }: Props) {
+export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null, isOwner = false }: Props) {
   const heads = batches.filter((b) => b.status !== BATCH_DONE).map((b) => ({ id: b.id, code: b.code, label: b.label }));
   const searching = !!(search.q || search.from || search.to);
   return (
@@ -164,6 +166,18 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
             {includeDone ? "Ẩn đợt đã về kho" : "Xem cả đợt đã về kho"}
           </Link>
         </p>
+        {isOwner ? (
+          <details className="rounded-md border border-dashed border-red-300 bg-red-50/40 px-3 py-2" data-testid="purchasing-reset">
+            <summary className="cursor-pointer text-[12px] font-semibold text-lien-heart">Làm lại từ đầu — xoá toàn bộ dữ liệu mua hàng (chủ shop)</summary>
+            <form action={resetPurchasingAction} className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="text-lien-text">Xoá mọi đợt mua, phiếu, bill (kèm ảnh), lô hàng, chuyến đóng hàng; dòng của đơn đang xử lý trở về “Cần mua”; tồn web của sản phẩm chỉ có lô trở về hàng order. Không hoàn tác được.</span>
+              <input name="confirm" placeholder="gõ XOA" className={cn(adminInput, "!mb-0 !w-[110px] !py-1")} aria-label="Xác nhận" autoComplete="off" />
+              <ConfirmSubmit message="Xoá TOÀN BỘ dữ liệu mua hàng và làm lại từ đầu?" confirmLabel="Xoá hết" className={cn(btnSecondary, "!border-red-300 !py-1 !text-lien-heart")}>
+                Xoá toàn bộ dữ liệu mua hàng
+              </ConfirmSubmit>
+            </form>
+          </details>
+        ) : null}
       </div>
     </div>
   );
@@ -294,6 +308,9 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
               <button type="submit" form={bulkId} name="op" value="remove" className={cn(btnSecondary, "!py-1")} title="Dòng đơn rời đợt (giữ trạng thái), dòng lưu kho bị xoá">
                 Bỏ khỏi đợt
               </button>
+              <ConfirmSubmit form={bulkId} name="op" value="delete" message="Xoá dữ liệu mua của các dòng đã tick? Dòng đơn về “Cần mua” và rời đợt; phiếu và lô bị xoá hẳn." confirmLabel="Xoá" className={cn(btnSecondary, "!border-red-300 !py-1 !text-lien-heart")}>
+                Xoá dòng đã tick
+              </ConfirmSubmit>
               {heads.length ? (
                 <>
                   <span className="mx-1 text-lien-muted">|</span>
@@ -588,6 +605,19 @@ function BillsBlock({ b, sources, done, open }: { b: PurchaseBatch; sources: Pur
                 Đọc bill → phiếu nháp
               </button>
             </form>
+            <details className="rounded-md border border-dashed border-[#d1d5db] p-2" data-testid={`bill-import-${b.id}`}>
+              <summary className="cursor-pointer text-[12px] font-semibold text-lien-heading">
+                Nhập nhanh nhiều bill <span className="font-normal text-lien-muted">— dán danh sách, mỗi dòng một bill</span>
+              </summary>
+              <form action={importBillsAction} className="mt-2 grid gap-2">
+                <input type="hidden" name="batchId" value={b.id} />
+                <textarea name="bills" rows={7} placeholder={"@ OS Drug Store\nBILL-260927-1113 | 船橋店 | パブロンゴールドA錠 | ¥1,518 PayPay\n@ Sugi drug store\nBILL-260927-1530 | 船橋駅南店 | サンデーケア ×2 + ... | ¥10,919"} className={cn(adminInput, "!mb-0 font-mono !text-[12px]")} aria-label="Danh sách bill" />
+                <p className="m-0 text-[11px] leading-4 text-lien-muted">Dòng “@ Tên nguồn” đặt nơi mua cho các dòng dưới (nguồn chưa có sẽ được tạo). Mỗi bill: mã | cửa hàng | nội dung | tổng (tab hoặc | ngăn cách; ngày lấy từ mã BILL-yymmdd-…). Mã đã có thì bỏ qua.</p>
+                <button type="submit" className={cn(btnSecondary, "justify-self-start !py-1 !text-[13px]")}>
+                  Tạo các bill trong danh sách
+                </button>
+              </form>
+            </details>
             <form action={createBillAction} className="grid gap-2 rounded-md border border-dashed border-[#d1d5db] p-2" data-testid={`bill-new-${b.id}`}>
               <input type="hidden" name="batchId" value={b.id} />
               <span className={adminLabel}>

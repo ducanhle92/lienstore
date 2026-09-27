@@ -11,7 +11,9 @@ import { createManualReceipt } from "@/lib/receipts-db";
 import { locationForStatus } from "@/lib/warehouses";
 import { getDb } from "@/lib/sqlite";
 import { statusForLocation } from "@/lib/warehouses";
-import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, importBillsFromText, moveStockToBatch, removeLotsFromBatch, resetPurchasingData, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { deleteStockLot, deleteStockPurchase, setOrderItemsPurchase as setLinesStatus } from "@/lib/db";
+import { deleteUpload } from "@/lib/uploads";
 
 /** Quản lý mua hàng › tab "Đợt gửi" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -285,6 +287,18 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
     revalidatePath("/admin", "layout");
     go("saved", `Đã bỏ ${n} dòng khỏi đợt (dòng đơn giữ trạng thái, dòng lưu kho bị xoá).`, batchId);
   }
+  if (op === "delete") {
+    // wipe the ticked rows' purchasing data: lines back to "Cần mua" and out of the batch, slips and lots deleted
+    let n = 0;
+    for (const id of ids) {
+      if (removeLineFromBatch(id)) n++;
+      await setLinesStatus([id], "not_bought");
+    }
+    for (const id of sids) if (await deleteStockPurchase(id)) n++;
+    for (const id of lotIds) if (await deleteStockLot(id)) n++;
+    revalidatePath("/admin", "layout");
+    go("saved", `Đã xoá dữ liệu mua của ${n + ids.length} dòng đã tick.`, batchId);
+  }
   if (op === "bill") {
     const billId = intOr(formData, "billId");
     if (!billId) go("error", "Chọn bill để gắn.", batchId);
@@ -454,4 +468,25 @@ export async function saveBatchRowsAction(formData: FormData): Promise<void> {
   revalidatePath("/admin", "layout");
   if (errors.length) go(changed ? "saved" : "error", `${changed ? `Đã lưu ${changed} thay đổi. ` : ""}Lỗi: ${errors.join(" · ")}`, batchId);
   go("saved", changed ? `Đã lưu ${changed} thay đổi.` : "Không có gì thay đổi.", batchId);
+}
+
+/** "Nhập nhanh nhiều bill" inside a batch: one bill per line (see importBillsFromText). */
+export async function importBillsAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  if (!batchId) go("error", "Yêu cầu không hợp lệ.");
+  const r = await importBillsFromText(batchId!, text(formData, "bills"));
+  revalidatePath("/admin", "layout");
+  redirect(`${PAGE}&bills=${batchId}&${r.created ? "saved" : "error"}=${encodeURIComponent(`Đã tạo ${r.created} bill${r.sources.length ? ` · nguồn mới: ${r.sources.join(", ")}` : ""}${r.skipped.length ? ` · bỏ qua ${r.skipped.length}: ${r.skipped.slice(0, 5).join("; ")}` : ""}.`)}#batch-${batchId}`);
+}
+
+/** Owner only: wipe all purchasing data to start over (confirmation word required). */
+export async function resetPurchasingAction(formData: FormData): Promise<void> {
+  const session = await requireAdmin("inventory");
+  if (session.role !== "owner") go("error", "Chỉ chủ shop mới xoá được toàn bộ dữ liệu mua hàng.");
+  if (text(formData, "confirm").toUpperCase() !== "XOA") go("error", "Gõ đúng chữ XOA để xác nhận xoá toàn bộ dữ liệu mua hàng.");
+  const r = resetPurchasingData();
+  for (const p of r.files) await deleteUpload(p).catch(() => false);
+  revalidatePath("/admin", "layout");
+  go("saved", `Đã xoá: ${r.batches} đợt · ${r.slips} phiếu · ${r.receipts} bill (${r.files.length} ảnh) · ${r.lots} lô · ${r.shipments} chuyến đóng hàng; ${r.lines} dòng đơn trở về “Cần mua”.`);
 }
