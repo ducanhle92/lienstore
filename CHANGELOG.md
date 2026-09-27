@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.78.2] - 2026-09-27
+
 ### Added
 - Mua theo đợt: **khung lọc** ngay trên bảng dòng của đợt, lọc tức thì không tải lại trang và ghi vào URL (F5 không mất): ô tìm sản phẩm / SKU / #id (không dấu, tên Nhật cũng khớp, gõ đến đâu lọc đến đó), ô Đơn hàng (#số hoặc tên khách, có gợi ý; hiện dòng đơn đó và các dòng lưu kho cùng sản phẩm), chip Loại dòng / Mua ở / Trạng thái, “Chỉ dòng có ghi chú”, “Chỉ SL ≥ 2”. Đếm “Đang hiện x/y dòng · đv · ≈¥”, nút Xoá lọc, ô “chọn tất cả đang hiện” cho thao tác hàng loạt; khung Giữ lại tại Nhật dùng chung bộ lọc. Đợt dưới 8 dòng chỉ hiện ô tìm sản phẩm.
 - Mua theo đợt: lọc còn đúng 1 dòng thì con trỏ nhảy vào ô SL tách; Enter = Giữ Nhật, Shift+Enter = Tách dòng.
