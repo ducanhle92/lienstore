@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { saveGroupAction, saveVariantAction, saveVariantsBulkAction } from "@/app/admin/products/groups/actions";
+import { moveVariantAction, saveGroupAction, saveVariantAction, saveVariantsBulkAction } from "@/app/admin/products/groups/actions";
 import { AddToGroupPicker } from "@/components/sites/lienstore/admin/AddToGroupPicker";
 import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
 import { VariantTree } from "@/components/sites/lienstore/admin/VariantTree";
@@ -29,16 +29,8 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
   if (!group) notFound();
   const groupName = Object.fromEntries(groups.map((g) => [g.id, g.name]));
   const labels = group.attrLabels;
-  // members sorted the way the tree branches: level-1 value, level-2 value…, then order
-  const members = all
-    .filter((p) => p.groupId === gid)
-    .sort((a, b) => {
-      for (const l of labels) {
-        const c = (a.variantAttrs[l] ?? "").localeCompare(b.variantAttrs[l] ?? "", "vi", { numeric: true });
-        if (c) return c;
-      }
-      return a.variantPosition - b.variantPosition || a.id - b.id;
-    });
+  // table rows follow "Thứ tự" (the ▲ / ▼ buttons move rows visibly); the tree card on the left shows the branches
+  const members = all.filter((p) => p.groupId === gid).sort((a, b) => a.variantPosition - b.variantPosition || a.id - b.id);
   const rep = [...members].sort((a, b) => a.variantPosition - b.variantPosition || a.id - b.id)[0];
   const candidates = all.filter((p) => p.groupId !== gid).map((p) => ({ id: p.id, name: p.name, sku: p.sku, thumb: p.thumb, price: p.price, status: p.status, inGroup: p.groupId ? (groupName[p.groupId] ?? null) : null }));
   return (
@@ -110,10 +102,10 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((p) => {
+                  {members.map((p, idx) => {
                     const fid = `v-${p.id}`;
                     return (
-                      <tr key={p.id}>
+                      <tr key={p.id} id={`row-${p.id}`}>
                         <td className={`${tdClass} min-w-[280px]`}>
                           <form id={fid} action={saveVariantAction}>
                             <input type="hidden" name="groupId" value={group.id} />
@@ -139,8 +131,27 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                             <input form="bulk-variants" name={`attr_${p.id}_${i}`} defaultValue={p.variantAttrs[l] ?? ""} placeholder={l} className={`${adminInput} !mb-0 !w-[150px] !py-1 !text-[13px] ${p.variantAttrs[l] ? "" : "border-amber-300 bg-amber-50"}`} aria-label={`${l} của ${p.name}`} />
                           </td>
                         ))}
-                        <td className={tdClass}>
-                          <input form="bulk-variants" name={`pos_${p.id}`} inputMode="numeric" defaultValue={p.variantPosition} className={`${adminInput} !mb-0 !w-[64px] !py-1 !text-[13px]`} aria-label="Thứ tự" />
+                        <td className={`${tdClass} whitespace-nowrap`}>
+                          {/* ▲ / ▼ save immediately; the number box still allows typing a position for "Lưu tất cả" */}
+                          <span className="inline-flex items-center gap-1">
+                            <form action={moveVariantAction} className="inline">
+                              <input type="hidden" name="groupId" value={group.id} />
+                              <input type="hidden" name="productId" value={p.id} />
+                              <input type="hidden" name="dir" value="up" />
+                              <button type="submit" disabled={idx === 0} className={`${btnSecondary} !px-2 !py-1 !text-[12px] disabled:opacity-30`} title="Lên một bậc" aria-label="Lên">
+                                ▲
+                              </button>
+                            </form>
+                            <input form="bulk-variants" name={`pos_${p.id}`} inputMode="numeric" defaultValue={p.variantPosition} className={`${adminInput} !mb-0 !w-[52px] !py-1 !text-center !text-[13px]`} aria-label="Thứ tự" />
+                            <form action={moveVariantAction} className="inline">
+                              <input type="hidden" name="groupId" value={group.id} />
+                              <input type="hidden" name="productId" value={p.id} />
+                              <input type="hidden" name="dir" value="down" />
+                              <button type="submit" disabled={idx === members.length - 1} className={`${btnSecondary} !px-2 !py-1 !text-[12px] disabled:opacity-30`} title="Xuống một bậc" aria-label="Xuống">
+                                ▼
+                              </button>
+                            </form>
+                          </span>
                         </td>
                         <td className={`${tdClass} text-right whitespace-nowrap`}>{formatAmount(p.price)}đ</td>
                         <td className={`${tdClass} whitespace-nowrap`}>
@@ -166,7 +177,7 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                 <Fa name="check" /> Lưu tất cả ({members.length} biến thể)
               </button>
             ) : null}
-            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Điền thoải mái các ô rồi bấm “Lưu tất cả” một lần. Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Ô vàng là giá trị còn thiếu. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”); giá hiển thị “Từ …” khi các biến thể khác giá.</p>
+            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Bấm ▲ / ▼ để đổi thứ tự từng dòng (lưu ngay); các ô còn lại điền thoải mái rồi bấm “Lưu tất cả” một lần. Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Ô vàng là giá trị còn thiếu. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”); giá hiển thị “Từ …” khi các biến thể khác giá.</p>
           </Card>
         </div>
       </div>

@@ -675,6 +675,21 @@ export async function assignProductsToGroup(groupId: number, productIds: number[
   });
   return n;
 }
+/** ▲ / ▼ in Admin › Nhóm biến thể: swap the product with its neighbour in position order; positions are renumbered 0…n-1. */
+export async function moveProductVariant(groupId: number, productId: number, dir: -1 | 1): Promise<boolean> {
+  const db = getDb();
+  const ids = (db.prepare("SELECT id FROM products WHERE group_id = ? ORDER BY variant_position, id").all(groupId) as Array<{ id: number }>).map((r) => r.id);
+  const i = ids.indexOf(productId);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return false;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const upd = db.prepare("UPDATE products SET variant_position = ?, updated_at = ? WHERE id = ?");
+    ids.forEach((id, pos) => upd.run(pos, now, id));
+    return true;
+  });
+}
 export async function setProductVariant(productId: number, groupId: number | null, attrs: Record<string, string>, position: number): Promise<boolean> {
   const res = getDb().prepare("UPDATE products SET group_id = ?, variant_attrs = ?, variant_position = ?, updated_at = ? WHERE id = ?").run(groupId, JSON.stringify(attrs), position, new Date().toISOString(), productId);
   return Number(res.changes) > 0;

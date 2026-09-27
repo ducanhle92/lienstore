@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { assignProductsToGroup, deleteProductGroup, getProductGroupById, saveProductGroup, setProductVariant, ungroupProducts } from "@/lib/db";
+import { assignProductsToGroup, deleteProductGroup, getProductGroupById, moveProductVariant, saveProductGroup, setProductVariant, ungroupProducts } from "@/lib/db";
 import { normalizeAttrLabels } from "@/lib/variants";
 
 const PAGE = "/admin/products/groups/";
@@ -72,6 +72,19 @@ export async function saveVariantAction(formData: FormData): Promise<void> {
   await setProductVariant(productId, groupId, attrs, Number.isInteger(pos) ? pos : 0);
   revalidatePath("/", "layout");
   back("saved", "Đã lưu biến thể.", `${PAGE}${groupId}/`);
+}
+
+/** ▲ / ▼ next to "Thứ tự": one click moves the variant one step and saves; lands back on that row. */
+export async function moveVariantAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const groupId = Number.parseInt(text(formData, "groupId"), 10);
+  const productId = Number.parseInt(text(formData, "productId"), 10);
+  const dir = text(formData, "dir") === "up" ? -1 : 1;
+  if (!Number.isInteger(groupId) || !Number.isInteger(productId)) return back("error", "Yêu cầu không hợp lệ.");
+  const ok = await moveProductVariant(groupId, productId, dir);
+  revalidatePath("/", "layout");
+  if (!ok) back("error", "Không đổi được thứ tự (đã ở đầu / cuối danh sách).", `${PAGE}${groupId}/`);
+  redirect(`${PAGE}${groupId}/#row-${productId}`);
 }
 
 /** "Lưu tất cả": attributes + order of every member row in one go (attr_<pid>_<i>, pos_<pid>, pid[]). */
