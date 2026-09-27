@@ -243,7 +243,8 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
       {data ? (
         <p className="m-0 text-[12px] leading-5 text-lien-muted">
           <Fa name="cube" className="mr-1 text-lien-blue" />
-          {t("shipParcel")}: {formatAmount(data.parcel.weightG)} g · {data.parcel.length}×{data.parcel.width}×{data.parcel.height} cm → {data.destination}
+          {/* weight / size of the goods stay internal (admin only); shoppers see where the parcel goes */}
+          {t("shipParcel")} → {data.destination}
           {state === "loading" ? <span className="ml-2 text-lien-blue">{t("shipQuoteExpired")}</span> : null}
         </p>
       ) : null}
@@ -336,14 +337,6 @@ export function ShippingQuotePanel({ items, address, cod = false, compact = fals
                   </button>
                   {open === key && data ? (
                     <dl className="m-0 mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 rounded bg-lien-cream/60 px-2 py-1.5 text-[12px]">
-                      <dt className="text-lien-muted">{t("shipActualWeight")}</dt>
-                      <dd className="m-0 text-right">{formatAmount(data.parcel.weightG)} g</dd>
-                      {q.volumetricWeightG !== undefined ? (
-                        <>
-                          <dt className="text-lien-muted">{t("shipVolWeight")}</dt>
-                          <dd className="m-0 text-right">{formatAmount(q.volumetricWeightG)} g</dd>
-                        </>
-                      ) : null}
                       <dt className="text-lien-muted">{t("shipBillable")}</dt>
                       <dd className="m-0 text-right">{formatAmount(q.billableWeightG)} g</dd>
                       {q.routeLabel ? (

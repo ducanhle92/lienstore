@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang web cho khách không hiển thị **khối lượng / kích thước** sản phẩm nữa: bỏ hai thẻ dưới mô tả, khung báo giá vận chuyển chỉ hiện nơi nhận và cân tính phí (không hiện cân thực, cân quy đổi, kích thước kiện). Số liệu vẫn xem và sửa trong admin.
+
 ## [1.76.2] - 2026-09-27
 
 ### Changed
