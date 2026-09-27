@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.75.2] - 2026-09-27
+
 ### Fixed
 - Trang sản phẩm (tiếng Nhật): mã JAN viết sau dấu “／” trong 内容量 cũng được lược khỏi thẻ thông số.
 
