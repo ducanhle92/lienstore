@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.80.1] - 2026-09-27
+
 ### Added
 - Tồn kho: sheet thứ ba **Hàng theo đơn** — mỗi đơn đang xử lý một khối (số đơn, khách, ngày, thanh toán, tiến độ) với từng sản phẩm và **hàng đang ở đâu** (lô · vị trí · đợt / chuyến, đã trừ tồn hay chỉ giữ chỗ, Cần mua); ô tổng và chip “Còn chờ hàng” / “Đủ hàng tại kho VN”, ô tìm.
 
