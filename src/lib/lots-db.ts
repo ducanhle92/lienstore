@@ -39,6 +39,9 @@ export interface LotView {
   batchStatus: string;
   parentLotId: number | null;
   purchaseId: number | null;
+  /** Bill the lot was bought on (via its slip), if any. */
+  receiptId: number | null;
+  receiptCode: string;
   reserved: LotReservation[];
   /** Units reserved but not deducted. */
   reservedQty: number;
@@ -73,6 +76,8 @@ interface Row {
   batch_status: string | null;
   parent_lot_id: number | null;
   purchase_id: number | null;
+  receipt_id: number | null;
+  receipt_code: string | null;
 }
 
 /** Every lot with units left (or of one product / one side), FEFO, with who holds them. */
@@ -87,7 +92,10 @@ export function listLotViews(db: DatabaseSync, opts: { productId?: number; side?
   if (!opts.includeEmpty) where.push(`(l.qty_left > 0 OR EXISTS (SELECT 1 FROM order_item_allocations a JOIN order_items oi ON oi.id = a.order_item_id JOIN orders o ON o.id = oi.order_id WHERE a.source_type = 'lot' AND a.source_id = l.id AND a.consumed_at IS NOT NULL AND o.status <> 'cancelled' AND o.ship_stage NOT IN ('delivering','delivered')))`);
   const rows = db
     .prepare(
-      `SELECT l.*, p.name, p.sku, p.thumb, b.code AS batch_code, b.status AS batch_status FROM stock_lots l JOIN products p ON p.id = l.product_id LEFT JOIN purchase_batches b ON b.id = l.batch_id
+      `SELECT l.*, p.name, p.sku, p.thumb, b.code AS batch_code, b.status AS batch_status,
+              (SELECT r.id FROM stock_purchases sp JOIN purchase_receipts r ON r.id = sp.receipt_id WHERE sp.lot_id = l.id LIMIT 1) AS receipt_id,
+              (SELECT r.code FROM stock_purchases sp JOIN purchase_receipts r ON r.id = sp.receipt_id WHERE sp.lot_id = l.id LIMIT 1) AS receipt_code
+       FROM stock_lots l JOIN products p ON p.id = l.product_id LEFT JOIN purchase_batches b ON b.id = l.batch_id
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY CASE WHEN l.expiry IS NULL THEN 1 ELSE 0 END, l.expiry, l.received_at, l.id`,
     )
     .all(...(args as never[])) as unknown as Row[];
@@ -132,6 +140,8 @@ export function listLotViews(db: DatabaseSync, opts: { productId?: number; side?
       batchStatus: r.batch_status ?? "",
       parentLotId: r.parent_lot_id,
       purchaseId: r.purchase_id,
+      receiptId: r.receipt_id ?? null,
+      receiptCode: r.receipt_code ?? "",
       reserved,
       reservedQty,
       heldQty,

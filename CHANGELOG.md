@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Mua theo đợt: dòng đơn khách trong đợt cũng nhập được **HSD, ngày mua, ¥/đv** (lưu trên dòng đơn, migration 62 — nền cho tính lãi từng đơn); ✓ lưu cùng nguồn / trạng thái / ghi chú.
+- Mua theo đợt: mỗi đợt có dòng **Bill:** liệt kê phiếu mua đã gắn vào đợt (mã PM-…, ngày, nguồn, số ảnh) bấm mở phiếu, và nút **Nhập bill vào đợt này** (mở khung Phiếu mua hàng với đợt chọn sẵn). Dòng lô / dòng đơn hiện mã bill thay cho nhãn “Lô #… · vị trí” (lô không có bill chỉ ghi nhỏ “lô #…”).
+- Phiếu mua hàng: **đính kèm ảnh chụp bill / PDF** (nhiều tệp, ≤ 10 MB/tệp, lưu trong uploads/receipts), xem thumbnail, gỡ từng tệp.
+- Mua theo đợt: **tìm đợt** theo tên / mã và khoảng ngày mua (tìm cả đợt đã về kho).
+- Mua theo đợt: tick mọi loại dòng (dòng đơn, phiếu, lô) → **Đã tick → [trạng thái] Áp dụng** đặt một trạng thái cho tất cả (lô đổi vị trí theo; lô đã mua không lùi về “Chưa mua / Đã đặt mua”).
+
+### Changed
+- Mua theo đợt: khung “Mở đợt mua mới” và “Cách dùng” thu thành hai nút bấm mở (tự mở khi chưa có đợt) để danh sách đợt được nhiều chỗ hơn; ô tìm đợt nằm ngay trên.
+- Mua theo đợt: các chip lọc (Loại, Mua ở, Trạng thái, Chỉ dòng có ghi chú, Chỉ SL ≥ 2) nằm cùng hàng với ô tìm sản phẩm / đơn hàng.
+
 ## [1.79.1] - 2026-09-27
 
 ### Changed

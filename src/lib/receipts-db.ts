@@ -19,6 +19,14 @@ export interface ReceiptItem {
   asin: string;
   matchScore: number | null;
 }
+export interface ReceiptFile {
+  /** Storage path relative to the uploads dir. */
+  path: string;
+  url: string;
+  name: string;
+  mime: string;
+}
+
 export interface Receipt {
   id: number;
   code: string;
@@ -35,6 +43,8 @@ export interface Receipt {
   status: ReceiptStatus;
   createdAt: string;
   updatedAt: string;
+  /** Photos / PDFs of the bill (uploads). */
+  files: ReceiptFile[];
   items: ReceiptItem[];
   /** Order lines linked to this receipt: order number × qty × status. */
   lines: Array<{ itemId: number; orderId: string; orderNumber: number; productName: string; quantity: number; purchaseStatus: string }>;
@@ -57,6 +67,15 @@ interface ReceiptRow {
   status: string;
   created_at: string;
   updated_at: string;
+  files: string | null;
+}
+function parseFiles(raw: string | null): ReceiptFile[] {
+  try {
+    const v = JSON.parse(raw || "[]");
+    return Array.isArray(v) ? v.filter((f) => f && typeof f.path === "string" && typeof f.url === "string").map((f) => ({ path: String(f.path), url: String(f.url), name: String(f.name ?? ""), mime: String(f.mime ?? "") })) : [];
+  } catch {
+    return [];
+  }
 }
 interface ItemRow {
   id: number;
@@ -95,6 +114,7 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
     status: isStatus(r.status) ? r.status : "bought",
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    files: parseFiles(r.files),
     items: items.filter((i) => i.receipt_id === r.id).map((i) => ({ id: i.id, receiptId: i.receipt_id, productId: i.product_id, productName: i.pname ?? "", productThumb: i.pthumb ?? "", rawName: i.raw_name ?? "", qty: i.qty, unitJpy: i.unit_jpy, asin: i.asin ?? "", matchScore: i.match_score })),
     lines: lines.filter((l) => l.receipt_id === r.id).map((l) => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, productName: l.name, quantity: l.quantity, purchaseStatus: l.purchase_status })),
     stockUnits: Number(stock.find((s) => s.receipt_id === r.id)?.n ?? 0),
@@ -266,3 +286,24 @@ export function deleteReceipt(id: number): boolean {
 }
 
 export type { BillItem };
+
+/** Attach uploaded bill photos / PDFs to a receipt. */
+export function addReceiptFiles(id: number, files: ReceiptFile[]): boolean {
+  const db = getDb();
+  const cur = db.prepare("SELECT files FROM purchase_receipts WHERE id = ?").get(id) as { files: string | null } | undefined;
+  if (!cur) return false;
+  const next = [...parseFiles(cur.files), ...files];
+  db.prepare("UPDATE purchase_receipts SET files = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(next), new Date().toISOString(), id);
+  return true;
+}
+/** Detach one file (by storage path); the caller deletes the upload. */
+export function removeReceiptFile(id: number, path: string): ReceiptFile | null {
+  const db = getDb();
+  const cur = db.prepare("SELECT files FROM purchase_receipts WHERE id = ?").get(id) as { files: string | null } | undefined;
+  if (!cur) return null;
+  const all = parseFiles(cur.files);
+  const hit = all.find((f) => f.path === path) ?? null;
+  if (!hit) return null;
+  db.prepare("UPDATE purchase_receipts SET files = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(all.filter((f) => f.path !== path)), new Date().toISOString(), id);
+  return hit;
+}

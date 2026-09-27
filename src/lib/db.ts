@@ -3596,3 +3596,18 @@ export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
   const set = new Set(ids);
   return all.filter((o) => set.has(o.id));
 }
+
+/** HSD / ngày mua / ¥ of the unit bought for a customer's line (profit per order). undefined = keep. */
+export async function updateOrderItemPurchaseFacts(itemId: number, facts: { expiry?: string | null; boughtAt?: string | null; costJpy?: number | null }): Promise<boolean> {
+  const db = getDb();
+  const cur = db.prepare("SELECT purchase_expiry, purchase_bought_at, purchase_cost_jpy FROM order_items WHERE id = ?").get(itemId) as { purchase_expiry: string | null; purchase_bought_at: string | null; purchase_cost_jpy: number | null } | undefined;
+  if (!cur) return false;
+  db.prepare("UPDATE order_items SET purchase_expiry = ?, purchase_bought_at = ?, purchase_cost_jpy = ?, purchase_updated_at = ? WHERE id = ?").run(
+    facts.expiry === undefined ? cur.purchase_expiry : facts.expiry,
+    facts.boughtAt === undefined ? cur.purchase_bought_at : facts.boughtAt,
+    facts.costJpy === undefined ? cur.purchase_cost_jpy : facts.costJpy,
+    new Date().toISOString(),
+    itemId,
+  );
+  return true;
+}

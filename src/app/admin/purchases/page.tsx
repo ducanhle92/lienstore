@@ -56,7 +56,12 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
   const receipts = listReceipts(40);
-  const batches = tab === "batches" ? listPurchaseBatches(includeDone) : [];
+  // Mua theo đợt: search by name / code and bought-date range (searching also looks at finished batches)
+  const bq = first(sp.bq).trim();
+  const bfrom = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.bfrom)) ? first(sp.bfrom) : "";
+  const bto = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.bto)) ? first(sp.bto) : "";
+  const billBatch = Number.parseInt(first(sp.bill), 10);
+  const batches = tab === "batches" ? listPurchaseBatches({ includeDone: includeDone || !!(bq || bfrom || bto), q: bq, from: bfrom, to: bto }) : [];
   const batchHeads = listBatchHeads();
   const openSurplus = listOpenSurplus();
   void openSurplus;
@@ -119,7 +124,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
       </div>
 
       {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} reserved={listReservationsForStockPurchases(getDb(), stockPurchases.map((p) => p.id))} lots={stockLots} /> : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}
@@ -128,7 +133,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
           Phiếu mua hàng · nhập bill <span className="text-[13px] font-normal text-lien-muted">({receipts.length} phiếu gần đây{receipts.some((r) => r.status === "draft") ? ` · ${receipts.filter((r) => r.status === "draft").length} nháp chờ xác nhận` : ""})</span>
         </summary>
         <div className="mt-3">
-          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={tab === "batches" ? (batchHeads[0]?.id ?? null) : null} />
+          <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={tab === "batches" ? (Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)) : null} />
         </div>
       </details>
     </>

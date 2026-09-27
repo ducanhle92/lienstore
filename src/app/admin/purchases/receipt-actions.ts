@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry, todayIso } from "@/lib/lots";
-import { confirmReceipt, createDraftFromBill, createReceiptFromLines, deleteReceipt, updateReceipt } from "@/lib/receipts-db";
+import { addReceiptFiles, confirmReceipt, createDraftFromBill, createReceiptFromLines, deleteReceipt, removeReceiptFile, updateReceipt } from "@/lib/receipts-db";
+import { deleteUpload, extForMime, MAX_UPLOAD_BYTES, RECEIPT_MIMES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 
 const PAGE = "/admin/purchases/?tab=receipts";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -79,4 +80,45 @@ export async function deleteReceiptAction(formData: FormData): Promise<void> {
   const ok = Number.isInteger(id) && deleteReceipt(id);
   revalidatePath("/admin", "layout");
   go(ok ? "saved" : "error", ok ? "Đã xoá phiếu (các dòng đơn giữ trạng thái, bỏ liên kết phiếu)." : "Không xoá được.", "", backOf(formData));
+}
+
+/** Attach bill photos / PDFs to a receipt (checked later against what was booked). */
+export async function uploadReceiptFilesAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const id = Number.parseInt(text(formData, "id"), 10);
+  const back = backOf(formData);
+  if (!Number.isInteger(id)) go("error", "Yêu cầu không hợp lệ.", "", back);
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (!files.length) go("error", "Chưa chọn ảnh nào.", `#receipt-${id}`, back);
+  const saved: Array<{ path: string; url: string; name: string; mime: string }> = [];
+  let error = "";
+  for (const file of files) {
+    if (!RECEIPT_MIMES.has(file.type)) {
+      error = `Bỏ qua ${file.name}: chỉ nhận ảnh hoặc PDF.`;
+      continue;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      error = `Bỏ qua ${file.name}: vượt 10 MB.`;
+      continue;
+    }
+    const ext = extForMime(file.type) || ".bin";
+    const name = uniqueName(slugifyFileName(file.name), ext);
+    const stored = await saveUpload(`receipts/${id}`, name, Buffer.from(await file.arrayBuffer()));
+    saved.push({ path: stored.rel, url: stored.url, name: file.name, mime: file.type });
+  }
+  if (saved.length) addReceiptFiles(id, saved);
+  revalidatePath("/admin", "layout");
+  go(saved.length ? "saved" : "error", `${saved.length ? `Đã đính kèm ${saved.length} tệp vào phiếu.` : ""}${error ? ` ${error}` : ""}`.trim(), `#receipt-${id}`, back);
+}
+
+export async function deleteReceiptFileAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const id = Number.parseInt(text(formData, "id"), 10);
+  const path = text(formData, "path");
+  const back = backOf(formData);
+  if (!Number.isInteger(id) || !path) go("error", "Yêu cầu không hợp lệ.", "", back);
+  const removed = removeReceiptFile(id, path);
+  if (removed) await deleteUpload(removed.path);
+  revalidatePath("/admin", "layout");
+  go(removed ? "saved" : "error", removed ? "Đã gỡ tệp." : "Không tìm thấy tệp.", `#receipt-${id}`, back);
 }

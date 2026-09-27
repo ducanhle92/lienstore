@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { confirmReceiptAction, deleteReceiptAction, parseBillAction, updateReceiptAction } from "@/app/admin/purchases/receipt-actions";
+import { confirmReceiptAction, deleteReceiptAction, deleteReceiptFileAction, parseBillAction, updateReceiptAction, uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { BILL_PHOTO_PROMPT } from "@/lib/bill-prompt";
 import { formatAmount, formatDate } from "@/lib/format";
 import { todayIso } from "@/lib/lots";
@@ -82,6 +82,32 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                   {r.shippedAt ? ` · gửi ĐVVC ${formatDate(r.shippedAt)}` : ""}
                   {r.tracking ? ` · ${r.tracking}` : ""}
                 </p>
+                {/* bill photos: what was actually paid, kept next to what was booked */}
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`receipt-files-${r.id}`}>
+                  {r.files.map((f) => (
+                    <span key={f.path} className="inline-flex items-center gap-1 rounded border border-[#e5e7eb] bg-white p-1">
+                      <a href={f.url} target="_blank" rel="noreferrer" title={f.name} className="no-underline">
+                        {f.mime.startsWith("image/") ? <Image src={f.url} alt={f.name} width={56} height={56} unoptimized className="h-14 w-14 rounded object-cover" /> : <span className="inline-block max-w-[140px] truncate px-1 text-lien-blue">📄 {f.name || "PDF"}</span>}
+                      </a>
+                      <form action={deleteReceiptFileAction}>
+                        {tabField}
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="path" value={f.path} />
+                        <ConfirmSubmit message="Gỡ tệp này khỏi phiếu?" className="px-1 text-[11px] text-lien-heart hover:underline">
+                          gỡ
+                        </ConfirmSubmit>
+                      </form>
+                    </span>
+                  ))}
+                  <form action={uploadReceiptFilesAction} className="inline-flex flex-wrap items-center gap-1">
+                    {tabField}
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="file" name="files" accept="image/*,application/pdf" multiple className="max-w-[220px] text-[12px]" aria-label="Ảnh bill" />
+                    <button type="submit" className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title="Đính kèm ảnh chụp bill / PDF (tối đa 10 MB mỗi tệp)">
+                      Đính kèm ảnh bill
+                    </button>
+                  </form>
+                </div>
                 {isDraft ? (
                   <form action={confirmReceiptAction} className="mb-4 rounded-md border border-amber-200 bg-amber-50/60 p-3" data-testid="receipt-confirm">{tabField}
                     <input type="hidden" name="id" value={r.id} />

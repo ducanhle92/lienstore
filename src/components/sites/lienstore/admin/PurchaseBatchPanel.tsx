@@ -35,6 +35,8 @@ interface Props {
   products: PickableProduct[];
   sources: PurchaseSource[];
   includeDone: boolean;
+  /** Batch search (name / code, bought-date range) — kept in the URL. */
+  search: { q: string; from: string; to: string };
 }
 
 const cell = "!mb-0 !py-1 !text-[13px]";
@@ -47,10 +49,30 @@ type SrcSelect = (form: string, value: string, label: string) => ReactNode;
  * Quản lý mua hàng › tab "Mua theo đợt": one card per Japan → shop shipment. Every row (order line or stock row) is
  * editable in place; stock rows can be split, and units can stay in Japan for a later batch ("giữ lại Nhật").
  */
-export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone }: Props) {
+export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search }: Props) {
   const heads = batches.filter((b) => b.status !== BATCH_DONE).map((b) => ({ id: b.id, code: b.code, label: b.label }));
+  const searching = !!(search.q || search.from || search.to);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5" data-testid="batch-panel">
+      {/* top bar: search batches, open a new one, usage — collapsed so the batches get the space */}
+      <div className="flex flex-wrap items-center gap-2" data-testid="batch-topbar">
+        <form method="get" className="flex flex-wrap items-center gap-2 text-[13px]">
+          <input type="hidden" name="tab" value="batches" />
+          <input name="bq" defaultValue={search.q} placeholder="Tìm đợt: tên / mã DG-…" className={cn(adminInput, "!mb-0 !w-[220px] !py-1")} aria-label="Tìm đợt mua" />
+          <span className="text-lien-muted">ngày mua từ</span>
+          <input name="bfrom" defaultValue={search.from} placeholder="2026-09-01" className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Từ ngày" />
+          <span className="text-lien-muted">đến</span>
+          <input name="bto" defaultValue={search.to} placeholder="2026-09-30" className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Đến ngày" />
+          <button type="submit" className={cn(btnSecondary, "!py-1")}>
+            Tìm
+          </button>
+          {searching ? (
+            <Link href={BACK} className="text-[12px] text-lien-blue hover:underline">
+              Xoá tìm
+            </Link>
+          ) : null}
+        </form>
+      </div>
       <div className="space-y-5 order-2">
         {batches.length === 0 ? (
           <Card>
@@ -67,7 +89,10 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
+        <details className="min-w-0" open={batches.length === 0} data-testid="new-batch">
+          <summary className={cn(btnPrimary, "inline-block cursor-pointer list-none")}>+ Mở đợt mua mới</summary>
+          <div className="mt-2">
         <Card title="Mở đợt mua mới (một lần đi mua / một bill)">
           <form action={createBatchAction} className="grid gap-3" data-testid="batch-create">
             <div>
@@ -107,6 +132,11 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
             </button>
           </form>
         </Card>
+          </div>
+        </details>
+        <details className="min-w-0">
+          <summary className={cn(btnSecondary, "inline-block cursor-pointer list-none")}>Cách dùng</summary>
+          <div className="mt-2">
         <Card title="Cách dùng">
           <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
             <li>
@@ -129,7 +159,10 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
             </li>
           </ol>
         </Card>
+          </div>
+        </details>
       </div>
+      {searching && batches.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đợt nào khớp tìm kiếm.</p> : null}
     </div>
   );
 }
@@ -201,6 +234,22 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
           </span>
         </div>
 
+        {/* bills booked into this batch — the paper trail (photos attach on the bill) */}
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid={`bills-${b.id}`}>
+          <span className="font-semibold text-lien-heading">Bill:</span>
+          {b.receipts.length === 0 ? <span className="text-lien-muted">chưa có</span> : null}
+          {b.receipts.map((r) => (
+            <Link key={r.id} href={`${BACK}&receipts=1#receipt-${r.id}`} className="rounded border border-[#d1d5db] bg-white px-1.5 py-0.5 font-mono text-[11px] font-semibold text-lien-heading no-underline hover:border-lien-blue hover:text-lien-blue" title="Mở phiếu (đính kèm ảnh bill ở đó)">
+              {r.code} · {formatDate(r.boughtAt)} · {purchaseSourceName(r.sourceKey, sources)}
+              {r.files ? ` · ${r.files} ảnh` : ""}
+            </Link>
+          ))}
+          {done ? null : (
+            <Link href={`${BACK}&bill=${b.id}&receipts=1#receipts`} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title="Dán nội dung bill vào khung Phiếu mua hàng, chọn sẵn đợt này">
+              <Fa name="file-text-o" /> Nhập bill vào đợt này
+            </Link>
+          )}
+        </div>
         {/* bulk bar: the checkboxes in the table attach to this (empty) form */}
         <form id={bulkId} action={bulkBatchRowsAction}>
           <input type="hidden" name="batchId" value={b.id} />
@@ -224,6 +273,17 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
           {done ? null : (
           <div className="flex flex-wrap items-center gap-2 border-l border-[#e5e7eb] pl-3">
             <span className="font-semibold text-lien-heading">Đã tick →</span>
+            <select name="bulkStatus" form={bulkId} defaultValue="bought" className={cn(adminInput, cell, "!w-auto")} aria-label="Trạng thái cho các dòng đã tick">
+              {BATCH_STAGES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button type="submit" form={bulkId} name="op" value="status" className={cn(btnPrimary, "!py-1")} title="Đặt trạng thái này cho mọi dòng đã tick (dòng đơn, phiếu, lô)">
+              Áp dụng
+            </button>
+            <span className="mx-1 text-lien-muted">|</span>
             <button type="submit" form={bulkId} name="op" value="remove" className={cn(btnSecondary, "!py-1")} title="Dòng đơn rời đợt (giữ trạng thái), dòng lưu kho bị xoá">
               Bỏ khỏi đợt
             </button>
@@ -274,7 +334,7 @@ function BatchCard({ batch: b, heads, openLines, products, sources }: { batch: P
                 r.kind === "line" ? (
                   <LineRow key={r.key} b={b} l={r.line} done={done} bulkId={bulkId} srcSelect={srcSelect} search={searchOf(r.line.productId, r.line.productName, r.line.productSku)} />
                 ) : r.kind === "lot" ? (
-                  <LotRow key={r.key} b={b} l={r.lot} done={done} srcSelect={srcSelect} sources={sources} search={searchOf(r.lot.productId, r.lot.productName, r.lot.productSku)} />
+                  <LotRow key={r.key} b={b} l={r.lot} done={done} bulkId={bulkId} srcSelect={srcSelect} sources={sources} search={searchOf(r.lot.productId, r.lot.productName, r.lot.productSku)} />
                 ) : (
                   <StockRow key={r.key} b={b} s={r.stock} done={done} bulkId={bulkId} srcSelect={srcSelect} products={products} sources={sources} stock={stockById.get(r.stock.productId) ?? null} search={searchOf(r.stock.productId, r.stock.productName, r.stock.productSku)} />
                 ),
@@ -615,7 +675,11 @@ function LineRow({ b, l, done, bulkId, srcSelect, search }: { b: PurchaseBatch; 
               <Link href={`/admin/orders/${l.orderId}/`} className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-semibold text-[#3730a3] no-underline hover:underline" title={l.customerName}>
                 Đơn #{l.orderNumber} · {l.customerName}
               </Link>
-              {l.costJpy ? <span className="text-lien-muted">¥{formatAmount(l.costJpy)}/đv</span> : null}
+              {l.receiptId ? (
+                <Link href={`${BACK}&receipts=1#receipt-${l.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[10px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill">
+                  {l.receiptCode}
+                </Link>
+              ) : null}
             </>
           }
         />
@@ -626,7 +690,13 @@ function LineRow({ b, l, done, bulkId, srcSelect, search }: { b: PurchaseBatch; 
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
         {srcSelect(fid, l.sourceKey, `Nguồn dòng đơn #${l.orderNumber}`)}
       </td>
-      <td className={cn(tdClass, TD, "text-[12px] text-lien-muted")}>—</td>
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap")} data-label="Mua">
+        <div className="grid w-[92px] gap-1">
+          <input name="expiry" form={fid} defaultValue={l.expiry ?? ""} placeholder="HSD 03/2027" className={cn(adminInput, cell, "!w-full")} aria-label="Hạn dùng" />
+          <input name="boughtAt" form={fid} defaultValue={l.boughtAt ?? ""} placeholder="mua 2026-09-27" className={cn(adminInput, cell, "!w-full")} aria-label="Ngày mua" />
+          <input name="costJpy" form={fid} inputMode="numeric" defaultValue={l.costJpy ?? ""} placeholder="¥/đv" className={cn(adminInput, cell, "!w-full")} aria-label="Giá ¥ mỗi đơn vị" />
+        </div>
+      </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
         <select name="status" form={fid} defaultValue={l.purchaseStatus} className={cn(adminInput, cell, "!w-40")} aria-label="Trạng thái dòng đơn">
           {PURCHASE_STAGES.map((s) => (
@@ -786,7 +856,7 @@ function StockRow({ b, s, done, bulkId, srcSelect, products, sources, stock, sea
 
 
 /** A lot bought in this batch: every field editable (SL chưa bán, mua ở, HSD, ngày mua, ¥, trạng thái = vị trí, cửa hàng / ghi chú), split into its own lot. */
-function LotRow({ b, l, done, srcSelect, sources, search }: { b: PurchaseBatch; l: LotView; done: boolean; srcSelect: SrcSelect; sources: PurchaseSource[]; search: string }) {
+function LotRow({ b, l, done, bulkId, srcSelect, sources, search }: { b: PurchaseBatch; l: LotView; done: boolean; bulkId: string; srcSelect: SrcSelect; sources: PurchaseSource[]; search: string }) {
   const fid = `bl-${l.id}`;
   const status = statusForLocation(l.warehouse, l.inTransit);
   const ss = PURCHASE_STAGES[purchaseIndex(status)];
@@ -794,7 +864,7 @@ function LotRow({ b, l, done, srcSelect, sources, search }: { b: PurchaseBatch; 
   const note = noteBody(l.note, b.code);
   return (
     <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind="stock" data-search={search} data-product={l.productId} data-src={l.sourceKey} data-status={status} data-note={note ? "1" : "0"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
-      <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")} />
+      <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{done ? null : <input type="checkbox" name="lotIds" value={l.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn lô #${l.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
           productId={l.productId}
@@ -803,9 +873,15 @@ function LotRow({ b, l, done, srcSelect, sources, search }: { b: PurchaseBatch; 
           thumb={l.productThumb}
           badge={
             <>
-              <Link href={`/admin/inventory/lots/${l.productId}/`} className="rounded bg-sky-100 px-1.5 py-0.5 font-semibold text-sky-900 no-underline hover:underline">
-                Lô #{l.id} · {describeLocation(l.warehouse, l.inTransit)}
-              </Link>
+              {l.receiptId ? (
+                <Link href={`${BACK}&receipts=1#receipt-${l.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[10px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title={`Bill · lô #${l.id}`}>
+                  {l.receiptCode}
+                </Link>
+              ) : (
+                <Link href={`/admin/inventory/lots/${l.productId}/`} className="text-[10px] text-lien-muted no-underline hover:underline" title={describeLocation(l.warehouse, l.inTransit)}>
+                  lô #{l.id}
+                </Link>
+              )}
               {l.reserved.map((r) => (
                 <Link key={r.orderId} href={`/admin/orders/${r.orderId}/`} className={cn("rounded px-1 py-0.5 text-[10px] font-semibold no-underline hover:underline", r.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.committed ? "Đơn đã thanh toán / COD — hàng đi cùng lô" : "Đơn chưa thanh toán"}>
                   #{r.orderNumber} ×{r.qty}

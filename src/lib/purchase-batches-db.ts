@@ -45,6 +45,10 @@ interface LineRow {
   sku: string | null;
   thumb: string | null;
   cost_jpy: number | null;
+  purchase_expiry: string | null;
+  purchase_bought_at: string | null;
+  receipt_id: number | null;
+  receipt_code: string | null;
 }
 interface StockRow {
   id: number;
@@ -75,7 +79,9 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
   const ph = ids.map(() => "?").join(",");
   const lines = db
     .prepare(
-      `SELECT oi.id, oi.order_id, o.number, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity, oi.purchase_status, oi.batch_id, oi.source_key, p.sku, p.thumb, p.cost_jpy
+      `SELECT oi.id, oi.order_id, o.number, o.first_name, o.last_name, oi.product_id, oi.name, oi.quantity, oi.purchase_status, oi.batch_id, oi.source_key, p.sku, p.thumb,
+              COALESCE(oi.purchase_cost_jpy, p.cost_jpy) AS cost_jpy, oi.purchase_expiry, oi.purchase_bought_at, oi.receipt_id,
+              (SELECT r.code FROM purchase_receipts r WHERE r.id = oi.receipt_id) AS receipt_code
        FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id
        WHERE oi.batch_id IN (${ph}) ORDER BY o.number, oi.id`,
     )
@@ -85,7 +91,16 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
   const lotsAll = listLotViews(db, { includeEmpty: true }).filter((l) => l.batchId !== null && idSet.has(l.batchId) && (l.qtyLeft > 0 || l.reserved.some((r) => r.consumed)));
   // split off and kept in Japan: waiting (batch_id NULL) or already inside a later batch
   const held = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, b.code AS cur_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id LEFT JOIN purchase_batches b ON b.id = sp.batch_id WHERE sp.origin_batch_id IN (${ph}) AND (sp.batch_id IS NULL OR sp.batch_id <> sp.origin_batch_id) ORDER BY sp.id`).all(...ids) as unknown as StockRow[];
-  const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "" });
+  const toLine = (l: LineRow): PurchaseBatchLine => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, customerName: `${l.last_name} ${l.first_name}`.trim(), productId: l.product_id, productName: l.name, productSku: l.sku, productThumb: l.thumb ?? "", quantity: l.quantity, purchaseStatus: statusOf(l.purchase_status), costJpy: l.cost_jpy, sourceKey: l.source_key ?? "", expiry: l.purchase_expiry ?? null, boughtAt: l.purchase_bought_at ?? null, receiptId: l.receipt_id ?? null, receiptCode: l.receipt_code ?? "" });
+  const bills = db.prepare(`SELECT id, code, bought_at, source_key, files, batch_id FROM purchase_receipts WHERE batch_id IN (${ph}) ORDER BY bought_at DESC, id DESC`).all(...ids) as unknown as Array<{ id: number; code: string; bought_at: string; source_key: string; files: string | null; batch_id: number }>;
+  const filesCount = (raw: string | null) => {
+    try {
+      const v = JSON.parse(raw || "[]");
+      return Array.isArray(v) ? v.length : 0;
+    } catch {
+      return 0;
+    }
+  };
   const reservedMap = listReservationsForStockPurchases(db, [...stock, ...held].map((s) => s.id));
   const toStock = (s: StockRow): PurchaseBatchStock => ({ id: s.id, productId: s.product_id, productName: s.name, productSku: s.sku, productThumb: s.thumb ?? "", qty: s.qty, expiry: s.expiry, boughtAt: s.bought_at, unitCostJpy: s.unit_cost_jpy, status: statusOf(s.status), warehouse: isWarehouse(s.warehouse) ? s.warehouse : DEFAULT_WAREHOUSE, lotId: s.lot_id, note: s.note ?? "", sourceKey: s.source_key || UNKNOWN_SOURCE, batchId: s.batch_id, batchCode: s.cur_code ?? "", originBatchId: s.origin_batch_id, reserved: reservedMap.get(s.id) ?? [] });
   return rows.map((r) => ({
@@ -101,6 +116,7 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lines: lines.filter((l) => l.batch_id === r.id).map(toLine),
+    receipts: bills.filter((x) => x.batch_id === r.id).map((x) => ({ id: x.id, code: x.code, boughtAt: x.bought_at, sourceKey: x.source_key, files: filesCount(x.files) })),
     lots: lotsAll.filter((l) => l.batchId === r.id),
     stock: stock.filter((s) => s.batch_id === r.id).map(toStock),
     held: held.filter((s) => s.origin_batch_id === r.id).map(toStock),
@@ -108,10 +124,35 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
 }
 
 /** Open batches first (newest on top); `includeDone` adds the ones already at the shop. */
-export function listPurchaseBatches(includeDone = false, limit = 60): PurchaseBatch[] {
+export interface BatchSearch {
+  includeDone?: boolean;
+  /** Matches code / label / note (case-insensitive). */
+  q?: string;
+  /** Bought date range (inclusive, ISO date). */
+  from?: string;
+  to?: string;
+}
+export function listPurchaseBatches(opts: boolean | BatchSearch = false, limit = 60): PurchaseBatch[] {
+  const o: BatchSearch = typeof opts === "boolean" ? { includeDone: opts } : opts;
+  const where: string[] = [];
+  const args: unknown[] = [];
+  if (!o.includeDone) where.push("status <> 'at_shop'");
+  if (o.q) {
+    where.push("(LOWER(code) LIKE ? OR LOWER(label) LIKE ? OR LOWER(note) LIKE ?)");
+    const like = `%${o.q.toLowerCase()}%`;
+    args.push(like, like, like);
+  }
+  if (o.from) {
+    where.push("COALESCE(bought_at, substr(created_at, 1, 10)) >= ?");
+    args.push(o.from);
+  }
+  if (o.to) {
+    where.push("COALESCE(bought_at, substr(created_at, 1, 10)) <= ?");
+    args.push(o.to);
+  }
   const rows = getDb()
-    .prepare(`SELECT * FROM purchase_batches ${includeDone ? "" : "WHERE status <> 'at_shop'"} ORDER BY CASE status WHEN 'at_shop' THEN 1 ELSE 0 END, id DESC LIMIT ?`)
-    .all(limit) as unknown as BatchRow[];
+    .prepare(`SELECT * FROM purchase_batches ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY CASE status WHEN 'at_shop' THEN 1 ELSE 0 END, id DESC LIMIT ?`)
+    .all(...(args as never[]), limit) as unknown as BatchRow[];
   return hydrate(rows);
 }
 

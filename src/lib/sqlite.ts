@@ -1317,6 +1317,17 @@ export const MIGRATIONS: Migration[] = [
          WHERE batch_id IS NULL AND purchase_id IS NOT NULL AND EXISTS (SELECT 1 FROM stock_purchases sp WHERE sp.lot_id = stock_lots.id AND sp.batch_id IS NOT NULL)`,
     ],
   },
+  {
+    // order lines bought for a customer carry their own HSD / bought date / ¥ (profit per order); bills keep photos
+    version: 62,
+    name: "line-purchase-facts",
+    up: [
+      `ALTER TABLE order_items ADD COLUMN purchase_expiry TEXT`,
+      `ALTER TABLE order_items ADD COLUMN purchase_bought_at TEXT`,
+      `ALTER TABLE order_items ADD COLUMN purchase_cost_jpy INTEGER`,
+      `ALTER TABLE purchase_receipts ADD COLUMN files TEXT NOT NULL DEFAULT '[]'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

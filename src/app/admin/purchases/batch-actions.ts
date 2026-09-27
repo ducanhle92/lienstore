@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
-import { isPurchaseStatus } from "@/lib/purchase";
+import { isPurchaseStatus, type PurchaseStatus } from "@/lib/purchase";
 import { isBatchStatus } from "@/lib/purchase-batches";
-import { moveLotsToStatus, updateStockLot } from "@/lib/db";
+import { moveLotsToStatus, setOrderItemsPurchase, setStockPurchaseStatus, updateStockLot } from "@/lib/db";
+import { locationForStatus } from "@/lib/warehouses";
 import { getDb } from "@/lib/sqlite";
 import { statusForLocation } from "@/lib/warehouses";
 import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, holdBatchRows, moveStockToBatch, removeLotsFromBatch, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
@@ -276,9 +277,25 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
     revalidatePath("/admin", "layout");
     go("saved", `Đã bỏ ${n} dòng khỏi đợt (dòng đơn giữ trạng thái, dòng lưu kho bị xoá).`, batchId);
   }
-  const r = holdBatchRows(batchId!, sids, ids, lotIds);
-  revalidatePath("/admin", "layout");
-  go("saved", `Đã giữ lại Nhật ${r.lots} lô${r.stock ? ` · ${r.stock} phiếu chờ chuyến sau` : ""}${r.lines ? ` · ${r.lines} dòng đơn rời chuyến` : ""}.`, batchId);
+  if (op === "status") {
+    // one status for every ticked row: order lines, slips (become lots at "Tại kho Nhật"), lots (move place)
+    const statusRaw = text(formData, "bulkStatus");
+    if (!isPurchaseStatus(statusRaw)) go("error", "Chọn trạng thái cho các dòng đã tick.", batchId);
+    const status = statusRaw as PurchaseStatus;
+    let n = await setOrderItemsPurchase(ids, status);
+    for (const id of sids) if ((await setStockPurchaseStatus(id, status)).ok) n++;
+    let note = "";
+    if (lotIds.length) {
+      if (locationForStatus(status)) {
+        const r = await moveLotsToStatus(lotIds.map((lotId) => ({ lotId })), status);
+        n += r.moved;
+        if (!r.ok) note = ` ${r.message}`;
+      } else note = ` Lô đã mua không lùi về "${status === "ordered" ? "Đã đặt mua" : "Chưa mua"}" được — bỏ qua ${lotIds.length} lô.`;
+    }
+    revalidatePath("/admin", "layout");
+    go("saved", `Đã cập nhật ${n} dòng.${note}`, batchId);
+  }
+  go("error", "Chọn thao tác cho các dòng đã tick.", batchId);
 }
 
 /** Held rows (or plain stock slips from the "Mua lưu kho" tab) → into a batch. */

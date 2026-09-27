@@ -155,6 +155,12 @@ export interface PurchaseBatchLine {
   costJpy: number | null;
   /** Where this line was bought (purchase_sources.key); "" = not decided. */
   sourceKey: string;
+  /** Purchase facts typed on the line (HSD, ngày mua) — for the customer's unit; ¥ is costJpy. */
+  expiry: string | null;
+  boughtAt: string | null;
+  /** Bill (phiếu mua) the line was bought on, if any. */
+  receiptId: number | null;
+  receiptCode: string;
 }
 
 /** Surplus units bought in the same batch with no order behind them; becomes a lot when the batch reaches the shop. */
@@ -204,6 +210,8 @@ export interface PurchaseBatch {
   lines: PurchaseBatchLine[];
   /** Lots travelling in this shipment (a lot exists from "Tại kho Nhật" on). */
   lots: import("@/lib/lots-db").LotView[];
+  /** Bills booked into this batch (code, date, source, number of photos). */
+  receipts: Array<{ id: number; code: string; boughtAt: string; sourceKey: string; files: number }>;
   /** Purchase slips in the batch that are not lots yet (Chưa mua / Đã đặt mua). */
   stock: PurchaseBatchStock[];
   /** Rows split off this batch and kept in Japan: still waiting, or already travelling in a later batch. */

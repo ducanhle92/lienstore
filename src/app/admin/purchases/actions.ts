@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { setOrderItemSource, setOrderItemsPurchase } from "@/lib/db";
+import { setOrderItemSource, setOrderItemsPurchase, updateOrderItemPurchaseFacts } from "@/lib/db";
+import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus, PURCHASE_LABEL } from "@/lib/purchase";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -19,8 +20,29 @@ export async function setPurchaseAction(formData: FormData): Promise<void> {
   const note = formData.has("note") ? text(formData, "note") : undefined;
   await setOrderItemsPurchase([id], status, note);
   if (formData.has("sourceKey")) await setOrderItemSource(id, text(formData, "sourceKey"));
+  // purchase facts typed on the line (Mua theo đợt): HSD, ngày mua, ¥/đv
+  if (formData.has("expiry") || formData.has("boughtAt") || formData.has("costJpy")) {
+    const facts: Parameters<typeof updateOrderItemPurchaseFacts>[1] = {};
+    if (formData.has("expiry")) {
+      const raw = text(formData, "expiry");
+      const v = raw ? parseExpiry(raw) : null;
+      if (raw && !v) return back(url, "error", "Hạn dùng không hợp lệ (VD 2027-03-31, 03/2027).");
+      facts.expiry = v;
+    }
+    if (formData.has("boughtAt")) {
+      const raw = text(formData, "boughtAt");
+      const v = raw ? parseExpiry(raw) : null;
+      if (raw && !v) return back(url, "error", "Ngày mua không hợp lệ (VD 2026-09-27).");
+      facts.boughtAt = v;
+    }
+    if (formData.has("costJpy")) {
+      const digits = text(formData, "costJpy").replace(/[^\d]/g, "");
+      facts.costJpy = digits ? Number.parseInt(digits, 10) : null;
+    }
+    await updateOrderItemPurchaseFacts(id, facts);
+  }
   revalidatePath("/admin", "layout");
-  back(url, "saved", `Đã chuyển sang "${PURCHASE_LABEL[status]}".`);
+  back(url, "saved", `Đã lưu dòng — "${PURCHASE_LABEL[status]}".`);
 }
 
 /** Many lines at once (checkboxes + one status). */

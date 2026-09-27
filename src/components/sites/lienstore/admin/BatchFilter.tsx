@@ -201,6 +201,29 @@ export function BatchFilter({ batchId, total, sources, statuses, orders }: Props
         <label className="inline-flex items-center gap-1.5 text-[12px]">
           <input type="checkbox" onChange={(e) => selectShown(e.target.checked)} className="h-4 w-4" aria-label="Chọn tất cả dòng đang hiện" /> chọn tất cả đang hiện
         </label>
+        {open ? (
+          <>
+            <span className="flex flex-wrap items-center gap-1">
+              <span className="text-[11px] text-lien-muted">Loại:</span>
+              {chip(f.kind.has("line"), "Dòng đơn", () => toggle("kind", "line"), "k-line")}
+              {chip(f.kind.has("stock"), "Lưu kho", () => toggle("kind", "stock"), "k-stock")}
+            </span>
+            {sources.length ? (
+              <span className="flex flex-wrap items-center gap-1">
+                <span className="text-[11px] text-lien-muted">Mua ở:</span>
+                {sources.map((s) => chip(f.src.has(s.key), s.name, () => toggle("src", s.key), `s-${s.key}`))}
+              </span>
+            ) : null}
+            {statuses.length > 1 ? (
+              <span className="flex flex-wrap items-center gap-1">
+                <span className="text-[11px] text-lien-muted">Trạng thái:</span>
+                {statuses.map((s) => chip(f.status.has(s.key), s.label, () => toggle("status", s.key), `t-${s.key}`))}
+              </span>
+            ) : null}
+            {chip(f.noteOnly, "Chỉ dòng có ghi chú", () => update((cur) => ({ ...cur, noteOnly: !cur.noteOnly })), "note")}
+            {chip(f.min2, "Chỉ SL ≥ 2 (tách được)", () => update((cur) => ({ ...cur, min2: !cur.min2 })), "min2")}
+          </>
+        ) : null}
         <span className="ml-auto text-[12px] text-lien-muted" data-testid="batch-count">
           Đang hiện <span ref={countRef} className="font-semibold text-lien-heading">{total}/{total} dòng</span>
         </span>
@@ -215,29 +238,6 @@ export function BatchFilter({ batchId, total, sources, statuses, orders }: Props
           </button>
         ) : null}
       </div>
-      {open ? (
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="flex flex-wrap items-center gap-1">
-            <span className="text-[11px] text-lien-muted">Loại:</span>
-            {chip(f.kind.has("line"), "Dòng đơn", () => toggle("kind", "line"), "k-line")}
-            {chip(f.kind.has("stock"), "Lưu kho", () => toggle("kind", "stock"), "k-stock")}
-          </span>
-          {sources.length ? (
-            <span className="flex flex-wrap items-center gap-1">
-              <span className="text-[11px] text-lien-muted">Mua ở:</span>
-              {sources.map((s) => chip(f.src.has(s.key), s.name, () => toggle("src", s.key), `s-${s.key}`))}
-            </span>
-          ) : null}
-          {statuses.length > 1 ? (
-            <span className="flex flex-wrap items-center gap-1">
-              <span className="text-[11px] text-lien-muted">Trạng thái:</span>
-              {statuses.map((s) => chip(f.status.has(s.key), s.label, () => toggle("status", s.key), `t-${s.key}`))}
-            </span>
-          ) : null}
-          {chip(f.noteOnly, "Chỉ dòng có ghi chú", () => update((cur) => ({ ...cur, noteOnly: !cur.noteOnly })), "note")}
-          {chip(f.min2, "Chỉ SL ≥ 2 (tách được)", () => update((cur) => ({ ...cur, min2: !cur.min2 })), "min2")}
-        </div>
-      ) : null}
     </div>
   );
 }
