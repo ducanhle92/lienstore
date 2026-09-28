@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.82.3] - 2026-09-28
+
 ### Changed
 - Tồn kho quản lý theo **mã bill**: cột “Lô #” thành **Bill · lô** (mã bill bấm mở trong đợt mua; “chưa có bill” khi chưa gắn; số lô ghi nhỏ bên dưới), ô tìm khớp cả mã bill. Nguồn hàng của dòng đơn (trang đơn, Hàng theo đơn, Mua theo đặt hàng) ghi “bill …” thay cho “lô #…”, và “đợt DG-…” thay cho “chuyến”. Bảng chuyến Đóng hàng cũng hiện mã bill.
 
