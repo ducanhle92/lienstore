@@ -9,6 +9,7 @@ import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
 import { addOrderMessage, getOrderById, deleteOrder, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
+import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
 import { isShipStage } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
 
@@ -147,15 +148,33 @@ export async function adminSendMessageAction(_prev: ChatState, formData: FormDat
   const session = await getAdminSession();
   if (!session || !(session.permissions.includes("orders") || session.permissions.includes("shipping"))) return { error: "Bạn không có quyền trả lời đơn hàng." };
   const orderId = String(formData.get("orderId") ?? "");
-  const body = String(formData.get("body") ?? "");
-  if (!orderId || !body.trim()) return { error: "Nhập nội dung tin nhắn." };
+  let body = String(formData.get("body") ?? "").trim();
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (!orderId || (!body && !files.length)) return { error: "Nhập nội dung tin nhắn hoặc đính kèm bill." };
+  // "Đính kèm bill" in the chat: the files become the order's bills (the customer sees them on the order page) and the
+  // message says so; a message with no text is just that notice
+  let fileError = "";
+  if (files.length) {
+    if (!(await getOrderById(orderId))) return { error: "Không tìm thấy đơn hàng." };
+    const amountJpy = parseJpy(String(formData.get("amountJpy") ?? ""));
+    const r = await saveOrderReceipts(orderId, files, { note: String(formData.get("fileNote") ?? ""), amountJpy });
+    fileError = r.error;
+    if (r.saved) {
+      const notice = `📎 Đã đính kèm bill: ${r.names.join(", ")}${amountJpy ? ` · ¥${amountJpy.toLocaleString("ja-JP")}` : ""}`;
+      body = body ? `${body}
+
+${notice}` : notice;
+    }
+    if (!body) return { error: fileError || "Không lưu được file." };
+  }
   try {
-    await addOrderMessage({ orderId, sender: "admin", senderName: "LienStore", body });
+    // no sender name: the chat shows the shop's public name (theme), never a hardcoded brand
+    await addOrderMessage({ orderId, sender: "admin", senderName: "", body });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không gửi được." };
   }
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/my-account");
   revalidatePath(`/checkout/order-received/${orderId}`);
-  return null;
+  return fileError ? { error: fileError } : null;
 }

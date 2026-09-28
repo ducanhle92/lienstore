@@ -53,12 +53,13 @@ interface Scan {
  * `data-savebar="off"` (forms with their own bar, e.g. the product form).
  */
 function scan(): Scan {
-  const bar = document.getElementById(ADMIN_BAR_ID);
+  // options of ticked-row actions are not edits; a screen's own tools in the bar (e.g. the order status) are
+  const bulk = document.getElementById(BAR_BULK_ID);
   const scopes = new Set(Array.from(document.querySelectorAll<HTMLElement>("[data-tick-scope]")).map((e) => e.dataset.tickScope ?? ""));
   const editable = new Set<HTMLFormElement>();
   const dirty = new Map<HTMLFormElement, number>();
   for (const el of document.querySelectorAll<Control>("main input[name], main select[name], main textarea[name]")) {
-    if (bar?.contains(el) || el.disabled) continue;
+    if (bulk?.contains(el) || el.disabled) continue;
     if (el instanceof HTMLInputElement && (SKIP_TYPES.has(el.type) || el.readOnly)) continue;
     const form = el.form;
     if (!form || !isActionForm(form) || scopes.has(form.id)) continue;

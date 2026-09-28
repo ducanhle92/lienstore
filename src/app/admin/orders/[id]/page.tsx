@@ -9,10 +9,11 @@ import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { orderSteps, SHIP_STAGES, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { purchaseIndex } from "@/lib/purchase";
-import { deleteOrderFileAction, saveAdminNoteAction, uploadOrderFilesAction } from "@/app/admin/orders/files-actions";
+import { deleteOrderFileAction, saveAdminNoteAction } from "@/app/admin/orders/files-actions";
+import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
@@ -228,21 +229,21 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             </table>
           </Card>
 
-        <Card title="Vận chuyển đơn này (3 chặng)">
-          <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
-          <p className="mt-3 text-[12px] text-lien-muted">
-            Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
-            <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>
-          </p>
-        </Card>
 
-          <Card title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}>
+          <div id="bill">
+          <Card
+            title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}
+            actions={files.length ? <span className="text-[13px] text-lien-muted">Bill: {files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
+          >
             <OrderChat
               orderId={order.id}
               messages={messages}
               me="admin"
               action={adminSendMessageAction}
               shopName={shop}
+              attach
+              files={files.map((f) => ({ id: f.id, fileName: f.fileName, url: publicReceiptUrl(f.path), mime: f.mime, size: formatBytes(f.size), amountJpy: f.amountJpy ?? null, note: f.note ?? "", createdAt: f.createdAt }))}
+              fileDeleteAction={deleteOrderFileAction}
               quickReplies={[
                 `Cảm ơn anh/chị đã mua hàng của ${shop}! Đơn #${order.number} đã được xác nhận thanh toán và đang được xử lý để gửi tới anh/chị. Bên em sẽ nhắn ngay khi hàng lên đường ạ.`,
                 `Đơn #${order.number} của anh/chị đã thanh toán xong, bên em đang đặt mua tại Nhật. Dự kiến 7–14 ngày hàng về tới kho Việt Nam; có tiến độ mới em báo liền nhé.`,
@@ -253,11 +254,20 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 `Đơn #${order.number} đã giao thành công. Cảm ơn anh/chị đã ủng hộ ${shop}, có gì cần hỗ trợ cứ nhắn em ạ!`,
               ]}
             />
+            {files.length ? (
+              <p className="m-0 mt-3 text-[12px] leading-5 text-lien-muted">
+                Khách xem bill trong trang đơn hàng (không cần đăng nhập):{" "}
+                <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
+                  {siteUrl}/checkout/order-received/{order.id}/
+                </code>
+              </p>
+            ) : null}
           </Card>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <Card title="Tiến độ đơn hàng">
+          <Card title="Trạng thái đơn hàng">
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact admin />
             </div>
@@ -267,41 +277,10 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               <span className="block text-[12px] text-lien-muted">{flow.steps[flow.current].hint}</span>
               <span className="mt-1 block text-[11px] text-lien-muted">{cod ? "Luồng COD: giao hàng trước, “Hoàn tất thanh toán” ở cuối." : "Luồng trả trước: khách chuyển khoản trước, shop mới gửi hàng."}</span>
             </p>
-            {/* payment: transfer received, or the admin grants COD (the buyer cannot pick COD at checkout) */}
-            {!paidAt && order.status !== "cancelled" && (!cod || first(sp.pay) === "1") && stageIndex(order.shipStage) < stageIndex("delivered") ? (
-              <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] p-3" data-testid="payment-choice">
-                <p className="m-0 mb-2 text-[13px] font-semibold text-lien-heading">{cod ? "Đổi hình thức thanh toán" : "Chờ thanh toán — chọn một"}</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <form action={markTransferReceivedAction}>
-                    <input type="hidden" name="id" value={order.id} />
-                    <button type="submit" className={`${btnPrimary} w-full`} title={cod ? "Khách đã chuyển khoản trước khi giao — tồn kho không trừ lần hai" : "Ghi nhận thanh toán — tồn kho trừ theo đơn, mở bước Đã gửi hàng"}>
-                      <Fa name="check" /> Đã nhận chuyển khoản
-                    </button>
-                  </form>
-                  {cod ? null : (
-                    <form action={setOrderCodAction}>
-                      <input type="hidden" name="id" value={order.id} />
-                      <ConfirmSubmit message={`Cho đơn #${order.number} thanh toán khi nhận hàng (COD)? Tồn kho trừ ngay; bước thanh toán chuyển về cuối tiến độ.`} confirmLabel="Đồng ý COD" className={`${btnSecondary} w-full`}>
-                        <Fa name="truck" /> Thanh toán khi nhận hàng (COD)
-                      </ConfirmSubmit>
-                    </form>
-                  )}
-                </div>
-              </div>
-            ) : null}
-            {cod && !paidAt && order.shipStage === "delivered" && order.status !== "cancelled" ? (
-              <form action={markCodCollectedAction} className="mb-3">
-                <input type="hidden" name="id" value={order.id} />
-                <button type="submit" className={`${btnPrimary} w-full`} data-testid="cod-collected">
-                  <Fa name="money" /> Hoàn tất thanh toán (đã thu tiền)
-                </button>
-              </form>
-            ) : null}
             <form action={setStageAction} className="grid gap-2">
               <input type="hidden" name="id" value={order.id} />
-              <input name="note" placeholder="Ghi chú cho khách (tuỳ chọn), vd: mã vận đơn, ngày dự kiến" className={adminInput} />
               {nextStage && waitingPay && order.shipStage === "ordered" ? (
-                <p className="m-0 text-[12px] text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc chọn COD) ở trên.</p>
+                <p className="m-0 text-[12px] text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc cho COD) ở thanh dưới.</p>
               ) : nextStage ? (
                 <button type="submit" name="stage" value={nextStage.key} className={btnPrimary} data-testid="next-stage">
                   <Fa name="check" /> Chuyển sang: {nextStage.label}
@@ -323,37 +302,56 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </details>
             </form>
           </Card>
-          <Card title="Trạng thái">
-            <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid="payment-box">
-              Thanh toán:{" "}
-              <b>
-                {order.paymentMethod === "cod"
-                  ? `Thanh toán khi nhận hàng (COD) · ${paidAt ? `đã thu lúc ${formatDateTime(paidAt)}` : "chưa thu"}`
-                  : paidAt
-                    ? `Đã nhận chuyển khoản lúc ${formatDateTime(paidAt)}`
-                    : "Chuyển khoản · chưa nhận"}
-              </b>
-              {order.status !== "cancelled" && !paidAt && stageIndex(order.shipStage) < stageIndex("delivered") ? (
-                <Link href={`/admin/orders/${order.id}/?pay=1#tracking`} className="ml-2 text-[12px] text-lien-blue hover:underline">
-                  đổi
-                </Link>
-              ) : null}
-            </div>
-            <form action={updateOrderStatusAction} className="grid gap-3">
-              <input type="hidden" name="id" value={order.id} />
-              <select name="status" defaultValue={order.status} className={adminInput}>
+          {/* order status, payment and delete live in the fixed bottom bar (Lưu thay đổi saves the status) */}
+          <form id="order-status" action={updateOrderStatusAction}>
+            <input type="hidden" name="id" value={order.id} />
+          </form>
+          <BarTools>
+            <label className="flex items-center gap-1.5 text-[13px] font-semibold text-lien-heading">
+              Trạng thái
+              <select name="status" form="order-status" defaultValue={order.status} className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px]")} data-testid="bar-order-status">
                 {ADMIN_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {ADMIN_STATUS_LABELS[s]}
                   </option>
                 ))}
               </select>
-              <button type="submit" className={btnPrimary}>
-                Cập nhật
-              </button>
-            </form>
+            </label>
+            <span className="mx-1 h-6 w-px self-center bg-[#e5e7eb]" aria-hidden />
+            <span className="text-[12px] text-lien-muted" data-testid="payment-box">
+              <Fa name="money" />{" "}
+              <b className="text-lien-heading">
+                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
+              </b>
+            </span>
+            {!paidAt && order.status !== "cancelled" && stageIndex(order.shipStage) < stageIndex("delivered") ? (
+              <>
+                <form action={markTransferReceivedAction} data-testid="payment-choice">
+                  <input type="hidden" name="id" value={order.id} />
+                  <button type="submit" className={cn(btnPrimary, "!py-1 !text-[13px]")} title={cod ? "Khách đã chuyển khoản trước khi giao — tồn kho không trừ lần hai" : "Ghi nhận thanh toán — tồn kho trừ theo đơn, mở bước Đã gửi hàng"}>
+                    <Fa name="check" /> Đã nhận chuyển khoản
+                  </button>
+                </form>
+                {cod ? null : (
+                  <form action={setOrderCodAction}>
+                    <input type="hidden" name="id" value={order.id} />
+                    <ConfirmSubmit message={`Cho đơn #${order.number} thanh toán khi nhận hàng (COD)? Tồn kho trừ ngay; bước thanh toán chuyển về cuối tiến độ.`} confirmLabel="Đồng ý COD" className={cn(btnSecondary, "!py-1 !text-[13px]")}>
+                      <Fa name="truck" /> Cho thanh toán khi nhận (COD)
+                    </ConfirmSubmit>
+                  </form>
+                )}
+              </>
+            ) : null}
+            {cod && !paidAt && order.shipStage === "delivered" && order.status !== "cancelled" ? (
+              <form action={markCodCollectedAction}>
+                <input type="hidden" name="id" value={order.id} />
+                <button type="submit" className={cn(btnPrimary, "!py-1 !text-[13px]")} data-testid="cod-collected">
+                  <Fa name="money" /> Hoàn tất thanh toán (đã thu tiền)
+                </button>
+              </form>
+            ) : null}
             {isOwner ? (
-              <form action={deleteOrderAction} className="mt-3 border-t border-[#f0f0f0] pt-3" data-testid="delete-order-form">
+              <form action={deleteOrderAction} className="ml-auto" data-testid="delete-order-form">
                 <input type="hidden" name="id" value={order.id} />
                 <input type="hidden" name="back" value="/admin/orders/" />
                 <ConfirmSubmit
@@ -361,13 +359,19 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   message="Đơn sẽ bị xóa vĩnh viễn, không khôi phục được."
                   details={["Sản phẩm, 4 chặng vận chuyển, tin nhắn và bill đính kèm của đơn cũng bị xóa.", "Không tính vào doanh thu / lãi lỗ.", "Chỉ muốn dừng đơn mà giữ lịch sử thì dùng trạng thái “Đã hủy”."]}
                   confirmLabel="Xóa đơn"
-                  className={`${btnDanger} w-full`}
+                  className={cn(btnDanger, "!py-1 !text-[13px]")}
                 >
                   <Fa name="trash" /> Xóa đơn hàng
                 </ConfirmSubmit>
-                <p className="m-0 mt-1 text-[11px] leading-4 text-lien-muted">Chỉ chủ cửa hàng thấy nút này. Xóa vĩnh viễn, không tính vào doanh thu / lãi lỗ.</p>
               </form>
             ) : null}
+          </BarTools>
+          <Card title="Vận chuyển đơn này">
+            <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
+            <p className="mt-3 text-[12px] text-lien-muted">
+              Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
+              <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>
+            </p>
           </Card>
           <Card
             title="Khách hàng"
@@ -429,78 +433,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : null}
             </dl>
           </Card>
-          <div id="bill">
-            <Card
-              title="Bill mua hàng tại Nhật"
-              actions={files.length ? <span className="text-[13px] text-lien-muted">{files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
-            >
-              <p className="mb-4 text-[13px] leading-5 text-lien-muted">
-                Đính kèm hoá đơn/ảnh chụp đơn mua bên Nhật. Khách xem được các file này trong trang <em>Đơn hàng đã nhận</em>, mục <em>Đơn hàng</em> của tài khoản và khi tra cứu đơn.
-              </p>
-              {files.length ? (
-                <ul className="mb-5 grid list-none gap-2 p-0">
-                  {files.map((f) => (
-                    <li key={f.id} className="flex flex-wrap items-center gap-3 rounded-md border border-[#e5e7eb] px-3 py-2">
-                      <Fa name={f.mime === "application/pdf" ? "file-pdf-o" : "file-image-o"} className="text-[18px] text-lien-blue" />
-                      <div className="min-w-0 flex-1">
-                        <a href={publicReceiptUrl(f.path)} target="_blank" rel="noreferrer" className="font-semibold text-lien-heading hover:text-lien-blue">
-                          {f.fileName}
-                        </a>
-                        <div className="text-[12px] text-lien-muted">
-                          {formatBytes(f.size)} · {formatDateTime(f.createdAt)}
-                          {f.amountJpy ? ` · ¥${f.amountJpy.toLocaleString("ja-JP")}` : ""}
-                          {f.note ? ` · ${f.note}` : ""}
-                        </div>
-                      </div>
-                      <form action={deleteOrderFileAction}>
-                        <input type="hidden" name="fileId" value={f.id} />
-                        <input type="hidden" name="orderId" value={order.id} />
-                        <ConfirmSubmit message={`Xoá file “${f.fileName}”?`} className="text-[13px] text-lien-heart hover:underline">
-                          Xoá
-                        </ConfirmSubmit>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mb-5 rounded-md border border-dashed border-[#d1d5db] p-3 text-center text-[13px] text-lien-muted">Chưa có bill nào cho đơn này.</p>
-              )}
-              <form action={uploadOrderFilesAction} className="grid gap-3">
-                <input type="hidden" name="orderId" value={order.id} />
-                <div>
-                  <label className={adminLabel} htmlFor="files">
-                    File (ảnh hoặc PDF, nhiều file)
-                  </label>
-                  <input id="files" name="files" type="file" accept="image/*,application/pdf" multiple required className={adminInput} />
-                </div>
-                <div>
-                  <label className={adminLabel} htmlFor="amountJpy">
-                    Số tiền (JPY)
-                  </label>
-                  <input id="amountJpy" name="amountJpy" inputMode="numeric" placeholder="vd 2280" className={adminInput} />
-                </div>
-                <div>
-                  <label className={adminLabel} htmlFor="note">
-                    Ghi chú cho khách
-                  </label>
-                  <input id="note" name="note" placeholder="vd Amazon JP 08/09, 2 món" className={adminInput} />
-                </div>
-                <div className="flex items-end">
-                  <button type="submit" className={btnPrimary}>
-                    <Fa name="upload" /> Đính kèm
-                  </button>
-                </div>
-              </form>
-              {files.length ? (
-                <p className="mt-4 text-[12px] leading-5 text-lien-muted">
-                  Link gửi khách (không cần đăng nhập):{" "}
-                  <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
-                    {siteUrl}/checkout/order-received/{order.id}/
-                  </code>
-                </p>
-              ) : null}
-            </Card>
-          </div>
           <Card title="Ghi chú nội bộ">
             <form action={saveAdminNoteAction} className="grid gap-3">
               <input type="hidden" name="orderId" value={order.id} />

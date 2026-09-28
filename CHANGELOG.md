@@ -5,6 +5,18 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Mua theo đợt**: nút **Ẩn đợt / Hiện đợt** ở đầu mỗi đợt — ẩn thì chỉ còn dòng tiêu đề (số cái, giữ cho đơn, lưu kho, ¥, Sửa, trạng thái); trình duyệt nhớ đợt nào đang ẩn.
+- **Xoá sản phẩm** trên thanh dưới đáy, cạnh “+ Thêm sản phẩm”: tick dòng (ở một hoặc nhiều đợt) → Xoá sản phẩm (hỏi lại trước khi xoá). **Xoá đợt** chuyển vào trong nút **Sửa** của đợt (cùng “Cập nhật theo đơn hàng”) để tránh bấm nhầm.
+- **Trang đơn hàng**:
+  - Khung “Trạng thái” bỏ; trạng thái đơn (chọn rồi **Lưu thay đổi**), thanh toán (Đã nhận chuyển khoản / Cho thanh toán khi nhận (COD) / Hoàn tất thanh toán COD) và **Xoá đơn hàng** nằm trên thanh cố định dưới đáy.
+  - “Tiến độ đơn hàng” đổi tên **Trạng thái đơn hàng**; **Vận chuyển đơn này** chuyển xuống ngay dưới, bốn chặng xếp dọc.
+  - Bỏ ô “Ghi chú cho khách” khi chuyển bước: mã vận đơn và **ghi chú cho khách** ghi ở từng chặng; khách thấy ghi chú cạnh mã vận đơn của chặng đó (ghi chú tự động về phí / báo giá vẫn chỉ admin thấy).
+  - **Bill mua hàng tại Nhật gộp vào Trao đổi với khách**: nút **Đính kèm bill** trong khung chat (ảnh / PDF, nhiều file, ¥ và ghi chú tuỳ chọn), bill hiện trong luồng tin nhắn theo thời gian, có ảnh thu nhỏ và nút Xoá; gửi kèm tin nhắn “📎 Đã đính kèm bill…” cho khách.
+
+### Fixed
+- Tin nhắn của shop trong khung chat hiện tên cửa hàng theo giao diện (“Store Lienanh”) thay vì tên cố định.
+
 ## [1.89.0] - 2026-09-28
 
 ### Changed

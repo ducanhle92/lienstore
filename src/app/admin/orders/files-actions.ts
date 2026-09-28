@@ -3,13 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { addOrderFile, deleteOrderFile, getOrderById, updateOrderAdminNote } from "@/lib/db";
-import { deleteUpload, extForMime, MAX_UPLOAD_BYTES, RECEIPT_MIMES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
-
-function parseInt0(raw: string): number | null {
-  const digits = raw.replace(/[^\d]/g, "");
-  return digits ? Number.parseInt(digits, 10) : null;
-}
+import { deleteOrderFile, getOrderById, updateOrderAdminNote } from "@/lib/db";
+import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
+import { deleteUpload } from "@/lib/uploads";
 
 /** Attach one or more receipt files (image/PDF) to an order. */
 export async function uploadOrderFilesAction(formData: FormData): Promise<void> {
@@ -17,26 +13,8 @@ export async function uploadOrderFilesAction(formData: FormData): Promise<void> 
   const orderId = String(formData.get("orderId") ?? "");
   const order = await getOrderById(orderId);
   if (!order) redirect("/admin/orders/");
-  const note = String(formData.get("note") ?? "").trim().slice(0, 300);
-  const amountJpy = parseInt0(String(formData.get("amountJpy") ?? ""));
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  let saved = 0;
-  let error = "";
-  for (const file of files) {
-    if (!RECEIPT_MIMES.has(file.type)) {
-      error = `Bỏ qua ${file.name}: chỉ nhận ảnh hoặc PDF.`;
-      continue;
-    }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      error = `Bỏ qua ${file.name}: vượt 10 MB.`;
-      continue;
-    }
-    const ext = extForMime(file.type) || ".bin";
-    const name = uniqueName(slugifyFileName(file.name), ext);
-    const stored = await saveUpload(`orders/${order.id}`, name, Buffer.from(await file.arrayBuffer()));
-    await addOrderFile({ orderId: order.id, kind: "receipt", fileName: file.name, path: stored.rel, mime: file.type, size: file.size, note, amountJpy });
-    saved += 1;
-  }
+  const { saved, error } = await saveOrderReceipts(order.id, files, { note: String(formData.get("note") ?? ""), amountJpy: parseJpy(String(formData.get("amountJpy") ?? "")) });
   revalidatePath(`/admin/orders/${order.id}`);
   const q = new URLSearchParams();
   if (saved) q.set("files", String(saved));

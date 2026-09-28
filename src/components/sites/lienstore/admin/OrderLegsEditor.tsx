@@ -110,7 +110,7 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG, quot
             </option>
           ))}
         </select>
-        <input name="note" defaultValue={current?.note ?? ""} placeholder="Ghi chú" className={cn(tiny, "flex-1")} aria-label="Ghi chú" />
+        <input name="note" defaultValue={current?.note ?? ""} placeholder="Ghi chú cho khách" className={cn(tiny, "flex-1")} aria-label="Ghi chú cho khách" title="Khách thấy ghi chú này cạnh mã vận đơn của chặng (trang đơn hàng)" />
         <button type="submit" className={`${btnSecondary} !px-2 !py-1 !text-[12px]`} title="Lưu">
           <Fa name="check" />
         </button>
@@ -203,7 +203,7 @@ export function RequoteButton({ orderId, back }: { orderId: string; back: string
 /** The legs of one order, as stacked cards (order detail page). */
 export function OrderLegsEditor({ order, legs, methods, back, weightG, quote, transferQuotes = null }: Props) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
       {SHIPPING_LEGS.map((l) => (
         <div key={l.key} className="rounded-md border border-[#e5e7eb] p-3">
           <p className="m-0 mb-2 text-[13px] font-semibold text-lien-heading">

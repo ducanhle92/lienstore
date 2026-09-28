@@ -13,6 +13,16 @@ export const LEG_STATUS_LABEL: Record<LegStatus, string> = { pending: "Chưa g�
 export const LEG_STATUS_CLS: Record<LegStatus, string> = { pending: "bg-gray-200 text-gray-700", sent: "bg-sky-100 text-sky-800", arrived: "bg-green-100 text-green-800" };
 export const LEG_STATUS_RANK: Record<LegStatus, number> = { pending: 0, sent: 1, arrived: 2 };
 
+/**
+ * The part of a leg note the customer may read: notes the system writes itself (fee defaults / carrier quotes at
+ * checkout, "khách trả phí…") are internal and give "".
+ */
+export function customerLegNote(note: string | null | undefined): string {
+  const t = (note ?? "").trim();
+  if (!t || /^(Mặc định theo luồng|Báo giá)/i.test(t) || /khách trả phí/i.test(t)) return "";
+  return t;
+}
+
 export function isLegStatus(v: unknown): v is LegStatus {
   return typeof v === "string" && (LEG_STATUSES as readonly string[]).includes(v);
 }

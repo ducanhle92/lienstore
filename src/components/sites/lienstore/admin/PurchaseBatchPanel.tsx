@@ -18,6 +18,8 @@ import { BatchTree } from "./BatchTree";
 import { BulkBar } from "./BulkBar";
 import { AddRowButton } from "./AddRowButton";
 import { BarTools } from "./BulkBar";
+import { BatchBody, BatchToggle } from "./BatchCollapse";
+import { BulkOpButton } from "./BulkOpButton";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -150,6 +152,15 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
       {batches.length ? (
         <BarTools>
           <AddRowButton label="+ Thêm sản phẩm" className={btnSecondary} />
+          <BulkOpButton
+            prefix="bb-"
+            op="delete"
+            label="Xoá sản phẩm"
+            title="Xoá các dòng đã tick?"
+            message="{n} dòng đã tick bị xoá khỏi đợt (nhập nhầm): mã và lịch sử của các cái đó bị xoá hẳn; dòng “cần mua” đã tick rời đợt, đơn vẫn giữ."
+            confirmLabel="Xoá"
+            className={cn(btnSecondary, "!border-red-300 !text-lien-heart disabled:opacity-50")}
+          />
         </BarTools>
       ) : null}
 
@@ -330,22 +341,34 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                     Lưu
                   </button>
                 </form>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#f0f0f0] pt-2">
+                  <form action={syncBatchOrdersAction}>
+                    <input type="hidden" name="batchId" value={b.id} />
+                    <button type="submit" className={cn(btnSecondary, "!py-1 !text-[12px]")} title="Tự chạy sau mỗi thay đổi; bấm để chạy lại ngay: đơn huỷ trả hàng về tồn, đơn đang chờ được xếp lại (vị trí → hạn dùng → bill)">
+                      <Fa name="refresh" /> Cập nhật theo đơn hàng
+                    </button>
+                  </form>
+                  {left ? (
+                    <span className="text-[12px] text-lien-muted">Không xoá được đợt: đã có hàng rời Kho Nhật.</span>
+                  ) : (
+                    <form action={deleteBatchAction}>
+                      <input type="hidden" name="batchId" value={b.id} />
+                      <ConfirmSubmit message={`Xoá đợt ${b.code}? Hàng đã mua vẫn giữ mã và vị trí, chỉ không còn thuộc đợt.`} confirmLabel="Xoá đợt" className={cn(btnSecondary, "!border-red-300 !py-1 !text-[12px] !text-lien-heart")}>
+                        <Fa name="trash" /> Xoá đợt
+                      </ConfirmSubmit>
+                    </form>
+                  )}
+                </div>
               </div>
             </details>
             <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", st.cls)} title={`${stage.label} — trạng thái của cái chậm nhất trong đợt`}>
               {stage.short}
             </span>
-            {left ? null : (
-              <form action={deleteBatchAction}>
-                <input type="hidden" name="batchId" value={b.id} />
-                <ConfirmSubmit message={`Xoá đợt ${b.code}? Hàng đã mua vẫn giữ mã và vị trí, chỉ không còn thuộc đợt.`} className="text-[12px] text-lien-heart hover:underline">
-                  Xoá đợt
-                </ConfirmSubmit>
-              </form>
-            )}
+            <BatchToggle id={b.id} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} />
           </span>
         }
       >
+        <BatchBody id={b.id}>
         {/* every input in the table belongs to this one form; the bar at the bottom submits it */}
         <form id={saveId} action={saveBatchRowsAction}>
           <input type="hidden" name="batchId" value={b.id} />
@@ -358,6 +381,8 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
         <form id={bulkId} action={bulkBatchRowsAction}>
           <input type="hidden" name="batchId" value={b.id} />
         </form>
+        {/* what "Xoá sản phẩm" in the bottom bar submits for this trip */}
+        <button type="submit" form={bulkId} name="op" value="delete" data-op="delete" hidden aria-hidden tabIndex={-1} />
         <form id={addId} action={addProductAction}>
           <input type="hidden" name="batchId" value={b.id} />
         </form>
@@ -379,16 +404,6 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
           <ConfirmSubmit form={bulkId} name="op" value="lost" message="Đánh dấu các cái đã tick là thất lạc? Chúng ra khỏi tồn kho; đơn đang giữ sẽ tự tìm cái khác." confirmLabel="Thất lạc" className={cn(btnSecondary, "!py-1 disabled:opacity-50")}>
             Thất lạc
           </ConfirmSubmit>
-          <ConfirmSubmit form={bulkId} name="op" value="delete" message="Xoá các cái đã tick (nhập nhầm)? Mã và lịch sử của chúng bị xoá hẳn; dòng “cần mua” đã tick rời đợt." confirmLabel="Xoá" className={cn(btnSecondary, "!border-red-300 !py-1 !text-lien-heart disabled:opacity-50")}>
-            Xoá (nhập nhầm)
-          </ConfirmSubmit>
-          <span className="mx-1 text-lien-muted">|</span>
-          <form action={syncBatchOrdersAction} className="inline-flex items-center gap-2">
-            <input type="hidden" name="batchId" value={b.id} />
-            <button type="submit" className={cn(btnSecondary, "!py-1")} title="Tự chạy sau mỗi thay đổi; bấm để chạy lại ngay: đơn huỷ trả hàng về tồn, đơn đang chờ được xếp lại (vị trí → hạn dùng → bill)">
-              <Fa name="refresh" /> Cập nhật theo đơn hàng
-            </button>
-          </form>
         </BulkBar>
 
         <BatchTree batchId={b.id} sources={filterSources} statuses={filterStatuses} orders={filterOrders} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
@@ -508,6 +523,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
             ) : null}
           </table>
         </div>
+        </BatchBody>
       </Card>
     </div>
   );

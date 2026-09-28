@@ -1,6 +1,7 @@
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import { formatAmount } from "@/lib/format";
+import { customerLegNote } from "@/lib/leg-status";
 import type { Order, OrderLeg } from "@/types/shop";
 
 /** Customers only see the Vietnam leg of the shipping label — the Japan legs are included in product prices. */
@@ -14,6 +15,13 @@ const TRACK_LABEL: Record<OrderLeg["leg"], string> = {
   vn_transfer: "Mã vận đơn về kho Thanh Hóa",
   vn_domestic: "Mã vận đơn giao tới bạn",
 };
+/** Row title of a leg that has only a note (no tracking number yet). */
+const LEG_NAME: Record<OrderLeg["leg"], string> = {
+  jp_domestic: "Nội địa Nhật",
+  jp_vn: "Nhật → Việt Nam",
+  vn_transfer: "Về kho Thanh Hóa",
+  vn_domestic: "Giao tới bạn",
+};
 
 /**
  * Mercari-style "配送情報" block: how the parcel is delivered, its fee, the tracking numbers the shop has entered
@@ -21,6 +29,8 @@ const TRACK_LABEL: Record<OrderLeg["leg"], string> = {
  */
 export function OrderParcel({ order, legs }: { order: Order; legs: OrderLeg[] }) {
   const tracked = legs.filter((l) => l.tracking.trim());
+  // every leg with a tracking number or a note for the customer (typed in the leg cell of the admin order page)
+  const shown = legs.filter((l) => l.tracking.trim() || customerLegNote(l.note));
   let quote: { service?: string; carrier?: string; fromPrice?: boolean } | null = null;
   if (order.shipQuote) {
     try {
@@ -49,16 +59,19 @@ export function OrderParcel({ order, legs }: { order: Order; legs: OrderLeg[] })
         "Miễn phí"
       ),
     ],
-    ...tracked.map((l): [string, React.ReactNode] => [
-      TRACK_LABEL[l.leg],
-      <span key={l.leg} className="font-mono text-[15px] font-semibold tracking-wide text-lien-heading">
-        {l.tracking}
-        {l.label ? <span className="ml-2 font-sans text-[12px] font-normal text-lien-muted">({l.label})</span> : null}
+    ...shown.map((l): [string, React.ReactNode] => [
+      l.tracking.trim() ? TRACK_LABEL[l.leg] : LEG_NAME[l.leg],
+      <span key={l.leg}>
+        {l.tracking.trim() ? (
+          <span className="font-mono text-[15px] font-semibold tracking-wide text-lien-heading">
+            {l.tracking}
+            {l.label ? <span className="ml-2 font-sans text-[12px] font-normal text-lien-muted">({l.label})</span> : null}
+          </span>
+        ) : null}
+        {customerLegNote(l.note) ? <span className="block text-[13px] text-lien-text">{customerLegNote(l.note)}</span> : null}
       </span>,
     ]),
   ];
-  const vn = legs.find((l) => l.leg === "vn_domestic");
-  if (vn?.note && !/khách trả phí/i.test(vn.note)) rows.push(["Ghi chú", vn.note]);
 
   return (
     <section className="rounded-md border border-lien-line bg-white p-4 sm:p-5" aria-label="Thông tin kiện hàng">

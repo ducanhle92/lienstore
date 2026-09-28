@@ -41,7 +41,7 @@ import { quoteCart } from "./ship-quote";
 import { coarseRegionOf } from "./vn-address";
 import { cheapestQuote, landedFeeJpy, parseSourceFees, type SourceFee, type SourceFees } from "./cost-sources";
 import { DEFAULT_WAREHOUSE, emptyByTransit, isWarehouse, type TransitWhere, transitWhereOf, type Warehouse } from "./warehouses";
-import { isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
+import { customerLegNote, isLegStatus, LEG_ORDER_STAGE, LEG_PURCHASE, LEG_STATUS_RANK, type LegStatus, stageRank } from "./leg-status";
 import { diffProductChanges, type ProductChangeField, type ProductChangeInput } from "./price-display";
 import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy";
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, SHIP_STAGES, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
@@ -1424,7 +1424,7 @@ export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, statu
       const curStage: ShipStage = isShipStage(order.ship_stage) ? order.ship_stage : "ordered";
       if (stage && stageRank(stage) > stageRank(curStage)) {
         db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, orderId);
-        db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(orderId, stage, `Theo chặng vận chuyển${tracking ? ` · ${tracking}` : ""}`, now);
+        db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(orderId, stage, [tracking ? `Mã vận đơn ${tracking}` : "", customerLegNote(opts.note)].filter(Boolean).join(" · ") || "Theo chặng vận chuyển", now);
         if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(orderId);
         else db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(orderId);
         if (SHIP_STAGES.findIndex((x) => x.key === stage) >= SHIP_STAGES.findIndex((x) => x.key === "sent")) commitOrderSync(db, orderId);

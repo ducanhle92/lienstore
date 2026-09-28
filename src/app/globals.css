@@ -591,3 +591,7 @@
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
+/* a collapsed purchase trip (Ẩn đợt): only the card header stays, no empty padded body */
+.admin-card-body:has(> [data-batch-collapsed="1"]) {
+  display: none;
+}
