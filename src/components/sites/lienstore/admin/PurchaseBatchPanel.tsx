@@ -15,8 +15,9 @@ import { billLineKey, UNIT_ORIGIN_LABEL } from "@/lib/units";
 import type { UnitView } from "@/lib/units-db";
 import type { PurchaseBatch, PurchaseBatchBill, PurchaseBatchLine, PurchaseSource } from "@/types/shop";
 import { BatchTree } from "./BatchTree";
-import { TickGate } from "./TickGate";
-import { FixedSaveBar } from "./FixedSaveBar";
+import { BulkBar } from "./BulkBar";
+import { AddRowButton } from "./AddRowButton";
+import { BarTools } from "./BulkBar";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -146,7 +147,11 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </details>
       </div>
       {searching && batches.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đợt nào khớp tìm kiếm.</p> : null}
-      {batches.length ? <FixedSaveBar forms={batches.map((b) => `bsave-${b.id}`)} hint="Sửa dòng bill (áp cho mọi cái của nó) hoặc từng mã rồi lưu một lần; trạng thái đổi → Tồn kho, đơn hàng, đóng hàng đổi theo." addLabel="+ Thêm sản phẩm" /> : null}
+      {batches.length ? (
+        <BarTools>
+          <AddRowButton label="+ Thêm sản phẩm" className={btnSecondary} />
+        </BarTools>
+      ) : null}
 
       <div className="space-y-5">
         {batches.length === 0 && !searching ? (
@@ -360,9 +365,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
         <BillsBlock b={b} sources={sources} done={false} open={billsOpen} />
 
         {/* actions on ticked units / "cần mua" lines; disabled until something is ticked */}
-        <div className="sticky top-0 z-20 -mx-1 mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb]/95 px-3 py-2 text-[13px] shadow-sm backdrop-blur" data-testid={`toolbar-${b.id}`}>
-          <TickGate scope={bulkId} />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope={bulkId}>
           <select name="bulkStatus" form={bulkId} defaultValue="bought" className={cn(adminInput, cell, "!w-auto disabled:opacity-50")} aria-label="Trạng thái cho các dòng đã tick">
             {PURCHASE_STAGES.map((s) => (
               <option key={s.key} value={s.key}>
@@ -386,7 +389,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
               <Fa name="refresh" /> Cập nhật theo đơn hàng
             </button>
           </form>
-        </div>
+        </BulkBar>
 
         <BatchTree batchId={b.id} sources={filterSources} statuses={filterStatuses} orders={filterOrders} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
         <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>

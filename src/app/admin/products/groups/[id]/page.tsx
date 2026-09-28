@@ -6,7 +6,7 @@ import { AddToGroupPicker } from "@/components/sites/lienstore/admin/AddToGroupP
 import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { VariantTree } from "@/components/sites/lienstore/admin/VariantTree";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -98,13 +98,11 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
               <input type="hidden" name="groupId" value={group.id} />
             </form>
             {members.length ? (
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-                <TickGate scope="ungroup-variants" />
-                <span className="font-semibold text-lien-heading">Đã tick →</span>
+              <BulkBar scope="ungroup-variants">
                 <ConfirmSubmit form="ungroup-variants" message="Tách các sản phẩm đã tick khỏi nhóm? (Sản phẩm vẫn giữ nguyên, chỉ hiển thị riêng lẻ.)" confirmLabel="Tách khỏi nhóm" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] disabled:opacity-50`}>
                   Tách khỏi nhóm
                 </ConfirmSubmit>
-              </div>
+              </BulkBar>
             ) : null}
             <div className="overflow-x-auto">
               <table className={tableClass}>

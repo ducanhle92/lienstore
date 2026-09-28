@@ -6,7 +6,7 @@ import { FilePickButton } from "@/components/sites/lienstore/admin/FilePickButto
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -103,13 +103,11 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                         <form id={`label-${l.id}-bulk`} action={bulkLabelProductsAction}>
                           <input type="hidden" name="back" value={l.id} />
                         </form>
-                        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-                          <TickGate scope={`label-${l.id}-bulk`} />
-                          <span className="font-semibold text-lien-heading">Đã tick →</span>
-                          <ConfirmSubmit form={`label-${l.id}-bulk`} name="op" value="unassign" message={`Gỡ nhãn “${l.name}” khỏi các sản phẩm đã tick?`} confirmLabel="Gỡ nhãn" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+                        <BulkBar scope={`label-${l.id}-bulk`} label={l.name}>
+                          <ConfirmSubmit form={`label-${l.id}-bulk`} name="op" value="unassign" message={`Gỡ nhãn “${l.name}” khỏi các sản phẩm đã tick?`} confirmLabel="Gỡ nhãn" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px]`}>
                             <Fa name="times" /> Gỡ nhãn
                           </ConfirmSubmit>
-                        </div>
+                        </BulkBar>
                         <table className={tableClass}>
                           <thead>
                             <tr>

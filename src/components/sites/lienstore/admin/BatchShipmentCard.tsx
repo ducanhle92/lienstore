@@ -4,6 +4,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { IMPORT_LEGS, LEG_LABEL } from "@/lib/shipping";
 import type { ShipmentBatch, ShippingMethod } from "@/types/shop";
+import { BulkBar } from "./BulkBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
 
 export const BATCH_FORM_ID = "batch-form";
@@ -48,6 +49,11 @@ export function BatchShipmentCard({ methods, batches, defaultMethodIds }: { meth
           <Fa name="cubes" /> Gom các đơn đã tick
         </button>
       </form>
+      <BulkBar scope={BATCH_FORM_ID}>
+        <button type="submit" form={BATCH_FORM_ID} className={`${btnPrimary} !py-1`} data-testid="batch-bulk">
+          <Fa name="cubes" /> Gom thành lô
+        </button>
+      </BulkBar>
       {batches.length ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full border-collapse text-left text-[13px]">

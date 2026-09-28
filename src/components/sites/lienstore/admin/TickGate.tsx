@@ -16,5 +16,6 @@ export function TickGate({ scope }: { scope: string }) {
     document.addEventListener("change", apply);
     return () => document.removeEventListener("change", apply);
   }, [scope]);
-  return null;
+  // marks the form as a bulk form: the bottom bar does not count its options as unsaved edits
+  return <span hidden data-tick-scope={scope} />;
 }

@@ -4,7 +4,7 @@ import { bulkDiscountsAction, clearSaleAction, setSaleAction } from "@/app/admin
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -66,13 +66,11 @@ export default async function AdminDiscounts({ searchParams }: Props) {
 
       <Card title="Đang giảm giá">
         <form id="discounts-bulk" action={bulkDiscountsAction} />
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-          <TickGate scope="discounts-bulk" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope="discounts-bulk">
           <ConfirmSubmit form="discounts-bulk" name="op" value="clear" message="Bỏ giảm giá các sản phẩm đã tick? Giá bán trên web trở lại làm giá bán." confirmLabel="Bỏ giảm" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
             <Fa name="times" /> Bỏ giảm
           </ConfirmSubmit>
-        </div>
+        </BulkBar>
         <div className="overflow-x-auto">
           <table className={tableClass}>
             <thead>

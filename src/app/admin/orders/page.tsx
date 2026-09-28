@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deleteOrdersAction } from "@/app/admin/orders/actions";
 import { BULK_FORM_ID, BulkDeleteButton, SelectAllOrders } from "@/components/sites/lienstore/admin/OrdersBulk";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -137,10 +138,12 @@ export default async function AdminOrders({ searchParams }: Props) {
         ) : (
           <>
           {isOwner ? (
-            <form id={BULK_FORM_ID} action={deleteOrdersAction} className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-[12px] text-lien-muted" data-testid="orders-bulk-bar">
-              <span className="font-semibold text-lien-heading">Đã tick →</span>
-              <BulkDeleteButton className={bulkBtn} />
-            </form>
+            <>
+              <form id={BULK_FORM_ID} action={deleteOrdersAction} data-testid="orders-bulk-bar" />
+              <BulkBar scope={BULK_FORM_ID}>
+                <BulkDeleteButton className={bulkBtn} />
+              </BulkBar>
+            </>
           ) : null}
           <ResizableTable id="orders">
             <table className={tableClass}>

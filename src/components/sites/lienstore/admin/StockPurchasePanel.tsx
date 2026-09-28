@@ -8,7 +8,7 @@ import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { TableSelectAll } from "./TableSelectAll";
-import { TickGate } from "./TickGate";
+import { BulkBar } from "./BulkBar";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
@@ -32,9 +32,7 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
       <div className="min-w-0">
         <Card title={`Hàng lưu kho — chưa có khách (${units} cái · ${groups.length} dòng bill)`} actions={<Link href="/admin/inventory/?side=jp" className="text-[13px] text-lien-blue hover:underline">Tồn kho →</Link>}>
           <form id={formId} action={bulkStockUnitsAction} />
-          <TickGate scope={formId} />
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]" data-select-scope={formId}>
-            <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <BulkBar scope={formId}>
             <select name="status" form={formId} defaultValue="bought" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Trạng thái">
               {STOCK_STAGES.map((s) => (
                 <option key={s.key} value={s.key}>
@@ -61,7 +59,7 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
                 </button>
               </>
             ) : null}
-          </div>
+          </BulkBar>
           {groups.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có hàng lưu kho.</p> : null}
           {groups.length ? (
             <div className="overflow-x-auto" data-select-scope={formId}>

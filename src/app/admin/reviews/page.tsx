@@ -2,7 +2,7 @@ import Link from "next/link";
 import { bulkReviewsAction, deleteReviewAction, reviewStatusAction } from "@/app/admin/reviews/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { StarRating } from "@/components/sites/lienstore/shop/StarRating";
@@ -81,14 +81,12 @@ function Row({ r, bulk }: { r: ProductReview; bulk: string }) {
 }
 
 /** Bulk bar above one table: its own empty form (rows point at it with form=…), buttons act on the ticked rows. */
-function BulkBar({ id }: { id: string }) {
+function ReviewsBulk({ id, label }: { id: string; label: string }) {
   const btn = "!px-2.5 !py-1 !text-[12px] disabled:opacity-50";
   return (
     <>
       <form id={id} action={bulkReviewsAction} />
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-        <TickGate scope={id} />
-        <span className="font-semibold text-lien-heading">Đã tick →</span>
+      <BulkBar scope={id} label={label}>
         <button type="submit" form={id} name="op" value="approved" className={`${btnPrimary} ${btn}`}>
           <Fa name="check" /> Duyệt
         </button>
@@ -98,7 +96,7 @@ function BulkBar({ id }: { id: string }) {
         <ConfirmSubmit form={id} name="op" value="delete" message="Xoá vĩnh viễn các đánh giá đã tick?" confirmLabel="Xoá" className={`${btnDanger} ${btn}`}>
           <Fa name="trash" /> Xoá
         </ConfirmSubmit>
-      </div>
+      </BulkBar>
     </>
   );
 }
@@ -119,7 +117,7 @@ export default async function AdminReviews({ searchParams }: Props) {
       <Card title={`Chờ duyệt (${pending.length})`} className="mb-6">
         {pending.length ? (
           <>
-          <BulkBar id="reviews-pending-bulk" />
+          <ReviewsBulk id="reviews-pending-bulk" label="chờ duyệt" />
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
@@ -144,7 +142,7 @@ export default async function AdminReviews({ searchParams }: Props) {
       <Card title={`Đã xử lý (${rest.length})`}>
         {rest.length ? (
           <>
-          <BulkBar id="reviews-handled-bulk" />
+          <ReviewsBulk id="reviews-handled-bulk" label="đã xử lý" />
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

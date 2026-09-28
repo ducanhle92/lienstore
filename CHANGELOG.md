@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Thanh cố định dưới đáy cho mọi màn quản trị** (giống trang sản phẩm): màn nào có ô sửa đều có “Lưu thay đổi (n ô)” + “Huỷ”; tự nhận mọi form trên màn, sửa nhiều dòng / nhiều khối rồi bấm Lưu một lần là lưu hết, Huỷ trả mọi ô về giá trị đang lưu. Thanh ẩn ở màn chỉ xem (tổng quan, danh sách đơn khi chưa tick…).
+- **Thao tác cho dòng đã tick nằm trên thanh đó** và chỉ hiện khi có dòng được tick: “Đã tick n → …” + “Bỏ tick”, cho mọi bảng có ô chọn (Đơn hàng, Tồn kho, hàng của sản phẩm, Quản lý mua hàng, Vận chuyển — gom lô / đổi trạng thái chặng, Bài viết, Fanpage, Đánh giá, Sản phẩm, Nhóm biến thể, Giảm giá, Flash Sales, Nhãn, Tìm kiếm, Công thức giá, Nguồn mua).
+- **Đóng hàng**: chuyến đang đóng đưa “+ Thêm vào chuyến”, số dòng · số cái và bộ lọc Theo đơn / Theo đợt mua / Tìm lên thanh dưới đáy; tick hàng trong chuyến → “✕ Rút khỏi chuyến” hiện trên thanh. Trên điện thoại bộ lọc ở lại trong khung chuyến để thanh gọn.
+- Thông báo nổi (toast) hiện phía trên thanh, không che nút.
+
 ## [1.88.0] - 2026-09-28
 
 ### Changed

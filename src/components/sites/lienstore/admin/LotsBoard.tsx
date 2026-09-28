@@ -9,6 +9,7 @@ import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
+import { BulkBar } from "./BulkBar";
 import { LotPicker } from "./LotPicker";
 import { TableSelectAll } from "./TableSelectAll";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -147,8 +148,8 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
         </form>
         <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid={`${side}-bulk-bar`}>
           <LotPicker formId={formId} scope={`shop-${side}`} />
-          <span className="mx-1 text-lien-muted">|</span>
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        </div>
+        <BulkBar scope={formId}>
           <select name="status" form={formId} defaultValue={side === "jp" ? "to_carrier_jp" : "shipped_to_customer"} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
             {(side === "jp" ? MOVE_STAGES : PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchaseIndex("bought"))).map((s) => (
               <option key={s.key} value={s.key}>
@@ -183,7 +184,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
               )}
             </>
           ) : null}
-        </div>
+        </BulkBar>
         <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />
         {boxed.length ? (
           <div className="mt-3 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-3 py-2" data-testid="boxed-lots">

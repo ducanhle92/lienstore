@@ -5,7 +5,7 @@ import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { filterProducts, PRICE_BUCKETS } from "@/lib/product-filter";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -153,10 +153,9 @@ export default async function AdminProducts({ searchParams }: Props) {
         </form>
 
         {/* bulk: tick rows (checkboxes carry form="bulk-group") → one family */}
-        <form id="bulk-group" action={groupProductsAction} className="mb-2 flex flex-wrap items-center gap-2 text-[13px]" data-testid="bulk-group">
-          <TickGate scope="bulk-group" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
-          <select name="groupId" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Nhóm">
+        <form id="bulk-group" action={groupProductsAction} data-testid="bulk-group" />
+        <BulkBar scope="bulk-group">
+          <select name="groupId" form="bulk-group" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Nhóm">
             <option value="">Tạo nhóm mới</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>
@@ -164,12 +163,12 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <input name="groupName" placeholder="Tên chung (nhóm mới)" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Tên nhóm" />
-          <input name="attrLabels" placeholder="Thuộc tính: Vị, Khối lượng" className={`${adminInput} !mb-0 !w-[200px] !py-1.5 !text-[13px]`} aria-label="Thuộc tính" />
+          <input name="groupName" form="bulk-group" placeholder="Tên chung (nhóm mới)" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Tên nhóm" />
+          <input name="attrLabels" form="bulk-group" placeholder="Thuộc tính: Vị, Khối lượng" className={`${adminInput} !mb-0 !w-[200px] !py-1.5 !text-[13px]`} aria-label="Thuộc tính" />
           <button type="submit" form="bulk-group" className={`${btnSecondary} !py-1.5 !text-[13px] disabled:opacity-50`}>
             <Fa name="th-large" /> Gộp thành nhóm biến thể
           </button>
-        </form>
+        </BulkBar>
         <ResizableTable id="products">
           <table className={tableClass}>
             <thead>

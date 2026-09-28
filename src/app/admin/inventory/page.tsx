@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { bulkMinStockAction, importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
@@ -223,14 +223,12 @@ export default async function AdminInventory({ searchParams }: Props) {
         <form id="inv-bulk" action={bulkMinStockAction}>
           <input type="hidden" name="back" value={back} />
         </form>
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
-          <TickGate scope="inv-bulk" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope="inv-bulk">
           <input name="minStock" form="inv-bulk" inputMode="numeric" placeholder="mức tối thiểu" className={cn(adminInput, "!mb-0 !w-[120px] !py-1 !text-[13px]")} aria-label="Mức tồn tối thiểu" />
           <button type="submit" form="inv-bulk" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="inv-bulk-min">
             Đặt mức tối thiểu
           </button>
-        </div>
+        </BulkBar>
 
         <ResizableTable id="inventory">
           <table className={tableClass}>

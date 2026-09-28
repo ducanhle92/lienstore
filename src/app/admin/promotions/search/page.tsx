@@ -1,7 +1,7 @@
 import { bulkSearchTermsAction, hideSearchTermAction, saveSearchSuggestAction } from "@/app/admin/promotions/actions";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -64,16 +64,14 @@ export default async function SearchSuggestAdmin({ searchParams }: Props) {
         ) : (
           <>
             <form id="terms-bulk" action={bulkSearchTermsAction} />
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-              <TickGate scope="terms-bulk" />
-              <span className="font-semibold text-lien-heading">Đã tick →</span>
+            <BulkBar scope="terms-bulk">
               <button type="submit" form="terms-bulk" name="op" value="hide" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
                 <Fa name="eye-slash" /> Ẩn
               </button>
               <button type="submit" form="terms-bulk" name="op" value="show" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
                 <Fa name="eye" /> Hiện
               </button>
-            </div>
+            </BulkBar>
             <table className={tableClass} data-testid="top-terms">
               <thead>
                 <tr>

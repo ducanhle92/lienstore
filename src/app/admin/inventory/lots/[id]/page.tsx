@@ -2,9 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addUnitsAction, removeUnitsAction, saveProductUnitsAction, uploadUnitsBillFilesAction } from "@/app/admin/inventory/lots/actions";
-import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { listAllocationViews } from "@/lib/allocations-db";
@@ -88,9 +87,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               <input type="hidden" name="productId" value={pid} />
             </form>
             {groups.length ? (
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-                <TickGate scope={removeId} />
-                <span className="font-semibold text-lien-heading">Đã tick →</span>
+              <BulkBar scope={removeId}>
                 <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Lý do">
                   {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
                     <option key={k} value={k}>
@@ -101,7 +98,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 disabled:opacity-50")}>
                   Loại khỏi tồn kho
                 </button>
-              </div>
+              </BulkBar>
             ) : null}
             <div className="overflow-x-auto">
               <table className={tableClass}>
@@ -240,7 +237,6 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 </tbody>
               </table>
             </div>
-            {groups.length ? <FixedSaveBar forms={[saveId]} hint="Sửa dòng bill (áp cho mọi cái) hoặc trạng thái từng mã rồi lưu một lần." /> : null}
           </Card>
 
           {lines.length ? (

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -57,6 +58,8 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
   const saved = first(sp.saved);
   const error = first(sp.error);
+  // the run whose picker sits in the bottom bar: the one being filtered, else the first run still packing
+  const barId = (shipments.find((x) => x.id === pickFor && shipmentEditable(x.status)) ?? shipments.find((x) => shipmentEditable(x.status)))?.id ?? null;
   // ④: units with the carrier that are not in any run (moved by hand) — still on the way, so listed here
   const looseTransit = transit ? listStockGroups(db, { statuses: ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"] }).filter((g) => !g.shipmentId) : [];
   return (
@@ -139,7 +142,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {shipments.map((s) => (
-          <ShipmentCard key={s.id} s={s} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
         {looseTransit.length ? (
           <Card title={`Hàng đang vận chuyển ngoài chuyến (${looseTransit.reduce((n, g) => n + g.qty, 0)} cái · ${looseTransit.length} dòng bill)`}>
@@ -258,7 +261,7 @@ function ShipmentTimeline({ s }: { s: Shipment }) {
   );
 }
 
-function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources }) {
+function ShipmentCard({ s, sources, pick, pickSources, inBar }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; inBar: boolean }) {
   const stage = shipmentStage(s.status);
   const editable = shipmentEditable(s.status);
   const pkId = `pk-${s.id}`;
@@ -288,13 +291,11 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
             <form id={outId} action={unpackUnitsAction}>
               <input type="hidden" name="shipmentId" value={s.id} />
             </form>
-            <TickGate scope={outId} />
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-              <span className="font-semibold text-lien-heading">Đã tick →</span>
-              <button type="submit" form={outId} className={cn(btnSecondary, "!py-1 !text-lien-heart disabled:opacity-50")} data-testid={`unpack-${s.id}`}>
+            <BulkBar scope={outId} label={s.code}>
+              <button type="submit" form={outId} className={cn(btnSecondary, "!py-1 !text-lien-heart")} data-testid={`unpack-${s.id}`}>
                 ✕ Rút khỏi chuyến
               </button>
-            </div>
+            </BulkBar>
           </>
         ) : null}
         <div className="overflow-x-auto">
@@ -396,62 +397,26 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
             <form id={pkId} action={packCandidatesAction}>
               <input type="hidden" name="shipmentId" value={s.id} />
             </form>
-            {/* the controls stay on screen while the candidate lists scroll */}
-            <div className="sticky top-0 z-20 flex flex-wrap items-end gap-2 rounded-t-md border-b border-[#e5e7eb] bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
-              <span className="self-center text-[13px] font-semibold text-lien-heading">
-                <Fa name="cube" /> Thêm hàng vào chuyến
-              </span>
-              <form method="get" className="flex items-end gap-1" data-testid={`pick-order-${s.id}`}>
-                <input type="hidden" name="pick" value={s.id} />
-                <input type="hidden" name="by" value="order" />
-                <select name="order" defaultValue={pick.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !w-[220px] !py-1 !text-[13px]")} aria-label="Theo đơn">
-                  <option value="">Theo đơn ({pickSources.orders.length})</option>
-                  {pickSources.orders.map((o) => (
-                    <option key={o.orderId} value={o.orderId}>
-                      #{o.orderNumber} · {o.customer} · {o.units} cái
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" className={cn(btnSecondary, "!py-1")}>
-                  Xem
-                </button>
-              </form>
-              <form method="get" className="flex items-end gap-1" data-testid={`pick-batch-${s.id}`}>
-                <input type="hidden" name="pick" value={s.id} />
-                <input type="hidden" name="by" value="batch" />
-                <select name="batch" defaultValue={pick.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !w-[190px] !py-1 !text-[13px]")} aria-label="Theo đợt mua">
-                  <option value="">Theo đợt mua ({pickSources.batches.length})</option>
-                  {pickSources.batches.map((b) => (
-                    <option key={b.batchId} value={b.batchId}>
-                      {b.code} · {b.units} cái
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" className={cn(btnSecondary, "!py-1")}>
-                  Xem
-                </button>
-              </form>
-              <form method="get" className="flex items-end gap-1" data-testid={`pick-q-${s.id}`}>
-                <input type="hidden" name="pick" value={s.id} />
-                <input type="hidden" name="by" value="q" />
-                <input name="q" defaultValue={pick.by === "q" ? pick.q : ""} placeholder="tên, SKU, mã H…, #đơn, khách…" className={cn(adminInput, "!mb-0 !w-[210px] !py-1 !text-[13px]")} aria-label="Tìm" />
-                <button type="submit" className={cn(btnSecondary, "!py-1")}>
-                  Tìm
-                </button>
-              </form>
-              {pick.by ? (
-                <Link href={`/admin/inventory/shipments/#shipment-${s.id}`} className="self-center text-[12px] text-lien-blue hover:underline">
-                  bỏ lọc
-                </Link>
-              ) : null}
-              <span className="ml-auto self-center text-[12px] text-lien-muted">
-                {pick.rows.length} dòng · {pick.rows.reduce((k, c) => k + c.qty, 0)} cái
-              </span>
-              <TickGate scope={pkId} />
-              <button type="submit" form={pkId} className={cn(btnPrimary, "!py-1 !text-[13px] disabled:opacity-50")} data-testid={`pack-${s.id}`}>
-                + Thêm vào chuyến
-              </button>
-            </div>
+            <TickGate scope={pkId} />
+            {inBar ? (
+              <>
+                <BarTools>
+                  <PackControls s={s} pick={pick} pkId={pkId} bar />
+                  <span className="hidden md:contents">
+                    <PickFilters s={s} pick={pick} pickSources={pickSources} testIds />
+                  </span>
+                </BarTools>
+                {/* phones: the filters stay here so the bar stays one or two lines */}
+                <div className="flex flex-wrap items-end gap-2 border-b border-[#e5e7eb] px-3 py-2 md:hidden">
+                  <PickFilters s={s} pick={pick} pickSources={pickSources} />
+                </div>
+              </>
+            ) : (
+              <div className="sticky top-0 z-20 flex flex-wrap items-end gap-2 rounded-t-md border-b border-[#e5e7eb] bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
+                <PackControls s={s} pick={pick} pkId={pkId} />
+                <PickFilters s={s} pick={pick} pickSources={pickSources} testIds />
+              </div>
+            )}
             <div className="px-3 pb-3">
               {(() => {
                 // ① what customers are waiting for (ticked by default) · ② stock with no order behind it
@@ -520,6 +485,75 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
         </details>
       </Card>
     </div>
+  );
+}
+
+/** "+ Thêm vào chuyến" of one run with what the picker currently lists (in the bottom bar for the run being packed). */
+function PackControls({ s, pick, pkId, bar = false }: { s: Shipment; pick: Pick; pkId: string; bar?: boolean }) {
+  return (
+    <>
+      <span className="self-center text-[13px] font-semibold text-lien-heading">
+        <Fa name="cube" /> {bar ? s.code : "Thêm hàng vào chuyến"}
+      </span>
+      <button type="submit" form={pkId} className={cn(btnPrimary, "!py-1 !text-[13px] disabled:opacity-50")} data-testid={`pack-${s.id}`}>
+        + Thêm vào chuyến
+      </button>
+      <span className="self-center text-[12px] text-lien-muted">
+        {pick.rows.length} dòng · {pick.rows.reduce((k, c) => k + c.qty, 0)} cái
+      </span>
+    </>
+  );
+}
+
+/** What the picker lists: goods of one order, of one purchase trip, or a search (GET — the page re-renders). */
+function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; pick: Pick; pickSources: PickSources; testIds?: boolean }) {
+  const tid = (k: string) => (testIds ? `pick-${k}-${s.id}` : undefined);
+  return (
+    <>
+      <form method="get" className="flex items-end gap-1" data-testid={tid("order")}>
+        <input type="hidden" name="pick" value={s.id} />
+        <input type="hidden" name="by" value="order" />
+        <select name="order" defaultValue={pick.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !w-[190px] !py-1 !text-[13px]")} aria-label="Theo đơn">
+          <option value="">Theo đơn ({pickSources.orders.length})</option>
+          {pickSources.orders.map((o) => (
+            <option key={o.orderId} value={o.orderId}>
+              #{o.orderNumber} · {o.customer} · {o.units} cái
+            </option>
+          ))}
+        </select>
+        <button type="submit" className={cn(btnSecondary, "!py-1")}>
+          Xem
+        </button>
+      </form>
+      <form method="get" className="flex items-end gap-1" data-testid={tid("batch")}>
+        <input type="hidden" name="pick" value={s.id} />
+        <input type="hidden" name="by" value="batch" />
+        <select name="batch" defaultValue={pick.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[13px]")} aria-label="Theo đợt mua">
+          <option value="">Theo đợt mua ({pickSources.batches.length})</option>
+          {pickSources.batches.map((b) => (
+            <option key={b.batchId} value={b.batchId}>
+              {b.code} · {b.units} cái
+            </option>
+          ))}
+        </select>
+        <button type="submit" className={cn(btnSecondary, "!py-1")}>
+          Xem
+        </button>
+      </form>
+      <form method="get" className="flex items-end gap-1" data-testid={tid("q")}>
+        <input type="hidden" name="pick" value={s.id} />
+        <input type="hidden" name="by" value="q" />
+        <input name="q" defaultValue={pick.by === "q" ? pick.q : ""} placeholder="tên, SKU, mã H…, #đơn…" className={cn(adminInput, "!mb-0 !w-[180px] !py-1 !text-[13px]")} aria-label="Tìm" />
+        <button type="submit" className={cn(btnSecondary, "!py-1")}>
+          Tìm
+        </button>
+      </form>
+      {pick.by ? (
+        <Link href={`/admin/inventory/shipments/#shipment-${s.id}`} className="self-center text-[12px] text-lien-blue hover:underline">
+          bỏ lọc
+        </Link>
+      ) : null}
+    </>
   );
 }
 

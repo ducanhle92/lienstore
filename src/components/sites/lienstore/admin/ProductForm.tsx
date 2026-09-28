@@ -178,7 +178,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
           Đang <strong>nhân bản</strong> từ “{product.name}” (#{product.id}): mọi thông tin đã được chép sẵn, chỉ cần sửa tên, vị / khối lượng, giá và <strong>thêm ảnh mới</strong>. Sản phẩm mới tạo ở trạng thái Bản nháp cho tới khi bạn đổi.
         </Flash>
       ) : null}
-      <form action={action} className="grid gap-6 lg:grid-cols-3">
+      <form action={action} className="grid gap-6 lg:grid-cols-3" data-savebar="off">
         {isEdit ? <input type="hidden" name="id" value={product.id} /> : null}
 
         <div className="space-y-6 lg:col-span-2">

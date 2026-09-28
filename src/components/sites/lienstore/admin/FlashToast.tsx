@@ -17,7 +17,7 @@ function stack(): HTMLElement {
   if (!el) {
     el = document.createElement("div");
     el.id = STACK_ID;
-    el.className = "pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(440px,calc(100vw-32px))] flex-col gap-2";
+    el.className = "pointer-events-none fixed bottom-[calc(var(--admin-bar-h,0px)+16px)] right-4 z-[70] flex w-[min(440px,calc(100vw-32px))] flex-col gap-2";
     document.body.appendChild(el);
   }
   return el;

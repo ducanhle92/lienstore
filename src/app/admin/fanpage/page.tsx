@@ -5,7 +5,7 @@ import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit"
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -149,9 +149,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
 
           <Card title={`Hàng chờ & lịch sử (${posts.length})`}>
             <form id="fanpage-bulk" action={bulkFanpageAction} />
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-              <TickGate scope="fanpage-bulk" />
-              <span className="font-semibold text-lien-heading">Đã tick →</span>
+            <BulkBar scope="fanpage-bulk">
               {connected ? (
                 <button type="submit" form="fanpage-bulk" name="op" value="post" className={`${btnSecondary} !px-2 !py-1 !text-[12px] disabled:opacity-50`}>
                   <Fa name="facebook" /> Đăng ngay
@@ -160,7 +158,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
               <ConfirmSubmit form="fanpage-bulk" name="op" value="cancel" message="Huỷ lịch các bài chờ đăng và xoá các bài nháp / lỗi đã tick? (Bài đã đăng được bỏ qua.)" confirmLabel="Huỷ lịch / Xoá" className={`${btnSecondary} !px-2 !py-1 !text-[12px] text-lien-heart disabled:opacity-50`}>
                 Huỷ lịch / Xoá
               </ConfirmSubmit>
-            </div>
+            </BulkBar>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>

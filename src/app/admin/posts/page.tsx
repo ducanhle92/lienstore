@@ -4,7 +4,7 @@ import { bulkPostsAction, deletePostAction, setPostStatusAction } from "@/app/ad
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -60,9 +60,7 @@ export default async function AdminPosts({ searchParams }: Props) {
           </button>
         </form>
         <form id="posts-bulk" action={bulkPostsAction} />
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-          <TickGate scope="posts-bulk" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope="posts-bulk">
           <button type="submit" form="posts-bulk" name="op" value="publish" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] disabled:opacity-50`}>
             Đăng
           </button>
@@ -72,7 +70,7 @@ export default async function AdminPosts({ searchParams }: Props) {
           <ConfirmSubmit form="posts-bulk" name="op" value="delete" message="Xoá vĩnh viễn các bài đã tick?" confirmLabel="Xoá" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] text-lien-heart disabled:opacity-50`}>
             Xoá
           </ConfirmSubmit>
-        </div>
+        </BulkBar>
         <ResizableTable id="posts">
           <table className={tableClass}>
             <thead>

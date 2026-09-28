@@ -3,7 +3,7 @@ import Link from "next/link";
 import { addLinesToBatchAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
 import { TableSelectAll } from "./TableSelectAll";
-import { TickGate } from "./TickGate";
+import { BulkBar } from "./BulkBar";
 import type { AllocationView } from "@/lib/allocations-db";
 import type { PurchaseLine } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -108,9 +108,7 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
         <form id="bulk-need" action={createReceiptFromLinesAction}>
           <input type="hidden" name="back" value={back} />
         </form>
-        <div className="sticky top-0 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb]/95 px-3 py-2 text-[13px] shadow-sm backdrop-blur">
-          <TickGate scope="bulk-need" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope="bulk-need">
           <select name="receiptSource" form="bulk-need" defaultValue="amazon" className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Nguồn của phiếu">
             {sources.map((s) => (
               <option key={s.key} value={s.key}>
@@ -139,7 +137,7 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
               </button>
             </>
           ) : null}
-        </div>
+        </BulkBar>
 
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
         <div className="space-y-3">

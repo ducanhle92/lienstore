@@ -16,7 +16,7 @@ import { buildQuoteConfig } from "@/lib/shipping";
 import { ApiKeysVault } from "@/components/sites/lienstore/admin/ApiKeysVault";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { describeMethodFormula, isJpSubLeg, isShippingLeg, JP_SUB_LEG_LABEL, JP_SUB_LEGS, type JpSubLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
@@ -768,9 +768,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
         <input type="hidden" name="leg" value={leg} />
         <input type="hidden" name="back" value={back} />
       </form>
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
-        <TickGate scope={bulkId} />
-        <span className="font-semibold text-lien-heading">Đã tick →</span>
+      <BulkBar scope={bulkId}>
         <select name="status" form={bulkId} defaultValue="sent" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Trạng thái chặng">
           {LEG_STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -782,7 +780,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
         <button type="submit" form={bulkId} className={cn(btnPrimary, "!py-1 disabled:opacity-50")} data-testid={`leg-bulk-${leg}`}>
           Cập nhật
         </button>
-      </div>
+      </BulkBar>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-[13px]">
           <thead>

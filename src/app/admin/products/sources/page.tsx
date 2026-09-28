@@ -2,7 +2,7 @@ import Link from "next/link";
 import { bulkPurchaseSourcesAction, deletePurchaseSourceAction, savePurchaseSourceEntryAction } from "@/app/admin/products/sources/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -80,13 +80,11 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title={`Các nguồn (${sources.length})`}>
           <form id="sources-bulk" action={bulkPurchaseSourcesAction} />
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-            <TickGate scope="sources-bulk" />
-            <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <BulkBar scope="sources-bulk">
             <ConfirmSubmit form="sources-bulk" name="op" value="delete" message="Xoá các nguồn đã tick? Báo giá đang dùng các nguồn này chuyển sang “Chưa xác định”." confirmLabel="Xoá nguồn" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
               <Fa name="trash" /> Xoá nguồn đã tick
             </ConfirmSubmit>
-          </div>
+          </BulkBar>
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

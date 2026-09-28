@@ -5,7 +5,7 @@ import { bulkCategoryMarginsAction, deleteCategoryMarginAction, saveCategoryMarg
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { TableSelectAll } from "./TableSelectAll";
-import { TickGate } from "./TickGate";
+import { BulkBar } from "./BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary } from "./ui";
 
 interface Cat {
@@ -81,13 +81,11 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
       {rows.length || true ? (
         <div>
           <form id="cm-bulk" action={bulkCategoryMarginsAction} />
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-            <TickGate scope="cm-bulk" />
-            <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <BulkBar scope="cm-bulk">
             <ConfirmSubmit form="cm-bulk" name="op" value="delete" message="Bỏ tỉ lệ lãi riêng của các danh mục đã tick? Các danh mục đó dùng lại tỉ lệ của danh mục cha / mặc định của shop." confirmLabel="Bỏ" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
               <Fa name="close" /> Bỏ
             </ConfirmSubmit>
-          </div>
+          </BulkBar>
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">

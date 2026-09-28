@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reallocateAllAction, reallocateOneAction, reallocateSelectedAction } from "@/app/admin/inventory/orders-actions";
 import { TableSelectAll } from "./TableSelectAll";
-import { TickGate } from "./TickGate";
+import { BulkBar } from "./BulkBar";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
@@ -105,13 +105,11 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
           </ConfirmSubmit>
         </form>
         <form id="orders-sync" action={reallocateSelectedAction} />
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
-          <TickGate scope="orders-sync" />
-          <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <BulkBar scope="orders-sync">
           <button type="submit" form="orders-sync" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="reallocate-selected">
             Ghép lại các đơn đã tick
           </button>
-        </div>
+        </BulkBar>
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
         {shown.length ? (
           <div className="overflow-x-auto">

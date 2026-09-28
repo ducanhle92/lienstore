@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
+import { AdminBar } from "@/components/sites/lienstore/admin/AdminBar";
 import { AdminNav } from "@/components/sites/lienstore/admin/AdminNav";
 import { Flash } from "@/components/sites/lienstore/admin/ui";
 import { getAdminSession, usingDefaultCredentials } from "@/lib/auth";
@@ -38,6 +39,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </Flash>
           ) : null}
           {children}
+          <Suspense fallback={null}>
+            <AdminBar />
+          </Suspense>
         </div>
       </main>
     </div>
