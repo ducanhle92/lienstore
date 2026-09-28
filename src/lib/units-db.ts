@@ -416,14 +416,16 @@ export function syncOrderFromUnitsSync(db: DatabaseSync, orderId: string): void 
 }
 
 /**
- * products.stock = free units in hand (bought → at the shop). Only products that have had goods in hand are tracked —
- * units still planned / ordered online do not turn a "hàng order" product into an out-of-stock one.
+ * products.stock = free units in hand (bought → at the shop); products.stock_vn = the free ones already at Kho Việt Nam
+ * (shop) — what the storefront shows as "Có sẵn". Only products that have had goods in hand are tracked — units still
+ * planned / ordered online do not turn a "hàng order" product into an out-of-stock one.
  */
 export function syncProductStockSync(db: DatabaseSync, productId: number): void {
   const any = db.prepare("SELECT 1 FROM stock_units WHERE product_id = ? AND (status NOT IN ('not_bought','ordered') OR removed IS NOT NULL) LIMIT 1").get(productId);
   if (!any) return;
   const n = Number((db.prepare("SELECT COUNT(*) AS n FROM stock_units WHERE product_id = ? AND order_item_id IS NULL AND removed IS NULL AND status IN ('bought','to_carrier_jp','shipped_jp_vn','at_carrier_vn','to_shop','at_shop')").get(productId) as { n: number }).n);
-  db.prepare("UPDATE products SET stock = ?, updated_at = ? WHERE id = ? AND (stock IS NULL OR stock <> ?)").run(n, now(), productId, n);
+  const vn = Number((db.prepare("SELECT COUNT(*) AS n FROM stock_units WHERE product_id = ? AND order_item_id IS NULL AND removed IS NULL AND status = 'at_shop'").get(productId) as { n: number }).n);
+  db.prepare("UPDATE products SET stock = ?, stock_vn = ?, updated_at = ? WHERE id = ? AND (stock IS NULL OR stock <> ? OR stock_vn IS NULL OR stock_vn <> ?)").run(n, vn, now(), productId, n, vn);
 }
 
 /** A purchase batch shows its slowest unit (capped at the shop); a batch without units keeps its status. */

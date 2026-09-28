@@ -58,7 +58,7 @@ describe("stockStateOf", () => {
   const base: CatalogProduct = {
     id: 1, slug: "x", name: "X", price: 1000, regularPrice: null, marketPrice: null, costPrice: null, costJpy: null, costSource: "", costUrl: "",
     costCheckedAt: null, marginPct: null, supplierUrl: null, minStock: null, weightG: null, dimsConfidence: null, dimsSource: "",
-    nameJa: "", shortDescriptionJa: "", descriptionJa: "", dimsCm: null, currency: "VNĐ", sku: null, stock: null, stockStatus: "instock",
+    nameJa: "", shortDescriptionJa: "", descriptionJa: "", dimsCm: null, currency: "VNĐ", sku: null, stock: null, stockVn: null, stockStatus: "instock",
     fulfillment: "order", categories: [], tags: [], hot: false, labelId: null, label: null, images: [], thumb: "", shortDescription: "", description: "", related: [], rating: null,
     reviewCount: 0, status: "publish", createdAt: "", updatedAt: "", groupId: null, variantAttrs: {}, variantPosition: 0,
   };

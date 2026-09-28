@@ -74,6 +74,22 @@ async function main() {
   await setOrderCod(payer.orderId);
   assert.deepEqual(held(payer.itemId), [u3], "once COD it takes the packed unit");
   assert.equal(needs(first.itemId), 1, "the unpaid order goes back to Cần mua");
+
+  // --- D. storefront "Có sẵn" counts only free units at Kho VN (shop)
+  const pid4 = freshProduct([pid, pid2, pid3]);
+  make(pid4, 2);
+  const row = () => db.prepare("SELECT stock, stock_vn FROM products WHERE id = ?").get(pid4) as { stock: number; stock_vn: number };
+  assert.deepEqual({ ...row() }, { stock: 2, stock_vn: 0 }, "units at Kho Nhật: in stock for the admin, Hàng order for customers");
+  const vnIds = withTransaction(db, () => {
+    const ids = createUnitsSync(db, { productId: pid4, qty: 3, status: "at_shop", boughtAt: "2026-09-27" });
+    touchSync(db, { unitIds: ids });
+    return ids;
+  });
+  assert.equal(row().stock_vn, 3, "three free at Kho VN");
+  const buyer = fakeOrder(pid4, 1);
+  assert.equal(row().stock_vn, 2, "a reservation takes one off (Kho VN serves first)");
+  void vnIds;
+  void buyer;
   console.log("SMOKE13 OK");
 }
 main().catch((e) => {

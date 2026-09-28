@@ -42,6 +42,7 @@ function toQuickView(p: CatalogProduct): QuickViewProduct {
     image: p.images[0] || p.thumb,
     thumb: p.thumb || p.images[0] || "",
     stock: p.stock,
+    stockVn: p.stockVn,
     stockStatus: p.stockStatus,
     excerpt: excerptOf(p),
     categories: p.categories,

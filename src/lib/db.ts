@@ -95,6 +95,7 @@ interface ProductRow {
   currency: string;
   sku: string | null;
   stock: number | null;
+  stock_vn: number | null;
   /** DB spelling: 'outofstock' (column CHECK) is read as "discontinued" — the model is no longer sold in Japan. */
   stock_status: "instock" | "discontinued" | "outofstock";
   fulfillment: string | null;
@@ -165,6 +166,7 @@ function rowToProduct(r: ProductRow): CatalogProduct {
     currency: r.currency,
     sku: r.sku,
     stock: r.stock,
+    stockVn: r.stock === null ? null : (r.stock_vn ?? 0),
     stockStatus: r.stock_status === "discontinued" || r.stock_status === "outofstock" ? "discontinued" : "instock",
     fulfillment: r.fulfillment === "stock" ? "stock" : "order",
     categories: parseArr(r.categories),
@@ -530,7 +532,7 @@ export async function getRelatedProducts(product: CatalogProduct, limit = 4): Pr
   return [...explicit, ...sameCat].slice(0, limit);
 }
 
-export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number; /** Who is saving (for the change history). */ changedBy?: string };
+export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary" | "stockVn"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number; /** Who is saving (for the change history). */ changedBy?: string };
 
 // ---------- Change history (lịch sử thay đổi) ----------
 
@@ -937,14 +939,15 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     // "Khách quen" may pay on delivery even for made-to-order lines
     const regular = isRegularCustomerSync(db, input.customerId, input.customer.phone);
     for (const it of input.items) {
-      const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
-        | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
+      const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, stock_vn, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
+        | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; stock_vn: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
         | undefined;
       if (!row) continue;
       if (isSpecialHandling(parseArr(row.tags ?? "[]"))) special = true;
       const qty = Math.max(1, Math.floor(it.quantity));
-      // made-to-order: no tracked stock, or not enough on hand
-      const fromStock = row.stock !== null && row.stock >= qty;
+      // made-to-order: no tracked stock, or not enough free at Kho VN (shop) — goods still in Japan / on the way are "hàng order"
+      const ready = row.stock === null ? null : (row.stock_vn ?? 0);
+      const fromStock = ready !== null && ready >= qty;
       if (!fromStock && !regular) prepaidRequired = true;
       weightG += billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) * qty;
       // fully covered by warehouse stock → the goods are already at the shop, not "chưa mua" (see lib/purchase.ts)
@@ -1788,7 +1791,7 @@ export async function updateProductStock(id: number, stock: number | null, minSt
       deleteUnitsSync(db, ids);
     }
     touchSync(db, { productIds: [id] });
-    if (stock === null) db.prepare("UPDATE products SET stock = NULL WHERE id = ? AND NOT EXISTS (SELECT 1 FROM stock_units WHERE product_id = ?)").run(id, id);
+    if (stock === null) db.prepare("UPDATE products SET stock = NULL, stock_vn = NULL WHERE id = ? AND NOT EXISTS (SELECT 1 FROM stock_units WHERE product_id = ?)").run(id, id);
   });
   return Number(res.changes) > 0;
 }

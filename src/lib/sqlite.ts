@@ -1425,6 +1425,16 @@ export const MIGRATIONS: Migration[] = [
       console.info(`[db] stock units: ${r.units} unit(s) from ${r.lots} lot(s), ${r.slips} slip(s), ${r.lines} bought line(s)`);
     },
   },
+  {
+    // "Có sẵn" on the storefront = free units already at Kho Việt Nam (shop), not reserved for an order; products.stock
+    // (free units anywhere from Japan to the shop) stays the admin's stock level
+    version: 66,
+    name: "stock-vn",
+    up: [
+      `ALTER TABLE products ADD COLUMN stock_vn INTEGER`,
+      `UPDATE products SET stock_vn = (SELECT COUNT(*) FROM stock_units u WHERE u.product_id = products.id AND u.order_item_id IS NULL AND u.removed IS NULL AND u.status = 'at_shop') WHERE stock IS NOT NULL`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

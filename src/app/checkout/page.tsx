@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { t } from "@/lib/i18n";
+import { readyStock } from "@/lib/availability";
 import { getLang } from "@/lib/lang-server";
 import { CheckoutForm } from "@/components/sites/lienstore/shop/cart/CheckoutForm";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
@@ -19,7 +20,7 @@ export default async function Checkout() {
   const quote = buildQuoteConfig(methods, mode, jpyRate, defaults);
   // Products bought to order (no tracked stock or currently 0) must be prepaid in full.
   // "Khách quen" (ticked by the admin) may always pay on delivery — nothing is marked "must prepay" for them
-  const preorderIds = customer?.isRegular ? [] : products.filter((p) => p.fulfillment === "order" || p.stock === null || p.stock <= 0).map((p) => p.id);
+  const preorderIds = customer?.isRegular ? [] : products.filter((p) => p.fulfillment === "order" || (readyStock(p) ?? 0) <= 0).map((p) => p.id);
   // Billable grams per product: max(actual, volumetric) × safety factor by confidence (500 g × 2 when unknown) — for the JP legs.
   const weights: Record<number, number> = {};
   for (const p of products) weights[p.id] = billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence);

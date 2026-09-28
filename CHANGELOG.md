@@ -5,6 +5,11 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **“Có sẵn” trên trang khách** (thẻ sản phẩm, trang sản phẩm, xem nhanh) chỉ hiện khi sản phẩm có hàng **đang ở Kho Việt Nam (shop), lưu kho và chưa giữ cho đơn nào** (migration 66, cột `products.stock_vn`, tự cập nhật theo từng cái). Hàng còn ở Nhật / đang về / đã giữ cho đơn khác hiện là “Hàng order”. “còn n hàng” đếm theo số đó.
+- Thanh toán: dòng không đủ hàng sẵn ở Kho VN được tính là hàng order (cần chuyển khoản trước 100%, trừ khách quen) — cả trên trang thanh toán lẫn khi tạo đơn.
+- Tồn kho trong admin (Tồn kho, cảnh báo tồn thấp, cần mua) vẫn đếm mọi cái tự do từ Nhật tới kho shop như trước.
+
 ## [1.92.0] - 2026-09-28
 
 ### Changed

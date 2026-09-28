@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { priceView } from "@/lib/price-display";
 import Link from "next/link";
+import { readyStock } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import type { CatalogProduct } from "@/types/shop";
 import { AddToCartButton } from "../AddToCartButton";
@@ -69,8 +70,8 @@ export function ProductSummary({ product, compareCategory, children }: ProductSu
 
       {out ? (
         <p className="stock out-of-stock mb-[14.72px] text-[14.72px] leading-[22.08px] text-[#e2401c]">Hết hàng</p>
-      ) : product.stock !== null && product.stock > 0 ? (
-        <p className="stock in-stock mb-[14.72px] text-[14.72px] leading-[22.08px] text-[#77a464]">còn {product.stock} hàng</p>
+      ) : (readyStock(product) ?? 0) > 0 ? (
+        <p className="stock in-stock mb-[14.72px] text-[14.72px] leading-[22.08px] text-[#77a464]">còn {readyStock(product)} hàng</p>
       ) : null}
 
       <form className="cart mb-4 flex items-start" onSubmit={(e) => e.preventDefault()}>

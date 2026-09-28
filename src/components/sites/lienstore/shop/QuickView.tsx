@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { readyStock } from "@/lib/availability";
 import { formatAmount } from "@/lib/format";
 import { priceView } from "@/lib/price-display";
 import { ZALO_URL } from "@/lib/contact-links";
@@ -23,6 +24,8 @@ export interface QuickViewProduct {
   image: string;
   thumb: string;
   stock: number | null;
+  /** Free units at Kho VN (shop): "Có sẵn" only when > 0. */
+  stockVn?: number | null;
   stockStatus: "instock" | "discontinued";
   excerpt: string;
   categories: string[];
@@ -106,7 +109,7 @@ function QuickViewModal({ product, onClose }: { product: QuickViewProduct; onClo
           </p>
           {out ? (
             <p className="stock mb-3 text-[14.72px] text-[#e2401c]">Hết hàng</p>
-          ) : product.stock !== null ? (
+          ) : (readyStock(product) ?? 0) > 0 ? (
             <p className="stock mb-3 text-[14.72px] text-[#77a464]">Có sẵn</p>
           ) : null}
           {product.excerpt ? <p className="mb-4 text-[15px] leading-6 text-lien-muted">{product.excerpt}</p> : null}

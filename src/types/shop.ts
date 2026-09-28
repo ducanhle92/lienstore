@@ -46,8 +46,10 @@ export interface CatalogProduct {
   dimsCm: string | null;
   currency: string;
   sku: string | null;
-  /** Units in stock; null = not tracked. */
+  /** Units in stock (free, anywhere from Japan to the shop); null = not tracked. */
   stock: number | null;
+  /** Free units already at Kho Việt Nam (shop) — the storefront's "Có sẵn"; null = not tracked. */
+  stockVn: number | null;
   stockStatus: StockStatus;
   fulfillment: Fulfillment;
   /** Category slugs. */

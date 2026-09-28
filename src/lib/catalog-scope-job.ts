@@ -69,7 +69,7 @@ export async function applyCatalogScopeOnce(): Promise<{ iherb: number; hidden: 
     setSetting(db, "inventory_clean_backup", JSON.stringify(backup));
     const lotsRemoved = Number(db.prepare("DELETE FROM stock_lots").run().changes);
     const purchasesRemoved = Number(db.prepare("DELETE FROM stock_purchases").run().changes);
-    const untracked = Number(db.prepare("UPDATE products SET stock = NULL, min_stock = NULL, fulfillment = 'order', updated_at = ? WHERE stock IS NOT NULL OR min_stock IS NOT NULL OR fulfillment <> 'order'").run(now).changes);
+    const untracked = Number(db.prepare("UPDATE products SET stock = NULL, stock_vn = NULL, min_stock = NULL, fulfillment = 'order', updated_at = ? WHERE stock IS NOT NULL OR min_stock IS NOT NULL OR fulfillment <> 'order'").run(now).changes);
     return { iherb: iherb.length, hidden: hidden.length, lotsRemoved, purchasesRemoved, untracked };
   });
   setSetting(db, "catalog_scope_rev", CATALOG_SCOPE_REV);

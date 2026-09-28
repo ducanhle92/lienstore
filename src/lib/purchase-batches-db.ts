@@ -326,7 +326,7 @@ export function resetPurchasingData(): { batches: number; slips: number; receipt
     db.prepare("DELETE FROM purchase_batches").run();
     db.prepare("DELETE FROM shipments").run();
     out.lines = Number(db.prepare("UPDATE order_items SET purchase_status = 'not_bought', purchase_note = '', batch_id = NULL, receipt_id = NULL, source_key = '', purchase_expiry = NULL, purchase_bought_at = NULL, purchase_cost_jpy = NULL, auto_hold = 1, purchase_updated_at = ? WHERE order_id IN (SELECT id FROM orders WHERE status IN ('pending','processing'))").run(now).changes);
-    if (products.length) db.prepare(`UPDATE products SET stock = NULL, updated_at = ? WHERE id IN (${products.map(() => "?").join(",")})`).run(now, ...products);
+    if (products.length) db.prepare(`UPDATE products SET stock = NULL, stock_vn = NULL, updated_at = ? WHERE id IN (${products.map(() => "?").join(",")})`).run(now, ...products);
   });
   return out;
 }
