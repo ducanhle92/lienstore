@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **④ Đóng hàng JP**: khung “Thêm hàng vào chuyến” trở lại dưới mỗi chuyến, viền đỏ, ghim đầu màn hình khi cuộn danh sách: nút **+ Thêm vào chuyến**, số dòng · số cái, rồi các bộ lọc **Theo đơn → Xem**, **Theo đợt mua → Xem**, ô tìm **→ Lọc** (các bộ lọc giữ nhau, vẫn có “Không theo đơn / Không theo đợt mua” và “bỏ lọc”). Thanh dưới đáy chỉ còn **+ Chuyến mới** (cùng Lưu thay đổi / Huỷ).
+
 ## [1.100.0] - 2026-09-28
 
 ### Changed
