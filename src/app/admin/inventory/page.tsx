@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
+import { bulkMinStockAction, importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
@@ -131,7 +133,11 @@ export default async function AdminInventory({ searchParams }: Props) {
               </Flash>
             );
           })()
-        : saved ? (
+        : saved.startsWith("min:") ? (
+            <Flash>
+              Đã đặt mức tồn tối thiểu <strong>{saved.split(":")[2]}</strong> cho {saved.split(":")[1]} sản phẩm.
+            </Flash>
+          ) : saved ? (
             <Flash>Đã cập nhật tồn kho sản phẩm #{saved}.</Flash>
           ) : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
@@ -214,18 +220,25 @@ export default async function AdminInventory({ searchParams }: Props) {
             Lọc
           </button>
         </form>
-        <p className="mb-4 flex flex-wrap items-center gap-1 text-[12px] text-lien-muted">
-          Lọc theo trạng thái / kho / hạn dùng / nên lưu kho; kiểm kê bằng CSV.
-          <InfoPopover><strong>Trạng thái</strong>: Đang lưu kho (còn tồn — chọn kho: Kho Nhật / Kho ĐVVC / Kho Việt Nam) · Đang về (đã đặt lô lưu kho, chưa tới — còn tại Nhật / NB → VN / tại kho ĐVVC VN) · Chưa mua (cần mua nhưng chưa đặt gì). Mỗi lô ghi rõ kho; sửa ở &ldquo;Quản lý lô&rdquo;. <strong>Hạn dùng</strong>: theo lô gần hết hạn nhất. <strong>Nên lưu kho</strong>: bán đều trong {SALES_PACE_DAYS} ngày gần đây — cân nhắc mua lô để có sẵn, giao khách nhanh hơn. Kiểm kê: xuất CSV bảng này, điền cột &ldquo;Kiểm đếm thực tế&rdquo;, rồi nhập lại bằng nút &ldquo;Nhập CSV kiểm kê&rdquo;.</InfoPopover>
-          <Link href="/admin/purchases/" className="ml-auto text-lien-blue hover:underline">
-            <Fa name="shopping-basket" /> Quản lý mua hàng →
-          </Link>
-        </p>
+        <form id="inv-bulk" action={bulkMinStockAction}>
+          <input type="hidden" name="back" value={back} />
+        </form>
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+          <TickGate scope="inv-bulk" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <input name="minStock" form="inv-bulk" inputMode="numeric" placeholder="mức tối thiểu" className={cn(adminInput, "!mb-0 !w-[120px] !py-1 !text-[13px]")} aria-label="Mức tồn tối thiểu" />
+          <button type="submit" form="inv-bulk" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="inv-bulk-min">
+            Đặt mức tối thiểu
+          </button>
+        </div>
 
         <ResizableTable id="inventory">
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={cn(thClass, "w-8")}>
+                  <TableSelectAll name="ids" />
+                </th>
                 <Th v={v} k="id" label="ID" />
                 <th className={thClass} />
                 <Th v={v} k="name" label="Sản phẩm" />
@@ -248,7 +261,7 @@ export default async function AdminInventory({ searchParams }: Props) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={16} className={`${tdClass} text-center text-lien-muted`}>
                     Không có sản phẩm phù hợp.
                   </td>
                 </tr>
@@ -298,6 +311,9 @@ function Row({ line, catName, back, sourceName }: { line: InventoryLine; catName
   const st = STATE_LABEL[line.state];
   return (
     <tr className="hover:bg-[#fafafa]">
+      <td className={`${tdClass} w-8`}>
+        <input type="checkbox" name="ids" value={p.id} form="inv-bulk" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+      </td>
       <td className={`${tdClass} whitespace-nowrap font-mono text-[13px] text-lien-muted`}>#{p.id}</td>
       <td className={`${tdClass} w-14`}>{p.thumb ? <Image src={p.thumb} alt="" width={40} height={40} className="h-10 w-10 rounded border border-[#e5e7eb] object-cover" unoptimized /> : null}</td>
       <td className={`${tdClass} min-w-[220px]`}>

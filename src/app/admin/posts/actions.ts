@@ -75,3 +75,22 @@ export async function deletePostAction(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
   back(LIST, "saved", "Đã xoá bài viết.");
 }
+
+/** Posts list › tick rows › "Đăng" / "Ẩn" / "Xoá" (same work as the per-row buttons, once per ticked post). */
+export async function bulkPostsAction(formData: FormData): Promise<void> {
+  await requireAdmin("posts");
+  const slugs = [...new Set(formData.getAll("ids").map((v) => String(v).trim()).filter(Boolean))];
+  const op = text(formData, "op");
+  if (!slugs.length) back(LIST, "error", "Chưa tick bài viết nào.");
+  if (op === "publish" || op === "draft") {
+    for (const slug of slugs) await setPostStatus(slug, op);
+    revalidatePath("/", "layout");
+    back(LIST, "saved", op === "publish" ? `Đã đăng ${slugs.length} bài.` : `Đã ẩn ${slugs.length} bài (bản nháp).`);
+  }
+  if (op === "delete") {
+    for (const slug of slugs) await deletePost(slug);
+    revalidatePath("/", "layout");
+    back(LIST, "saved", `Đã xoá ${slugs.length} bài viết.`);
+  }
+  back(LIST, "error", "Thao tác không hợp lệ.");
+}

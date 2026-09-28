@@ -257,18 +257,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
         </div>
 
         <div className="space-y-6">
-          <Card title="Ghi chú nội bộ">
-            <form action={saveAdminNoteAction} className="grid gap-3">
-              <input type="hidden" name="orderId" value={order.id} />
-              <textarea name="adminNote" rows={3} defaultValue={order.adminNote} placeholder="Chỉ admin thấy: mã vận đơn, đã mua ở đâu, còn thiếu gì…" className={adminInput} />
-              <div>
-                <button type="submit" className={btnSecondary}>
-                  Lưu ghi chú
-                </button>
-              </div>
-            </form>
-          </Card>
-
           <Card title="Tiến độ đơn hàng">
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact admin />
@@ -513,6 +501,18 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : null}
             </Card>
           </div>
+          <Card title="Ghi chú nội bộ">
+            <form action={saveAdminNoteAction} className="grid gap-3">
+              <input type="hidden" name="orderId" value={order.id} />
+              <textarea name="adminNote" rows={3} defaultValue={order.adminNote} placeholder="Chỉ admin thấy: mã vận đơn, đã mua ở đâu, còn thiếu gì…" className={adminInput} />
+              <div>
+                <button type="submit" className={btnSecondary}>
+                  Lưu ghi chú
+                </button>
+              </div>
+            </form>
+          </Card>
+
         </div>
       </div>
     </>

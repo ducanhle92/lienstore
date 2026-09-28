@@ -5,7 +5,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ShippingTable } from "@/components/sites/lienstore/shop/ShippingTable";
 import { requireAdmin } from "@/lib/auth";
 import { getJpyRate, getOrderChargeableWeightG, getOrderLegs, getOrders, getPickupAddress, getQuoteDefaults, getShipPolicy, getShippingCarriers, getShippingMethods, getShippingNotes, getShippingPricingMode, listOrderLegEvents, listShipmentBatches } from "@/lib/db";
-import { setOrderLegStatusAction } from "@/app/admin/shipping/order-actions";
+import { bulkOrderLegStatusAction, setOrderLegStatusAction } from "@/app/admin/shipping/order-actions";
 import { formatDateTime } from "@/lib/format";
 import { GOODS_WHERE, goodsWhere, isGoodsWhere, isLegStatus, LEG_STATUS_CLS, LEG_STATUS_LABEL, LEG_STATUSES, type LegStatus } from "@/lib/leg-status";
 import type { Order, OrderLeg, OrderLegEvent } from "@/types/shop";
@@ -15,7 +15,8 @@ import { ShipPolicyCard } from "@/components/sites/lienstore/shop/ShipPolicyCard
 import { buildQuoteConfig } from "@/lib/shipping";
 import { ApiKeysVault } from "@/components/sites/lienstore/admin/ApiKeysVault";
 import { CarrierStatusPanel } from "@/components/sites/lienstore/admin/CarrierStatusPanel";
-import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { OrderLegCell } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatAmount } from "@/lib/format";
 import { describeMethodFormula, isJpSubLeg, isShippingLeg, JP_SUB_LEG_LABEL, JP_SUB_LEGS, type JpSubLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
@@ -577,15 +578,13 @@ export default async function AdminShipping({ searchParams }: Props) {
             </form>
           }
         >
-          <p className="mb-4 flex items-center gap-1 text-[13px] text-lien-muted">
-            Mỗi đơn một dòng, mỗi chặng một ô — chọn, điền rồi bấm ✓.
-            <InfoPopover>Mỗi đơn một dòng, mỗi chặng một ô: chọn phương thức · cột, phí (để trống = tự tính theo cột và khối lượng đơn), mã vận đơn, ghi chú, rồi bấm ✓. Ô chặng nội địa Việt Nam có thể áp phí vào tổng tiền khách trả.</InfoPopover>
-          </p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-[13px]">
               <thead>
                 <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
-                  <th className="px-2 py-2" title="Tick để gom lô">Lô</th>
+                  <th className="w-8 px-2 py-2">
+                    <TableSelectAll name="batch_orders" />
+                  </th>
                   <th className="px-2 py-2">Đơn</th>
                   <th className="px-2 py-2" title="Vị trí hàng suy ra từ chặng xa nhất đã đi; bấm 'Lịch sử' để xem từng lần đổi trạng thái">Hàng đang ở</th>
                   {SHIPPING_LEGS.map((l) => (
@@ -744,6 +743,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
     .filter(({ l }) => !filter || (l?.status ?? "pending") === filter);
   const count = (s: LegStatus) => orders.filter((o) => ((legMap.get(o.id) ?? []).find((x) => x.leg === leg)?.status ?? "pending") === s).length;
   const back = `/admin/shipping/?leg=${leg}${filter ? `&st=${filter}` : ""}`;
+  const bulkId = `leg-bulk-${leg}`;
   return (
     <Card
       title={`Đơn hàng qua chặng này (${rows.length})`}
@@ -764,11 +764,32 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
         </form>
       }
     >
-      <p className="mb-3 text-[13px] text-lien-muted">Mỗi đơn một dòng: đổi trạng thái của chặng {LEG_LABEL[leg].toLowerCase()} (chưa gửi → đã gửi → đã đến), thêm mã vận đơn / ghi chú rồi bấm ✓. Sản phẩm trong đơn và tiến độ đơn cho khách tự nhích theo; &ldquo;Lịch sử&rdquo; ghi lại từng lần đổi.</p>
+      <form id={bulkId} action={bulkOrderLegStatusAction}>
+        <input type="hidden" name="leg" value={leg} />
+        <input type="hidden" name="back" value={back} />
+      </form>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+        <TickGate scope={bulkId} />
+        <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <select name="status" form={bulkId} defaultValue="sent" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Trạng thái chặng">
+          {LEG_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {LEG_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <input name="note" form={bulkId} placeholder="Ghi chú" className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[13px]")} aria-label="Ghi chú" />
+        <button type="submit" form={bulkId} className={cn(btnPrimary, "!py-1 disabled:opacity-50")} data-testid={`leg-bulk-${leg}`}>
+          Cập nhật
+        </button>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-[13px]">
           <thead>
             <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
+              <th className="w-8 px-2 py-2">
+                <TableSelectAll name="orderIds" />
+              </th>
               <th className="px-2 py-2">Đơn</th>
               <th className="px-2 py-2">Phương thức · phí</th>
               <th className="px-2 py-2">Trạng thái chặng</th>
@@ -784,6 +805,9 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
               const where = GOODS_WHERE.find((w) => w.key === goodsWhere(legMap.get(o.id) ?? [])) ?? GOODS_WHERE[0];
               return (
                 <tr key={o.id} id={`order-${o.id}`} className="align-top odd:bg-white even:bg-[#fafafa]" data-testid={`leg-row-${o.id}`}>
+                  <td className="w-8 border-b border-[#f0f0f0] px-2 py-2">
+                    <input type="checkbox" name="orderIds" value={o.id} form={bulkId} className="mt-1 h-4 w-4" aria-label={`Chọn đơn #${o.number}`} />
+                  </td>
                   <td className="border-b border-[#f0f0f0] px-2 py-2">
                     <form id={fid} action={setOrderLegStatusAction}>
                       <input type="hidden" name="orderId" value={o.id} />
@@ -833,7 +857,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
             })}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-2 py-6 text-center text-lien-muted">
+                <td colSpan={7} className="px-2 py-6 text-center text-lien-muted">
                   Không có đơn nào{filter ? ` ở trạng thái "${LEG_STATUS_LABEL[filter]}"` : ""}.
                 </td>
               </tr>

@@ -74,6 +74,19 @@ export async function saveVariantAction(formData: FormData): Promise<void> {
   back("saved", "Đã lưu biến thể.", `${PAGE}${groupId}/`);
 }
 
+/** Group page › tick member rows › "Tách khỏi nhóm" (what the per-row "Tách" button does, for every ticked row). */
+export async function ungroupVariantsAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const groupId = Number.parseInt(text(formData, "groupId"), 10);
+  const g = await getProductGroupById(groupId);
+  if (!g) return back("error", "Không tìm thấy nhóm / sản phẩm.");
+  const selected = ids(formData, "ids");
+  if (!selected.length) back("error", "Chưa tick sản phẩm nào.", `${PAGE}${groupId}/`);
+  await ungroupProducts(selected);
+  revalidatePath("/", "layout");
+  back("saved", `Đã tách ${selected.length} sản phẩm khỏi nhóm.`, `${PAGE}${groupId}/`);
+}
+
 /** ▲ / ▼ next to "Thứ tự": one click moves the variant one step and saves; lands back on that row. */
 export async function moveVariantAction(formData: FormData): Promise<void> {
   await requireAdmin("products");

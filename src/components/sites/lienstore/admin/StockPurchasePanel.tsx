@@ -7,7 +7,7 @@ import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
-import { SelectAll } from "./SelectAll";
+import { TableSelectAll } from "./TableSelectAll";
 import { TickGate } from "./TickGate";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -31,11 +31,9 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="min-w-0">
         <Card title={`Hàng lưu kho — chưa có khách (${units} cái · ${groups.length} dòng bill)`} actions={<Link href="/admin/inventory/?side=jp" className="text-[13px] text-lien-blue hover:underline">Tồn kho →</Link>}>
-          <p className="m-0 mb-2 text-[12px] text-lien-muted">Mọi cái đã mua (hoặc dự định mua / đã đặt online) mà chưa đơn nào giữ. Đơn mới của sản phẩm đó sẽ tự lấy từ đây (gần khách nhất, hạn dùng gần nhất trước).</p>
           <form id={formId} action={bulkStockUnitsAction} />
           <TickGate scope={formId} />
           <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]" data-select-scope={formId}>
-            <SelectAll scope={formId} />
             <span className="font-semibold text-lien-heading">Đã tick →</span>
             <select name="status" form={formId} defaultValue="bought" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Trạng thái">
               {STOCK_STAGES.map((s) => (
@@ -70,7 +68,9 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
               <table className={tableClass}>
                 <thead>
                   <tr>
-                    <th className={cn(thClass, "w-8")} />
+                    <th className={cn(thClass, "w-8")}>
+                      <TableSelectAll name="uids" />
+                    </th>
                     <th className={thClass}>Sản phẩm · mã</th>
                     <th className={thClass}>SL</th>
                     <th className={thClass}>Trạng thái</th>

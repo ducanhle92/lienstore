@@ -57,3 +57,26 @@ export async function deletePurchaseSourceAction(formData: FormData): Promise<vo
   if (!res) return back("error", "Không xoá được: nguồn có sẵn của hệ thống chỉ có thể tắt.");
   back("saved", `Đã xoá nguồn${res.moved ? ` — ${res.moved} báo giá chuyển sang “Chưa xác định”` : ""}.`);
 }
+
+/** Bulk bar of the sources table: op "delete" removes every ticked source; built-in ones are skipped (they can only be turned off). */
+export async function bulkPurchaseSourcesAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const ids = [...new Set(formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger))];
+  if (!ids.length) return back("error", "Chưa tick nguồn nào.");
+  if (text(formData, "op") !== "delete") return back("error", "Thao tác không hợp lệ.");
+  let deleted = 0;
+  let skipped = 0;
+  let moved = 0;
+  for (const id of ids) {
+    const res = await deletePurchaseSource(id);
+    if (!res) {
+      skipped++;
+      continue;
+    }
+    deleted++;
+    moved += res.moved;
+  }
+  revalidatePath("/admin", "layout");
+  if (!deleted) return back("error", "Không xoá được: nguồn có sẵn của hệ thống chỉ có thể tắt.");
+  back("saved", `Đã xoá ${deleted} nguồn${moved ? ` — ${moved} báo giá chuyển sang “Chưa xác định”` : ""}${skipped ? `; bỏ qua ${skipped} nguồn có sẵn / không tồn tại` : ""}.`);
+}

@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { addLinesToBatchAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
+import { TableSelectAll } from "./TableSelectAll";
+import { TickGate } from "./TickGate";
 import type { AllocationView } from "@/lib/allocations-db";
 import type { PurchaseLine } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -106,8 +108,9 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
         <form id="bulk-need" action={createReceiptFromLinesAction}>
           <input type="hidden" name="back" value={back} />
         </form>
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
-          <span className="font-semibold text-lien-heading">Dòng “Cần mua” đã tick →</span>
+        <div className="sticky top-0 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb]/95 px-3 py-2 text-[13px] shadow-sm backdrop-blur">
+          <TickGate scope="bulk-need" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
           <select name="receiptSource" form="bulk-need" defaultValue="amazon" className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Nguồn của phiếu">
             {sources.map((s) => (
               <option key={s.key} value={s.key}>
@@ -117,13 +120,13 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
           </select>
           <input name="receiptDate" form="bulk-need" defaultValue={todayIso()} className={cn(adminInput, "!mb-0 !w-[110px] !py-1")} aria-label="Ngày mua" />
           <input name="receiptRef" form="bulk-need" placeholder="mã đơn nguồn" className={cn(adminInput, "!mb-0 !w-[150px] !py-1")} aria-label="Mã đơn nguồn" />
-          <button type="submit" form="bulk-need" className={cn(btnPrimary, "!py-1")} title="Gom các dòng đã tick thành một phiếu mua (mã PM-…)">
+          <button type="submit" form="bulk-need" className={cn(btnPrimary, "!py-1 disabled:opacity-50")} title="Gom các dòng đã tick thành một phiếu mua (mã PM-…)">
             Tạo phiếu mua
           </button>
           {batches.length ? (
             <>
               <span className="mx-1 text-lien-muted">|</span>
-              <select name="batchId" form="bulk-need" defaultValue={batches[0].id} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyến">
+              <select name="batchId" form="bulk-need" defaultValue={batches[0].id} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Đợt mua">
                 {batches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.code}
@@ -131,8 +134,8 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
                   </option>
                 ))}
               </select>
-              <button type="submit" form="bulk-need" formAction={addLinesToBatchAction} className={cn(btnSecondary, "!py-1")} title="Dòng sẽ mua trong chuyến này">
-                Đưa vào chuyến
+              <button type="submit" form="bulk-need" formAction={addLinesToBatchAction} className={cn(btnSecondary, "!py-1 disabled:opacity-50")} title="Dòng sẽ mua trong đợt này">
+                Đưa vào đợt
               </button>
             </>
           ) : null}
@@ -154,7 +157,9 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
               <table className={tableClass}>
                 <thead>
                   <tr>
-                    <th className={cn(thClass, "w-8")} />
+                    <th className={cn(thClass, "w-8")}>
+                      <TableSelectAll name="ids" />
+                    </th>
                     <th className={thClass}>Sản phẩm</th>
                     <th className={thClass}>SL</th>
                     <th className={thClass}>Nguồn hàng</th>

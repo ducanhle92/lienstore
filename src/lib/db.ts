@@ -1793,6 +1793,24 @@ export async function updateProductStock(id: number, stock: number | null, minSt
   return Number(res.changes) > 0;
 }
 
+/** One minimum stock level for many products (Tồn kho › Theo sản phẩm, ticked rows); logs the change. */
+export async function setProductsMinStock(ids: number[], minStock: number): Promise<number> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const min = Math.max(0, Math.floor(minStock));
+  let n = 0;
+  withTransaction(db, () => {
+    for (const id of ids) {
+      const before = db.prepare("SELECT min_stock FROM products WHERE id = ?").get(id) as { min_stock: number | null } | undefined;
+      if (!before || before.min_stock === min) continue;
+      logProductChanges(db, id, diffProductChanges({ minStock: before.min_stock }, { minStock: min }), "Kho hàng", now);
+      db.prepare("UPDATE products SET min_stock = ?, updated_at = ? WHERE id = ?").run(min, now, id);
+      n++;
+    }
+  });
+  return n;
+}
+
 // ---------- Stock (từng cái — see lib/units-db.ts) ----------
 
 /** Stocktake of ONE warehouse: the free units of a product there become `count` (extra → KK bill, missing → thất lạc). */

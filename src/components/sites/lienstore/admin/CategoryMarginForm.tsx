@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { deleteCategoryMarginAction, saveCategoryMarginAction } from "@/app/admin/products/pricing/actions";
+import { bulkCategoryMarginsAction, deleteCategoryMarginAction, saveCategoryMarginAction } from "@/app/admin/products/pricing/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { adminInput, adminLabel, btnPrimary } from "./ui";
+import { ConfirmSubmit } from "./ConfirmSubmit";
+import { TableSelectAll } from "./TableSelectAll";
+import { TickGate } from "./TickGate";
+import { adminInput, adminLabel, btnDanger, btnPrimary } from "./ui";
 
 interface Cat {
   slug: string;
@@ -76,41 +79,57 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
         </button>
       </form>
       {rows.length || true ? (
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
-              <th className="border-b border-[#e5e7eb] px-2 py-2">Danh mục</th>
-              <th className="border-b border-[#e5e7eb] px-2 py-2">Danh mục con</th>
-              <th className="border-b border-[#e5e7eb] px-2 py-2 text-right">Tỉ lệ lãi kỳ vọng</th>
-              <th className="border-b border-[#e5e7eb] px-2 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-testid="cm-row-all">
-              <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">Tất cả sản phẩm</td>
-              <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-lien-muted">mặc định của shop</td>
-              <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right font-semibold" data-testid="cm-default-pct">{defaultPct}%</td>
-              <td className="border-b border-[#f3f4f6] px-2 py-1.5" />
-            </tr>
-            {rows.map((r) => (
-              <tr key={r.slug} data-testid={`cm-row-${r.slug}`}>
-                <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">{r.cat?.parentSlug ? nameOf(r.cat.parentSlug) : nameOf(r.slug)}</td>
-                <td className="border-b border-[#f3f4f6] px-2 py-1.5">{r.cat?.parentSlug ? nameOf(r.slug) : <span className="text-lien-muted">cả danh mục</span>}</td>
-                <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right font-semibold">{r.pct}%</td>
-                <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right">
-                  <form action={deleteCategoryMarginAction}>
-                    <input type="hidden" name="slug" value={r.slug} />
-                    <button type="submit" className="text-[12px] text-red-600 hover:underline" title="Bỏ, dùng lại mặc định">
-                      <Fa name="close" /> Bỏ
-                    </button>
-                  </form>
-                </td>
+        <div>
+          <form id="cm-bulk" action={bulkCategoryMarginsAction} />
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+            <TickGate scope="cm-bulk" />
+            <span className="font-semibold text-lien-heading">Đã tick →</span>
+            <ConfirmSubmit form="cm-bulk" name="op" value="delete" message="Bỏ tỉ lệ lãi riêng của các danh mục đã tick? Các danh mục đó dùng lại tỉ lệ của danh mục cha / mặc định của shop." confirmLabel="Bỏ" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+              <Fa name="close" /> Bỏ
+            </ConfirmSubmit>
+          </div>
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
+                <th className="w-8 border-b border-[#e5e7eb] px-2 py-2">
+                  <TableSelectAll name="ids" />
+                </th>
+                <th className="border-b border-[#e5e7eb] px-2 py-2">Danh mục</th>
+                <th className="border-b border-[#e5e7eb] px-2 py-2">Danh mục con</th>
+                <th className="border-b border-[#e5e7eb] px-2 py-2 text-right">Tỉ lệ lãi kỳ vọng</th>
+                <th className="border-b border-[#e5e7eb] px-2 py-2" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr data-testid="cm-row-all">
+                <td className="border-b border-[#f3f4f6] px-2 py-1.5" />
+                <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">Tất cả sản phẩm</td>
+                <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-lien-muted">mặc định của shop</td>
+                <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right font-semibold" data-testid="cm-default-pct">{defaultPct}%</td>
+                <td className="border-b border-[#f3f4f6] px-2 py-1.5" />
+              </tr>
+              {rows.map((r) => (
+                <tr key={r.slug} data-testid={`cm-row-${r.slug}`}>
+                  <td className="border-b border-[#f3f4f6] px-2 py-1.5">
+                    <input type="checkbox" name="ids" value={r.slug} form="cm-bulk" className="h-4 w-4" aria-label={`Chọn ${nameOf(r.slug)}`} />
+                  </td>
+                  <td className="border-b border-[#f3f4f6] px-2 py-1.5 font-semibold text-lien-heading">{r.cat?.parentSlug ? nameOf(r.cat.parentSlug) : nameOf(r.slug)}</td>
+                  <td className="border-b border-[#f3f4f6] px-2 py-1.5">{r.cat?.parentSlug ? nameOf(r.slug) : <span className="text-lien-muted">cả danh mục</span>}</td>
+                  <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right font-semibold">{r.pct}%</td>
+                  <td className="border-b border-[#f3f4f6] px-2 py-1.5 text-right">
+                    <form action={deleteCategoryMarginAction}>
+                      <input type="hidden" name="slug" value={r.slug} />
+                      <button type="submit" className="text-[12px] text-red-600 hover:underline" title="Bỏ, dùng lại mặc định">
+                        <Fa name="close" /> Bỏ
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
-      <p className="m-0 text-[12px] leading-5 text-lien-muted">Thứ tự áp dụng: tỉ lệ riêng của sản phẩm → danh mục con → danh mục cha → mặc định của shop.</p>
     </div>
   );
 }

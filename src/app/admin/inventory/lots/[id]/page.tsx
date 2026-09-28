@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addUnitsAction, removeUnitsAction, saveProductUnitsAction, uploadUnitsBillFilesAction } from "@/app/admin/inventory/lots/actions";
 import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { listAllocationViews } from "@/lib/allocations-db";
@@ -85,10 +87,29 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
             <form id={removeId} action={removeUnitsAction}>
               <input type="hidden" name="productId" value={pid} />
             </form>
+            {groups.length ? (
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+                <TickGate scope={removeId} />
+                <span className="font-semibold text-lien-heading">Đã tick →</span>
+                <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Lý do">
+                  {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 disabled:opacity-50")}>
+                  Loại khỏi tồn kho
+                </button>
+              </div>
+            ) : null}
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr>
+                    <th className={cn(thClass, "w-8")}>
+                      <TableSelectAll name="uids" />
+                    </th>
                     <th className={thClass}>Dòng bill · mã</th>
                     <th className={thClass}>SL</th>
                     <th className={thClass}>Trạng thái</th>
@@ -102,7 +123,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 <tbody>
                   {groups.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={9} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có hàng — nhập ở khung bên phải, hoặc thêm vào đợt ở Quản lý mua hàng.
                       </td>
                     </tr>
@@ -114,6 +135,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                     const bill = g.receiptId ? bills.get(g.receiptId) : undefined;
                     return (
                       <tr key={g.key} className="align-top" data-testid={`pgroup-${g.unitIds[0]}`}>
+                        <td className={`${tdClass} w-8`}>
+                          <input type="checkbox" name="uids" value={g.unitIds.join(",")} form={removeId} className="h-4 w-4" aria-label={`Chọn dòng bill ${g.receiptCode || g.codes[0]}`} />
+                        </td>
                         <td className={`${tdClass} min-w-[230px]`}>
                           <input type="hidden" name={`${p}ids`} form={saveId} value={g.unitIds.join(",")} />
                           <input name={`${p}billCode`} form={saveId} defaultValue={g.receiptCode} list="bill-codes" placeholder="mã bill…" className={cn(adminInput, cell, "!w-[170px] font-mono !text-[12px]")} aria-label="Mã bill" />
@@ -216,21 +240,6 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 </tbody>
               </table>
             </div>
-            {groups.length ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
-                <span className="font-semibold text-lien-heading">Mã đã tick →</span>
-                <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[12px]")} aria-label="Lý do">
-                  {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 !text-[12px]")} title="Loại khỏi tồn kho (giữ lại mã và lịch sử); đơn đang giữ cái đó tự tìm cái khác">
-                  Loại khỏi tồn kho
-                </button>
-              </div>
-            ) : null}
             {groups.length ? <FixedSaveBar forms={[saveId]} hint="Sửa dòng bill (áp cho mọi cái) hoặc trạng thái từng mã rồi lưu một lần." /> : null}
           </Card>
 

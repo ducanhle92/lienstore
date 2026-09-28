@@ -98,6 +98,25 @@ export async function deleteCategoryMarginAction(formData: FormData): Promise<vo
   back("saved", "Đã bỏ tỉ lệ riêng của danh mục — dùng lại mặc định.");
 }
 
+/** Bulk bar of the category-margin table: op "delete" drops the margin of every ticked category. */
+export async function bulkCategoryMarginsAction(formData: FormData): Promise<void> {
+  await requireAdmin("products");
+  const slugs = [...new Set(formData.getAll("ids").map((v) => String(v).trim()).filter(Boolean))];
+  if (!slugs.length) return back("error", "Chưa tick danh mục nào.");
+  if (text(formData, "op") !== "delete") return back("error", "Thao tác không hợp lệ.");
+  const cur = await getPricingConfig();
+  const next = { ...cur.marginByCategory };
+  let n = 0;
+  for (const slug of slugs) {
+    if (!(slug in next)) continue;
+    delete next[slug];
+    n++;
+  }
+  await setPricingConfig({ ...cur, marginByCategory: next });
+  revalidatePath("/admin/products/", "layout");
+  back("saved", `Đã bỏ tỉ lệ riêng của ${n} danh mục — dùng lại mặc định.`);
+}
+
 /**
  * Write the suggested price onto every product that has a cost price and is not on sale.
  * Products with a sale price keep both prices untouched (the admin handles them in Sales › Giảm giá sản phẩm).

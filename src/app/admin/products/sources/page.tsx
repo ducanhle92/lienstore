@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { deletePurchaseSourceAction, savePurchaseSourceEntryAction } from "@/app/admin/products/sources/actions";
+import { bulkPurchaseSourcesAction, deletePurchaseSourceAction, savePurchaseSourceEntryAction } from "@/app/admin/products/sources/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
-import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getPurchaseSourceDefault, listPurchaseSources, purchaseSourceUsage } from "@/lib/db";
@@ -77,10 +79,21 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title={`Các nguồn (${sources.length})`}>
+          <form id="sources-bulk" action={bulkPurchaseSourcesAction} />
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+            <TickGate scope="sources-bulk" />
+            <span className="font-semibold text-lien-heading">Đã tick →</span>
+            <ConfirmSubmit form="sources-bulk" name="op" value="delete" message="Xoá các nguồn đã tick? Báo giá đang dùng các nguồn này chuyển sang “Chưa xác định”." confirmLabel="Xoá nguồn" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+              <Fa name="trash" /> Xoá nguồn đã tick
+            </ConfirmSubmit>
+          </div>
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={`${thClass} w-8`}>
+                    <TableSelectAll name="ids" />
+                  </th>
                   <th className={thClass}>Nguồn</th>
                   <th className={thClass}>Loại</th>
                   <th className={thClass}>Chi tiết</th>
@@ -94,6 +107,7 @@ export default async function AdminPurchaseSources({ searchParams }: Props) {
                   const n = usage.get(s.key) ?? 0;
                   return (
                     <tr key={s.id} className={cn(!s.active && "opacity-60")} data-testid={`source-${s.key}`}>
+                      <td className={tdClass}>{!s.builtin ? <input type="checkbox" name="ids" value={s.id} form="sources-bulk" className="h-4 w-4" aria-label={`Chọn ${s.name}`} /> : null}</td>
                       <td className={`${tdClass} min-w-[200px]`}>
                         <span className="font-semibold text-lien-heading">{s.name}</span>
                         <span className="block font-mono text-[11px] text-lien-muted">

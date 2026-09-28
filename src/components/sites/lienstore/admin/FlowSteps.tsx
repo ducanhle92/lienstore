@@ -13,11 +13,12 @@ interface Step {
 }
 
 export const FLOW_STEPS: Step[] = [
-  { key: "buy", n: "1", label: "Mua hàng", href: "/admin/purchases/", icon: "shopping-basket", value: (c) => `${c.openBatches} đợt mở${c.toBuy ? ` · ${c.toBuy} đv chưa mua` : ""}` },
-  { key: "jp", n: "2", label: "Tồn kho Nhật", href: "/admin/inventory/?side=jp", icon: "archive", value: (c) => `${c.jp} đv trên kệ` },
-  { key: "pack", n: "3", label: "Đóng hàng", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
-  { key: "transit", n: "4", label: "Vận chuyển", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
-  { key: "vn", n: "5", label: "Tồn kho VN", href: "/admin/inventory/?side=vn", icon: "building", value: (c) => `${c.vn} đv` },
+  { key: "orders", n: "1", label: "Đơn hàng", href: "/admin/orders/", icon: "shopping-cart", value: (c) => `${c.openOrders} đơn đang xử lý${c.pendingOrders ? ` · ${c.pendingOrders} chờ` : ""}` },
+  { key: "buy", n: "2", label: "Mua hàng", href: "/admin/purchases/", icon: "shopping-basket", value: (c) => `${c.openBatches} đợt mở${c.toBuy ? ` · ${c.toBuy} đv chưa mua` : ""}` },
+  { key: "jp", n: "3", label: "Tồn kho Nhật", href: "/admin/inventory/?side=jp", icon: "archive", value: (c) => `${c.jp} đv trên kệ` },
+  { key: "pack", n: "4", label: "Đóng hàng", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
+  { key: "transit", n: "5", label: "Vận chuyển", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
+  { key: "vn", n: "6", label: "Tồn kho VN", href: "/admin/inventory/?side=vn", icon: "building", value: (c) => `${c.vn} đv` },
 ];
 
 /** The five-step import flow as a bar on top of each step's page; the current step is highlighted. */

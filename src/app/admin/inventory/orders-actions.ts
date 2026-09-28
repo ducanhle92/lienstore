@@ -25,3 +25,13 @@ export async function reallocateOneAction(formData: FormData): Promise<void> {
   revalidatePath("/admin", "layout");
   go("saved", "Đã ghép lại nguồn hàng cho đơn.");
 }
+
+/** Ticked orders of Hàng theo đơn: each one is served again (pins lifted; deducted units stay). */
+export async function reallocateSelectedAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const ids = formData.getAll("orderIds").map((v) => String(v).trim()).filter(Boolean);
+  if (!ids.length) go("error", "Chưa tick đơn nào.");
+  for (const id of ids) await reallocateOrder(id);
+  revalidatePath("/admin", "layout");
+  go("saved", `Đã ghép lại nguồn hàng cho ${ids.length} đơn.`);
+}

@@ -1,5 +1,7 @@
-import { hideSearchTermAction, saveSearchSuggestAction } from "@/app/admin/promotions/actions";
+import { bulkSearchTermsAction, hideSearchTermAction, saveSearchSuggestAction } from "@/app/admin/promotions/actions";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -60,34 +62,53 @@ export default async function SearchSuggestAdmin({ searchParams }: Props) {
         {top.length === 0 ? (
           <p className="m-0 text-[14px] text-lien-muted">Chưa có lượt tìm nào được ghi. Mỗi lần khách tìm ở ô tìm kiếm sẽ được đếm ở đây.</p>
         ) : (
-          <table className={tableClass} data-testid="top-terms">
-            <thead>
-              <tr>
-                <th className={thClass}>Từ khoá</th>
-                <th className={`${thClass} text-right`}>Lượt tìm</th>
-                <th className={thClass}>Trạng thái</th>
-                <th className={thClass} />
-              </tr>
-            </thead>
-            <tbody>
-              {top.map((x) => (
-                <tr key={x.term}>
-                  <td className={`${tdClass} font-semibold text-lien-heading`}>{x.term}</td>
-                  <td className={`${tdClass} text-right`}>{x.count}</td>
-                  <td className={tdClass}>{x.hidden ? <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-semibold text-gray-700">Đang ẩn</span> : <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">Có thể hiện</span>}</td>
-                  <td className={`${tdClass} text-right`}>
-                    <form action={hideSearchTermAction} className="inline">
-                      <input type="hidden" name="term" value={x.term} />
-                      <input type="hidden" name="hidden" value={x.hidden ? "0" : "1"} />
-                      <button type="submit" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px]`}>
-                        {x.hidden ? "Hiện lại" : "Ẩn khỏi gợi ý"}
-                      </button>
-                    </form>
-                  </td>
+          <>
+            <form id="terms-bulk" action={bulkSearchTermsAction} />
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <TickGate scope="terms-bulk" />
+              <span className="font-semibold text-lien-heading">Đã tick →</span>
+              <button type="submit" form="terms-bulk" name="op" value="hide" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+                <Fa name="eye-slash" /> Ẩn
+              </button>
+              <button type="submit" form="terms-bulk" name="op" value="show" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+                <Fa name="eye" /> Hiện
+              </button>
+            </div>
+            <table className={tableClass} data-testid="top-terms">
+              <thead>
+                <tr>
+                  <th className={`${thClass} w-8`}>
+                    <TableSelectAll name="ids" />
+                  </th>
+                  <th className={thClass}>Từ khoá</th>
+                  <th className={`${thClass} text-right`}>Lượt tìm</th>
+                  <th className={thClass}>Trạng thái</th>
+                  <th className={thClass} />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {top.map((x) => (
+                  <tr key={x.term}>
+                    <td className={tdClass}>
+                      <input type="checkbox" name="ids" value={x.term} form="terms-bulk" className="h-4 w-4" aria-label={`Chọn ${x.term}`} />
+                    </td>
+                    <td className={`${tdClass} font-semibold text-lien-heading`}>{x.term}</td>
+                    <td className={`${tdClass} text-right`}>{x.count}</td>
+                    <td className={tdClass}>{x.hidden ? <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-semibold text-gray-700">Đang ẩn</span> : <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">Có thể hiện</span>}</td>
+                    <td className={`${tdClass} text-right`}>
+                      <form action={hideSearchTermAction} className="inline">
+                        <input type="hidden" name="term" value={x.term} />
+                        <input type="hidden" name="hidden" value={x.hidden ? "0" : "1"} />
+                        <button type="submit" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px]`}>
+                          {x.hidden ? "Hiện lại" : "Ẩn khỏi gợi ý"}
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </Card>
     </>

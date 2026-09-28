@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { moveVariantAction, saveGroupAction, saveVariantAction, saveVariantsBulkAction } from "@/app/admin/products/groups/actions";
+import { moveVariantAction, saveGroupAction, saveVariantAction, saveVariantsBulkAction, ungroupVariantsAction } from "@/app/admin/products/groups/actions";
 import { AddToGroupPicker } from "@/components/sites/lienstore/admin/AddToGroupPicker";
 import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";
+import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { VariantTree } from "@/components/sites/lienstore/admin/VariantTree";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -91,10 +94,25 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
             <form id="bulk-variants" action={saveVariantsBulkAction}>
               <input type="hidden" name="groupId" value={group.id} />
             </form>
+            <form id="ungroup-variants" action={ungroupVariantsAction}>
+              <input type="hidden" name="groupId" value={group.id} />
+            </form>
+            {members.length ? (
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+                <TickGate scope="ungroup-variants" />
+                <span className="font-semibold text-lien-heading">Đã tick →</span>
+                <ConfirmSubmit form="ungroup-variants" message="Tách các sản phẩm đã tick khỏi nhóm? (Sản phẩm vẫn giữ nguyên, chỉ hiển thị riêng lẻ.)" confirmLabel="Tách khỏi nhóm" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] disabled:opacity-50`}>
+                  Tách khỏi nhóm
+                </ConfirmSubmit>
+              </div>
+            ) : null}
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr>
+                    <th className={thClass + " w-8"}>
+                      <TableSelectAll name="ids" />
+                    </th>
                     <th className={thClass}>Sản phẩm</th>
                     {labels.map((l, i) => (
                       <th key={l} className={thClass}>
@@ -112,6 +130,9 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                     const fid = `v-${p.id}`;
                     return (
                       <tr key={p.id} id={`row-${p.id}`}>
+                        <td className={`${tdClass} !px-2`}>
+                          <input type="checkbox" name="ids" value={p.id} form="ungroup-variants" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+                        </td>
                         <td className={`${tdClass} min-w-[280px]`}>
                           <form id={fid} action={saveVariantAction}>
                             <input type="hidden" name="groupId" value={group.id} />
@@ -170,7 +191,7 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                   })}
                   {members.length === 0 ? (
                     <tr>
-                      <td colSpan={4 + labels.length} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={5 + labels.length} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có sản phẩm nào — tìm và thêm ở khung phía trên.
                       </td>
                     </tr>
@@ -183,7 +204,6 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                 <Fa name="check" /> Lưu tất cả ({members.length} biến thể)
               </button>
             ) : null}
-            <p className="mt-3 text-[12px] leading-5 text-lien-muted">Bấm ▲ / ▼ để đổi thứ tự từng dòng (lưu ngay); các ô còn lại điền thoải mái rồi bấm “Lưu tất cả” một lần. Mỗi cột thuộc tính là một cấp: điền “Loại” = A / White, “Số viên” = 420 / 840… Ô vàng là giá trị còn thiếu. Thẻ ngoài kệ dùng ảnh và giá của biến thể có thứ tự nhỏ nhất (hiện là “{rep?.name ?? "—"}”); giá hiển thị “Từ …” khi các biến thể khác giá.</p>
           </Card>
         </div>
       </div>

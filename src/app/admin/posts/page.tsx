@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { deletePostAction, setPostStatusAction } from "@/app/admin/posts/actions";
+import { bulkPostsAction, deletePostAction, setPostStatusAction } from "@/app/admin/posts/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -57,10 +59,27 @@ export default async function AdminPosts({ searchParams }: Props) {
             Lọc
           </button>
         </form>
+        <form id="posts-bulk" action={bulkPostsAction} />
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+          <TickGate scope="posts-bulk" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <button type="submit" form="posts-bulk" name="op" value="publish" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] disabled:opacity-50`}>
+            Đăng
+          </button>
+          <button type="submit" form="posts-bulk" name="op" value="draft" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] disabled:opacity-50`}>
+            Ẩn
+          </button>
+          <ConfirmSubmit form="posts-bulk" name="op" value="delete" message="Xoá vĩnh viễn các bài đã tick?" confirmLabel="Xoá" className={`${btnSecondary} !px-2.5 !py-1 !text-[12px] text-lien-heart disabled:opacity-50`}>
+            Xoá
+          </ConfirmSubmit>
+        </div>
         <ResizableTable id="posts">
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={thClass + " w-8"}>
+                  <TableSelectAll name="ids" />
+                </th>
                 <th className={thClass} />
                 <th className={thClass}>Tiêu đề</th>
                 <th className={thClass}>Ngày đăng</th>
@@ -72,13 +91,16 @@ export default async function AdminPosts({ searchParams }: Props) {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có bài viết nào.
                   </td>
                 </tr>
               ) : null}
               {items.map((p) => (
                 <tr key={p.slug} className="hover:bg-[#fafafa]">
+                  <td className={`${tdClass} !px-2`}>
+                    <input type="checkbox" name="ids" value={p.slug} form="posts-bulk" className="h-4 w-4" aria-label={`Chọn ${p.title}`} />
+                  </td>
                   <td className={`${tdClass} w-16`}>{p.image ? <Image src={p.image} alt="" width={56} height={40} unoptimized className="h-10 w-14 rounded border border-[#e5e7eb] object-cover" /> : <span className="flex h-10 w-14 items-center justify-center rounded border border-dashed border-[#e5e7eb] text-lien-muted"><Fa name="newspaper-o" /></span>}</td>
                   <td className={`${tdClass} min-w-[280px]`}>
                     <Link href={`/admin/posts/${encodeURIComponent(p.slug)}/`} className="font-semibold text-lien-heading hover:text-lien-blue">

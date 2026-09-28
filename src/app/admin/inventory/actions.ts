@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth";
-import { getProductById, setProductStockInWarehouse, updateProductStock } from "@/lib/db";
+import { getProductById, setProductsMinStock, setProductStockInWarehouse, updateProductStock } from "@/lib/db";
 import { parseStocktakeCsv } from "@/lib/stocktake-csv";
 
 /**
@@ -51,4 +51,18 @@ export async function updateStockAction(formData: FormData): Promise<void> {
     revalidatePath("/", "layout");
   }
   redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${id}`);
+}
+
+/** Ticked rows of the product table: one minimum stock level for all of them (the stock itself is untouched). */
+export async function bulkMinStockAction(formData: FormData): Promise<void> {
+  if (!(await can("inventory"))) redirect("/admin/login/");
+  const back = String(formData.get("back") ?? "/admin/inventory/?view=products");
+  const ids = formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
+  const raw = String(formData.get("minStock") ?? "").trim().replace(/[^\d]/g, "");
+  const sep = back.includes("?") ? "&" : "?";
+  if (!ids.length) redirect(`${back}${sep}error=${encodeURIComponent("Chưa tick sản phẩm nào.")}`);
+  if (!raw) redirect(`${back}${sep}error=${encodeURIComponent("Nhập mức tồn tối thiểu.")}`);
+  const n = await setProductsMinStock(ids, Number.parseInt(raw, 10));
+  revalidatePath("/", "layout");
+  redirect(`${back}${sep}error=&saved=min:${n}:${Number.parseInt(raw, 10)}`);
 }

@@ -12,6 +12,9 @@ import { formatDateTime, formatPrice } from "@/lib/format";
 import { isShipStage, SHIP_STAGES, type ShipStage, stageIndex } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/shop";
+import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
+import { flowCounts } from "@/lib/flow-db";
+import { getDb } from "@/lib/sqlite";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +86,7 @@ export default async function AdminOrders({ searchParams }: Props) {
 
   return (
     <>
+      <FlowSteps current="orders" counts={flowCounts(getDb())} />
       <PageHeader title="Đơn hàng" subtitle={`${items.length} / ${all.length} đơn · doanh thu bộ lọc ${formatPrice(total)}`} />
       {first(sp.deleted) ? <Flash>{first(sp.deleted)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
@@ -134,7 +138,7 @@ export default async function AdminOrders({ searchParams }: Props) {
           <>
           {isOwner ? (
             <form id={BULK_FORM_ID} action={deleteOrdersAction} className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-[12px] text-lien-muted" data-testid="orders-bulk-bar">
-              <span>Bấm mã đơn để xem chi tiết. Tích ô đầu dòng để chọn đơn cần xóa (một hay nhiều dòng).</span>
+              <span className="font-semibold text-lien-heading">Đã tick →</span>
               <BulkDeleteButton className={bulkBtn} />
             </form>
           ) : null}

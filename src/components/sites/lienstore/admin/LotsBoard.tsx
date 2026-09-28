@@ -10,6 +10,7 @@ import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { LotPicker } from "./LotPicker";
+import { TableSelectAll } from "./TableSelectAll";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
 export interface LotsFilter {
@@ -228,7 +229,6 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
       </Card>
 
       <Card title={`${side === "jp" ? "Kho ĐVVC Nhật" : "Kho ĐVVC VN / đang về kho shop"} — tại kho ĐVVC (${atCarrier.length} dòng bill · ${units(atCarrier)} cái)`}>
-        <p className="m-0 mb-2 text-[12px] text-lien-muted">{side === "jp" ? "Đã giao cho Kiến Express tại Nhật, chờ bay. Đổi trạng thái ở chuyến (④ Vận chuyển) hoặc ở đợt mua." : "Đã về Hà Nội / đang trên xe về kho shop. Đổi trạng thái ở chuyến (④ Vận chuyển) hoặc ở đợt mua."}</p>
         <GroupTable rows={splitByHolder(atCarrier)} sources={sources} scope={`carrier-${side}`} formId={null} />
       </Card>
 
@@ -272,7 +272,11 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
       <table className={tableClass}>
         <thead>
           <tr>
-            {formId ? <th className={cn(thClass, "w-8")} /> : null}
+            {formId ? (
+              <th className={cn(thClass, "w-8")}>
+                <TableSelectAll name="uids" />
+              </th>
+            ) : null}
             <th className={thClass}>Sản phẩm</th>
             <th className={thClass}>Bill · mã</th>
             <th className={thClass}>Ngày mua</th>

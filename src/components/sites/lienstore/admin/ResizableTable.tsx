@@ -111,7 +111,6 @@ export function ResizableTable({ id, children, className = "" }: { id: string; c
   return (
     <div className={className}>
       <div className="mb-1 flex items-center justify-end gap-3 text-[11px] text-lien-muted">
-        <span>Kéo thanh cuộn dưới bảng hoặc Shift + lăn chuột để xem các cột bên phải · kéo mép cột để đổi độ rộng</span>
         <button
           type="button"
           onClick={() => {

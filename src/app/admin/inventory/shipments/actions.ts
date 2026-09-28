@@ -48,9 +48,9 @@ export async function setShipmentStatusAction(formData: FormData): Promise<void>
   if (!id || !isShipmentStatus(status)) go("error", "Yêu cầu không hợp lệ.", id);
   const r = await setShipmentStatus(id!, status as ShipmentStatus, await actor());
   revalidatePath("/admin", "layout");
-  // the run now lives on ④ Vận chuyển once it left the shop (and back on ③ when moved back)
+  // the run now lives on ⑤ Vận chuyển once it left the shop (and back on ④ when moved back)
   const moved = r.ok && !shipmentEditable(status as ShipmentStatus);
-  go(r.ok ? "saved" : "error", r.ok ? `Đã cập nhật chuyến${r.lots ? ` — ${r.lots} cái đổi vị trí theo; đơn hàng, đợt mua, Tồn kho cập nhật` : ""}.${status === "done" ? " Hàng đã vào ⑤ Tồn kho VN." : ""}` : (r.message ?? "Không cập nhật được."), id, moved || (!r.ok && text(formData, "view") === "transit"));
+  go(r.ok ? "saved" : "error", r.ok ? `Đã cập nhật chuyến${r.lots ? ` — ${r.lots} cái đổi vị trí theo; đơn hàng, đợt mua, Tồn kho cập nhật` : ""}.${status === "done" ? " Hàng đã vào ⑥ Tồn kho VN." : ""}` : (r.message ?? "Không cập nhật được."), id, moved || (!r.ok && text(formData, "view") === "transit"));
 }
 
 /** "Thêm": qty units of a product, FEFO from Kho Nhật (shop). */

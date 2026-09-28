@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cancelPostAction, clearFanpageTokenAction, composeDraftAction, postNowAction, regenerateDraftAction, saveDraftAction, saveFanpageAutoAction, saveFanpageConnectionAction } from "@/app/admin/fanpage/actions";
+import { bulkFanpageAction, cancelPostAction, clearFanpageTokenAction, composeDraftAction, postNowAction, regenerateDraftAction, saveDraftAction, saveFanpageAutoAction, saveFanpageConnectionAction } from "@/app/admin/fanpage/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -146,10 +148,26 @@ export default async function AdminFanpage({ searchParams }: Props) {
           ) : null}
 
           <Card title={`Hàng chờ & lịch sử (${posts.length})`}>
+            <form id="fanpage-bulk" action={bulkFanpageAction} />
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <TickGate scope="fanpage-bulk" />
+              <span className="font-semibold text-lien-heading">Đã tick →</span>
+              {connected ? (
+                <button type="submit" form="fanpage-bulk" name="op" value="post" className={`${btnSecondary} !px-2 !py-1 !text-[12px] disabled:opacity-50`}>
+                  <Fa name="facebook" /> Đăng ngay
+                </button>
+              ) : null}
+              <ConfirmSubmit form="fanpage-bulk" name="op" value="cancel" message="Huỷ lịch các bài chờ đăng và xoá các bài nháp / lỗi đã tick? (Bài đã đăng được bỏ qua.)" confirmLabel="Huỷ lịch / Xoá" className={`${btnSecondary} !px-2 !py-1 !text-[12px] text-lien-heart disabled:opacity-50`}>
+                Huỷ lịch / Xoá
+              </ConfirmSubmit>
+            </div>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr>
+                    <th className={thClass + " w-8"}>
+                      <TableSelectAll name="ids" />
+                    </th>
                     <th className={thClass}>Bài</th>
                     <th className={thClass}>Trạng thái</th>
                     <th className={thClass}>Thời gian</th>
@@ -159,6 +177,9 @@ export default async function AdminFanpage({ searchParams }: Props) {
                 <tbody>
                   {posts.map((p) => (
                     <tr key={p.id} className="align-top hover:bg-[#fafafa]">
+                      <td className={`${tdClass} !px-2`}>
+                        <input type="checkbox" name="ids" value={p.id} form="fanpage-bulk" disabled={p.status === "posted"} className="h-4 w-4 disabled:opacity-40" aria-label={`Chọn bài #${p.id}`} title={p.status === "posted" ? "Bài đã đăng — xoá trực tiếp trên Facebook nếu cần" : undefined} />
+                      </td>
                       <td className={`${tdClass} min-w-[280px]`}>
                         <div className="flex items-start gap-2">
                           {p.productThumb ? <Image src={p.productThumb} alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded border border-[#e5e7eb] object-contain" unoptimized /> : null}
@@ -209,7 +230,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
                   ))}
                   {posts.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={5} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có bài nào — chọn sản phẩm ở trên và bấm &ldquo;Tạo nội dung&rdquo;.
                       </td>
                     </tr>

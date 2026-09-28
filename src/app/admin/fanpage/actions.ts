@@ -122,3 +122,47 @@ export async function cancelPostAction(formData: FormData): Promise<void> {
   revalidatePath(PAGE);
   go("saved", post!.status === "queued" ? "Đã huỷ lịch đăng." : "Đã xoá bài.");
 }
+
+/** Queue / history › tick rows › "Đăng ngay" or "Huỷ lịch / Xoá" (posted rows are skipped, like the per-row buttons). */
+export async function bulkFanpageAction(formData: FormData): Promise<void> {
+  await requireAdmin("fanpage");
+  const ids = [...new Set(formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger))];
+  const op = text(formData, "op");
+  if (!ids.length) go("error", "Chưa tick bài nào.");
+  if (op === "post") {
+    const cfg = getFanpageConfig();
+    if (!cfg.pageId || !cfg.token) go("error", "Chưa cấu hình kết nối Facebook Page (khung bên phải).");
+    let ok = 0;
+    const errors: string[] = [];
+    for (const id of ids) {
+      const post = getFanpagePost(id);
+      if (!post || post.status === "posted") continue;
+      const r = await publishFanpagePost(id);
+      if (r.ok) ok++;
+      else errors.push(`#${id}: ${r.message}`);
+    }
+    revalidatePath(PAGE);
+    if (errors.length) go("error", `Đã đăng ${ok} bài; ${errors.length} bài thất bại — ${errors.join("; ")}`);
+    go("saved", `Đã đăng ${ok} bài lên fanpage.`);
+  }
+  if (op === "cancel") {
+    let cancelled = 0;
+    let deleted = 0;
+    for (const id of ids) {
+      const post = getFanpagePost(id);
+      if (!post || post.status === "posted") continue;
+      if (post.status === "queued") {
+        updateFanpagePost(id, { status: "cancelled" });
+        cancelled++;
+      } else {
+        deleteFanpagePost(id);
+        deleted++;
+      }
+    }
+    revalidatePath(PAGE);
+    const parts = [cancelled ? `huỷ lịch ${cancelled} bài` : "", deleted ? `xoá ${deleted} bài` : ""].filter(Boolean);
+    if (!parts.length) go("error", "Không có bài nào huỷ / xoá được (bài đã đăng thì xoá trực tiếp trên Facebook).");
+    go("saved", `Đã ${parts.join(", ")}.`);
+  }
+  go("error", "Thao tác không hợp lệ.");
+}

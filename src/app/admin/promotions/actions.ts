@@ -19,7 +19,10 @@ const FLASH_SALE = "/admin/promotions/flash-sale/";
 const LABELS = "/admin/promotions/labels/";
 const SEARCH = "/admin/promotions/search/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}?${key}=${encodeURIComponent(msg)}`);
+const back = (url: string, key: "saved" | "error", msg: string): never => redirect(`${url}${url.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(msg)}`);
+/** Ticked row values of a bulk form (`ids`), blanks dropped. */
+const tickedValues = (fd: FormData) => fd.getAll("ids").map((v) => String(v).trim()).filter(Boolean);
+const tickedIds = (fd: FormData) => [...new Set(tickedValues(fd).map((v) => Number.parseInt(v, 10)).filter(Number.isInteger))];
 const isRedirect = (e: unknown) => e instanceof Error && e.message.includes("NEXT_REDIRECT");
 
 const LABEL_TYPES: Record<string, string> = { "image/gif": "gif", "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg", "image/avif": "avif", "image/jpeg": "jpg" };
@@ -72,6 +75,24 @@ export async function assignLabelAction(formData: FormData): Promise<void> {
   back(to, "saved", labelId ? `Đã gắn nhãn cho ${p.name}.` : `Đã gỡ nhãn khỏi ${p.name}.`);
 }
 
+/** Bulk bar of one label's product table: op "unassign" removes the label from every ticked product. */
+export async function bulkLabelProductsAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const open = text(formData, "back");
+  const to = open ? `${LABELS}?open=${open}` : LABELS;
+  const ids = tickedIds(formData);
+  if (!ids.length) return back(to, "error", "Chưa tick sản phẩm nào.");
+  if (text(formData, "op") !== "unassign") return back(to, "error", "Thao tác không hợp lệ.");
+  let n = 0;
+  for (const id of ids) {
+    if (!(await getProductById(id))) continue;
+    await setProductLabel(id, null);
+    n++;
+  }
+  revalidatePath("/", "layout");
+  back(to, "saved", `Đã gỡ nhãn khỏi ${n} sản phẩm.`);
+}
+
 /** Sales › Gợi ý tìm kiếm: pinned trending terms + brand list (one per line). */
 export async function saveSearchSuggestAction(formData: FormData): Promise<void> {
   await requireAdmin("promotions");
@@ -97,6 +118,24 @@ export async function hideSearchTermAction(formData: FormData): Promise<void> {
   invalidateSearchSuggest();
   revalidatePath("/", "layout");
   back(SEARCH, "saved", hide ? `Đã ẩn “${term}” khỏi gợi ý.` : `Đã hiện lại “${term}”.`);
+}
+
+/** Bulk bar of "Khách đã tìm gì": op "hide" / "show" for every ticked term. */
+export async function bulkSearchTermsAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const terms = [...new Set(tickedValues(formData))];
+  if (!terms.length) return back(SEARCH, "error", "Chưa tick từ khoá nào.");
+  const op = text(formData, "op");
+  if (op !== "hide" && op !== "show") return back(SEARCH, "error", "Thao tác không hợp lệ.");
+  const db = getDb();
+  const cur = searchLists(db).hidden;
+  const hiddenNorm = new Set(cur.map(normalizeQuery));
+  const picked = new Set(terms.map(normalizeQuery));
+  const next = op === "hide" ? [...cur, ...terms.filter((t) => !hiddenNorm.has(normalizeQuery(t)))] : cur.filter((x) => !picked.has(normalizeQuery(x)));
+  saveList(db, SEARCH_KEYS.hidden, next);
+  invalidateSearchSuggest();
+  revalidatePath("/", "layout");
+  back(SEARCH, "saved", op === "hide" ? `Đã ẩn ${terms.length} từ khoá khỏi gợi ý.` : `Đã hiện lại ${terms.length} từ khoá.`);
 }
 
 /** Put a product on sale: keeps the current price as the crossed-out regular price unless one is given. */
@@ -130,6 +169,23 @@ export async function clearSaleAction(formData: FormData): Promise<void> {
   await updateProductPricing(id, expectedPriceOf(product), null);
   revalidatePath("/", "layout");
   back(DISCOUNTS, "saved", `Đã bỏ giảm giá "${product.name}".`);
+}
+
+/** Bulk bar of "Đang giảm giá": op "clear" ends the sale of every ticked product (same as clearSaleAction). */
+export async function bulkDiscountsAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const ids = tickedIds(formData);
+  if (!ids.length) return back(DISCOUNTS, "error", "Chưa tick sản phẩm nào.");
+  if (text(formData, "op") !== "clear") return back(DISCOUNTS, "error", "Thao tác không hợp lệ.");
+  let n = 0;
+  for (const id of ids) {
+    const product = await getProductById(id);
+    if (!product) continue;
+    await updateProductPricing(id, expectedPriceOf(product), null);
+    n++;
+  }
+  revalidatePath("/", "layout");
+  back(DISCOUNTS, "saved", `Đã bỏ giảm giá ${n} sản phẩm.`);
 }
 
 const toIso = (d: string, endOfDay: boolean) => (d ? new Date(`${d}T${endOfDay ? "23:59:59" : "00:00:00"}+07:00`).toISOString() : null);
@@ -280,6 +336,17 @@ export async function removeFlashSaleProductAction(formData: FormData): Promise<
   if (Number.isInteger(id)) await removeFlashSaleProduct(id);
   revalidatePath("/", "layout");
   back(FLASH_SALE, "saved", "Đã bỏ khỏi Flash Sales.");
+}
+
+/** Bulk bar of "Sản phẩm trong Flash Sales": op "remove" takes every ticked product out (old price comes back). */
+export async function bulkFlashSaleAction(formData: FormData): Promise<void> {
+  await requireAdmin("promotions");
+  const ids = tickedIds(formData);
+  if (!ids.length) return back(FLASH_SALE, "error", "Chưa tick sản phẩm nào.");
+  if (text(formData, "op") !== "remove") return back(FLASH_SALE, "error", "Thao tác không hợp lệ.");
+  for (const id of ids) await removeFlashSaleProduct(id);
+  revalidatePath("/", "layout");
+  back(FLASH_SALE, "saved", `Đã bỏ ${ids.length} sản phẩm khỏi Flash Sales.`);
 }
 
 /** Move one product up/down the flash-sale order (whole list re-saved, simplest with no drag-and-drop JS). */

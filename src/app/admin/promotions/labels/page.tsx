@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { assignLabelAction, deleteProductLabelAction, saveProductLabelAction } from "@/app/admin/promotions/actions";
+import { assignLabelAction, bulkLabelProductsAction, deleteProductLabelAction, saveProductLabelAction } from "@/app/admin/promotions/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { FilePickButton } from "@/components/sites/lienstore/admin/FilePickButton";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -97,50 +99,68 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                       </button>
                     </form>
                     {items.length ? (
-                      <table className={tableClass}>
-                        <thead>
-                          <tr>
-                            <th className={thClass}>Sản phẩm</th>
-                            <th className={`${thClass} text-right`}>Giá</th>
-                            <th className={`${thClass} text-right`}>Đã bán</th>
-                            <th className={thClass}>Trạng thái</th>
-                            <th className={thClass} />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((p) => (
-                            <tr key={p.id}>
-                              <td className={tdClass}>
-                                <div className="flex items-center gap-3">
-                                  <Image src={p.thumb} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded object-cover" />
-                                  <div>
-                                    <Link href={`/admin/products/${p.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
-                                      {p.name}
-                                    </Link>
-                                    <div className="text-[12px] text-lien-muted">
-                                      #{p.id}
-                                      {p.sku ? ` · ${p.sku}` : ""}
+                      <>
+                        <form id={`label-${l.id}-bulk`} action={bulkLabelProductsAction}>
+                          <input type="hidden" name="back" value={l.id} />
+                        </form>
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+                          <TickGate scope={`label-${l.id}-bulk`} />
+                          <span className="font-semibold text-lien-heading">Đã tick →</span>
+                          <ConfirmSubmit form={`label-${l.id}-bulk`} name="op" value="unassign" message={`Gỡ nhãn “${l.name}” khỏi các sản phẩm đã tick?`} confirmLabel="Gỡ nhãn" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+                            <Fa name="times" /> Gỡ nhãn
+                          </ConfirmSubmit>
+                        </div>
+                        <table className={tableClass}>
+                          <thead>
+                            <tr>
+                              <th className={`${thClass} w-8`}>
+                                <TableSelectAll name="ids" />
+                              </th>
+                              <th className={thClass}>Sản phẩm</th>
+                              <th className={`${thClass} text-right`}>Giá</th>
+                              <th className={`${thClass} text-right`}>Đã bán</th>
+                              <th className={thClass}>Trạng thái</th>
+                              <th className={thClass} />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((p) => (
+                              <tr key={p.id}>
+                                <td className={tdClass}>
+                                  <input type="checkbox" name="ids" value={p.id} form={`label-${l.id}-bulk`} className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+                                </td>
+                                <td className={tdClass}>
+                                  <div className="flex items-center gap-3">
+                                    <Image src={p.thumb} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded object-cover" />
+                                    <div>
+                                      <Link href={`/admin/products/${p.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
+                                        {p.name}
+                                      </Link>
+                                      <div className="text-[12px] text-lien-muted">
+                                        #{p.id}
+                                        {p.sku ? ` · ${p.sku}` : ""}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className={`${tdClass} text-right`}>{p.price > 0 ? `${formatAmount(p.price)}đ` : "Liên hệ"}</td>
-                              <td className={`${tdClass} text-right`}>{sold.get(p.id) ?? 0}</td>
-                              <td className={tdClass}>{p.status === "publish" ? "Đang bán" : "Bản nháp"}</td>
-                              <td className={`${tdClass} text-right`}>
-                                <form action={assignLabelAction} className="inline">
-                                  <input type="hidden" name="productId" value={p.id} />
-                                  <input type="hidden" name="labelId" value="" />
-                                  <input type="hidden" name="back" value={l.id} />
-                                  <button type="submit" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px]`}>
-                                    Gỡ nhãn
-                                  </button>
-                                </form>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                </td>
+                                <td className={`${tdClass} text-right`}>{p.price > 0 ? `${formatAmount(p.price)}đ` : "Liên hệ"}</td>
+                                <td className={`${tdClass} text-right`}>{sold.get(p.id) ?? 0}</td>
+                                <td className={tdClass}>{p.status === "publish" ? "Đang bán" : "Bản nháp"}</td>
+                                <td className={`${tdClass} text-right`}>
+                                  <form action={assignLabelAction} className="inline">
+                                    <input type="hidden" name="productId" value={p.id} />
+                                    <input type="hidden" name="labelId" value="" />
+                                    <input type="hidden" name="back" value={l.id} />
+                                    <button type="submit" className={`${btnSecondary} !px-2.5 !py-1.5 !text-[13px]`}>
+                                      Gỡ nhãn
+                                    </button>
+                                  </form>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
                     ) : (
                       <p className="m-0 text-[13px] text-lien-muted">Chưa có sản phẩm nào gắn nhãn này.</p>
                     )}

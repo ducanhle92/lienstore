@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { deleteReviewAction, reviewStatusAction } from "@/app/admin/reviews/actions";
+import { bulkReviewsAction, deleteReviewAction, reviewStatusAction } from "@/app/admin/reviews/actions";
+import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { StarRating } from "@/components/sites/lienstore/shop/StarRating";
@@ -23,9 +26,12 @@ const STATUS_CLASS: Record<ProductReview["status"], string> = {
   rejected: "bg-gray-200 text-gray-700",
 };
 
-function Row({ r }: { r: ProductReview }) {
+function Row({ r, bulk }: { r: ProductReview; bulk: string }) {
   return (
     <tr>
+      <td className={`${tdClass} !px-2`}>
+        <input type="checkbox" name="ids" value={r.id} form={bulk} className="h-4 w-4" aria-label={`Chọn đánh giá #${r.id}`} />
+      </td>
       <td className={tdClass}>
         <span className="block text-[12px] text-lien-muted">{formatDateTime(r.createdAt)}</span>
         <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
@@ -74,6 +80,29 @@ function Row({ r }: { r: ProductReview }) {
   );
 }
 
+/** Bulk bar above one table: its own empty form (rows point at it with form=…), buttons act on the ticked rows. */
+function BulkBar({ id }: { id: string }) {
+  const btn = "!px-2.5 !py-1 !text-[12px] disabled:opacity-50";
+  return (
+    <>
+      <form id={id} action={bulkReviewsAction} />
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+        <TickGate scope={id} />
+        <span className="font-semibold text-lien-heading">Đã tick →</span>
+        <button type="submit" form={id} name="op" value="approved" className={`${btnPrimary} ${btn}`}>
+          <Fa name="check" /> Duyệt
+        </button>
+        <button type="submit" form={id} name="op" value="rejected" className={`${btnSecondary} ${btn}`}>
+          <Fa name="times" /> Từ chối
+        </button>
+        <ConfirmSubmit form={id} name="op" value="delete" message="Xoá vĩnh viễn các đánh giá đã tick?" confirmLabel="Xoá" className={`${btnDanger} ${btn}`}>
+          <Fa name="trash" /> Xoá
+        </ConfirmSubmit>
+      </div>
+    </>
+  );
+}
+
 export default async function AdminReviews({ searchParams }: Props) {
   await requireAdmin("reviews");
   const sp = await searchParams;
@@ -89,38 +118,50 @@ export default async function AdminReviews({ searchParams }: Props) {
       {error ? <Flash kind="error">{error}</Flash> : null}
       <Card title={`Chờ duyệt (${pending.length})`} className="mb-6">
         {pending.length ? (
+          <>
+          <BulkBar id="reviews-pending-bulk" />
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={thClass + " w-8"}>
+                    <TableSelectAll name="ids" />
+                  </th>
                   <th className={thClass}>Ngày</th>
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Đánh giá</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>
-              <tbody>{pending.map((r) => <Row key={r.id} r={r} />)}</tbody>
+              <tbody>{pending.map((r) => <Row key={r.id} r={r} bulk="reviews-pending-bulk" />)}</tbody>
             </table>
           </div>
+          </>
         ) : (
           <p className="m-0 text-[14px] text-lien-muted">Không có đánh giá nào chờ duyệt.</p>
         )}
       </Card>
       <Card title={`Đã xử lý (${rest.length})`}>
         {rest.length ? (
+          <>
+          <BulkBar id="reviews-handled-bulk" />
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={thClass + " w-8"}>
+                    <TableSelectAll name="ids" />
+                  </th>
                   <th className={thClass}>Ngày</th>
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Đánh giá</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>
-              <tbody>{rest.map((r) => <Row key={r.id} r={r} />)}</tbody>
+              <tbody>{rest.map((r) => <Row key={r.id} r={r} bulk="reviews-handled-bulk" />)}</tbody>
             </table>
           </div>
+          </>
         ) : (
           <p className="m-0 text-[14px] text-lien-muted">Chưa có đánh giá nào.</p>
         )}

@@ -2,12 +2,15 @@ import type { DatabaseSync } from "node:sqlite";
 
 /**
  * The import flow the owner works through, left to right:
- * ① Quản lý mua hàng → ② Tồn kho Nhật → ③ Đóng hàng → ④ Vận chuyển → ⑤ Tồn kho VN.
+ * ① Đơn hàng → ② Quản lý mua hàng → ③ Tồn kho Nhật → ④ Đóng hàng → ⑤ Vận chuyển → ⑥ Tồn kho VN.
  * One number per step (units physically at that step) for the step bar on top of those pages.
  */
-export type FlowStep = "buy" | "jp" | "pack" | "transit" | "vn";
+export type FlowStep = "orders" | "buy" | "jp" | "pack" | "transit" | "vn";
 
 export interface FlowCounts {
+  /** Orders being handled (pending + processing) and, of them, those still waiting ("Chờ xử lý"). */
+  openOrders: number;
+  pendingOrders: number;
   /** Units open orders still need bought (lines not fully covered by units). */
   toBuy: number;
   /** Purchase batches not yet at the VN shop. */
@@ -25,7 +28,7 @@ export interface FlowCounts {
 }
 
 export function flowCounts(db: DatabaseSync): FlowCounts {
-  const c: FlowCounts = { toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0 };
+  const c: FlowCounts = { openOrders: 0, pendingOrders: 0, toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0 };
   const rows = db
     .prepare("SELECT u.status, (u.shipment_id IS NOT NULL AND s.status IN ('packing','packed')) AS boxed, COUNT(*) AS n FROM stock_units u LEFT JOIN shipments s ON s.id = u.shipment_id WHERE u.removed IS NULL GROUP BY u.status, boxed")
     .all() as Array<{ status: string; boxed: number; n: number }>;
@@ -48,6 +51,9 @@ export function flowCounts(db: DatabaseSync): FlowCounts {
         .get() as { n: number }
     ).n,
   );
+  const o = db.prepare("SELECT COUNT(*) AS n, SUM(status = 'pending') AS p FROM orders WHERE status IN ('pending','processing')").get() as { n: number; p: number | null };
+  c.openOrders = Number(o.n);
+  c.pendingOrders = Number(o.p ?? 0);
   c.openBatches = Number((db.prepare("SELECT COUNT(*) AS n FROM purchase_batches WHERE status <> 'at_shop'").get() as { n: number }).n);
   for (const r of db.prepare("SELECT status, COUNT(*) AS n FROM shipments WHERE status <> 'done' GROUP BY status").all() as Array<{ status: string; n: number }>) {
     if (r.status === "packing" || r.status === "packed") c.packRuns += Number(r.n);

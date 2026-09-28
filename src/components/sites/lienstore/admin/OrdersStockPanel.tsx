@@ -4,7 +4,9 @@ import type { AllocationView } from "@/lib/allocations-db";
 import type { PurchaseLine } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { reallocateAllAction, reallocateOneAction } from "@/app/admin/inventory/orders-actions";
+import { reallocateAllAction, reallocateOneAction, reallocateSelectedAction } from "@/app/admin/inventory/orders-actions";
+import { TableSelectAll } from "./TableSelectAll";
+import { TickGate } from "./TickGate";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
@@ -101,14 +103,24 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
           <ConfirmSubmit message="Ghép lại nguồn hàng cho mọi đơn đang chờ (chưa trừ tồn)? Phần giữ chỗ tự động được xếp lại: đơn cũ trước, hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm. Phần đã trừ tồn và nguồn chọn tay giữ nguyên." confirmLabel="Ghép lại" className={cn(btnPrimary, "!py-1 !text-[13px]")}>
             Ghép lại tất cả đơn đang chờ
           </ConfirmSubmit>
-          <span className="text-lien-muted">Đơn mới và hàng mới nhập đã tự ghép; nút này chỉ cần khi muốn xếp lại toàn bộ (vd. vừa có hàng về VN).</span>
         </form>
+        <form id="orders-sync" action={reallocateSelectedAction} />
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+          <TickGate scope="orders-sync" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <button type="submit" form="orders-sync" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="reallocate-selected">
+            Ghép lại các đơn đã tick
+          </button>
+        </div>
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
         {shown.length ? (
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={cn(thClass, "w-8")}>
+                    <TableSelectAll name="orderIds" />
+                  </th>
                   <th className={thClass}>Đơn</th>
                   <th className={thClass}>Khách · ngày</th>
                   <th className={thClass}>Thanh toán</th>
@@ -126,6 +138,11 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                     const span = g.lines.length;
                     return (
                       <tr key={l.itemId} className={cn("align-top hover:bg-[#fafafa]", first && "border-t-2 border-[#e5e7eb]")} data-testid={first ? `stock-order-${g.number}` : undefined}>
+                        {first ? (
+                          <td className={`${tdClass} w-8 align-top`} rowSpan={span}>
+                            <input type="checkbox" name="orderIds" value={g.orderId} form="orders-sync" className="h-4 w-4" aria-label={`Chọn đơn #${g.number}`} />
+                          </td>
+                        ) : null}
                         {first ? (
                           <td className={`${tdClass} whitespace-nowrap align-top`} rowSpan={span}>
                             <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">

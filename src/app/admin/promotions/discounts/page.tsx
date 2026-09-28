@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { clearSaleAction, setSaleAction } from "@/app/admin/promotions/actions";
+import { bulkDiscountsAction, clearSaleAction, setSaleAction } from "@/app/admin/promotions/actions";
+import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -62,10 +65,21 @@ export default async function AdminDiscounts({ searchParams }: Props) {
       </Card>
 
       <Card title="Đang giảm giá">
+        <form id="discounts-bulk" action={bulkDiscountsAction} />
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+          <TickGate scope="discounts-bulk" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <ConfirmSubmit form="discounts-bulk" name="op" value="clear" message="Bỏ giảm giá các sản phẩm đã tick? Giá bán trên web trở lại làm giá bán." confirmLabel="Bỏ giảm" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+            <Fa name="times" /> Bỏ giảm
+          </ConfirmSubmit>
+        </div>
         <div className="overflow-x-auto">
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={`${thClass} w-8`}>
+                  <TableSelectAll name="ids" />
+                </th>
                 <th className={thClass}>Sản phẩm</th>
                 <th className={`${thClass} text-right`}>Giá bán trên web</th>
                 <th className={`${thClass} text-right`}>Giá KM</th>
@@ -78,6 +92,9 @@ export default async function AdminDiscounts({ searchParams }: Props) {
             <tbody>
               {onSale.map((p) => (
                 <tr key={p.id}>
+                  <td className={tdClass}>
+                    <input type="checkbox" name="ids" value={p.id} form="discounts-bulk" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+                  </td>
                   <td className={tdClass}>
                     <div className="flex items-center gap-3">
                       <Image src={p.thumb} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded object-cover" />
@@ -113,7 +130,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
               ))}
               {onSale.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa có sản phẩm nào giảm giá.
                   </td>
                 </tr>

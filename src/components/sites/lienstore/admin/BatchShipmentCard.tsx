@@ -44,13 +44,10 @@ export function BatchShipmentCard({ methods, batches, defaultMethodIds }: { meth
           </label>
           <input id="batch-tracking" name="tracking" className={adminInput} placeholder="VD: 1234-5678-9012" />
         </div>
-        <button type="submit" className={btnPrimary}>
+        <button type="submit" className={btnPrimary} title="Phí tính một lần cho cả lô theo tổng cân, chia cho từng đơn theo gram; mã vận đơn ghi vào chặng đó của mọi đơn trong lô">
           <Fa name="cubes" /> Gom các đơn đã tick
         </button>
       </form>
-      <p className="mt-2 text-[12px] leading-5 text-lien-muted">
-        Tick các đơn ở cột đầu bảng dưới → chọn chặng/phương thức → Gom. Phí được tính <strong>một lần cho cả lô</strong> theo tổng cân tính phí rồi chia cho từng đơn theo gram; chênh lệch so với gửi từng đơn được ghi là tiết kiệm. Mã vận đơn của lô tự ghi vào chặng đó của mọi đơn trong lô.
-      </p>
       {batches.length ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full border-collapse text-left text-[13px]">

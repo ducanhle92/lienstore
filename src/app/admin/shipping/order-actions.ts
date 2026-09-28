@@ -91,3 +91,25 @@ export async function setOrderLegStatusAction(formData: FormData): Promise<void>
   revalidatePath("/admin", "layout");
   redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đơn #${order.number} · ${LEG_LABEL[legRaw]}: ${LEG_STATUS_LABEL[statusRaw]}.`)}#order-${orderId}`);
 }
+
+/** Sheet của một chặng › ticked orders: one leg status (+ note) for all of them; tracking numbers stay as they are. */
+export async function bulkOrderLegStatusAction(formData: FormData): Promise<void> {
+  if (!(await can("shipping")) && !(await can("orders"))) redirect("/admin/login/");
+  const legRaw = formData.get("leg");
+  const statusRaw = text(formData, "status");
+  const back = text(formData, "back") || "/admin/shipping/";
+  const sep = back.includes("?") ? "&" : "?";
+  const ids = formData.getAll("orderIds").map((v) => String(v).trim()).filter(Boolean);
+  if (!isShippingLeg(legRaw) || !isLegStatus(statusRaw)) redirect(back);
+  if (!ids.length) redirect(`${back}${sep}error=${encodeURIComponent("Chưa tick đơn nào.")}`);
+  const who = (await getAdminSession())?.label ?? "";
+  const note = text(formData, "note");
+  let n = 0;
+  for (const id of ids) {
+    if (!(await getOrderById(id))) continue;
+    await setOrderLegStatus(id, legRaw, statusRaw, { note, actor: who });
+    n++;
+  }
+  revalidatePath("/admin", "layout");
+  redirect(`${back}${sep}saved=${encodeURIComponent(`${n} đơn · ${LEG_LABEL[legRaw]}: ${LEG_STATUS_LABEL[statusRaw]}.`)}`);
+}

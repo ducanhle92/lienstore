@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { moveFlashSaleProductAction, removeFlashSaleProductAction, saveFlashSaleProductAction } from "@/app/admin/promotions/actions";
+import { bulkFlashSaleAction, moveFlashSaleProductAction, removeFlashSaleProductAction, saveFlashSaleProductAction } from "@/app/admin/promotions/actions";
+import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
+import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
@@ -71,10 +74,21 @@ export default async function AdminFlashSale({ searchParams }: Props) {
       </Card>
 
       <Card title="Sản phẩm trong Flash Sales">
+        <form id="flash-bulk" action={bulkFlashSaleAction} />
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+          <TickGate scope="flash-bulk" />
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <ConfirmSubmit form="flash-bulk" name="op" value="remove" message="Bỏ các sản phẩm đã tick khỏi Flash Sales? Sản phẩm có giá flash được trả lại giá cũ." confirmLabel="Bỏ khỏi Flash Sales" className={`${btnDanger} !px-2.5 !py-1.5 !text-[13px] disabled:opacity-50`}>
+            <Fa name="times" /> Bỏ khỏi Flash Sales
+          </ConfirmSubmit>
+        </div>
         <div className="overflow-x-auto">
           <table className={tableClass}>
             <thead>
               <tr>
+                <th className={`${thClass} w-8`}>
+                  <TableSelectAll name="ids" />
+                </th>
                 <th className={thClass} />
                 <th className={thClass}>Sản phẩm</th>
                 <th className={`${thClass} text-right`}>Giá gốc</th>
@@ -91,6 +105,9 @@ export default async function AdminFlashSale({ searchParams }: Props) {
                 const off = pct(p.regularPrice, p.price);
                 return (
                   <tr key={p.id}>
+                    <td className={tdClass}>
+                      <input type="checkbox" name="ids" value={p.id} form="flash-bulk" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
+                    </td>
                     <td className={`${tdClass} w-14`}>
                       <Image src={p.thumb} alt="" width={40} height={40} unoptimized className="h-10 w-10 rounded object-cover" />
                     </td>
@@ -159,7 +176,7 @@ export default async function AdminFlashSale({ searchParams }: Props) {
               })}
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa chọn sản phẩm nào.
                   </td>
                 </tr>

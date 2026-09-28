@@ -26,3 +26,22 @@ export async function deleteReviewAction(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
   back("saved", "Đã xoá đánh giá.");
 }
+
+/** Tick rows › "Duyệt" / "Từ chối" / "Xoá" (same as the per-row buttons, once per ticked review). */
+export async function bulkReviewsAction(formData: FormData): Promise<void> {
+  await requireAdmin("reviews");
+  const ids = [...new Set(formData.getAll("ids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger))];
+  const op = String(formData.get("op") ?? "");
+  if (!ids.length) back("error", "Chưa tick đánh giá nào.");
+  if (op === "approved" || op === "rejected") {
+    for (const id of ids) await setReviewStatus(id, op);
+    revalidatePath("/", "layout");
+    back("saved", op === "approved" ? `Đã duyệt ${ids.length} đánh giá — khách sẽ thấy trên trang sản phẩm.` : `Đã từ chối ${ids.length} đánh giá.`);
+  }
+  if (op === "delete") {
+    for (const id of ids) await deleteReview(id);
+    revalidatePath("/", "layout");
+    back("saved", `Đã xoá ${ids.length} đánh giá.`);
+  }
+  back("error", "Yêu cầu không hợp lệ.");
+}
