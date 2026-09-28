@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.101.0] - 2026-09-28
+
 ### Changed
 - **Đơn hàng** có hai cách xem, chọn ở góc phải tiêu đề: **Lãi / lỗ** (danh sách như trước) và **Theo kho hàng** (mỗi đơn đang xử lý: hàng của từng dòng đang ở đâu, dòng nào còn “Cần mua”, ghép lại nguồn hàng — chính là “Hàng theo đơn” trước đây ở Tồn kho). Link cũ `Tồn kho › Hàng theo đơn` tự chuyển sang đây.
 - **Tồn kho Nhật** / **Tồn kho VN** chỉ còn nhãn kho của chính màn đó (bỏ hai tab “Kho Việt Nam” / “Hàng theo đơn” ở Tồn kho Nhật và ngược lại) — mỗi kho đã là một bước ③ / ⑥ của chuỗi.
