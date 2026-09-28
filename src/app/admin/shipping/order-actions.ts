@@ -80,7 +80,8 @@ export async function setOrderLegStatusAction(formData: FormData): Promise<void>
   if (!(await can("shipping")) && !(await can("orders"))) redirect("/admin/login/");
   const orderId = text(formData, "orderId");
   const legRaw = formData.get("leg");
-  const statusRaw = text(formData, "status");
+  // a button may name the new status ("to"); otherwise the row's status field (e.g. "Lưu thay đổi" of a tracking edit)
+  const statusRaw = text(formData, "to") || text(formData, "status");
   const back = text(formData, "back") || "/admin/shipping/";
   if (!orderId || !isShippingLeg(legRaw) || !isLegStatus(statusRaw)) redirect(back);
   const order = await getOrderById(orderId);

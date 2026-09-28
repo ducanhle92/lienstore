@@ -171,6 +171,8 @@ export async function markCodCollectedAction(formData: FormData): Promise<void> 
   const id = String(formData.get("id") ?? "");
   const r = await setOrderCodCollected(id);
   revalidatePath("/admin", "layout");
+  const back = String(formData.get("back") ?? "");
+  if (back.startsWith("/admin/")) redirect(`${back}${back.includes("?") ? "&" : "?"}${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
 }
 

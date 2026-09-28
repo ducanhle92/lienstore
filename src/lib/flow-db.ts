@@ -1,11 +1,12 @@
 import type { DatabaseSync } from "node:sqlite";
+import { listOrdersReadyToShip } from "./lots-db";
 
 /**
  * The import flow the owner works through, left to right:
- * ① Đơn hàng → ② Quản lý mua hàng → ③ Tồn kho Nhật → ④ Đóng hàng → ⑤ Vận chuyển → ⑥ Tồn kho VN.
+ * ① Đơn hàng → ② Quản lý mua hàng → ③ Tồn kho Nhật → ④ Đóng hàng JP → ⑤ Vận chuyển JP-VN → ⑥ Tồn kho VN → ⑦ Giao hàng VN.
  * One number per step (units physically at that step) for the step bar on top of those pages.
  */
-export type FlowStep = "orders" | "buy" | "jp" | "pack" | "transit" | "vn";
+export type FlowStep = "orders" | "buy" | "jp" | "pack" | "transit" | "vn" | "deliver";
 
 export interface FlowCounts {
   /** Orders being handled (pending + processing) and, of them, those still waiting ("Chờ xử lý"). */
@@ -25,10 +26,13 @@ export interface FlowCounts {
   vn: number;
   packRuns: number;
   transitRuns: number;
+  /** ⑦ Giao hàng VN: paid / COD orders with every unit at Kho VN (shop), and orders out for delivery. */
+  deliverReady: number;
+  delivering: number;
 }
 
 export function flowCounts(db: DatabaseSync): FlowCounts {
-  const c: FlowCounts = { openOrders: 0, pendingOrders: 0, toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0 };
+  const c: FlowCounts = { openOrders: 0, pendingOrders: 0, toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0, deliverReady: 0, delivering: 0 };
   const rows = db
     .prepare("SELECT u.status, (u.shipment_id IS NOT NULL AND s.status IN ('packing','packed')) AS boxed, COUNT(*) AS n FROM stock_units u LEFT JOIN shipments s ON s.id = u.shipment_id WHERE u.removed IS NULL GROUP BY u.status, boxed")
     .all() as Array<{ status: string; boxed: number; n: number }>;
@@ -59,5 +63,7 @@ export function flowCounts(db: DatabaseSync): FlowCounts {
     if (r.status === "packing" || r.status === "packed") c.packRuns += Number(r.n);
     else c.transitRuns += Number(r.n);
   }
+  c.deliverReady = listOrdersReadyToShip(db).length;
+  c.delivering = Number((db.prepare("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing') AND ship_stage = 'delivering'").get() as { n: number }).n);
   return c;
 }

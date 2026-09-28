@@ -13,19 +13,20 @@ interface Step {
 }
 
 export const FLOW_STEPS: Step[] = [
-  { key: "orders", n: "1", label: "Đơn hàng", href: "/admin/orders/", icon: "shopping-cart", value: (c) => `${c.openOrders} đơn đang xử lý${c.pendingOrders ? ` · ${c.pendingOrders} chờ` : ""}` },
-  { key: "buy", n: "2", label: "Mua hàng", href: "/admin/purchases/", icon: "shopping-basket", value: (c) => `${c.openBatches} đợt mở${c.toBuy ? ` · ${c.toBuy} đv chưa mua` : ""}` },
+  { key: "orders", n: "1", label: "Đơn hàng", href: "/admin/orders/", icon: "shopping-cart", value: (c) => `${c.openOrders} đơn${c.pendingOrders ? ` · ${c.pendingOrders} chờ` : ""}` },
+  { key: "buy", n: "2", label: "Mua hàng", href: "/admin/purchases/", icon: "shopping-basket", value: (c) => `${c.openBatches} đợt${c.toBuy ? ` · ${c.toBuy} chưa mua` : ""}` },
   { key: "jp", n: "3", label: "Tồn kho Nhật", href: "/admin/inventory/?side=jp", icon: "archive", value: (c) => `${c.jp} đv trên kệ` },
-  { key: "pack", n: "4", label: "Đóng hàng", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
-  { key: "transit", n: "5", label: "Vận chuyển", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
+  { key: "pack", n: "4", label: "Đóng hàng JP", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
+  { key: "transit", n: "5", label: "Vận chuyển JP-VN", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
   { key: "vn", n: "6", label: "Tồn kho VN", href: "/admin/inventory/?side=vn", icon: "building", value: (c) => `${c.vn} đv` },
+  { key: "deliver", n: "7", label: "Giao hàng VN", href: "/admin/inventory/delivery/", icon: "map-marker", value: (c) => `${c.deliverReady} chờ giao${c.delivering ? ` · ${c.delivering} đang giao` : ""}` },
 ];
 
-/** The five-step import flow as a bar on top of each step's page; the current step is highlighted. */
+/** The seven-step flow (order → buy → Kho Nhật → pack → JP-VN → Kho VN → deliver) as a bar on top of each step's page; the current step is highlighted. */
 export function FlowSteps({ current, counts }: { current: FlowStep | null; counts: FlowCounts }) {
   return (
     <nav aria-label="Quy trình nhập hàng" className="mb-4 overflow-x-auto" data-testid="flow-steps">
-      <ol className="m-0 flex min-w-max list-none items-stretch gap-1 p-0">
+      <ol className="m-0 flex list-none flex-wrap items-stretch gap-1 p-0">
         {FLOW_STEPS.map((s, i) => {
           const on = s.key === current;
           return (
@@ -34,7 +35,7 @@ export function FlowSteps({ current, counts }: { current: FlowStep | null; count
               <Link
                 href={s.href}
                 aria-current={on ? "step" : undefined}
-                className={cn("flex items-center gap-2 rounded-md border px-3 py-1.5 no-underline", on ? "border-lien-blue bg-lien-blue text-white" : "border-[#e5e7eb] bg-white text-lien-heading hover:border-lien-blue")}
+                className={cn("flex items-center gap-1.5 rounded-md border px-2 py-1.5 no-underline", on ? "border-lien-blue bg-lien-blue text-white" : "border-[#e5e7eb] bg-white text-lien-heading hover:border-lien-blue")}
                 data-step={s.key}
               >
                 <span className={cn("grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold", on ? "bg-white text-lien-blue" : "bg-[#f3f4f6] text-lien-muted")}>{s.n}</span>

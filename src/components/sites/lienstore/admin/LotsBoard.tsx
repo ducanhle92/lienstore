@@ -92,7 +92,6 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
   const shelf = shown.filter((g) => !(side === "jp" && g.shipmentId));
   const boxed = side === "jp" ? shown.filter((g) => g.shipmentId) : [];
   const boxedAll = side === "jp" ? atShop.filter((g) => g.shipmentId) : [];
-  const onTheWay = groups.filter((g) => (side === "jp" ? g.status === "to_carrier_jp" || g.status === "shipped_jp_vn" : g.status === "at_carrier_vn" || g.status === "to_shop"));
   // parcels = packing runs whose boxes are still on the shop floor (one run = one parcel id CH-…)
   const parcels = [...new Map(boxed.map((g) => [g.shipmentId!, { id: g.shipmentId!, code: g.shipmentCode ?? `#${g.shipmentId}`, groups: [] as StockGroup[] }])).values()];
   for (const g of boxed) parcels.find((x) => x.id === g.shipmentId)?.groups.push(g);
@@ -231,37 +230,8 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
             })}
           </div>
         ) : null}
-        {side === "vn" ? (
-          <div className="mt-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
-            <p className="m-0 mb-1 font-semibold text-lien-heading">Đơn cần giao có hàng sẵn ({readyOrders.length})</p>
-            {readyOrders.length === 0 ? <p className="m-0 text-lien-muted">Chưa có đơn nào đủ hàng tại kho shop VN.</p> : null}
-            <ul className="m-0 list-none space-y-1 p-0">
-              {readyOrders.map((o) => (
-                <li key={o.orderId} className="flex flex-wrap items-center gap-2">
-                  <Link href={`/admin/orders/${o.orderId}/`} className="font-semibold text-lien-blue hover:underline">
-                    #{o.orderNumber}
-                  </Link>
-                  <span>{o.customerName}</span>
-                  <span className="font-mono text-[11px] text-lien-muted">
-                    · {o.units} cái · {o.codes.slice(0, 4).join(" ")}
-                    {o.codes.length > 4 ? " …" : ""} · {o.paymentMethod === "cod" ? "COD" : "đã thanh toán"}
-                  </span>
-                  <Link href={`/admin/orders/${o.orderId}/#tracking`} className={cn(btnSecondary, "ml-auto !px-2 !py-0.5 !text-[12px]")}>
-                    Đóng gói giao →
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </Card>
 
-      <p className="m-0 text-[13px] text-lien-muted" data-testid="on-the-way">
-        {side === "jp" ? "Đã giao ĐVVC / đang bay NB→VN" : "Ở kho ĐVVC VN / đang về kho shop"}: <b className="text-lien-heading">{units(onTheWay)} cái</b> —{" "}
-        <Link href={`/admin/inventory/shipments/?stage=transit${side === "jp" ? "" : "&at=vn_carrier"}`} className="text-lien-blue hover:underline">
-          xem ở ⑤ Vận chuyển →
-        </Link>
-      </p>
     </div>
   );
 }

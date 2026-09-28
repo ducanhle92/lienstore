@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **⑦ Giao hàng VN** (Kho hàng, bước cuối của chuỗi) — màn cho admin shop ở Việt Nam giao hàng theo đơn: tab **Chờ giao** (đơn đã thanh toán / COD có đủ hàng tại Kho VN), **Đang giao**, **Đã giao (30 ngày)**. Mỗi đơn: khách, điện thoại, địa chỉ (hoặc nhận tại kho), hàng kèm mã từng cái, cách giao, số tiền **thu hộ** (COD), mã vận đơn + ghi chú cho khách. Nút **Bắt đầu giao** / **Đã giao** (**Khách đã nhận** với đơn nhận tại kho) theo từng đơn hoặc tick nhiều đơn; **Đã thu tiền** cho đơn COD đã giao. Mọi nút đi qua chặng ④ Nội địa Việt Nam nên hàng, tiến độ đơn và trang của khách tự cập nhật.
+
+### Changed
+- Chuỗi bước đổi tên: **④ Đóng hàng JP**, **⑤ Vận chuyển JP-VN**; thêm **⑦ Giao hàng VN** vào menu và thanh bước (thanh bước gọn lại để 7 bước nằm một hàng).
+- Đơn hàng: bộ lọc **Thanh toán** có thêm **Chưa thanh toán** (chưa nhận chuyển khoản / chưa thu COD, trừ đơn đã huỷ); bỏ nút **Xoá lọc**.
+- Tồn kho: bỏ dòng “Đã giao ĐVVC / đang bay … xem ở ⑤ Vận chuyển”; Tồn kho VN bỏ khung “Đơn cần giao có hàng sẵn” (đã có ở ⑦ Giao hàng VN).
+
 ## [1.93.1] - 2026-09-28
 
 ### Removed

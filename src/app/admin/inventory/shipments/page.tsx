@@ -77,7 +77,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
     <>
       <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
       <PageHeader
-        title={transit ? "Vận chuyển" : "Đóng hàng"}
+        title={transit ? "Vận chuyển JP-VN" : "Đóng hàng JP"}
         subtitle={transit ? `Chuyến đã giao ĐVVC: kho Kiến Nhật → bay NB→VN → kho ĐVVC Hà Nội → về kho shop VN · ${shipments.filter((s) => s.status !== "done").length} chuyến đang đi` : `Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.length} chuyến đang đóng · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
         actions={
           transit ? (
@@ -163,7 +163,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
         {at ? <TransitTable title={`${at.label} — ${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill`} groups={atGroups} withRun testId={`at-${at.key}`} /> : null}
         {runsShown.length === 0 && !at ? (
           <Card>
-            <p className="m-0 text-[13px] text-lien-muted">{transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ④ Đóng hàng chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
+            <p className="m-0 text-[13px] text-lien-muted">{transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ④ Đóng hàng JP chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
           </Card>
         ) : null}
         {runsShown.map((s) => (

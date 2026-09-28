@@ -3,7 +3,7 @@ import { deleteOrdersAction } from "@/app/admin/orders/actions";
 import { BULK_FORM_ID, BulkDeleteButton, SelectAllOrders } from "@/components/sites/lienstore/admin/OrdersBulk";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
@@ -43,7 +43,8 @@ export default async function AdminOrders({ searchParams }: Props) {
   const raw = first(sp.status);
   const status = ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;
   const stage = isShipStage(first(sp.stage)) ? (first(sp.stage) as ShipStage) : undefined;
-  const payment = first(sp.payment) === "bacs" || first(sp.payment) === "cod" ? first(sp.payment) : "";
+  // "unpaid" = not paid yet (transfer not received / COD not collected), any method, not cancelled
+  const payment = ["bacs", "cod", "unpaid"].includes(first(sp.payment)) ? first(sp.payment) : "";
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const q = first(sp.q).trim().toLowerCase();
@@ -55,7 +56,7 @@ export default async function AdminOrders({ searchParams }: Props) {
   const items = all
     .filter((o) => !status || o.status === status)
     .filter((o) => !stage || (o.shipStage === stage && o.status !== "cancelled"))
-    .filter((o) => !payment || o.paymentMethod === payment)
+    .filter((o) => !payment || (payment === "unpaid" ? !o.paidAt && o.status !== "cancelled" : o.paymentMethod === payment))
     .filter((o) => !onlyRegular || isReg(o))
     .filter((o) => !from || localDay(o.createdAt) >= from)
     .filter((o) => !to || localDay(o.createdAt) <= to)
@@ -114,11 +115,12 @@ export default async function AdminOrders({ searchParams }: Props) {
             <input type="date" name="to" defaultValue={to} className={cn(adminInput, "mt-1")} />
           </label>
           <label className="text-[12px] font-semibold text-[#374151]">
-            Hình thức thanh toán
+            Thanh toán
             <select name="payment" defaultValue={payment} className={cn(adminInput, "mt-1")}>
               <option value="">Tất cả</option>
               <option value="bacs">Chuyển khoản</option>
               <option value="cod">COD</option>
+              <option value="unpaid">Chưa thanh toán</option>
             </select>
           </label>
           <label className="inline-flex items-center gap-2 self-end pb-2 text-[13px]" title="Chỉ đơn của khách quen (tài khoản được đánh dấu hoặc số điện thoại đã ghi nhớ)">
@@ -127,9 +129,6 @@ export default async function AdminOrders({ searchParams }: Props) {
           <button type="submit" className={btnPrimary}>
             <Fa name="check" /> Lọc
           </button>
-          <Link href="/admin/orders/" className={btnSecondary}>
-            Xoá lọc
-          </Link>
         </form>
       </Card>
       <Card>
