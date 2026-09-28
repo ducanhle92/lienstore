@@ -199,7 +199,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               <tr>
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>SL đóng</th>
-                <th className={thClass}>Lô #</th>
+                <th className={thClass}>Bill · lô</th>
                 <th className={thClass}>HSD</th>
                 <th className={thClass}>Cho đơn</th>
                 <th className={thClass}>Mua ở · ¥/đv</th>
@@ -239,8 +239,11 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
                       {l.heldQty ? <span className="block text-[11px] font-normal text-green-700">{l.heldQty} đã TT</span> : null}
                     </td>
                     <td className={`${tdClass} text-[12px]`}>
-                      #{l.id}
-                      {l.parentLotId ? <span className="block text-lien-muted">tách từ #{l.parentLotId}</span> : null}
+                      {l.receiptCode ? <span className="font-mono text-[11px] font-semibold text-lien-heading">{l.receiptCode}</span> : <span className="text-lien-muted">chưa có bill</span>}
+                      <span className="block text-[11px] text-lien-muted">
+                        lô #{l.id}
+                        {l.parentLotId ? ` · tách từ #${l.parentLotId}` : ""}
+                      </span>
                       {l.batchCode ? <span className="block text-lien-muted">đợt {l.batchCode}</span> : null}
                     </td>
                     <td className={`${tdClass} whitespace-nowrap text-[12px]`}>{l.expiry ? <span className={cn("rounded px-1.5 py-0.5", EXP_CLS[st])} title={days !== null ? `${days} ngày` : undefined}>{formatDate(l.expiry)}</span> : <span className="text-lien-muted">—</span>}</td>

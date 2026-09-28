@@ -45,7 +45,7 @@ const fold = (s: string) =>
 export function applyLotsFilter(lots: LotView[], f: LotsFilter): LotView[] {
   const q = fold(f.q.trim());
   return lots.filter((l) => {
-    if (q && !fold(`${l.productName} ${l.productSku ?? ""} #${l.productId} #${l.id}`).includes(q)) return false;
+    if (q && !fold(`${l.productName} ${l.productSku ?? ""} #${l.productId} #${l.id} ${l.receiptCode}`).includes(q)) return false;
     if (f.src && l.sourceKey !== f.src) return false;
     if (f.exp) {
       const st = expiryState(l.expiry);
@@ -98,7 +98,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
       {/* filter */}
       <form method="get" className="flex flex-wrap items-center gap-2 text-[13px]">
         <input type="hidden" name="side" value={side} />
-        <input name="q" defaultValue={filter.q} placeholder="Sản phẩm / SKU / #id / #lô" className={cn(adminInput, "!mb-0 !w-[240px] !py-1")} aria-label="Tìm lô" />
+        <input name="q" defaultValue={filter.q} placeholder="Sản phẩm / SKU / #id / mã bill / #lô" className={cn(adminInput, "!mb-0 !w-[240px] !py-1")} aria-label="Tìm lô" />
         <select name="src" defaultValue={filter.src} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Nguồn mua">
           <option value="">Mọi nguồn mua</option>
           {srcOptions.map((s) => (
@@ -274,7 +274,7 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
           <tr>
             {formId ? <th className={cn(thClass, "w-8")} /> : null}
             <th className={thClass}>Sản phẩm</th>
-            <th className={thClass}>Lô #</th>
+            <th className={thClass}>Bill · lô</th>
             <th className={thClass}>Ngày nhập</th>
             <th className={thClass}>Nguồn mua</th>
             <th className={thClass}>HSD</th>
@@ -320,8 +320,17 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
                   </div>
                 </td>
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
-                  #{l.id}
-                  {l.parentLotId ? <span className="block text-lien-muted">tách từ #{l.parentLotId}</span> : null}
+                  {l.receiptId ? (
+                    <Link href={`/admin/purchases/?tab=batches&bills=${l.batchId ?? ""}#receipt-${l.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[11px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill mua — mở trong đợt">
+                      {l.receiptCode}
+                    </Link>
+                  ) : (
+                    <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted" title="Gắn bill ở Quản lý mua hàng › Mua theo đợt (cột Bill) hoặc trang lô của sản phẩm">chưa có bill</span>
+                  )}
+                  <span className="block text-[11px] text-lien-muted">
+                    lô #{l.id}
+                    {l.parentLotId ? ` · tách từ #${l.parentLotId}` : ""}
+                  </span>
                   {l.inTransit ? <span className="block rounded bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-800">đang về</span> : null}
                 </td>
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>

@@ -349,13 +349,13 @@ export function listAllocationViews(db: DatabaseSync, itemIds: number[]): Alloca
   return rows.map((a) => {
     const base = { id: a.id, orderItemId: a.order_item_id, sourceType: a.source_type, sourceId: a.source_id, qty: a.qty, manual: a.manual === 1, consumedAt: a.consumed_at };
     if (a.source_type === "lot") {
-      const lot = a.source_id ? (db.prepare("SELECT l.id, l.qty_left, l.expiry, l.warehouse, l.in_transit, b.code FROM stock_lots l LEFT JOIN purchase_batches b ON b.id = l.batch_id WHERE l.id = ?").get(a.source_id) as { id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number; code: string | null } | undefined) : undefined;
+      const lot = a.source_id ? (db.prepare("SELECT l.id, l.qty_left, l.expiry, l.warehouse, l.in_transit, b.code, (SELECT r.code FROM stock_purchases sp JOIN purchase_receipts r ON r.id = sp.receipt_id WHERE sp.lot_id = l.id LIMIT 1) AS bill FROM stock_lots l LEFT JOIN purchase_batches b ON b.id = l.batch_id WHERE l.id = ?").get(a.source_id) as { id: number; qty_left: number; expiry: string | null; warehouse: string; in_transit: number; code: string | null; bill: string | null } | undefined) : undefined;
       const wh = lot ? whOf(lot.warehouse) : "vn";
       const moving = !!lot?.in_transit;
       const status = statusFromSource({ type: "lot", warehouse: lot ? wh : null, inTransit: moving, consumed: !!a.consumed_at });
       const place = lot ? describeLocation(wh, moving) : "";
       const label = a.consumed_at ? `Đã trừ kho${lot ? ` · ${place}` : ""}` : wh === "vn" ? "Có sẵn · Kho VN" : wh === "carrier" && !moving ? "Sắp về kho shop · Kho ĐVVC VN" : `Có sẵn · ${place}`;
-      const detail = lot ? `lô #${lot.id}${lot.expiry ? ` · HSD ${fmtDate(lot.expiry)}` : ""} · còn ${lot.qty_left}${lot.code ? ` · chuyến ${lot.code}` : ""}` : "lô cũ (đã trừ khi đặt)";
+      const detail = lot ? `${lot.bill ? `bill ${lot.bill}` : `lô #${lot.id}`}${lot.expiry ? ` · HSD ${fmtDate(lot.expiry)}` : ""} · còn ${lot.qty_left}${lot.code ? ` · đợt ${lot.code}` : ""}` : "lô cũ (đã trừ khi đặt)";
       return { ...base, label, detail, status, tone: a.consumed_at ? "green" : wh === "vn" ? "green" : "sky" } as AllocationView;
     }
     if (a.source_type === "stock_purchase") {

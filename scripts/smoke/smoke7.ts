@@ -106,14 +106,14 @@ async function main() {
   assert.equal(units("carrier", 1), 7);
   assert.equal(units("vn", 0), 9);
 
-  // allocations moved from slips to lots; order lines read "Kho Nhật · chuyến DG-TEST-01"
+  // allocations moved from slips to lots; order lines read "Kho Nhật · đợt DG-TEST-01"
   assert.equal((db.prepare("SELECT COUNT(*) AS n FROM order_item_allocations WHERE source_type = 'stock_purchase'").get() as { n: number }).n, 0);
   const views = listAllocationViews(db, [i1, i2, i3]);
   assert.equal(views.length, 3);
   for (const v of views) {
     assert.equal(v.sourceType, "lot");
     assert.match(v.label, /Kho Nhật/);
-    assert.match(v.detail, /chuyến DG-TEST-01/);
+    assert.match(v.detail, /đợt DG-TEST-01/);
   }
   assert.equal(views.find((v) => v.orderItemId === i1)!.sourceId, l1.id);
   assert.equal(views.find((v) => v.orderItemId === i2)!.sourceId, lotOf(s2)!.id);
