@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.94.1] - 2026-09-28
+
 ### Changed
 - Trang đơn hàng gọn hơn:
   - Phần giải thích bước hiện tại (“Hiện tại: …”, luồng trả trước / COD, khi nào mở bước “Đã gửi hàng”) nằm sau nút **ⓘ** cạnh tiêu đề “Trạng thái đơn hàng”.
