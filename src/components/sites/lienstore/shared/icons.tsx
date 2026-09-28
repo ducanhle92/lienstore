@@ -84,6 +84,7 @@ const GLYPHS = {
   "globe": "",
   "newspaper-o": "",
   "calendar": "",
+  "filter": "",
 } as const;
 
 export type FaName = keyof typeof GLYPHS;

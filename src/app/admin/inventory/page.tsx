@@ -83,8 +83,8 @@ export default async function AdminInventory({ searchParams }: Props) {
   }
   const openOrderCount = view === "lots" ? (getDb().prepare("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')").get() as { n: number }).n : 0;
   const lotsBack = `/admin/inventory/?side=${lotSide}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
-  const jpUnits = allGroups.filter((g) => g.status === "bought" || g.status === "to_carrier_jp").reduce((n, g) => n + g.qty, 0);
-  const vnUnits = allGroups.filter((g) => g.status === "at_shop" || g.status === "at_carrier_vn" || g.status === "to_shop").reduce((n, g) => n + g.qty, 0);
+  const jpUnits = allGroups.filter((g) => g.status === "bought").reduce((n, g) => n + g.qty, 0);
+  const vnUnits = allGroups.filter((g) => g.status === "at_shop").reduce((n, g) => n + g.qty, 0);
   const sourceName = (k: string) => purchaseSourceName(k, sources);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
@@ -150,7 +150,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         <Link href="/admin/inventory/?side=vn" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "vn" ? "border-lien-heart bg-lien-heart text-white" : "border-red-300 bg-red-50 text-red-900 hover:bg-red-100")}>
           <Fa name="archive" /> Kho Việt Nam ({vnUnits} cái)
         </Link>
-        {view === "lots" && flyingUnits ? <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800"><Fa name="plane" /> đang bay {flyingUnits} cái</span> : null}
+        {view === "lots" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
         <Link href="/admin/inventory/?side=orders" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "orders" ? "border-green-700 bg-green-700 text-white" : "border-green-300 bg-green-50 text-green-900 hover:bg-green-100")}>
           <Fa name="user" /> Hàng theo đơn ({openOrderCount} đơn)
         </Link>
@@ -158,7 +158,7 @@ export default async function AdminInventory({ searchParams }: Props) {
           Theo sản phẩm · kiểm kê · CSV
         </Link>
       </div>
-      {view === "lots" && side === "orders" ? <OrdersStockPanel lines={orderLines} allocations={orderAllocs} stageByOrder={stageByOrder} filter={{ q: first(sp.q), only: first(sp.only) === "short" ? "short" : first(sp.only) === "ready" ? "ready" : "" }} /> : null}
+      {view === "lots" && side === "orders" ? <OrdersStockPanel lines={orderLines} allocations={orderAllocs} stageByOrder={stageByOrder} /> : null}
       {view === "lots" && side !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}

@@ -29,6 +29,13 @@ interface Props {
 }
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "", none: "" } as const;
+/** ⑤ Vận chuyển: where goods with the carrier are — each place is a tab (units there + the runs at that stage). */
+const TRANSIT_AT = [
+  { key: "jp_carrier", label: "Kho ĐVVC Nhật", icon: "building", status: "to_carrier_jp", run: "handed" },
+  { key: "flying", label: "Đang bay NB→VN", icon: "plane", status: "shipped_jp_vn", run: "flying" },
+  { key: "vn_carrier", label: "Kho ĐVVC VN", icon: "building", status: "at_carrier_vn", run: "arrived" },
+  { key: "to_shop", label: "Đang về kho shop", icon: "truck", status: "to_shop", run: null },
+] as const;
 
 /**
  * Kho hàng › Đóng hàng: packing runs from Kho Nhật (shop) to the carrier. Search a product, type how many go into the
@@ -60,8 +67,12 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const error = first(sp.error);
   // the run whose picker sits in the bottom bar: the one being filtered, else the first run still packing
   const barId = (shipments.find((x) => x.id === pickFor && shipmentEditable(x.status)) ?? shipments.find((x) => shipmentEditable(x.status)))?.id ?? null;
-  // ④: units with the carrier that are not in any run (moved by hand) — still on the way, so listed here
-  const looseTransit = transit ? listStockGroups(db, { statuses: ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"] }).filter((g) => !g.shipmentId) : [];
+  // ⑤: every unit with the carrier, by place; ?at=<place> narrows the page to one place
+  const transitGroups = transit ? listStockGroups(db, { statuses: ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"] }) : [];
+  const at = TRANSIT_AT.find((x) => x.key === first(sp.at)) ?? null;
+  const atGroups = at ? transitGroups.filter((g) => g.status === at.status) : transitGroups.filter((g) => !g.shipmentId);
+  const runsShown = at ? shipments.filter((x) => x.status === at.run) : shipments;
+  const unitsIn = (status: string) => transitGroups.filter((g) => g.status === status).reduce((n, g) => n + g.qty, 0);
   return (
     <>
       <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
@@ -82,6 +93,19 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
+
+      {transit ? (
+        <nav className="mb-4 flex flex-wrap gap-2" aria-label="Hàng đang ở đâu" data-testid="transit-tabs">
+          <Link href="/admin/inventory/shipments/?stage=transit" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", !at ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:border-lien-blue")}>
+            Tất cả chuyến ({shipments.filter((x) => x.status !== "done").length})
+          </Link>
+          {TRANSIT_AT.map((x) => (
+            <Link key={x.key} href={`/admin/inventory/shipments/?stage=transit&at=${x.key}`} className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", at?.key === x.key ? "border-sky-700 bg-sky-700 text-white" : "border-sky-200 bg-sky-50 text-sky-900 hover:border-sky-500")} data-testid={`transit-tab-${x.key}`}>
+              <Fa name={x.icon} /> {x.label} ({unitsIn(x.status)} cái)
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <div className={cn("mb-4 grid gap-3 md:grid-cols-2", transit && "hidden")}>
         <details className="min-w-0" open={shipments.length === 0} data-testid="new-shipment">
@@ -136,49 +160,16 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       </div>
 
       <div className="space-y-5">
-        {shipments.length === 0 ? (
+        {at ? <TransitTable title={`${at.label} — ${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill`} groups={atGroups} withRun testId={`at-${at.key}`} /> : null}
+        {runsShown.length === 0 && !at ? (
           <Card>
             <p className="m-0 text-[13px] text-lien-muted">{transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ④ Đóng hàng chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
           </Card>
         ) : null}
-        {shipments.map((s) => (
+        {runsShown.map((s) => (
           <ShipmentCard key={s.id} s={s} inBar={s.id === barId} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
-        {looseTransit.length ? (
-          <Card title={`Hàng đang vận chuyển ngoài chuyến (${looseTransit.reduce((n, g) => n + g.qty, 0)} cái · ${looseTransit.length} dòng bill)`}>
-            <p className="mb-2 mt-0 text-[12px] text-lien-muted">Hàng đã được chuyển vị trí (ở Tồn kho, đợt mua hoặc đơn hàng) mà không qua chuyến đóng hàng. Đổi trạng thái khi hàng tới nơi.</p>
-            <div className="overflow-x-auto">
-              <table className={tableClass} data-testid="loose-transit">
-                <thead>
-                  <tr>
-                    <th className={thClass}>Sản phẩm</th>
-                    <th className={thClass}>Bill · mã</th>
-                    <th className={thClass}>Đang ở</th>
-                    <th className={thClass}>SL</th>
-                    <th className={thClass}>Giữ cho đơn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {looseTransit.map((g) => (
-                    <tr key={g.key}>
-                      <td className={tdClass}>
-                        <Link href={`/admin/inventory/lots/${g.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
-                          {g.productName}
-                        </Link>
-                      </td>
-                      <td className={cn(tdClass, "font-mono text-[12px]")}>
-                        {g.receiptCode || "chưa có bill"} <CodeList codes={g.codes} />
-                      </td>
-                      <td className={cn(tdClass, "text-[13px]")}>{PURCHASE_STAGES[purchaseIndex(g.status)].label}</td>
-                      <td className={cn(tdClass, "font-semibold")}>{g.qty}</td>
-                      <td className={cn(tdClass, "text-[12px]")}>{g.holders.length ? g.holders.map((h) => `#${h.orderNumber} ×${h.qty}`).join(", ") : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        ) : null}
+        {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit ? (
           <p className="m-0 text-[12px] text-lien-muted">
             <Link href={`/admin/inventory/shipments/?stage=transit${includeDone ? "" : "&done=1"}`} className="text-lien-blue hover:underline">
@@ -188,6 +179,63 @@ export default async function ShipmentsPage({ searchParams }: Props) {
         ) : null}
       </div>
     </>
+  );
+}
+
+/** Goods with the carrier, one line per bill line: where it is, how many, which order holds it (and which run). */
+function TransitTable({ title, groups, withRun = false, testId }: { title: string; groups: ReturnType<typeof listStockGroups>; withRun?: boolean; testId: string }) {
+  return (
+    <Card title={title}>
+      <div className="overflow-x-auto">
+        <table className={tableClass} data-testid={testId}>
+          <thead>
+            <tr>
+              <th className={thClass}>Sản phẩm</th>
+              <th className={thClass}>Bill · mã</th>
+              <th className={thClass}>Đang ở</th>
+              <th className={thClass}>SL</th>
+              <th className={thClass}>Giữ cho đơn</th>
+              {withRun ? <th className={thClass}>Chuyến</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.length === 0 ? (
+              <tr>
+                <td colSpan={withRun ? 6 : 5} className={cn(tdClass, "text-center text-lien-muted")}>
+                  Không có hàng nào.
+                </td>
+              </tr>
+            ) : null}
+            {groups.map((g) => (
+              <tr key={g.key}>
+                <td className={tdClass}>
+                  <Link href={`/admin/inventory/lots/${g.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
+                    {g.productName}
+                  </Link>
+                </td>
+                <td className={cn(tdClass, "font-mono text-[12px]")}>
+                  {g.receiptCode || "chưa có bill"} <CodeList codes={g.codes} />
+                </td>
+                <td className={cn(tdClass, "text-[13px]")}>{PURCHASE_STAGES[purchaseIndex(g.status)].label}</td>
+                <td className={cn(tdClass, "font-semibold")}>{g.qty}</td>
+                <td className={cn(tdClass, "text-[12px]")}>{g.holders.length ? g.holders.map((h) => `#${h.orderNumber} ×${h.qty}`).join(", ") : "—"}</td>
+                {withRun ? (
+                  <td className={cn(tdClass, "text-[12px]")}>
+                    {g.shipmentId ? (
+                      <a href={`#shipment-${g.shipmentId}`} className="font-mono text-lien-blue hover:underline">
+                        {g.shipmentCode}
+                      </a>
+                    ) : (
+                      <span className="text-lien-muted">ngoài chuyến</span>
+                    )}
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

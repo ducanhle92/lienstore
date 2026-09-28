@@ -6,26 +6,23 @@ import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reallocateAllAction, reallocateOneAction, reallocateSelectedAction } from "@/app/admin/inventory/orders-actions";
 import { TableSelectAll } from "./TableSelectAll";
-import { BulkBar } from "./BulkBar";
+import { BarTools, BulkBar } from "./BulkBar";
+import { ColumnFilter, SheetInfo } from "./SheetFilter";
 import { ConfirmSubmit } from "./ConfirmSubmit";
-import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
 interface Props {
   lines: PurchaseLine[];
   allocations: AllocationView[];
   /** Customer-facing progress per order id (ordered / paid / in_transit / vn_warehouse / delivering / delivered). */
   stageByOrder: Map<string, string>;
-  filter: { q: string; only: "" | "short" | "ready" };
 }
 
 const TONE: Record<string, string> = { green: "bg-green-100 text-green-800", sky: "bg-sky-100 text-sky-800", amber: "bg-amber-100 text-amber-800", gray: "bg-gray-200 text-gray-700" };
 const STAGE_LABEL: Record<string, string> = { ordered: "Đã đặt", paid: "Đã thanh toán", in_transit: "Đang về VN", vn_warehouse: "Tại kho VN", delivering: "Đang giao", delivered: "Đã nhận" };
-const fold = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/đ/g, "d");
+const SHEET = "orders-stock";
+/** Values of one column for the Excel-style filter ("|" separates several). */
+const vals = (xs: Array<string | number>) => [...new Set(xs.map((x) => String(x).replace(/\|/g, "/").trim()).filter(Boolean))].join("|");
 
 interface Group {
   orderId: string;
@@ -44,7 +41,7 @@ interface Group {
  * Tồn kho › Hàng theo đơn: one block per open order, each line with where its goods are right now (lot / place /
  * shipment) — the same badges as the order page, read-only, so the shop sees at a glance what can be handed over.
  */
-export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: Props) {
+export function OrdersStockPanel({ lines, allocations, stageByOrder }: Props) {
   const byItem = new Map<number, AllocationView[]>();
   for (const a of allocations) byItem.set(a.orderItemId, [...(byItem.get(a.orderItemId) ?? []), a]);
   const groups = new Map<string, Group>();
@@ -56,20 +53,14 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
     if (!allocs.length || allocs.some((a) => !(a.sourceType === "unit" && a.status === "at_shop"))) g.readyVn = false;
     groups.set(l.orderId, g);
   }
-  const q = fold(filter.q.trim());
   const all = [...groups.values()].sort((a, b) => b.number - a.number);
-  const shown = all.filter((g) => {
-    if (filter.only === "short" && g.readyVn) return false;
-    if (filter.only === "ready" && !g.readyVn) return false;
-    if (q && !fold(`#${g.number} ${g.customer} ${g.lines.map((l) => `${l.name} ${l.sku ?? ""} #${l.productId}`).join(" ")}`).includes(q)) return false;
-    return true;
-  });
+  const shown = all;
   const ready = all.filter((g) => g.readyVn).length;
-  const chip = (v: "" | "short" | "ready", label: string) => (
-    <Link key={v} href={`/admin/inventory/?${new URLSearchParams({ side: "orders", ...(filter.q ? { q: filter.q } : {}), ...(v ? { only: v } : {}) }).toString()}`} className={cn("rounded-full border px-2.5 py-0.5 text-[12px] font-semibold no-underline", filter.only === v ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:border-lien-blue")}>
-      {label}
-    </Link>
-  );
+  const payLabel = (g: Group) => (g.paymentMethod === "cod" ? "Thu khi giao" : g.committed ? "Đã thanh toán" : "Chưa thanh toán");
+  const whereLabels = (g: Group) => g.lines.flatMap((l) => {
+    const a = byItem.get(l.itemId) ?? [];
+    return a.length ? a.map((x) => x.label) : ["chưa có nguồn"];
+  });
   return (
     <div className="space-y-4" data-testid="orders-stock">
       <div className="grid grid-cols-3 gap-2">
@@ -87,50 +78,77 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
         </div>
       </div>
       <Card>
-        <form method="get" className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
-          <input type="hidden" name="side" value="orders" />
-          {filter.only ? <input type="hidden" name="only" value={filter.only} /> : null}
-          <input name="q" defaultValue={filter.q} placeholder="Tìm #đơn, tên khách, sản phẩm, SKU…" className={cn(adminInput, "!mb-0 !w-[280px] !py-1")} aria-label="Tìm đơn" />
-          <button type="submit" className={cn(btnSecondary, "!py-1")}>
-            Tìm
-          </button>
-          <span className="mx-1 text-lien-muted">|</span>
-          {chip("", `Tất cả (${all.length})`)}
-          {chip("short", `Còn chờ hàng (${all.length - ready})`)}
-          {chip("ready", `Đủ hàng tại kho VN (${ready})`)}
-        </form>
-        <form action={reallocateAllAction} className="mb-3 flex flex-wrap items-center gap-2 text-[12px]" data-testid="reallocate-all">
-          <ConfirmSubmit message="Ghép lại nguồn hàng cho mọi đơn đang chờ (chưa trừ tồn)? Phần giữ chỗ tự động được xếp lại: đơn cũ trước, hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm. Phần đã trừ tồn và nguồn chọn tay giữ nguyên." confirmLabel="Ghép lại" className={cn(btnPrimary, "!py-1 !text-[13px]")}>
-            Ghép lại tất cả đơn đang chờ
-          </ConfirmSubmit>
-        </form>
+        <BarTools>
+          <form action={reallocateAllAction} data-testid="reallocate-all">
+            <ConfirmSubmit message="Ghép lại nguồn hàng cho mọi đơn đang chờ (chưa trừ tồn)? Phần giữ chỗ tự động được xếp lại: đơn cũ trước, hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm. Phần đã trừ tồn và nguồn chọn tay giữ nguyên." confirmLabel="Ghép lại" className={cn(btnPrimary, "!py-1 !text-[13px]")}>
+              Ghép lại tất cả đơn đang chờ
+            </ConfirmSubmit>
+          </form>
+        </BarTools>
+        <SheetInfo sheet={SHEET} unit="đơn" />
         <form id="orders-sync" action={reallocateSelectedAction} />
         <BulkBar scope="orders-sync">
           <button type="submit" form="orders-sync" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="reallocate-selected">
             Ghép lại các đơn đã tick
           </button>
         </BulkBar>
-        {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
+        {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào đang xử lý.</p> : null}
         {shown.length ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" data-sheet={SHEET}>
             <table className={tableClass}>
               <thead>
                 <tr>
                   <th className={cn(thClass, "w-8")}>
                     <TableSelectAll name="orderIds" />
                   </th>
-                  <th className={thClass}>Đơn</th>
-                  <th className={thClass}>Khách · ngày</th>
-                  <th className={thClass}>Thanh toán</th>
-                  <th className={thClass}>Sản phẩm</th>
-                  <th className={thClass}>SL</th>
-                  <th className={thClass}>Hàng đang ở đâu</th>
-                  <th className={thClass}>Tiến độ đơn</th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Đơn
+                    <ColumnFilter sheet={SHEET} col="order" kind="number" label="Đơn" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Khách · ngày
+                    <ColumnFilter sheet={SHEET} col="customer" kind="date" label="Khách · ngày" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Thanh toán
+                    <ColumnFilter sheet={SHEET} col="pay" label="Thanh toán" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Sản phẩm
+                    <ColumnFilter sheet={SHEET} col="product" label="Sản phẩm" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    SL
+                    <ColumnFilter sheet={SHEET} col="qty" kind="number" label="SL" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Hàng đang ở đâu
+                    <ColumnFilter sheet={SHEET} col="where" label="Hàng đang ở đâu" />
+                  </th>
+                  <th className={cn(thClass, "whitespace-nowrap")}>
+                    Tiến độ đơn
+                    <ColumnFilter sheet={SHEET} col="stage" label="Tiến độ đơn" />
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {shown.map((g) =>
-                  g.lines.map((l, i) => {
+              {shown.map((g) => (
+                // one <tbody> per order: the column filter keeps or hides the whole order
+                <tbody
+                  key={g.orderId}
+                  data-sheet-row
+                  data-v-order={`#${g.number}`}
+                  data-s-order={g.number}
+                  data-v-customer={vals([g.customer])}
+                  data-s-customer={g.createdAt}
+                  data-v-pay={payLabel(g)}
+                  data-v-product={vals(g.lines.map((l) => l.name))}
+                  data-s-product={g.lines[0]?.name ?? ""}
+                  data-v-qty={vals(g.lines.map((l) => l.quantity))}
+                  data-s-qty={g.lines.reduce((n, l) => n + l.quantity, 0)}
+                  data-v-where={vals(whereLabels(g))}
+                  data-v-stage={vals([STAGE_LABEL[g.stage] ?? g.stage, g.readyVn ? "đủ hàng tại kho VN" : "còn chờ hàng"])}
+                >
+                  {g.lines.map((l, i) => {
                     const allocs = byItem.get(l.itemId) ?? [];
                     const first = i === 0;
                     const span = g.lines.length;
@@ -164,7 +182,7 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                         ) : null}
                         {first ? (
                           <td className={`${tdClass} align-top`} rowSpan={span}>
-                            <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", g.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{g.paymentMethod === "cod" ? "Thu khi giao" : g.committed ? "Đã thanh toán" : "Chưa thanh toán"}</span>
+                            <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", g.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{payLabel(g)}</span>
                           </td>
                         ) : null}
                         <td className={`${tdClass} min-w-[220px]`}>
@@ -208,9 +226,9 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                         ) : null}
                       </tr>
                     );
-                  }),
-                )}
-              </tbody>
+                  })}
+                </tbody>
+              ))}
             </table>
           </div>
         ) : null}

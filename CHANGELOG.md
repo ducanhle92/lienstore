@@ -5,6 +5,15 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Dòng chảy kho rõ ràng**: Tồn kho chỉ còn hàng đang nằm tại kho shop; hàng đã giao ĐVVC / đang bay / ở kho ĐVVC VN / đang về kho shop nằm ở **⑤ Vận chuyển**.
+  - **Tồn kho Nhật**: bỏ khung “Kho ĐVVC Nhật” và dải “Đang bay”; thay bằng một dòng “Đã giao ĐVVC / đang bay: n cái — xem ở ⑤ Vận chuyển →”. Số ở tab Kho Nhật / Kho VN chỉ đếm hàng tại kho shop.
+  - Hàng đã đóng chờ xuất ĐVVC hiện gọn theo **kiện** (mã chuyến, vd “Kiện CH-260928-01 · 5 cái · 2 dòng bill · 5 cái cho đơn khách · ≈ ¥”), bấm để mở danh sách hàng trong kiện. Ô số liệu mới: “Đã đóng kiện, chờ xuất”.
+  - Bỏ cột **SL chuyển** (đóng / chuyển một phần làm ở ④ Đóng hàng); tick dòng là chuyển cả dòng.
+  - **Tồn kho VN**: khung “Kho ĐVVC VN / đang về kho shop” chuyển sang ⑤ Vận chuyển; ô số liệu mới “Đơn đủ hàng để giao”.
+- **⑤ Vận chuyển** có tab theo nơi hàng đang ở: Tất cả chuyến · **Kho ĐVVC Nhật** · **Đang bay NB→VN** · **Kho ĐVVC VN** · **Đang về kho shop** (kèm số cái) — mỗi tab là bảng hàng ở đó (dòng bill, mã, số cái, đơn giữ, chuyến) và các chuyến đang ở chặng đó.
+- **Hàng theo đơn**: lọc / sắp xếp kiểu Excel ngay trên tiêu đề cột (▾ ở Đơn, Khách · ngày, Thanh toán, Sản phẩm, SL, Hàng đang ở đâu, Tiến độ đơn): sắp xếp tăng / giảm, ô tìm, tick chọn giá trị (có số đơn mỗi giá trị); nhớ theo tab trình duyệt. Bỏ ô tìm và các nút Tất cả / Còn chờ hàng / Đủ hàng; “Ghép lại tất cả đơn đang chờ” lên thanh dưới đáy. “Chọn tất cả” chỉ tick các đơn đang hiện.
+
 ## [1.90.0] - 2026-09-28
 
 ### Changed

@@ -12,7 +12,7 @@ export function TableSelectAll({ name, label = "Chọn tất cả dòng" }: { na
   const boxes = () => {
     const table = ref.current?.closest("table");
     if (!table) return [];
-    return Array.from(table.querySelectorAll<HTMLInputElement>(`tbody input[type="checkbox"]${name ? `[name="${name}"]` : ""}`)).filter((b) => !b.disabled && !b.closest("tr")?.classList.contains("hidden"));
+    return Array.from(table.querySelectorAll<HTMLInputElement>(`tbody input[type="checkbox"]${name ? `[name="${name}"]` : ""}`)).filter((b) => !b.disabled && !b.closest(".hidden, [hidden]"));
   };
   useEffect(() => {
     const table = ref.current?.closest("table");

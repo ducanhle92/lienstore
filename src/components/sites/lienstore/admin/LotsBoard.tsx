@@ -27,8 +27,8 @@ interface Props {
   groups: StockGroup[];
   filter: LotsFilter;
   sources: PurchaseSource[];
-  /** Open packing runs (Đóng hàng) ticked rows can be boxed into. */
-  shipments?: Array<{ id: number; code: string; label: string }>;
+  /** Open packing runs (Đóng hàng): ticked rows can be boxed into them; their boxes are the parcels still at Kho Nhật. */
+  shipments?: Array<{ id: number; code: string; label: string; status?: string }>;
   readyOrders: OrderReadyToShip[];
   backUrl: string;
 }
@@ -84,24 +84,32 @@ const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchas
  * shop" (actions) and "Tại kho ĐVVC" (read-only), the NB→VN flight strip in between. FEFO order everywhere.
  */
 export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl }: Props) {
-  const totals = groupTotals(groups, side);
+  // Tồn kho = what is physically at the shop; goods with the carrier / in the air are under ⑤ Vận chuyển
   const shopStatus = side === "jp" ? "bought" : "at_shop";
-  const shown = applyLotsFilter(groups, filter);
-  const shelf = shown.filter((g) => g.status === shopStatus && !(side === "jp" && g.shipmentId));
-  const boxed = side === "jp" ? shown.filter((g) => g.status === "bought" && g.shipmentId) : [];
-  const atCarrier = shown.filter((g) => (side === "jp" ? g.status === "to_carrier_jp" : g.status === "at_carrier_vn" || g.status === "to_shop"));
-  const flying = side === "jp" ? shown.filter((g) => g.status === "shipped_jp_vn") : [];
-  if (side === "jp") totals.atShop -= boxed.reduce((n, g) => n + g.qty, 0);
+  const atShop = groups.filter((g) => g.status === shopStatus);
+  const totals = groupTotals(atShop, side);
+  const shown = applyLotsFilter(atShop, filter);
+  const shelf = shown.filter((g) => !(side === "jp" && g.shipmentId));
+  const boxed = side === "jp" ? shown.filter((g) => g.shipmentId) : [];
+  const boxedAll = side === "jp" ? atShop.filter((g) => g.shipmentId) : [];
+  const onTheWay = groups.filter((g) => (side === "jp" ? g.status === "to_carrier_jp" || g.status === "shipped_jp_vn" : g.status === "at_carrier_vn" || g.status === "to_shop"));
+  // parcels = packing runs whose boxes are still on the shop floor (one run = one parcel id CH-…)
+  const parcels = [...new Map(boxed.map((g) => [g.shipmentId!, { id: g.shipmentId!, code: g.shipmentCode ?? `#${g.shipmentId}`, groups: [] as StockGroup[] }])).values()];
+  for (const g of boxed) parcels.find((x) => x.id === g.shipmentId)?.groups.push(g);
   const accent = side === "jp" ? "blue" : "red";
+  const units = (xs: StockGroup[]) => xs.reduce((n, g) => n + g.qty, 0);
   const srcOptions = Array.from(new Set(groups.map((g) => g.sourceKey))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
   const formId = `lots-${side}`;
-  const units = (xs: StockGroup[]) => xs.reduce((n, g) => n + g.qty, 0);
   return (
     <div className="space-y-4" data-testid={`lots-board-${side}`}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Tile label="Dòng bill" value={String(totals.groups)} accent={accent} />
-        <Tile label={side === "jp" ? "Tại kho shop Nhật" : "Tại kho shop VN"} value={`${totals.atShop} cái`} accent={accent} />
-        <Tile label={side === "jp" ? "ĐVVC Nhật / đang bay" : "ĐVVC VN / đang về"} value={`${totals.atCarrier} cái`} accent="gray" />
+        <Tile label={side === "jp" ? "Trên kệ Kho Nhật" : "Tại kho shop VN"} value={`${totals.atShop - units(boxedAll)} cái`} accent={accent} />
+        {side === "jp" ? (
+          <Tile label="Đã đóng kiện, chờ xuất" value={`${new Set(boxedAll.map((g) => g.shipmentId)).size} kiện · ${units(boxedAll)} cái`} accent="gray" />
+        ) : (
+          <Tile label="Đơn đủ hàng để giao" value={`${readyOrders.length} đơn`} accent="gray" />
+        )}
         <Tile label="Giữ cho đơn" value={`${totals.held} cái`} accent="amber" />
         <Tile label="Tồn tự do" value={`${totals.free} cái`} accent="green" />
         <Tile label="Vốn (tồn tự do)" value={formatPrice(totals.costVnd)} accent="gray" />
@@ -186,22 +194,41 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
           ) : null}
         </BulkBar>
         <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />
-        {boxed.length ? (
-          <div className="mt-3 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-3 py-2" data-testid="boxed-lots">
-            <p className="m-0 mb-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-lien-heading">
-              <Fa name="cube" /> Đã đóng hàng, chờ xuất ĐVVC ({units(boxed)} cái)
-              <Link href="/admin/inventory/shipments/" className="text-[12px] font-normal text-lien-blue hover:underline">
-                Đóng hàng →
-              </Link>
+        {parcels.length ? (
+          <div className="mt-3 space-y-2" data-testid="boxed-lots">
+            <p className="m-0 text-[13px] font-semibold text-lien-heading">
+              <Fa name="cube" /> Đã đóng kiện, chờ xuất ĐVVC ({parcels.length} kiện · {units(boxed)} cái)
             </p>
-            <ul className="m-0 list-none space-y-0.5 p-0 text-[12px]">
-              {boxed.map((g) => (
-                <li key={g.key}>
-                  {g.productName} ×{g.qty} · chuyến <b>{g.shipmentCode}</b> · <span className="font-mono">{g.receiptCode || "chưa có bill"}</span>
-                  {g.holders.length ? ` · ${g.holders.map((h) => `#${h.orderNumber}×${h.qty}`).join(", ")}` : ""}
-                </li>
-              ))}
-            </ul>
+            {parcels.map((pc) => {
+              const run = shipments.find((x) => x.id === pc.id);
+              const held = pc.groups.reduce((n, g) => n + g.heldQty, 0);
+              const jpy = pc.groups.reduce((n, g) => n + (g.unitCostJpy ?? 0) * g.qty, 0);
+              return (
+                <details key={pc.id} className="rounded-md border border-amber-300 bg-amber-50/40 px-3 py-2" data-testid={`parcel-${pc.id}`}>
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 text-[13px]">
+                    <span className="text-lien-muted">▸</span>
+                    <b className="font-mono text-lien-heading">Kiện {pc.code}</b>
+                    {run?.label ? <span className="text-lien-muted">{run.label}</span> : null}
+                    <span className="text-lien-text">
+                      {units(pc.groups)} cái · {pc.groups.length} dòng bill{held ? ` · ${held} cái cho đơn khách` : ""}
+                      {jpy ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
+                    </span>
+                    {run?.status ? <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", run.status === "packed" ? "bg-amber-100 text-amber-800" : "bg-gray-200 text-gray-700")}>{run.status === "packed" ? "Đã đóng xong" : "Đang đóng"}</span> : null}
+                    <Link href={`/admin/inventory/shipments/#shipment-${pc.id}`} className="ml-auto text-[12px] text-lien-blue hover:underline">
+                      Đóng hàng →
+                    </Link>
+                  </summary>
+                  <ul className="m-0 mt-2 list-none space-y-0.5 border-t border-amber-200 p-0 pt-2 text-[12px]">
+                    {pc.groups.map((g) => (
+                      <li key={g.key}>
+                        {g.productName} ×{g.qty} · <span className="font-mono">{g.receiptCode || "chưa có bill"}</span>
+                        {g.holders.length ? ` · ${g.holders.map((h) => `#${h.orderNumber}×${h.qty}`).join(", ")}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              );
+            })}
           </div>
         ) : null}
         {side === "vn" ? (
@@ -229,30 +256,12 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
         ) : null}
       </Card>
 
-      <Card title={`${side === "jp" ? "Kho ĐVVC Nhật" : "Kho ĐVVC VN / đang về kho shop"} — tại kho ĐVVC (${atCarrier.length} dòng bill · ${units(atCarrier)} cái)`}>
-        <GroupTable rows={splitByHolder(atCarrier)} sources={sources} scope={`carrier-${side}`} formId={null} />
-      </Card>
-
-      {side === "jp" ? (
-        <div className="rounded-md border border-dashed border-sky-300 bg-sky-50/50 px-3 py-2 text-[13px]" data-testid="flying-strip">
-          <p className="m-0 mb-1 font-semibold text-sky-900">
-            <Fa name="plane" /> Đang bay NB→VN ({units(flying)} cái)
-          </p>
-          {flying.length ? (
-            <ul className="m-0 list-none space-y-0.5 p-0 text-[12px]">
-              {flying.map((g) => (
-                <li key={g.key}>
-                  {g.productName} ×{g.qty} · <span className="font-mono">{g.receiptCode || "chưa có bill"}</span>
-                  {g.shipmentCode ? ` · chuyến ${g.shipmentCode}` : ""}
-                  {g.holders.length ? ` · giữ cho ${g.holders.map((h) => `#${h.orderNumber}×${h.qty}`).join(", ")}` : ""}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="m-0 text-lien-muted">Không có hàng nào đang bay.</p>
-          )}
-        </div>
-      ) : null}
+      <p className="m-0 text-[13px] text-lien-muted" data-testid="on-the-way">
+        {side === "jp" ? "Đã giao ĐVVC / đang bay NB→VN" : "Ở kho ĐVVC VN / đang về kho shop"}: <b className="text-lien-heading">{units(onTheWay)} cái</b> —{" "}
+        <Link href={`/admin/inventory/shipments/?stage=transit${side === "jp" ? "" : "&at=vn_carrier"}`} className="text-lien-blue hover:underline">
+          xem ở ⑤ Vận chuyển →
+        </Link>
+      </p>
     </div>
   );
 }
@@ -284,7 +293,6 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
             <th className={thClass}>Nguồn mua</th>
             <th className={thClass}>HSD</th>
             <th className={thClass}>SL</th>
-            {formId ? <th className={thClass}>SL chuyển</th> : null}
             <th className={thClass}>Cho đơn</th>
             <th className={thClass}>¥/cái</th>
             <th className={thClass}>Đợt mua</th>
@@ -359,11 +367,6 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
                   )}
                 </td>
                 <td className={`${tdClass} font-semibold`}>{r.qty}</td>
-                {formId ? (
-                  <td className={tdClass}>
-                    {r.qty > 1 ? <input name={`qty_${r.unitIds[0]}`} form={formId} inputMode="numeric" placeholder={String(r.qty)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số cái (trống = cả dòng)" title="Trống = cả dòng; số nhỏ hơn = chỉ bấy nhiêu cái (hạn dùng gần nhất trước)" /> : <span className="text-[12px] text-lien-muted">1</span>}
-                  </td>
-                ) : null}
                 <td className={`${tdClass} text-[12px]`}>
                   {r.holder ? (
                     <Link href={`/admin/orders/${r.holder.orderId}/`} className={cn("inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", r.holder.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.holder.committed ? "Đơn đã thanh toán / COD" : "Đơn chưa thanh toán (chỉ giữ chỗ)"}>
