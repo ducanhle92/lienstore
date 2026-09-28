@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.91.0] - 2026-09-28
+
 ### Changed
 - **Dòng chảy kho rõ ràng**: Tồn kho chỉ còn hàng đang nằm tại kho shop; hàng đã giao ĐVVC / đang bay / ở kho ĐVVC VN / đang về kho shop nằm ở **⑤ Vận chuyển**.
   - **Tồn kho Nhật**: bỏ khung “Kho ĐVVC Nhật” và dải “Đang bay”; thay bằng một dòng “Đã giao ĐVVC / đang bay: n cái — xem ở ⑤ Vận chuyển →”. Số ở tab Kho Nhật / Kho VN chỉ đếm hàng tại kho shop.
