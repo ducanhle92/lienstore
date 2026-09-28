@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.84.0] - 2026-09-28
+
 ### Changed
 - Mua theo đợt — thẻ đợt gọn hơn: bỏ “Cả đợt → Cập nhật”; chỉ còn **Dòng đã tick → [trạng thái] Cập nhật trạng thái · Xoá dòng đã tick**, bị khoá cho tới khi tick ít nhất một dòng (tick ô đầu bảng = cả đợt; mọi dòng cùng trạng thái thì trạng thái đợt tự theo). Thêm nút **Cập nhật theo đơn hàng**: trả chỗ giữ của đơn đã huỷ về tồn và ghép lại các đơn đang chờ theo quy tắc vị trí → hạn dùng → bill.
 - Số tổng ở đầu đợt không còn đếm trùng dòng đơn đã nằm trong lô: “hàng đã mua (lô) · phiếu · dòng đơn chưa có lô · tổng”, khớp với dòng Tổng cộng của bảng.
