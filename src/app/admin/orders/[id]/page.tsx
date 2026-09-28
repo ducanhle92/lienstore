@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction, updateOrderCustomerAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction, updateOrderCustomerAction, updateOrderItemsAction } from "@/app/admin/orders/actions";
 import { isRegularBy } from "@/lib/regular-customers";
 import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
 import { cn } from "@/lib/utils";
@@ -17,10 +17,11 @@ import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
+import { getAllProducts, getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { getDb, getSetting } from "@/lib/sqlite";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
+import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
@@ -78,6 +79,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   const publicReceiptUrl = (path: string) => `${FILES_URL_PREFIX}${path}?t=${token}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const totalJpy = files.reduce((s, f) => s + (f.amountJpy ?? 0), 0);
+  // products can be edited until the order is out for delivery
+  const itemsEditable = order.status !== "cancelled" && order.shipStage !== "delivering" && order.shipStage !== "delivered";
+  const pickable: PickableProduct[] = itemsEditable ? (await getAllProducts(false)).map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock })) : [];
 
   return (
     <>
@@ -99,12 +103,78 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card
+            className="relative"
             title="Sản phẩm"
             actions={
               <span className="flex items-center gap-2">
                 <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", order.stockCommittedAt ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={order.stockCommittedAt ? `Tồn kho đã trừ lúc ${formatDateTime(order.stockCommittedAt)}` : "Đang giữ chỗ — trừ tồn thật khi xác nhận thanh toán hoặc đổi sang thu khi giao"}>
                   {order.stockCommittedAt ? "Đã trừ tồn kho" : "Đang giữ chỗ"}
                 </span>
+                {itemsEditable ? (
+                  <details data-testid="edit-items">
+                    <summary className={cn(btnSecondary, "inline-flex cursor-pointer list-none !px-2.5 !py-1 !text-[12px]")} title="Sửa số lượng, đơn giá, xoá hoặc thêm sản phẩm của đơn">
+                      <Fa name="pencil" /> Sửa
+                    </summary>
+                    {/* opens across the whole card (anchored to it), not from the button */}
+                    <div className="absolute inset-x-3 top-14 z-30 rounded-md border border-[#e5e7eb] bg-white p-3 shadow-lg max-md:fixed max-md:inset-x-2 max-md:top-16 max-md:max-h-[75vh] max-md:overflow-auto">
+                      <form action={updateOrderItemsAction} className="grid gap-3 text-[13px]">
+                        <input type="hidden" name="id" value={order.id} />
+                        <table className={tableClass}>
+                          <thead>
+                            <tr>
+                              <th className={thClass}>Sản phẩm</th>
+                              <th className={cn(thClass, "w-[130px]")}>Đơn giá (đ)</th>
+                              <th className={cn(thClass, "w-[80px]")}>SL</th>
+                              <th className={cn(thClass, "w-[60px]")}>Xoá</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {order.items
+                              .filter((it) => it.itemId)
+                              .map((it) => (
+                                <tr key={it.itemId}>
+                                  <td className={cn(tdClass, "text-[13px] font-semibold text-lien-heading")}>
+                                    {it.name}
+                                    <span className="block text-[11px] font-normal text-lien-muted">#{it.productId}</span>
+                                  </td>
+                                  <td className={tdClass}>
+                                    <input name={`p_${it.itemId}`} defaultValue={it.price} inputMode="numeric" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label={`Đơn giá ${it.name}`} />
+                                  </td>
+                                  <td className={tdClass}>
+                                    <input name={`q_${it.itemId}`} defaultValue={it.quantity} inputMode="numeric" className={cn(adminInput, "!mb-0 !py-1 !text-center !text-[13px]")} aria-label={`Số lượng ${it.name}`} />
+                                  </td>
+                                  <td className={cn(tdClass, "text-center")}>
+                                    <input type="checkbox" name={`rm_${it.itemId}`} className="h-4 w-4" aria-label={`Xoá ${it.name} khỏi đơn`} title="Xoá dòng này khỏi đơn" />
+                                  </td>
+                                </tr>
+                              ))}
+                            {[1, 2, 3].map((n) => (
+                              <tr key={`add${n}`} className="bg-[#f9fafb]">
+                                <td className={tdClass}>
+                                  <ProductSearchSelect products={pickable} name={`add_${n}_pid`} placeholder={n === 1 ? "+ Thêm sản phẩm: gõ tên / SKU…" : "+ thêm sản phẩm khác…"} />
+                                </td>
+                                <td className={tdClass}>
+                                  <input name={`add_${n}_price`} inputMode="numeric" placeholder="giá web" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Đơn giá sản phẩm thêm" />
+                                </td>
+                                <td className={tdClass}>
+                                  <input name={`add_${n}_qty`} inputMode="numeric" placeholder="1" className={cn(adminInput, "!mb-0 !py-1 !text-center !text-[13px]")} aria-label="Số lượng sản phẩm thêm" />
+                                </td>
+                                <td className={tdClass} />
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="m-0 text-[11px] leading-4 text-lien-muted">
+                          Tạm tính và Tổng tính lại (giảm giá không vượt tạm tính, phí ship đã tính giữ nguyên); hàng của dòng bớt / xoá trở về tồn, dòng thêm được giữ hàng tự động.
+                          {order.paidAt ? " Đơn đã thanh toán — nhớ báo khách phần chênh lệch." : ""}
+                        </p>
+                        <button type="submit" className={cn(btnPrimary, "justify-self-start !py-1.5 !text-[13px]")} data-testid="save-items">
+                          <Fa name="check" /> Lưu sản phẩm
+                        </button>
+                      </form>
+                    </div>
+                  </details>
+                ) : null}
                 {order.status !== "cancelled" ? (
                   <form action={reallocateOrderAction}>
                     <input type="hidden" name="id" value={order.id} />

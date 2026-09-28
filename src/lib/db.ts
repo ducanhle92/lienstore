@@ -52,7 +52,7 @@ import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
 import { allocateOrderSync, commitOrderSync } from "./allocations-db";
-import { adjustUnitsToTotalSync, createUnitsSync, deleteUnitsSync, moveUnitsSync, raiseOrderUnitsSync, releaseItemToBuySync, releaseOrderSync as releaseUnitsSync, touchSync } from "./units-db";
+import { adjustUnitsToTotalSync, createUnitsSync, deleteUnitsSync, moveUnitsSync, raiseOrderUnitsSync, releaseItemToBuySync, releaseItemUnitsSync, releaseOrderSync as releaseUnitsSync, touchSync } from "./units-db";
 import { groupCodeFromName, normalizeGroupCode, STAGE_UNIT_STATUS } from "./units";
 import { locationForStatus, statusForLocation } from "./warehouses";
 import { syncProductStock } from "./stock-sync";
@@ -1347,6 +1347,70 @@ export async function updateOrderShipping(id: string, patch: { fee: number; labe
   const total = Math.max(0, row.subtotal - (row.discount ?? 0)) + shippingFee;
   db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, ship_fee_payment = 'prepaid', updated_at = ? WHERE id = ?").run(shippingFee, patch.label, patch.delivery, total, new Date().toISOString(), id);
   return true;
+}
+
+export interface OrderItemsEdit {
+  lines: Array<{ itemId: number; quantity: number; price: number; remove: boolean }>;
+  add: Array<{ productId: number; quantity: number; price: number | null }>;
+}
+
+/**
+ * Admin "Sửa" of the product table of an order: quantity / unit price per line, remove lines, add products.
+ * Subtotal and total follow (the discount is capped to the new subtotal; shipping already in the total stays);
+ * units of reduced / removed lines go back to stock and new / bigger lines are served by the usual rules.
+ * Not once the order is out for delivery (or cancelled).
+ */
+export async function updateOrderItems(orderId: string, edit: OrderItemsEdit, actor = "admin"): Promise<{ ok: boolean; message: string }> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const o = db.prepare("SELECT id, status, ship_stage, subtotal, discount, total FROM orders WHERE id = ?").get(orderId) as { id: string; status: string; ship_stage: string | null; subtotal: number; discount: number | null; total: number } | undefined;
+    if (!o) return { ok: false, message: "Không tìm thấy đơn." };
+    if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ — không sửa sản phẩm được." };
+    if (o.ship_stage === "delivering" || o.ship_stage === "delivered") return { ok: false, message: "Đơn đang giao / đã giao — không sửa sản phẩm được nữa." };
+    const current = db.prepare("SELECT id, product_id, quantity, price FROM order_items WHERE order_id = ?").all(orderId) as Array<{ id: number; product_id: number; quantity: number; price: number }>;
+    const byId = new Map(current.map((r) => [r.id, r]));
+    const touched = new Set<number>();
+    let changes = 0;
+    const left = current.length - edit.lines.filter((l) => l.remove && byId.has(l.itemId)).length + edit.add.filter((a) => a.quantity > 0).length;
+    if (left <= 0) return { ok: false, message: "Đơn phải còn ít nhất một sản phẩm (muốn bỏ cả đơn thì chọn Huỷ đơn)." };
+    for (const l of edit.lines) {
+      const cur = byId.get(l.itemId);
+      if (!cur) continue;
+      if (l.remove || l.quantity <= 0) {
+        releaseItemUnitsSync(db, cur.id, 0, { actor });
+        db.prepare("DELETE FROM order_items WHERE id = ?").run(cur.id);
+        touched.add(cur.product_id);
+        changes++;
+        continue;
+      }
+      const qty = Math.max(1, Math.floor(l.quantity));
+      const price = Math.max(0, Math.round(l.price));
+      if (qty === cur.quantity && price === cur.price) continue;
+      if (qty < cur.quantity) releaseItemUnitsSync(db, cur.id, qty, { actor });
+      db.prepare("UPDATE order_items SET quantity = ?, price = ? WHERE id = ?").run(qty, price, cur.id);
+      touched.add(cur.product_id);
+      changes++;
+    }
+    const ins = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_updated_at, list_price) VALUES (?, ?, ?, ?, ?, ?, ?, 'not_bought', NULL, ?)");
+    for (const a of edit.add) {
+      if (a.quantity <= 0) continue;
+      const p = db.prepare("SELECT id, slug, name, price, regular_price, thumb FROM products WHERE id = ?").get(a.productId) as { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string } | undefined;
+      if (!p) continue;
+      const listPrice = p.regular_price && p.regular_price > 0 && p.regular_price !== p.price ? p.regular_price : p.price;
+      ins.run(orderId, p.id, p.slug, p.name, a.price ?? p.price, p.thumb, Math.floor(a.quantity), listPrice);
+      touched.add(p.id);
+      changes++;
+    }
+    if (!changes) return { ok: true, message: "Không có gì thay đổi." };
+    const subtotal = Number((db.prepare("SELECT COALESCE(SUM(price * quantity), 0) AS s FROM order_items WHERE order_id = ?").get(orderId) as { s: number }).s);
+    const discount = Math.min(o.discount ?? 0, subtotal);
+    // whatever the total held besides the goods (shipping charged with the order) stays as it was
+    const other = o.total - Math.max(0, o.subtotal - (o.discount ?? 0));
+    const total = Math.max(0, subtotal - discount + other);
+    db.prepare("UPDATE orders SET subtotal = ?, discount = ?, total = ?, updated_at = ? WHERE id = ?").run(subtotal, discount, total, new Date().toISOString(), orderId);
+    touchSync(db, { orderIds: [orderId], productIds: [...touched] });
+    return { ok: true, message: `Đã sửa sản phẩm của đơn — tạm tính ${subtotal.toLocaleString("vi-VN")}đ, tổng ${total.toLocaleString("vi-VN")}đ.` };
+  });
 }
 
 /** Admin "Sửa" of the customer block on an order (the customer asked to change name / phone / address…). */

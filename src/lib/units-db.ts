@@ -310,6 +310,22 @@ export function pinUnitsToItemSync(db: DatabaseSync, itemId: number, unitIds: nu
   return { taken: ids.length, need };
 }
 
+/**
+ * The line keeps at most `keep` units (order edited: fewer pieces, or the line removed with keep = 0). Units still on
+ * their way / in stock go back to free stock — boxed and not-yet-deducted ones last, so a packed box stays packed.
+ */
+export function releaseItemUnitsSync(db: DatabaseSync, itemId: number, keep: number, opts: { actor?: string } = {}): number {
+  const held = db
+    .prepare(`SELECT id FROM stock_units WHERE order_item_id = ? AND removed IS NULL AND status IN (${SERVING_SQL}) ORDER BY (shipment_id IS NOT NULL), (committed_at IS NULL), id DESC`)
+    .all(itemId) as Array<{ id: number }>;
+  const extra = held.length - Math.max(0, keep);
+  if (extra <= 0) return 0;
+  const ids = held.slice(0, extra).map((r) => r.id);
+  db.prepare(`UPDATE stock_units SET order_item_id = NULL, manual = 0, committed_at = NULL, updated_at = ? WHERE id IN (${ph(ids.length)})`).run(now(), ...ids);
+  eventSync(db, ids, "released", { itemId, actor: opts.actor, note: "sửa sản phẩm của đơn" });
+  return ids.length;
+}
+
 /** "Cần mua": the line gives its movable units back and waits for a purchase (no automatic serving). */
 export function releaseItemToBuySync(db: DatabaseSync, itemId: number, opts: { actor?: string } = {}): number {
   const ids = (db.prepare("SELECT id FROM stock_units WHERE order_item_id = ? AND committed_at IS NULL AND removed IS NULL AND status IN (" + SERVING_SQL + ")").all(itemId) as Array<{ id: number }>).map((r) => r.id);

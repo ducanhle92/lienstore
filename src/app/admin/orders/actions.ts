@@ -7,7 +7,7 @@ import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
-import { addOrderMessage, getOrderById, deleteOrder, updateOrderCustomer, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
+import { addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
 import { isShipStage, SHIP_STAGES } from "@/lib/shipping";
@@ -57,6 +57,33 @@ export async function setOrderStateAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/admin", "layout");
   redirect(`${back}?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
+}
+
+/** "Sửa" on the order's product table: q_<itemId> / p_<itemId> / rm_<itemId>, and add_<n>_pid / _qty / _price rows. */
+export async function updateOrderItemsAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const num = (k: string) => {
+    const digits = String(formData.get(k) ?? "").replace(/[^\d]/g, "");
+    return digits ? Number.parseInt(digits, 10) : null;
+  };
+  const lines: OrderItemsEdit["lines"] = [];
+  for (const [k] of formData.entries()) {
+    const m = k.match(/^q_(\d+)$/);
+    if (!m) continue;
+    const itemId = Number(m[1]);
+    lines.push({ itemId, quantity: num(k) ?? 0, price: num(`p_${itemId}`) ?? 0, remove: formData.get(`rm_${itemId}`) === "on" });
+  }
+  const add: OrderItemsEdit["add"] = [];
+  for (let n = 1; n <= 5; n++) {
+    const pid = num(`add_${n}_pid`);
+    if (pid) add.push({ productId: pid, quantity: num(`add_${n}_qty`) ?? 1, price: num(`add_${n}_price`) });
+  }
+  const who = (await getAdminSession())?.label ?? "admin";
+  const r = await updateOrderItems(id, { lines, add }, who);
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/checkout/order-received/${id}`);
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
 }
 
 /** "Sửa" on the order's customer block: the customer asked to update name / phone / e-mail / address / note. */

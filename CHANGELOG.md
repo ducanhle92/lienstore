@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Trang đơn › **Sản phẩm** có nút **Sửa**: đổi số lượng, đơn giá từng dòng, xoá dòng, thêm sản phẩm (tìm theo tên / SKU; để trống đơn giá = giá web), rồi **Lưu sản phẩm** (hoặc Lưu thay đổi ở thanh dưới). Tạm tính và Tổng tính lại (giảm giá không vượt tạm tính, phí ship đã tính giữ nguyên); hàng của dòng bớt / xoá trở về tồn kho, dòng thêm được giữ hàng tự động theo quy tắc thường. Không sửa được khi đơn đã huỷ, đang giao hoặc đã giao; đơn phải còn ít nhất một sản phẩm. Đơn đã thanh toán có nhắc báo khách phần chênh lệch.
+
 ## [1.97.0] - 2026-09-28
 
 ### Added
