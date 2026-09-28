@@ -213,6 +213,11 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
   const sumUnits = lotUnits + slipUnits + lineUnits;
   const sumJpyRaw = b.lots.reduce((n, l) => n + (l.unitCostJpy ?? 0) * l.physical, 0) + b.stock.reduce((n, x) => n + (x.unitCostJpy ?? 0) * x.qty, 0) + visibleLines.reduce((n, l) => n + (l.costJpy ?? 0) * l.quantity, 0);
   const sumJpy = sumJpyRaw > 0 ? sumJpyRaw : null;
+  const filterOrders = Array.from(
+    new Map(
+      [...visibleLines.map((l) => ({ id: l.orderId, number: l.orderNumber })), ...[...b.lots, ...b.stock].flatMap((x) => x.reserved.map((r) => ({ id: r.orderId, number: r.orderNumber })))].map((o) => [o.number, { number: o.number, customer: customerByOrder.get(o.id) ?? "" }]),
+    ).values(),
+  ).sort((x, y) => y.number - x.number);
   const filterStatuses = Array.from(new Set([...visibleLines.map((l) => l.purchaseStatus), ...b.stock.map((x) => x.status), ...b.lots.map((l) => statusForLocation(l.warehouse, l.inTransit))])).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
   const rows: Row[] = [...visibleLines.map((l): Row => ({ kind: "line", key: `l-${l.itemId}`, name: l.productName, line: l })), ...b.lots.map((l): Row => ({ kind: "lot", key: `lot-${l.id}`, name: l.productName, lot: l })), ...b.stock.map((s): Row => ({ kind: "stock", key: `s-${s.id}`, name: s.productName, stock: s }))].sort((x, y) => x.name.localeCompare(y.name, "vi") || (x.kind === y.kind ? 0 : x.kind === "line" ? -1 : y.kind === "line" ? 1 : x.kind === "lot" ? -1 : 1));
   const srcSelect = (name: string, value: string, label: string) => (
@@ -361,7 +366,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
           </div>
         )}
 
-        <BatchFilter batchId={b.id} total={rows.length} sources={filterSources} statuses={filterStatuses} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
+        <BatchFilter batchId={b.id} total={rows.length} sources={filterSources} statuses={filterStatuses} orders={filterOrders} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
         <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>
           <table className={cn(tableClass, "max-lg:block")}>
             <thead className="max-lg:hidden">
@@ -752,7 +757,7 @@ function StockRow({ s, b, done, bulkId, saveId, srcSelect, billCell, products, s
   const held = s.reserved.reduce((n, r) => n + r.qty, 0);
   const ro = done || locked;
   return (
-    <tr className={cn(ROW, locked && "opacity-70")} data-testid={`bstock-${s.id}`} data-brow="1" data-kind="stock" data-search={searchOf(s.productId, s.productName, s.productSku)} data-order={s.reserved.map((r) => r.orderNumber).join(" ")} data-customer={s.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-name={s.productName} data-product={s.productId} data-src={s.sourceKey} data-srcname={purchaseSourceName(s.sourceKey, sources)} data-status={s.status} data-statusidx={purchaseIndex(s.status)} data-expiry={s.expiry ?? ""} data-bought={s.boughtAt ?? ""} data-unit={s.unitCostJpy ?? ""} data-bill={s.receiptCode || "—"} data-qty={s.qty} data-jpy={(s.unitCostJpy ?? 0) * s.qty}>
+    <tr className={cn(ROW, locked && "opacity-70")} data-testid={`bstock-${s.id}`} data-brow="1" data-kind={`${s.reserved.length ? "line" : ""} ${s.qty > s.reserved.reduce((n, r) => n + r.qty, 0) ? "stock" : ""}`.trim() || "stock"} data-search={searchOf(s.productId, s.productName, s.productSku)} data-order={s.reserved.map((r) => r.orderNumber).join(" ")} data-customer={s.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-name={s.productName} data-product={s.productId} data-src={s.sourceKey} data-srcname={purchaseSourceName(s.sourceKey, sources)} data-status={s.status} data-statusidx={purchaseIndex(s.status)} data-expiry={s.expiry ?? ""} data-bought={s.boughtAt ?? ""} data-unit={s.unitCostJpy ?? ""} data-bill={s.receiptCode || "—"} data-qty={s.qty} data-jpy={(s.unitCostJpy ?? 0) * s.qty}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{ro ? null : <input type="checkbox" name="sids" value={s.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng lưu kho #${s.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
@@ -820,7 +825,7 @@ function LotRow({ l, b, done, bulkId, saveId, srcSelect, billCell, sources, sear
   const status = statusForLocation(l.warehouse, l.inTransit);
   const note = noteBody(l.note, b.code);
   return (
-    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind={l.reserved.length ? "line" : "stock"} data-search={searchOf(l.productId, l.productName, l.productSku)} data-name={l.productName} data-product={l.productId} data-order={l.reserved.map((r) => r.orderNumber).join(" ")} data-customer={l.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-src={l.sourceKey} data-srcname={purchaseSourceName(l.sourceKey, sources)} data-status={status} data-statusidx={purchaseIndex(status)} data-expiry={l.expiry ?? ""} data-bought={l.boughtAt ?? l.receivedAt} data-unit={l.unitCostJpy ?? ""} data-bill={l.receiptCode || "—"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
+    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind={`${l.reserved.length ? "line" : ""} ${l.free > 0 || !l.reserved.length ? "stock" : ""}`.trim()} data-search={searchOf(l.productId, l.productName, l.productSku)} data-name={l.productName} data-product={l.productId} data-order={l.reserved.map((r) => r.orderNumber).join(" ")} data-customer={l.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-src={l.sourceKey} data-srcname={purchaseSourceName(l.sourceKey, sources)} data-status={status} data-statusidx={purchaseIndex(status)} data-expiry={l.expiry ?? ""} data-bought={l.boughtAt ?? l.receivedAt} data-unit={l.unitCostJpy ?? ""} data-bill={l.receiptCode || "—"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{done ? null : <input type="checkbox" name="lotIds" value={l.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn lô #${l.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell

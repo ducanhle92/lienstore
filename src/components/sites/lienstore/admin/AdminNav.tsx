@@ -15,6 +15,8 @@ interface NavLeaf {
   exact?: boolean;
   /** A sub-group inside a group (one more level, e.g. Kho hàng › Chung). */
   children?: NavLeaf[];
+  /** Own active rule when path + query are not enough (the flow steps share pages). */
+  match?: (pathname: string, search: URLSearchParams) => boolean;
 }
 
 /** A parent row: either a plain link or a group whose children appear only when the row is opened. */
@@ -53,9 +55,12 @@ const NAV: NavGroup[] = [
       },
       { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
       { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
-      { href: "/admin/purchases/", label: "Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
-      { href: "/admin/inventory/", label: "Tồn kho", icon: "archive", module: "inventory" },
-      { href: "/admin/inventory/shipments/", label: "Đóng hàng", icon: "cube", module: "inventory" },
+      // the import flow, in the order the goods travel
+      { href: "/admin/purchases/", label: "① Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
+      { href: "/admin/inventory/?side=jp", label: "② Tồn kho Nhật", icon: "archive", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/lots") || (isInventoryHome(p) && (q.get("side") === "jp" || q.get("side") === "orders")) },
+      { href: "/admin/inventory/shipments/", label: "③ Đóng hàng", icon: "cube", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") !== "transit" },
+      { href: "/admin/inventory/shipments/?stage=transit", label: "④ Vận chuyển", icon: "truck", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
+      { href: "/admin/inventory/?side=vn", label: "⑤ Tồn kho VN", icon: "building", module: "inventory", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" && q.get("side") !== "orders" },
     ],
   },
   { href: "/admin/orders/", label: "Đơn hàng", icon: "shopping-cart", module: "orders" },
@@ -116,6 +121,9 @@ const rowBase = "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] leadin
 const rowIdle = "text-white/80 hover:bg-white/10 hover:text-white";
 const rowActive = "bg-lien-blue text-white";
 
+/** Tồn kho itself (not its sub-pages such as Địa chỉ kho / Đóng hàng). */
+const isInventoryHome = (p: string) => p === "/admin/inventory" || p === "/admin/inventory/";
+
 export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" }: AdminNavProps) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -126,6 +134,7 @@ export function AdminNav({ permissions, userLabel, role, shopName = "LienStore" 
   const nav = NAV.map((g) => (g.children ? { ...g, children: visible(g.children) } : g)).filter((g) => (g.children ? g.children.length > 0 : allowed(g)));
 
   const leafActive = (l: NavLeaf) => {
+    if (l.match) return l.match(pathname, new URLSearchParams(search.toString()));
     const [path, query] = l.href.split("?");
     if (path.startsWith("/admin/shipping")) {
       if (!pathname.startsWith("/admin/shipping")) return false;

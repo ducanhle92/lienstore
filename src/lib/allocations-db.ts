@@ -259,6 +259,8 @@ export function releaseOrderSync(db: DatabaseSync, orderId: string, returnConsum
     products.add(a.product_id);
   }
   db.prepare("DELETE FROM order_item_allocations WHERE order_item_id IN (SELECT id FROM order_items WHERE order_id = ?)").run(orderId);
+  // a cancelled order no longer belongs to a purchase batch (its goods are the lots, which stay)
+  db.prepare("UPDATE order_items SET batch_id = NULL WHERE order_id = ? AND batch_id IS NOT NULL").run(orderId);
   for (const p of products) syncProductStock(db, p, ts);
   return { released, returned };
 }
@@ -497,6 +499,8 @@ export async function cleanupOrphanLotRefs(): Promise<{ slips: number; allocatio
     const items = (db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations a WHERE a.source_type = 'lot' AND NOT EXISTS (SELECT 1 FROM stock_lots l WHERE l.id = a.source_id)").all() as Array<{ id: number }>).map((r) => r.id);
     const allocations = Number(db.prepare("DELETE FROM order_item_allocations WHERE source_type = 'lot' AND NOT EXISTS (SELECT 1 FROM stock_lots l WHERE l.id = order_item_allocations.source_id)").run().changes);
     for (const id of items) allocateItemSync(db, id, true);
+    // lines of orders cancelled before 1.85.0 stayed in their batch
+    db.prepare("UPDATE order_items SET batch_id = NULL WHERE batch_id IS NOT NULL AND order_id IN (SELECT id FROM orders WHERE status = 'cancelled')").run();
     return { slips, allocations };
   });
 }
@@ -511,6 +515,7 @@ export async function reallocateOpenOrders(): Promise<{ orders: number; lines: n
   return withTransaction(db, () => {
     // holds (not yet deducted) of cancelled orders go back to free stock
     const released = Number(db.prepare("DELETE FROM order_item_allocations WHERE consumed_at IS NULL AND order_item_id IN (SELECT oi.id FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'cancelled')").run().changes);
+    db.prepare("UPDATE order_items SET batch_id = NULL WHERE batch_id IS NOT NULL AND order_id IN (SELECT id FROM orders WHERE status = 'cancelled')").run();
     const orders = (db.prepare("SELECT id FROM orders WHERE status IN ('pending','processing') AND stock_committed_at IS NULL ORDER BY created_at, id").all() as Array<{ id: string }>).map((r) => r.id);
     if (!orders.length) return { orders: 0, lines: 0, released };
     const ph = orders.map(() => "?").join(",");

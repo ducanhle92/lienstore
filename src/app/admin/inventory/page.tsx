@@ -17,6 +17,8 @@ import { applyInventoryView, EXPIRY_DAYS, inventoryHref, type InventoryView, mat
 import { cn } from "@/lib/utils";
 import { describeByWarehouse, TRANSIT_LABEL, WAREHOUSE_LABEL, WAREHOUSE_SHORT, WAREHOUSES } from "@/lib/warehouses";
 import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/LotsBoard";
+import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
+import { flowCounts } from "@/lib/flow-db";
 import { listLotViews, listOrdersReadyToShip } from "@/lib/lots-db";
 import { listBatchHeads } from "@/lib/purchase-batches-db";
 import { listOpenShipments } from "@/lib/shipments-db";
@@ -67,7 +69,8 @@ export default async function AdminInventory({ searchParams }: Props) {
   const flying = allLots.filter((l) => l.warehouse === "jp_carrier" && l.inTransit);
   const batchHeads = view === "lots" ? listBatchHeads() : [];
   const openShipments = view === "lots" && side === "jp" ? listOpenShipments() : [];
-  const lotSide: "jp" | "vn" = side === "jp" ? "jp" : "vn";
+  const lotSide: "jp" | "vn" = side === "jp" ? "jp" : "vn";
+
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
   // Hàng theo đơn: every open order's lines with where the goods are right now
   const orderLines = view === "lots" && side === "orders" ? await getPurchaseLines(false) : [];
@@ -91,8 +94,9 @@ export default async function AdminInventory({ searchParams }: Props) {
 
   return (
     <>
+      {view === "lots" ? <FlowSteps current={side === "jp" ? "jp" : side === "vn" ? "vn" : null} counts={flowCounts(getDb())} /> : null}
       <PageHeader
-        title="Tồn kho"
+        title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : side === "vn" ? "Tồn kho VN" : "Hàng theo đơn"}
         subtitle={`Mặc định hàng order · ${summary.inStockProducts} sản phẩm có tồn kho (${summary.units} đơn vị) · ${summary.stockIncomingUnits} đơn vị đang về kho · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
         actions={
           <>

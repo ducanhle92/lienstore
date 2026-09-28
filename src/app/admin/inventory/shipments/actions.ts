@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
-import { isShipmentStatus, type ShipmentStatus } from "@/lib/shipments";
+import { isShipmentStatus, shipmentEditable, type ShipmentStatus } from "@/lib/shipments";
 import { createShipment, deleteShipment, packCandidates, packProduct, setShipmentStatus, unpackLot, updateShipment } from "@/lib/shipments-db";
 
 const PAGE = "/admin/inventory/shipments/";
@@ -13,7 +13,8 @@ const intOr = (fd: FormData, k: string) => {
   const n = Number.parseInt(text(fd, k), 10);
   return Number.isInteger(n) ? n : null;
 };
-const go = (key: "saved" | "error", msg: string, shipmentId?: number | null): never => redirect(`${PAGE}?${key}=${encodeURIComponent(msg)}${shipmentId ? `#shipment-${shipmentId}` : ""}`);
+const go = (key: "saved" | "error", msg: string, shipmentId?: number | null, transit = false): never =>
+  redirect(`${PAGE}?${transit ? "stage=transit&" : ""}${key}=${encodeURIComponent(msg)}${shipmentId ? `#shipment-${shipmentId}` : ""}`);
 /** "2026-09-27" / "27/09/2026" → ISO; empty → null; garbage → undefined. */
 const dateOrNull = (raw: string): string | null | undefined => (raw ? (parseExpiry(raw) ?? undefined) : null);
 
@@ -46,7 +47,9 @@ export async function setShipmentStatusAction(formData: FormData): Promise<void>
   if (!id || !isShipmentStatus(status)) go("error", "Yêu cầu không hợp lệ.", id);
   const r = await setShipmentStatus(id!, status as ShipmentStatus);
   revalidatePath("/admin", "layout");
-  go(r.ok ? "saved" : "error", r.ok ? `Đã cập nhật chuyến${r.lots ? ` — ${r.lots} lô đổi theo` : ""}.` : (r.message ?? "Không cập nhật được."), id);
+  // the run now lives on ④ Vận chuyển once it left the shop (and back on ③ when moved back)
+  const moved = r.ok && !shipmentEditable(status as ShipmentStatus);
+  go(r.ok ? "saved" : "error", r.ok ? `Đã cập nhật chuyến${r.lots ? ` — ${r.lots} lô đổi theo` : ""}.${status === "done" ? " Hàng đã vào ⑤ Tồn kho VN." : ""}` : (r.message ?? "Không cập nhật được."), id, moved || (!r.ok && text(formData, "view") === "transit"));
 }
 
 /** "Thêm": qty units of a product, FEFO from Kho Nhật (shop). */

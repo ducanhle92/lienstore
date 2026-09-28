@@ -23,6 +23,8 @@ import { getAllProducts, getPurchaseLines, listPurchaseSources, listStockPurchas
 import { StockPurchasePanel } from "@/components/sites/lienstore/admin/StockPurchasePanel";
 import { IN_TRANSIT_STATUSES, PURCHASE_STAGES, type PurchaseStatus } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
+import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
+import { flowCounts } from "@/lib/flow-db";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +97,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
 
   return (
     <>
+      <FlowSteps current="buy" counts={flowCounts(getDb())} />
       <PageHeader
         title="Quản lý mua hàng"
         subtitle={`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}

@@ -11,10 +11,14 @@ import { listPurchaseSources } from "@/lib/db";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { SHIPMENT_STAGES, shipmentEditable, shipmentStage } from "@/lib/shipments";
+import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentStage } from "@/lib/shipments";
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
+import { listLotViews } from "@/lib/lots-db";
+import { describeLocation } from "@/lib/warehouses";
 import { cn } from "@/lib/utils";
+import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
+import { flowCounts } from "@/lib/flow-db";
 import type { PurchaseSource } from "@/types/shop";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +37,10 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   await requireAdmin("inventory");
   const sp = await searchParams;
   const includeDone = first(sp.done) === "1";
-  const [shipments, sources] = await Promise.all([Promise.resolve(listShipments(includeDone)), listPurchaseSources()]);
+  // ③ Đóng hàng = runs still at the shop (packing / packed); ④ Vận chuyển = runs with the carrier (handed → arrived, + done on demand)
+  const transit = first(sp.stage) === "transit";
+  const [allShipments, sources] = await Promise.all([Promise.resolve(listShipments(transit && includeDone)), listPurchaseSources()]);
+  const shipments = allShipments.filter((x) => (transit ? !shipmentEditable(x.status) : shipmentEditable(x.status)));
   const db = getDb();
   // what could still be packed: lots on the shelf at Kho Nhật (shop) + bought order lines without a lot yet
   const allCands = listPackCandidates(db);
@@ -50,22 +57,31 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
   const saved = first(sp.saved);
   const error = first(sp.error);
+  // ④: lots with the carrier that are not in any run (moved by hand from Tồn kho) — still on the way, so listed here
+  const looseTransit = transit ? listLotViews(db).filter((l) => (l.warehouse === "jp_carrier" || l.warehouse === "carrier") && !l.shipmentId) : [];
   return (
     <>
+      <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
       <PageHeader
-        title="Đóng hàng"
-        subtitle={`Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.filter((s) => s.status !== "done").length} chuyến đang mở · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
+        title={transit ? "Vận chuyển" : "Đóng hàng"}
+        subtitle={transit ? `Chuyến đã giao ĐVVC: kho Kiến Nhật → bay NB→VN → kho ĐVVC Hà Nội → về kho shop VN · ${shipments.filter((s) => s.status !== "done").length} chuyến đang đi` : `Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.length} chuyến đang đóng · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
         actions={
-          <Link href="/admin/inventory/?side=jp" className={btnSecondary}>
-            <Fa name="archive" /> Tồn kho › Kho Nhật
-          </Link>
+          transit ? (
+            <Link href="/admin/inventory/?side=vn" className={btnSecondary}>
+              <Fa name="building" /> ⑤ Tồn kho VN
+            </Link>
+          ) : (
+            <Link href="/admin/inventory/?side=jp" className={btnSecondary}>
+              <Fa name="archive" /> ② Tồn kho Nhật
+            </Link>
+          )
         }
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
-      {allCands.length && shipments.some((x) => shipmentEditable(x.status)) ? <FixedSaveBar forms={shipments.filter((x) => shipmentEditable(x.status)).map((x) => `pk-${x.id}`)} label="Thêm vào chuyến (đã tick)" resetLabel="Bỏ tick" hint="Hàng theo đơn đang ở Kho Nhật được tick sẵn; bỏ tick / sửa SL rồi bấm. Nhiều chuyến đang mở → thêm vào chuyến vừa tick." /> : null}
+      {!transit && allCands.length && shipments.some((x) => shipmentEditable(x.status)) ? <FixedSaveBar forms={shipments.filter((x) => shipmentEditable(x.status)).map((x) => `pk-${x.id}`)} label="Thêm vào chuyến (đã tick)" resetLabel="Bỏ tick" hint="Hàng theo đơn đang ở Kho Nhật được tick sẵn; bỏ tick / sửa SL rồi bấm. Nhiều chuyến đang mở → thêm vào chuyến vừa tick." /> : null}
 
-      <div className="mb-4 grid gap-3 md:grid-cols-2">
+      <div className={cn("mb-4 grid gap-3 md:grid-cols-2", transit && "hidden")}>
         <details className="min-w-0" open={shipments.length === 0} data-testid="new-shipment">
           <summary className={cn(btnPrimary, "inline-block cursor-pointer list-none")}>+ Chuyến hàng mới</summary>
           <div className="mt-2">
@@ -120,17 +136,54 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       <div className="space-y-5">
         {shipments.length === 0 ? (
           <Card>
-            <p className="m-0 text-[13px] text-lien-muted">Chưa có chuyến nào. Bấm “+ Chuyến hàng mới”.</p>
+            <p className="m-0 text-[13px] text-lien-muted">{transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ③ Đóng hàng chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
           </Card>
         ) : null}
         {shipments.map((s) => (
           <ShipmentCard key={s.id} s={s} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
-        <p className="m-0 text-[12px] text-lien-muted">
-          <Link href={`/admin/inventory/shipments/${includeDone ? "" : "?done=1"}`} className="text-lien-blue hover:underline">
-            {includeDone ? "Ẩn chuyến đã về kho VN" : "Xem cả chuyến đã về kho VN"}
-          </Link>
-        </p>
+        {looseTransit.length ? (
+          <Card title={`Hàng đang vận chuyển ngoài chuyến (${looseTransit.reduce((n, l) => n + l.physical, 0)} đv · ${looseTransit.length} lô)`}>
+            <p className="mb-2 mt-0 text-[12px] text-lien-muted">Lô đã được chuyển vị trí ở Tồn kho mà không qua chuyến đóng hàng. Đổi vị trí từng lô (hoặc tick nhiều lô ở Tồn kho → Chuyển) khi hàng tới nơi.</p>
+            <div className="overflow-x-auto">
+              <table className={tableClass} data-testid="loose-transit">
+                <thead>
+                  <tr>
+                    <th className={thClass}>Sản phẩm</th>
+                    <th className={thClass}>Bill · lô</th>
+                    <th className={thClass}>Đang ở</th>
+                    <th className={thClass}>SL</th>
+                    <th className={thClass}>Giữ cho đơn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {looseTransit.map((l) => (
+                    <tr key={l.id}>
+                      <td className={tdClass}>
+                        <Link href={`/admin/inventory/lots/${l.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
+                          {l.productName}
+                        </Link>
+                      </td>
+                      <td className={cn(tdClass, "font-mono text-[12px]")}>
+                        {l.receiptCode || "chưa có bill"} <span className="text-lien-muted">· lô #{l.id}</span>
+                      </td>
+                      <td className={cn(tdClass, "text-[13px]")}>{describeLocation(l.warehouse, l.inTransit)}</td>
+                      <td className={cn(tdClass, "font-semibold")}>{l.physical}</td>
+                      <td className={cn(tdClass, "text-[12px]")}>{l.reserved.length ? l.reserved.map((r) => `#${r.orderNumber} ×${r.qty}`).join(", ") : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        ) : null}
+        {transit ? (
+          <p className="m-0 text-[12px] text-lien-muted">
+            <Link href={`/admin/inventory/shipments/?stage=transit${includeDone ? "" : "&done=1"}`} className="text-lien-blue hover:underline">
+              {includeDone ? "Ẩn chuyến đã về kho VN" : "Xem cả chuyến đã về kho VN"}
+            </Link>
+          </p>
+        ) : null}
       </div>
     </>
   );
@@ -148,6 +201,7 @@ type PickSources = ReturnType<typeof listPackSources>;
 function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources }) {
   const stage = shipmentStage(s.status);
   const editable = shipmentEditable(s.status);
+  const next = SHIPMENT_STAGES[shipmentIndex(s.status) + 1] ?? null;
   const pkId = `pk-${s.id}`;
   return (
     <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`}>
@@ -182,10 +236,19 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
                 </option>
               ))}
             </select>
-            <button type="submit" className={cn(btnPrimary, "!py-1")}>
+            <button type="submit" className={cn(btnSecondary, "!py-1")}>
               Cập nhật
             </button>
           </form>
+          {next ? (
+            <form action={setShipmentStatusAction}>
+              <input type="hidden" name="shipmentId" value={s.id} />
+              <input type="hidden" name="status" value={next.key} />
+              <button type="submit" className={cn(btnPrimary, "!py-1")} data-testid={`ship-next-${s.id}`} title="Chuyển chuyến sang bước tiếp theo; các lô trong chuyến đổi vị trí theo">
+                <Fa name="angle-right" /> {next.label}
+              </button>
+            </form>
+          ) : null}
           <span className="text-[12px] text-lien-muted">
             dự kiến gửi {s.plannedAt ? formatDate(s.plannedAt) : "—"} · đã gửi {s.shippedAt ? formatDate(s.shippedAt) : "—"}
             {s.tracking ? ` · ${s.tracking}` : ""}

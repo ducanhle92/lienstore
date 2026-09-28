@@ -87,7 +87,7 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
               COALESCE(oi.purchase_cost_jpy, p.cost_jpy) AS cost_jpy, oi.purchase_expiry, oi.purchase_bought_at, oi.receipt_id,
               (SELECT r.code FROM purchase_receipts r WHERE r.id = oi.receipt_id) AS receipt_code
        FROM order_items oi JOIN orders o ON o.id = oi.order_id LEFT JOIN products p ON p.id = oi.product_id
-       WHERE oi.batch_id IN (${ph}) ORDER BY o.number, oi.id`,
+       WHERE oi.batch_id IN (${ph}) AND o.status <> 'cancelled' ORDER BY o.number, oi.id`,
     )
     .all(...ids) as unknown as LineRow[];
   const stock = db.prepare(`SELECT sp.*, p.name, p.sku, p.thumb, NULL AS cur_code, (SELECT r.code FROM purchase_receipts r WHERE r.id = sp.receipt_id) AS receipt_code FROM stock_purchases sp JOIN products p ON p.id = sp.product_id WHERE sp.batch_id IN (${ph}) AND sp.lot_id IS NULL ORDER BY sp.id`).all(...ids) as unknown as StockRow[];

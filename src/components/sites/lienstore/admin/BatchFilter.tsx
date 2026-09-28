@@ -11,6 +11,7 @@ interface Props {
   total: number;
   sources: Array<{ key: string; name: string }>;
   statuses: Array<{ key: string; label: string }>;
+  orders: Array<{ number: number; customer: string }>;
   bills: Array<{ id: number; code: string }>;
 }
 
@@ -28,13 +29,15 @@ interface Filter {
   date: string;
   bill: string;
   status: string;
+  kind: string;
+  order: string;
 }
-const EMPTY: Filter = { q: "", src: "", date: "", bill: "", status: "" };
+const EMPTY: Filter = { q: "", src: "", date: "", bill: "", status: "", kind: "", order: "" };
 
 function readUrl(search: string): Filter {
   if (!search) return EMPTY;
   const p = new URLSearchParams(search);
-  return { q: p.get("q") ?? "", src: p.get("src") ?? "", date: p.get("date") ?? "", bill: p.get("bill") ?? "", status: p.get("st") ?? "" };
+  return { q: p.get("q") ?? "", src: p.get("src") ?? "", date: p.get("date") ?? "", bill: p.get("bill") ?? "", status: p.get("st") ?? "", kind: p.get("kind") ?? "", order: p.get("ord") ?? "" };
 }
 function writeUrl(f: Filter) {
   const p = new URLSearchParams(window.location.search);
@@ -44,17 +47,19 @@ function writeUrl(f: Filter) {
   put("date", f.date);
   put("bill", f.bill);
   put("st", f.status);
+  put("kind", f.kind);
+  put("ord", f.order);
   const qs = p.toString();
   window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
 }
-const isEmpty = (f: Filter) => !f.q && !f.src && !f.date && !f.bill && !f.status;
+const isEmpty = (f: Filter) => !f.q && !f.src && !f.date && !f.bill && !f.status && !f.kind && !f.order;
 
 /**
  * Client-side filter for one batch card: rows are server-rendered (their inputs stay bound to the save form) and carry
  * data-* attributes; this hides the ones that do not match (product / order text, source, bought date, bill), keeps the
  * filter in the URL (F5-safe) and recomputes the totals row (rows · units · ¥) from what is shown.
  */
-export function BatchFilter({ batchId, total, sources, statuses, bills }: Props) {
+export function BatchFilter({ batchId, total, sources, statuses, orders, bills }: Props) {
   const search = useSyncExternalStore(
     () => () => {},
     () => window.location.search,
@@ -86,6 +91,8 @@ export function BatchFilter({ batchId, total, sources, statuses, bills }: Props)
       if (ok && f.date && !(d.bought ?? "").startsWith(f.date)) ok = false;
       if (ok && f.bill && (d.bill ?? "") !== f.bill) ok = false;
       if (ok && f.status && (d.status ?? "") !== f.status) ok = false;
+      if (ok && f.kind && !(d.kind ?? "").split(" ").includes(f.kind)) ok = false;
+      if (ok && f.order && !(d.order ?? "").split(" ").includes(f.order)) ok = false;
       r.classList.toggle("hidden", !ok);
       if (ok) {
         n++;
@@ -120,6 +127,22 @@ export function BatchFilter({ batchId, total, sources, statuses, bills }: Props)
   return (
     <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-white px-3 py-2 text-[13px]" data-testid={`batch-filter-${batchId}`}>
       <input value={qInput} onChange={(e) => onQ(e.target.value)} placeholder="Tìm sản phẩm / SKU / #đơn / khách…" className={cn(adminInput, "!mb-0 !w-[240px] !py-1 !text-[13px]")} aria-label="Tìm trong đợt" data-testid="batch-q" />
+      <select value={f.kind} onChange={(e) => update((cur) => ({ ...cur, kind: e.target.value }))} className={cn(adminInput, sel)} aria-label="Loại hàng" data-testid="batch-kind" title="Hàng theo đơn = đã có khách (đơn đang xử lý); Lưu kho ở Nhật = phần chưa có khách">
+        <option value="">Loại: tất cả</option>
+        <option value="line">Hàng theo đơn</option>
+        <option value="stock">Lưu kho ở Nhật</option>
+      </select>
+      {orders.length ? (
+        <select value={f.order} onChange={(e) => update((cur) => ({ ...cur, order: e.target.value }))} className={cn(adminInput, sel)} aria-label="Đơn hàng" data-testid="batch-order">
+          <option value="">Đơn: tất cả</option>
+          {orders.map((o) => (
+            <option key={o.number} value={String(o.number)}>
+              #{o.number}
+              {o.customer ? ` · ${o.customer}` : ""}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <select value={f.src} onChange={(e) => update((cur) => ({ ...cur, src: e.target.value }))} className={cn(adminInput, sel)} aria-label="Mua ở" data-testid="batch-src">
         <option value="">Mua ở: tất cả</option>
         {sources.map((s) => (
