@@ -204,7 +204,11 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
   const filterStatuses = Array.from(new Set([...b.lines.map((l) => l.purchaseStatus), ...b.stock.map((s) => s.status), ...b.lots.map((l) => statusForLocation(l.warehouse, l.inTransit))])).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
   const filterOrders = Array.from(new Map(b.lines.map((l) => [l.orderNumber, { number: l.orderNumber, customer: l.customerName }])).values()).sort((x, y) => y.number - x.number);
   // one row per order line / lot / slip, grouped by product name (order lines first)
-  const rows: Row[] = [...b.lines.map((l): Row => ({ kind: "line", key: `l-${l.itemId}`, name: l.productName, line: l })), ...b.lots.map((l): Row => ({ kind: "lot", key: `lot-${l.id}`, name: l.productName, lot: l })), ...b.stock.map((s): Row => ({ kind: "stock", key: `s-${s.id}`, name: s.productName, stock: s }))].sort((x, y) => x.name.localeCompare(y.name, "vi") || (x.kind === y.kind ? 0 : x.kind === "line" ? -1 : y.kind === "line" ? 1 : x.kind === "lot" ? -1 : 1));
+  // an order line whose units are held by lots of this batch shows on the lot row ("hàng cho đơn #…"), not as a row of its own
+  const customerByOrder = new Map(b.lines.map((l) => [l.orderId, l.customerName]));
+  const servedByLots = (l: PurchaseBatchLine) => b.lots.filter((x) => x.productId === l.productId).reduce((n, x) => n + x.reserved.filter((r) => r.orderId === l.orderId).reduce((m, r) => m + r.qty, 0), 0) >= l.quantity;
+  const visibleLines = b.lines.filter((l) => !servedByLots(l));
+  const rows: Row[] = [...visibleLines.map((l): Row => ({ kind: "line", key: `l-${l.itemId}`, name: l.productName, line: l })), ...b.lots.map((l): Row => ({ kind: "lot", key: `lot-${l.id}`, name: l.productName, lot: l })), ...b.stock.map((s): Row => ({ kind: "stock", key: `s-${s.id}`, name: s.productName, stock: s }))].sort((x, y) => x.name.localeCompare(y.name, "vi") || (x.kind === y.kind ? 0 : x.kind === "line" ? -1 : y.kind === "line" ? 1 : x.kind === "lot" ? -1 : 1));
   const srcSelect = (name: string, value: string, label: string) => (
     <select name={name} form={saveId} defaultValue={value} className={cn(adminInput, cell, "!w-[118px]")} aria-label={label}>
       {!value ? <option value="">— nguồn —</option> : null}
@@ -225,7 +229,7 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
         chưa có bill
       </span>
     );
-  const ctx = { b, done, bulkId, saveId, srcSelect, billBadge, sources, products, searchOf };
+  const ctx = { b, done, bulkId, saveId, srcSelect, billBadge, sources, products, searchOf, customerByOrder };
   return (
     <div id={`batch-${b.id}`} data-testid={`batch-${b.id}`} className="min-w-0">
       <Card
@@ -711,6 +715,8 @@ interface RowCtx {
   sources: PurchaseSource[];
   products: PickableProduct[];
   searchOf: (productId: number, name: string, sku: string | null) => string;
+  /** Customer name per order id (order lines of this batch). */
+  customerByOrder: Map<string, string>;
 }
 
 function ProductCell({ productId, name, sku, thumb, badge, extra }: { productId: number; name: string; sku: string | null; thumb: string; badge: ReactNode; extra?: ReactNode }) {
@@ -881,12 +887,12 @@ function StockRow({ s, b, done, bulkId, saveId, srcSelect, billBadge, products, 
 }
 
 /** A lot bought in this batch: unsold qty (+ paid units held), source, HSD / date / ¥, status (= place), store note. */
-function LotRow({ l, b, done, bulkId, saveId, srcSelect, billBadge, sources, searchOf }: { l: LotView } & RowCtx) {
+function LotRow({ l, b, done, bulkId, saveId, srcSelect, billBadge, sources, searchOf, customerByOrder }: { l: LotView } & RowCtx) {
   const p = `lot_${l.id}_`;
   const status = statusForLocation(l.warehouse, l.inTransit);
   const note = noteBody(l.note, b.code);
   return (
-    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind="stock" data-search={searchOf(l.productId, l.productName, l.productSku)} data-product={l.productId} data-src={l.sourceKey} data-status={status} data-note={note ? "1" : "0"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
+    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind={l.reserved.length ? "line" : "stock"} data-search={searchOf(l.productId, l.productName, l.productSku)} data-product={l.productId} data-order={l.reserved.map((r) => r.orderNumber).join(" ")} data-customer={l.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-src={l.sourceKey} data-status={status} data-note={note ? "1" : "0"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{done ? null : <input type="checkbox" name="lotIds" value={l.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn lô #${l.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
@@ -898,8 +904,9 @@ function LotRow({ l, b, done, bulkId, saveId, srcSelect, billBadge, sources, sea
             <>
               {billBadge(l.receiptId, l.receiptCode, `lô #${l.id}`)}
               {l.reserved.map((r) => (
-                <Link key={r.orderId} href={`/admin/orders/${r.orderId}/`} className={cn("rounded px-1 py-0.5 text-[10px] font-semibold no-underline hover:underline", r.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.committed ? "Đơn đã thanh toán / COD — hàng đi cùng lô" : "Đơn chưa thanh toán"}>
-                  #{r.orderNumber} ×{r.qty}
+                <Link key={r.orderId} href={`/admin/orders/${r.orderId}/`} className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold no-underline hover:underline", r.committed ? "bg-green-100 text-green-800" : "bg-[#eef2ff] text-[#3730a3]")} title={r.committed ? "Hàng cho đơn đã thanh toán / COD — đi cùng lô" : "Hàng cho đơn (khách chưa thanh toán)"}>
+                  Hàng cho đơn #{r.orderNumber}
+                  {customerByOrder.get(r.orderId) ? ` · ${customerByOrder.get(r.orderId)}` : ""} ×{r.qty}
                 </Link>
               ))}
               {l.free ? <span className="text-lien-muted">tự do {l.free}</span> : null}

@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Mua theo đợt: dòng đơn đã có lô của đợt giữ hàng **gộp vào dòng lô** (huy hiệu “Hàng cho đơn #… · tên khách ×n”), không còn dòng đơn trùng; dòng đơn riêng chỉ hiện khi chưa có lô. Lọc theo đơn / tên khách vẫn tìm được dòng lô đó.
+- Tồn kho › Hàng theo đơn: **một bảng thẳng cột** — Đơn · Khách · ngày · Thanh toán · Sản phẩm · SL · Hàng đang ở đâu · Tiến độ đơn (ô đơn gộp theo số dòng của đơn).
+
 ## [1.81.0] - 2026-09-27
 
 ### Added

@@ -48,7 +48,8 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
     const g = groups.get(l.orderId) ?? { orderId: l.orderId, number: l.orderNumber, customer: l.customerName, createdAt: l.orderCreatedAt, paymentMethod: l.paymentMethod, committed: !!l.stockCommittedAt, stage: stageByOrder.get(l.orderId) ?? "ordered", lines: [], readyVn: true };
     g.lines.push(l);
     const allocs = byItem.get(l.itemId) ?? [];
-    if (!allocs.length || allocs.some((a) => !(a.sourceType === "lot" && a.label.startsWith("Có sẵn · Kho VN")))) g.readyVn = false;
+    // ready = every unit sits in a lot at Kho Việt Nam (shop), reserved ("Có sẵn · Kho VN") or already deducted ("Đã trừ kho · Kho Việt Nam (shop)")
+    if (!allocs.length || allocs.some((a) => !(a.sourceType === "lot" && /Kho VN|Kho Việt Nam \(shop\)/.test(a.label) && !/Sắp về/.test(a.label)))) g.readyVn = false;
     groups.set(l.orderId, g);
   }
   const q = fold(filter.q.trim());
@@ -95,32 +96,46 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
           {chip("ready", `Đủ hàng tại kho VN (${ready})`)}
         </form>
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
-        <div className="space-y-3">
-          {shown.map((g) => (
-            <div key={g.orderId} className="rounded-md border border-[#e5e7eb]" data-testid={`stock-order-${g.number}`}>
-              <div className="flex flex-wrap items-center gap-3 border-b border-[#f0f0f0] bg-[#f9fafb] px-3 py-1.5 text-[13px]">
-                <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
-                  #{g.number}
-                </Link>
-                <span>{g.customer}</span>
-                <span className="text-lien-muted">{formatDateTime(g.createdAt)}</span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", g.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{g.paymentMethod === "cod" ? "Thu khi giao" : g.committed ? "Đã thanh toán" : "Chưa thanh toán"}</span>
-                <span className="rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-semibold text-[#3730a3]">{STAGE_LABEL[g.stage] ?? g.stage}</span>
-                <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold", g.readyVn ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{g.readyVn ? "đủ hàng tại kho VN" : "còn chờ hàng"}</span>
-              </div>
-              <table className={tableClass}>
-                <thead>
-                  <tr>
-                    <th className={thClass}>Sản phẩm</th>
-                    <th className={thClass}>SL</th>
-                    <th className={thClass}>Hàng đang ở đâu</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {g.lines.map((l) => {
+        {shown.length ? (
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr>
+                  <th className={thClass}>Đơn</th>
+                  <th className={thClass}>Khách · ngày</th>
+                  <th className={thClass}>Thanh toán</th>
+                  <th className={thClass}>Sản phẩm</th>
+                  <th className={thClass}>SL</th>
+                  <th className={thClass}>Hàng đang ở đâu</th>
+                  <th className={thClass}>Tiến độ đơn</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((g) =>
+                  g.lines.map((l, i) => {
                     const allocs = byItem.get(l.itemId) ?? [];
+                    const first = i === 0;
+                    const span = g.lines.length;
                     return (
-                      <tr key={l.itemId} className="align-top hover:bg-[#fafafa]">
+                      <tr key={l.itemId} className={cn("align-top hover:bg-[#fafafa]", first && "border-t-2 border-[#e5e7eb]")} data-testid={first ? `stock-order-${g.number}` : undefined}>
+                        {first ? (
+                          <td className={`${tdClass} whitespace-nowrap align-top`} rowSpan={span}>
+                            <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
+                              #{g.number}
+                            </Link>
+                          </td>
+                        ) : null}
+                        {first ? (
+                          <td className={`${tdClass} align-top text-[12px]`} rowSpan={span}>
+                            <span className="block font-semibold text-lien-heading">{g.customer}</span>
+                            <span className="text-lien-muted">{formatDateTime(g.createdAt)}</span>
+                          </td>
+                        ) : null}
+                        {first ? (
+                          <td className={`${tdClass} align-top`} rowSpan={span}>
+                            <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", g.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{g.paymentMethod === "cod" ? "Thu khi giao" : g.committed ? "Đã thanh toán" : "Chưa thanh toán"}</span>
+                          </td>
+                        ) : null}
                         <td className={`${tdClass} min-w-[220px]`}>
                           <div className="flex items-center gap-2">
                             {l.thumb ? <Image src={l.thumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-cover" /> : null}
@@ -149,14 +164,20 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                             ))}
                           </div>
                         </td>
+                        {first ? (
+                          <td className={`${tdClass} align-top whitespace-nowrap`} rowSpan={span}>
+                            <span className="inline-block rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-semibold text-[#3730a3]">{STAGE_LABEL[g.stage] ?? g.stage}</span>
+                            <span className={cn("mt-1 block w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold", g.readyVn ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>{g.readyVn ? "đủ hàng tại kho VN" : "còn chờ hàng"}</span>
+                          </td>
+                        ) : null}
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
+                  }),
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </Card>
     </div>
   );
