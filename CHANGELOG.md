@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.95.1] - 2026-09-28
+
 ### Added
 - Trang đơn › **Khách hàng** có nút **Sửa**: đổi họ tên, điện thoại, email, địa chỉ, ghi chú của khách trên đơn khi khách yêu cầu (phí ship đã báo không tự tính lại).
 
