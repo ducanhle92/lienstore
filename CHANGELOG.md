@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.95.0] - 2026-09-28
+
 ### Changed
 - Menu Kho hàng: **Nhóm biến thể** chuyển vào nhóm **Chung** (cùng Danh mục, Nguồn nhập, Địa chỉ kho, Công thức giá).
 - **Mua theo đợt** (cả “Theo sản phẩm” lẫn “Từng mã”): thứ tự cột mới — Sản phẩm · SL · **¥/ĐV** · HSD · Trạng thái · **Ngày mua** · **Mua ở / cửa hàng** · Bill · cho đơn; dòng tổng cộng đặt ¥ ngay sau SL.
