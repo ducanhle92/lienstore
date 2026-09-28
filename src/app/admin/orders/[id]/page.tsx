@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, markCodCollectedAction, markTransferReceivedAction, reallocateOrderAction, setItemSourceAction, setOrderCodAction, setStageAction, updateOrderStatusAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction } from "@/app/admin/orders/actions";
 import { isRegularBy } from "@/lib/regular-customers";
-import { listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
+import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
 import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
@@ -13,7 +13,7 @@ import { deleteOrderFileAction, saveAdminNoteAction } from "@/app/admin/orders/f
 import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
@@ -41,6 +41,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   // "Nguồn hàng": which lot / slip / batch serves each line, plus what the admin may switch it to
   const itemIds = (order?.items ?? []).map((it) => it.itemId).filter((x): x is number => typeof x === "number");
   const allocViews = order ? listAllocationViews(getDb(), itemIds) : [];
+  // stock of the line's product that other (unpaid) orders hold — why a line can say "Cần mua" while the shelf has it
+  const heldElsewhere = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, [...new Set(heldByOthers(getDb(), it.productId, it.itemId as number).map((u) => u.orderNumber))]] as const) : []);
   const sourceOptions = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, listSourceOptions(getDb(), it.productId, it.itemId as number)] as const) : []);
   const regularCustomer = order?.customerId ? await getCustomerById(order.customerId) : null;
   const regularSets = await listRegularSets();
@@ -169,6 +171,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                                 </div>
                               ))}
                             {!allocViews.some((a) => a.orderItemId === it.itemId) ? <span className="text-[12px] text-lien-muted">— theo trạng thái tay: {it.purchaseStatus ?? "chưa mua"}</span> : null}
+                            {allocViews.some((a) => a.orderItemId === it.itemId && a.label === "Cần mua") && heldElsewhere.get(it.itemId)?.length ? (
+                              <span className="block text-[11px] leading-4 text-amber-800" data-testid={`held-elsewhere-${it.itemId}`}>
+                                Kho có hàng nhưng đang giữ cho {heldElsewhere.get(it.itemId)!.map((n) => `#${n}`).join(", ")} (đơn đã thanh toán / đặt trước được ưu tiên) — muốn giao đơn này trước: chọn “lấy … cho đơn này” ở đổi nguồn.
+                              </span>
+                            ) : null}
                           </div>
                           {order.status !== "cancelled" ? (
                             <form action={setItemSourceAction} className="mt-1.5 flex items-center gap-1">
@@ -290,81 +297,56 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : (
                 <p className="m-0 rounded-md bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">Đã giao hàng — chờ hoàn tất thanh toán.</p>
               )}
-              <details className="text-[12px] text-lien-muted">
-                <summary className="cursor-pointer select-none">Chọn bước khác / quay lại bước trước</summary>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {SHIP_STAGES.map((st, i) => (
-                    <button key={st.key} type="submit" name="stage" value={st.key} className={`${btnSecondary} !px-2 !py-1 !text-[12px] ${i === curStage ? "!bg-lien-blue !text-white" : ""}`}>
-                      {st.short}
-                    </button>
-                  ))}
-                </div>
-              </details>
             </form>
           </Card>
-          {/* order status, payment and delete live in the fixed bottom bar (Lưu thay đổi saves the status) */}
-          <form id="order-status" action={updateOrderStatusAction}>
+          {/* bottom bar: "Xóa đơn hàng" next to Huỷ; on the right one "Trạng thái" select — progress steps, payment
+              steps and cancel — saved with "Lưu thay đổi" */}
+          <form id="order-state" action={setOrderStateAction}>
             <input type="hidden" name="id" value={order.id} />
           </form>
           <BarTools>
-            <label className="flex items-center gap-1.5 text-[13px] font-semibold text-lien-heading">
-              Trạng thái
-              <select name="status" form="order-status" defaultValue={order.status} className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px]")} data-testid="bar-order-status">
-                {ADMIN_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {ADMIN_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className="mx-1 h-6 w-px self-center bg-[#e5e7eb]" aria-hidden />
-            <span className="text-[12px] text-lien-muted" data-testid="payment-box">
-              <Fa name="money" />{" "}
-              <b className="text-lien-heading">
-                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
-              </b>
-            </span>
-            {!paidAt && order.status !== "cancelled" && stageIndex(order.shipStage) < stageIndex("delivered") ? (
-              <>
-                <form action={markTransferReceivedAction} data-testid="payment-choice">
-                  <input type="hidden" name="id" value={order.id} />
-                  <button type="submit" className={cn(btnPrimary, "!py-1 !text-[13px]")} title={cod ? "Khách đã chuyển khoản trước khi giao — tồn kho không trừ lần hai" : "Ghi nhận thanh toán — tồn kho trừ theo đơn, mở bước Đã gửi hàng"}>
-                    <Fa name="check" /> Đã nhận chuyển khoản
-                  </button>
-                </form>
-                {cod ? null : (
-                  <form action={setOrderCodAction}>
-                    <input type="hidden" name="id" value={order.id} />
-                    <ConfirmSubmit message={`Cho đơn #${order.number} thanh toán khi nhận hàng (COD)? Tồn kho trừ ngay; bước thanh toán chuyển về cuối tiến độ.`} confirmLabel="Đồng ý COD" className={cn(btnSecondary, "!py-1 !text-[13px]")}>
-                      <Fa name="truck" /> Cho thanh toán khi nhận (COD)
-                    </ConfirmSubmit>
-                  </form>
-                )}
-              </>
-            ) : null}
-            {cod && !paidAt && order.shipStage === "delivered" && order.status !== "cancelled" ? (
-              <form action={markCodCollectedAction}>
-                <input type="hidden" name="id" value={order.id} />
-                <button type="submit" className={cn(btnPrimary, "!py-1 !text-[13px]")} data-testid="cod-collected">
-                  <Fa name="money" /> Hoàn tất thanh toán (đã thu tiền)
-                </button>
-              </form>
-            ) : null}
             {isOwner ? (
-              <form action={deleteOrderAction} className="ml-auto" data-testid="delete-order-form">
+              <form action={deleteOrderAction} data-testid="delete-order-form">
                 <input type="hidden" name="id" value={order.id} />
                 <input type="hidden" name="back" value="/admin/orders/" />
                 <ConfirmSubmit
                   title={`Xóa đơn #${order.number}?`}
                   message="Đơn sẽ bị xóa vĩnh viễn, không khôi phục được."
-                  details={["Sản phẩm, 4 chặng vận chuyển, tin nhắn và bill đính kèm của đơn cũng bị xóa.", "Không tính vào doanh thu / lãi lỗ.", "Chỉ muốn dừng đơn mà giữ lịch sử thì dùng trạng thái “Đã hủy”."]}
+                  details={["Sản phẩm, 4 chặng vận chuyển, tin nhắn và bill đính kèm của đơn cũng bị xóa.", "Không tính vào doanh thu / lãi lỗ.", "Chỉ muốn dừng đơn mà giữ lịch sử thì chọn trạng thái “Huỷ đơn”."]}
                   confirmLabel="Xóa đơn"
-                  className={cn(btnDanger, "!py-1 !text-[13px]")}
+                  className={cn(btnDanger, "!py-1.5 !text-[13px]")}
                 >
                   <Fa name="trash" /> Xóa đơn hàng
                 </ConfirmSubmit>
               </form>
             ) : null}
+            <span className="ml-auto text-[12px] text-lien-muted" data-testid="payment-box">
+              <Fa name="money" />{" "}
+              <b className="text-lien-heading">
+                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
+              </b>
+            </span>
+            <label className="flex items-center gap-1.5 text-[13px] font-semibold text-lien-heading">
+              Trạng thái
+              <select name="state" form="order-state" defaultValue={order.status === "cancelled" ? "status:cancelled" : `stage:${order.shipStage}`} className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px]")} data-testid="bar-order-state">
+                <optgroup label="Tiến độ đơn">
+                  {SHIP_STAGES.map((st) => (
+                    <option key={st.key} value={`stage:${st.key}`}>
+                      {st.label}
+                    </option>
+                  ))}
+                </optgroup>
+                {order.status !== "cancelled" && !paidAt ? (
+                  <optgroup label="Thanh toán">
+                    {stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:transfer">Đã nhận chuyển khoản</option> : null}
+                    {!cod && stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:cod">Cho thanh toán khi nhận hàng (COD)</option> : null}
+                    {cod && order.shipStage === "delivered" ? <option value="pay:cod_done">Hoàn tất thanh toán (đã thu tiền COD)</option> : null}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Đơn">{order.status === "cancelled" ? <option value="status:pending">Khôi phục đơn (Chờ xử lý)</option> : <option value="status:cancelled">Huỷ đơn</option>}</optgroup>
+                {order.status === "cancelled" ? <option value="status:cancelled" hidden>Đã huỷ</option> : null}
+              </select>
+            </label>
           </BarTools>
           <Card title="Vận chuyển đơn này">
             <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />

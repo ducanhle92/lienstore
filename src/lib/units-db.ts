@@ -208,7 +208,7 @@ interface LineRow {
   stock_committed_at: string | null;
 }
 const OPEN_LINES = `SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.auto_hold, o.stock_committed_at FROM order_items oi JOIN orders o ON o.id = oi.order_id
-  WHERE oi.product_id = ? AND o.status IN ('pending','processing') ORDER BY o.created_at, o.id, oi.id`;
+  WHERE oi.product_id = ? AND o.status IN ('pending','processing') ORDER BY (o.stock_committed_at IS NULL), o.created_at, o.id, oi.id`;
 
 function heldMap(db: DatabaseSync, productId: number): Map<number, Set<number>> {
   const m = new Map<number, Set<number>>();
@@ -250,6 +250,24 @@ export function rebalanceProductSync(db: DatabaseSync, productId: number): numbe
     while (need > 0 && k < free.length) {
       take.run(l.id, l.stock_committed_at ? ts : null, ts, free[k].id);
       k++;
+      need--;
+    }
+  }
+  // a paid / COD line still short takes units already packed for unpaid orders (newest unpaid order first) —
+  // boxed holds otherwise stay put so a packed box keeps its customer
+  const packedForUnpaid = db.prepare(
+    `SELECT u.id FROM stock_units u JOIN order_items oi ON oi.id = u.order_item_id JOIN orders o ON o.id = oi.order_id
+     WHERE u.product_id = ? AND u.committed_at IS NULL AND u.manual = 0 AND u.removed IS NULL AND u.status IN (${SERVING_SQL})
+       AND o.stock_committed_at IS NULL AND o.status IN ('pending','processing') AND oi.auto_hold = 1
+     ORDER BY o.created_at DESC, o.id DESC, u.id`,
+  );
+  for (const l of lines) {
+    if (l.auto_hold !== 1 || !l.stock_committed_at) continue;
+    let need = l.quantity - Number((count.get(l.id) as { n: number }).n);
+    if (need <= 0) continue;
+    for (const v of packedForUnpaid.all(productId) as Array<{ id: number }>) {
+      if (need <= 0) break;
+      take.run(l.id, ts, ts, v.id);
       need--;
     }
   }

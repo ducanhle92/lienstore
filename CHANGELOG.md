@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Nguồn hàng khi nhiều đơn cùng muốn một sản phẩm**:
+  - Đơn **đã thanh toán / COD được giữ hàng trước** đơn chưa thanh toán (sau đó mới tới đơn đặt trước). Đơn đã thanh toán còn thiếu hàng tự lấy cả cái **đã đóng kiện** đang giữ cho đơn chưa thanh toán (đơn chưa thanh toán mới nhất nhường trước).
+  - Dòng “Cần mua” trên trang đơn giải thích lý do khi kho có hàng: “Kho có hàng nhưng đang giữ cho #…”.
+  - **Đổi nguồn** có thêm lựa chọn “… đang giữ cho #1020 — lấy n cho đơn này” (kể cả hàng đã đóng kiện): hàng chuyển sang đơn đang xem, đơn kia tự tìm hàng khác hoặc về “Cần mua”. Hàng của đơn đã thanh toán không bị lấy.
+- **Thanh dưới đáy trang đơn**: “Xóa đơn hàng” nằm cạnh Huỷ; bên phải là thanh toán và một ô **Trạng thái** gồm tiến độ (Đã đặt hàng → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đang giao hàng → Đã giao hàng thành công), **Đã nhận chuyển khoản**, **Cho thanh toán khi nhận hàng (COD)**, Hoàn tất thanh toán COD và Huỷ / Khôi phục đơn — chọn rồi bấm **Lưu thay đổi**. Bỏ “Chọn bước khác” trong khung Trạng thái đơn hàng (đã có ở thanh dưới).
+
 ## [1.91.0] - 2026-09-28
 
 ### Changed

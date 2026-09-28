@@ -10,7 +10,7 @@ import { getDb } from "@/lib/sqlite";
 import { addOrderMessage, getOrderById, deleteOrder, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
-import { isShipStage } from "@/lib/shipping";
+import { isShipStage, SHIP_STAGES } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
 
 const STATUSES: OrderStatus[] = ["pending", "processing", "completed", "cancelled"];
@@ -26,6 +26,37 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
     revalidatePath("/admin");
   }
   redirect(`/admin/orders/${id}/?updated=1`);
+}
+
+/**
+ * The one "Trạng thái" select of the order page's bottom bar (saved with "Lưu thay đổi"): a progress step
+ * (stage:<key>), a payment step (pay:transfer · pay:cod · pay:cod_done) or cancel / restore (status:cancelled · status:pending).
+ */
+export async function setOrderStateAction(formData: FormData): Promise<void> {
+  if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const v = String(formData.get("state") ?? "");
+  const back = `/admin/orders/${id}/`;
+  if (!id) redirect("/admin/orders/");
+  let r: { ok: boolean; message: string } = { ok: false, message: "Trạng thái không hợp lệ." };
+  if (v.startsWith("stage:")) {
+    const stage = v.slice(6);
+    if (isShipStage(stage)) {
+      await setOrderStage(id, stage, "");
+      r = { ok: true, message: `Đã chuyển đơn sang: ${SHIP_STAGES.find((x) => x.key === stage)?.label ?? stage}. Khách thấy ngay trong trang đơn hàng.` };
+    }
+  } else if (v === "pay:transfer") r = await setOrderTransferReceived(id);
+  else if (v === "pay:cod" || v === "pay:cod_done" || v.startsWith("status:")) {
+    if (!(await can("orders"))) redirect(`${back}?error=${encodeURIComponent("Cần quyền Đơn hàng.")}`);
+    if (v === "pay:cod") r = await setOrderCod(id);
+    else if (v === "pay:cod_done") r = await setOrderCodCollected(id);
+    else if (v === "status:cancelled" || v === "status:pending") {
+      await updateOrderStatus(id, v.slice(7) as OrderStatus);
+      r = { ok: true, message: v === "status:cancelled" ? "Đã huỷ đơn — hàng đang giữ trở về tồn." : "Đã khôi phục đơn (Chờ xử lý)." };
+    }
+  }
+  revalidatePath("/admin", "layout");
+  redirect(`${back}?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
 }
 
 /** Delete an order permanently (list and detail "Xóa đơn" buttons, confirmed in the browser first). */
@@ -110,7 +141,7 @@ export async function setItemSourceAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const itemId = Number.parseInt(String(formData.get("itemId") ?? ""), 10);
   const raw = String(formData.get("source") ?? "buy");
-  if (!Number.isInteger(itemId) || !(raw === "buy" || /^grp:\d+$/.test(raw))) redirect(`/admin/orders/${id}/?error=${encodeURIComponent("Yêu cầu không hợp lệ.")}`);
+  if (!Number.isInteger(itemId) || !(raw === "buy" || /^(grp|take):\d+$/.test(raw))) redirect(`/admin/orders/${id}/?error=${encodeURIComponent("Yêu cầu không hợp lệ.")}`);
   const r = await setManualAllocation(itemId, raw);
   revalidatePath("/admin", "layout");
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);

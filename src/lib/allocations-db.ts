@@ -99,9 +99,9 @@ export interface SourceOption {
 
 /** Bill lines (by place) with free units of the product — what the admin can pin to a line. */
 export function listSourceOptions(db: DatabaseSync, productId: number, itemId: number): SourceOption[] {
-  void itemId;
   const today = new Date().toISOString().slice(0, 10);
   const free = listUnits(db, { productId, free: true }).filter((u) => purchaseIndex(u.status) <= purchaseIndex("at_shop"));
+  const taken = heldByOthers(db, productId, itemId);
   const groups = new Map<string, UnitView[]>();
   for (const u of sortUnits(free)) {
     const k = `${billLineKey(u)}|${u.status}`;
@@ -111,7 +111,26 @@ export function listSourceOptions(db: DatabaseSync, productId: number, itemId: n
     const u = g[0];
     const expired = unitExpired(u.expiry, today);
     return { value: `grp:${u.id}`, label: `${placeLabel(u.status)} · ${u.receiptCode || "chưa có bill"}${u.expiry ? ` · HSD ${fmtDate(u.expiry)}${expired ? " (hết hạn)" : ""}` : ""} · trống ${g.length}`, available: g.length };
-  });
+  }).concat(
+    // units another (not yet paid) order holds: picking one moves them to this line, that order goes back to "Cần mua"
+    [...groupHeld(taken).values()].map((g) => {
+      const u = g[0];
+      return { value: `take:${u.id}`, label: `${placeLabel(u.status)} · ${u.receiptCode || "chưa có bill"} · đang giữ cho #${u.orderNumber} — lấy ${g.length} cho đơn này`, available: g.length };
+    }),
+  );
+}
+
+/** Units of the product that other open, not-yet-paid order lines hold (at most at Kho VN) — what this line could take. */
+export function heldByOthers(db: DatabaseSync, productId: number, itemId: number): UnitView[] {
+  return listUnits(db, { productId }).filter((u) => u.itemId && u.itemId !== itemId && !u.committed && !u.removed && purchaseIndex(u.status) <= purchaseIndex("at_shop") && (u.orderStatus === "pending" || u.orderStatus === "processing"));
+}
+function groupHeld(units: UnitView[]): Map<string, UnitView[]> {
+  const m = new Map<string, UnitView[]>();
+  for (const u of sortUnits(units)) {
+    const k = `${billLineKey(u)}|${u.status}|${u.itemId}`;
+    m.set(k, [...(m.get(k) ?? []), u]);
+  }
+  return m;
 }
 
 /** Admin override: "buy" (Cần mua) or "grp:<unit id>" (units of that bill line / place). */
@@ -124,6 +143,18 @@ export async function setManualAllocation(itemId: number, value: string): Promis
       const n = releaseItemToBuySync(db, itemId);
       touchSync(db, { productIds: [line.product_id], itemIds: [itemId] });
       return { ok: true, message: n ? `Đã trả ${n} cái về tồn — dòng chuyển về “Cần mua”.` : "Dòng đơn chuyển về “Cần mua”." };
+    }
+    const t = value.match(/^take:(\d+)$/);
+    if (t) {
+      // take the units of that bill line from the other order (it re-serves from free stock or waits as "Cần mua")
+      const pick = heldByOthers(db, line.product_id, itemId).find((u) => u.id === Number(t[1]));
+      if (!pick) return { ok: false, message: "Nguồn này không còn (đơn kia đã thanh toán hoặc đã đổi)." };
+      const key = `${billLineKey(pick)}|${pick.status}|${pick.itemId}`;
+      const ids = [...(groupHeld(heldByOthers(db, line.product_id, itemId)).get(key) ?? [])].map((u) => u.id);
+      db.prepare(`UPDATE stock_units SET order_item_id = NULL, manual = 0 WHERE id IN (${ids.map(() => "?").join(",")})`).run(...ids);
+      const r = pinUnitsToItemSync(db, itemId, ids);
+      touchSync(db, { productIds: [line.product_id], itemIds: [itemId, pick.itemId!] });
+      return { ok: true, message: `Đã lấy ${r.taken} cái từ đơn #${pick.orderNumber} cho đơn này${r.need > 0 ? `; ${r.need} cái còn lại là “Cần mua”` : ""}. Đơn #${pick.orderNumber} tự tìm hàng khác hoặc chuyển về “Cần mua”.` };
     }
     const m = value.match(/^grp:(\d+)$/);
     if (!m) return { ok: false, message: "Nguồn không hợp lệ." };
