@@ -260,6 +260,11 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
               ) : null}
               {jpy ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
             </span>
+            {b.units.some((u) => u.status === "bought" && !u.shipmentId) ? (
+              <Link href={`/admin/inventory/shipments/?batch=${b.id}`} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title="Mở ④ Đóng hàng JP, lọc sẵn hàng của đợt này (gồm hàng theo đơn), tick sẵn — bỏ tick cái không đóng" data-testid={`pack-batch-${b.id}`}>
+                <Fa name="cube" /> Đóng hàng đợt này
+              </Link>
+            ) : null}
             <details className="relative" data-testid={`edit-batch-${b.id}`}>
               <summary className={cn(btnSecondary, "inline-flex cursor-pointer list-none !px-2 !py-0.5 !text-[12px]")} title="Sửa tên, nguồn mặc định, ngày mua, tracking, ghi chú của đợt">
                 <Fa name="cog" /> Sửa

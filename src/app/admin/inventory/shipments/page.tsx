@@ -18,6 +18,7 @@ import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex } from "@/lib/shipment
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { listStockGroups } from "@/lib/lots-db";
+import { listUnits } from "@/lib/units-db";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
@@ -59,7 +60,8 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const shelfProducts = new Set(allCands.map((c) => c.productId)).size;
   const pickSources = listPackSources(db);
   // the picker of one run: ?pick=<shipmentId>&order=<id|none>&batch=<id|none>&q=… — the three combine
-  const pickFor = Number.parseInt(first(sp.pick), 10);
+  const firstOpen = shipments.find((x) => shipmentEditable(x.status))?.id ?? Number.NaN;
+  const pickFor = Number.parseInt(first(sp.pick), 10) || firstOpen;
   const pickOrder = first(sp.order);
   const pickBatchRaw = first(sp.batch);
   const pickBatch: number | "none" | null = pickBatchRaw === "none" ? "none" : Number.isInteger(Number.parseInt(pickBatchRaw, 10)) ? Number.parseInt(pickBatchRaw, 10) : null;
@@ -67,6 +69,26 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const pickActive = !!pickOrder || pickBatch !== null || !!pickQ;
   const pickFilter = pickActive ? { orderId: pickOrder || undefined, batchId: pickBatch ?? undefined, q: pickQ || undefined } : null;
   const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
+  // a purchase trip: where all its units are, so a count below the trip's total is explained
+  const tripUnits = typeof pickBatch === "number" ? listUnits(db, { batchId: pickBatch, withDelivered: true }) : [];
+  const tripNote = tripUnits.length
+    ? (() => {
+        const onShelf = tripUnits.filter((u) => u.status === "bought" && !u.shipmentId).length;
+        const boxed = tripUnits.filter((u) => u.status === "bought" && u.shipmentId);
+        const runs = [...new Set(boxed.map((u) => u.shipmentCode).filter(Boolean))];
+        const later = tripUnits.filter((u) => purchaseIndex(u.status) > purchaseIndex("bought")).length;
+        const before = tripUnits.filter((u) => purchaseIndex(u.status) < purchaseIndex("bought")).length;
+        return [
+          `Đợt ${tripUnits[0].batchCode}: ${tripUnits.length} cái`,
+          `${onShelf} cái ở Kho Nhật chưa đóng (đang liệt kê)`,
+          boxed.length ? `${boxed.length} cái đã đóng vào ${runs.join(", ")}` : "",
+          later ? `${later} cái đã gửi / đang về / đã về VN` : "",
+          before ? `${before} cái chưa mua / đã đặt chưa nhận` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      })()
+    : "";
   const saved = first(sp.saved);
   const error = first(sp.error);
   // the run whose picker sits in the bottom bar: the one being filtered, else the first run still packing
@@ -146,7 +168,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {runsShown.map((s) => (
-          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} multi={shipments.filter((x) => shipmentEditable(x.status)).length > 1} sources={sources} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} multi={shipments.filter((x) => shipmentEditable(x.status)).length > 1} sources={sources} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit ? (
@@ -229,6 +251,8 @@ interface Pick {
   batch: string;
   q: string;
   rows: PackCandidate[];
+  /** Where the filtered purchase trip's units are (explains a count below its total). */
+  note: string;
 }
 type PickSources = ReturnType<typeof listPackSources>;
 
@@ -439,19 +463,26 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar, multi = false }: {
                 // ① what customers are waiting for (ticked by default) · ② stock with no order behind it
                 const orderRows = pick.rows.filter((c) => c.orders.length).sort((x, y) => Math.min(...x.orders.map((o) => o.orderNumber)) - Math.min(...y.orders.map((o) => o.orderNumber)));
                 const stockRows = pick.rows.filter((c) => !c.orders.length);
+                const tickAll = pick.active && ((pick.batch !== "" && pick.batch !== "none") || (pick.order !== "" && pick.order !== "none"));
                 const units = (rows: PackCandidate[]) => rows.reduce((k, c) => k + c.qty, 0);
                 return (
                   <>
                     <p className="mb-1 mt-3 text-[13px] font-semibold text-lien-heading" data-testid={`pick-orders-${s.id}`}>
                       ① Hàng theo đơn <span className="font-normal text-lien-muted">({orderRows.length} dòng · {units(orderRows)} cái)</span>
                     </p>
-                    <CandTable rows={orderRows} pkId={pkId} pick={pick} sources={sources} checked empty="Không có hàng theo đơn nào ở Kho Nhật (shop)." />
+                    {pick.note ? (
+                      <p className="m-0 mt-2 rounded-md bg-sky-50 px-2 py-1 text-[12px] text-sky-900" data-testid={`trip-note-${s.id}`}>
+                        {pick.note}
+                        {tickAll ? " — đã tick sẵn mọi dòng, bỏ tick cái không đóng rồi bấm + Thêm vào chuyến." : ""}
+                      </p>
+                    ) : null}
+                    <CandTable rows={orderRows} pkId={pkId} pick={pick} sources={sources} kind="orders" tick empty="Không có hàng theo đơn nào ở Kho Nhật (shop)." />
                     {stockRows.length ? (
                       <details className="mt-3" open={pick.active} data-testid={`pick-stock-${s.id}`}>
                         <summary className="cursor-pointer text-[13px] font-semibold text-lien-heading">
                           ② Hàng tồn kho không theo đơn <span className="font-normal text-lien-muted">({stockRows.length} dòng · {units(stockRows)} cái)</span>
                         </summary>
-                        <CandTable rows={stockRows} pkId={pkId} pick={pick} sources={sources} checked={false} empty="" />
+                        <CandTable rows={stockRows} pkId={pkId} pick={pick} sources={sources} kind="stock" tick={tickAll} empty="" />
                       </details>
                     ) : null}
                   </>
@@ -563,10 +594,10 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
   );
 }
 
-function CandTable({ rows, pkId, sources, checked, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; checked: boolean; empty: string }) {
+function CandTable({ rows, pkId, sources, kind, tick, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; kind: "orders" | "stock"; tick: boolean; empty: string }) {
   return (
     <div className="overflow-x-auto">
-      <SheetTable id={`${pkId}-${checked ? "orders" : "stock"}`}>
+      <SheetTable id={`${pkId}-${kind}`}>
       <table className={tableClass}>
         <thead>
           <tr>
@@ -593,7 +624,7 @@ function CandTable({ rows, pkId, sources, checked, empty }: { rows: PackCandidat
           {rows.map((c) => (
             <tr key={c.key} className="hover:bg-[#fafafa]" data-testid={`cand-${c.unitIds[0]}`}>
               <td className={`${tdClass} w-8`}>
-                <input type="checkbox" name="keys" value={c.key} form={pkId} defaultChecked={checked} className="h-4 w-4" aria-label={`Chọn ${c.productName}`} />
+                <input type="checkbox" name="keys" value={c.key} form={pkId} defaultChecked={tick} className="h-4 w-4" aria-label={`Chọn ${c.productName}`} />
               </td>
               <td className={`${tdClass} min-w-[220px]`}>
                 <div className="flex items-center gap-2">

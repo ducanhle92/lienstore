@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Đóng hàng theo đợt mua**: mỗi đợt ở Quản lý mua hàng có nút **Đóng hàng đợt này** → mở ④ Đóng hàng JP lọc sẵn hàng của đợt (gồm hàng theo đơn) vào chuyến đang đóng. Lọc theo một đợt (hoặc một đơn) thì **mọi dòng được tick sẵn** và danh sách hàng tồn kho mở ra — bỏ tick vài cái không đóng rồi bấm **+ Thêm vào chuyến**. Dòng ghi chú cho biết cả đợt có bao nhiêu cái, bao nhiêu cái đang ở Kho Nhật chờ đóng (đang liệt kê), bao nhiêu đã đóng vào chuyến nào, đã gửi / đang về, hay chưa mua.
+
 ## [1.99.0] - 2026-09-28
 
 ### Changed
