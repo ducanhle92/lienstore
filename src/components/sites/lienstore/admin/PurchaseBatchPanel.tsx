@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { addProductAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, importBillsAction, renameBillAction, resetPurchasingAction, saveBatchRowsAction, syncBatchOrdersAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";
+import { addProductAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, importBillsAction, renameBillAction, saveBatchRowsAction, syncBatchOrdersAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";
 import { deleteReceiptFileAction, parseBillAction, uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import type { PurchaseLine } from "@/lib/db";
@@ -35,8 +35,6 @@ interface Props {
   search: { q: string; from: string; to: string; status: "" | "done" | "all" };
   /** Batch whose Bill block starts open (after creating a bill / attaching a photo). */
   openBillsFor?: number | null;
-  /** The signed-in account owns the shop (may wipe purchasing data). */
-  isOwner?: boolean;
 }
 
 const cell = "!mb-0 !py-1 !text-[13px]";
@@ -47,7 +45,7 @@ const BACK = "/admin/purchases/?tab=batches";
  * bottom of the screen while the card is in view. Bills (phiếu mua, PM-…) are the paper trail: each row says which bill
  * it came from; photos attach on the bill inside the card.
  */
-export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null, isOwner = false }: Props) {
+export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null }: Props) {
   void includeDone;
   const searching = !!(search.q || search.from || search.to || search.status);
   void openLines;
@@ -173,18 +171,6 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         {batches.map((b) => (
           <BatchCard key={b.id} batch={b} products={products} sources={sources} billsOpen={openBillsFor === b.id} />
         ))}
-        {isOwner ? (
-          <details className="rounded-md border border-dashed border-red-300 bg-red-50/40 px-3 py-2" data-testid="purchasing-reset">
-            <summary className="cursor-pointer text-[12px] font-semibold text-lien-heart">Làm lại từ đầu — xoá toàn bộ dữ liệu mua hàng (chủ shop)</summary>
-            <form action={resetPurchasingAction} className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
-              <span className="text-lien-text">Xoá mọi đợt mua, bill (kèm ảnh), mã hàng (từng cái) và lịch sử, chuyến đóng hàng; dòng của đơn đang xử lý trở về “Cần mua”; tồn web của các sản phẩm đó trở về hàng order. Không hoàn tác được.</span>
-              <input name="confirm" placeholder="gõ XOA" className={cn(adminInput, "!mb-0 !w-[110px] !py-1")} aria-label="Xác nhận" autoComplete="off" />
-              <ConfirmSubmit message="Xoá TOÀN BỘ dữ liệu mua hàng và làm lại từ đầu?" confirmLabel="Xoá hết" className={cn(btnSecondary, "!border-red-300 !py-1 !text-lien-heart")}>
-                Xoá toàn bộ dữ liệu mua hàng
-              </ConfirmSubmit>
-            </form>
-          </details>
-        ) : null}
       </div>
     </div>
   );

@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Removed
+- Quản lý mua hàng › Mua theo đợt: bỏ khung “Làm lại từ đầu — xoá toàn bộ dữ liệu mua hàng” (và thao tác phía máy chủ của nó) để không thể xoá nhầm toàn bộ dữ liệu mua hàng.
+
 ## [1.93.0] - 2026-09-28
 
 ### Changed

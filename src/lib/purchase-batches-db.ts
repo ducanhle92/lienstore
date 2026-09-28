@@ -307,31 +307,6 @@ export function deleteUnits(unitIds: number[]): { deleted: number; refused: numb
 }
 
 /**
- * "Làm lại từ đầu": wipes every purchasing record — batches, bills (+ photos), units and their history, packing runs —
- * and puts the open orders' lines back to "Cần mua". Products whose stock came from units go back to "hàng order"
- * (stock NULL). Owner only; irreversible.
- */
-export function resetPurchasingData(): { batches: number; slips: number; receipts: number; lots: number; shipments: number; lines: number; files: string[] } {
-  const db = getDb();
-  const now = new Date().toISOString();
-  const files = (db.prepare("SELECT files FROM purchase_receipts").all() as Array<{ files: string | null }>).flatMap((r) => parseReceiptFiles(r.files).map((f) => f.path));
-  const count = (sql: string) => Number((db.prepare(sql).get() as { n: number }).n);
-  const out = { batches: count("SELECT COUNT(*) AS n FROM purchase_batches"), slips: 0, receipts: count("SELECT COUNT(*) AS n FROM purchase_receipts"), lots: count("SELECT COUNT(*) AS n FROM stock_units"), shipments: count("SELECT COUNT(*) AS n FROM shipments"), lines: 0, files };
-  withTransaction(db, () => {
-    const products = (db.prepare("SELECT DISTINCT product_id FROM stock_units").all() as Array<{ product_id: number }>).map((r) => r.product_id);
-    db.prepare("DELETE FROM stock_unit_events").run();
-    db.prepare("DELETE FROM stock_units").run();
-    db.prepare("DELETE FROM purchase_receipt_items").run();
-    db.prepare("DELETE FROM purchase_receipts").run();
-    db.prepare("DELETE FROM purchase_batches").run();
-    db.prepare("DELETE FROM shipments").run();
-    out.lines = Number(db.prepare("UPDATE order_items SET purchase_status = 'not_bought', purchase_note = '', batch_id = NULL, receipt_id = NULL, source_key = '', purchase_expiry = NULL, purchase_bought_at = NULL, purchase_cost_jpy = NULL, auto_hold = 1, purchase_updated_at = ? WHERE order_id IN (SELECT id FROM orders WHERE status IN ('pending','processing'))").run(now).changes);
-    if (products.length) db.prepare(`UPDATE products SET stock = NULL, stock_vn = NULL, updated_at = ? WHERE id IN (${products.map(() => "?").join(",")})`).run(now, ...products);
-  });
-  return out;
-}
-
-/**
  * "Nhập nhanh nhiều bill": one bill per line — `mã | cửa hàng | nội dung | tổng` (tabs or | as separators); a line
  * starting with "@" names the source for the lines below ("@ OS Drug Store"). The date comes from a code like
  * BILL-260927-1200 (yymmdd), else the batch's bought date. Unknown sources are created as stores.

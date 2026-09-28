@@ -7,12 +7,11 @@ import { reallocateOpenOrders } from "@/lib/allocations-db";
 import { setOrderItemsPurchase } from "@/lib/db";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus, type PurchaseStatus } from "@/lib/purchase";
-import { addLinesToBatch, addProductToBatch, createPurchaseBatch, deletePurchaseBatch, deleteUnits, getPurchaseBatch, importBillsFromText, removeLineFromBatch, resetPurchasingData, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addProductToBatch, createPurchaseBatch, deletePurchaseBatch, deleteUnits, getPurchaseBatch, importBillsFromText, removeLineFromBatch, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 import { createManualReceipt, renameReceipt } from "@/lib/receipts-db";
 import { getDb, withTransaction } from "@/lib/sqlite";
 import { moveUnitsSync, removeUnitsSync, touchSync } from "@/lib/units-db";
 import { applyUnitRowEdits, readUnitRowFields } from "@/lib/unit-rows";
-import { deleteUpload } from "@/lib/uploads";
 
 /** Quản lý mua hàng › tab "Mua theo đợt" — every action lands back on the tab (anchored on the batch card). */
 const PAGE = "/admin/purchases/?tab=batches";
@@ -203,17 +202,6 @@ export async function importBillsAction(formData: FormData): Promise<void> {
   const r = await importBillsFromText(batchId!, text(formData, "bills"));
   revalidatePath("/admin", "layout");
   redirect(`${PAGE}&bills=${batchId}&${r.created ? "saved" : "error"}=${encodeURIComponent(`Đã tạo ${r.created} bill${r.sources.length ? ` · nguồn mới: ${r.sources.join(", ")}` : ""}${r.skipped.length ? ` · bỏ qua ${r.skipped.length}: ${r.skipped.slice(0, 5).join("; ")}` : ""}.`)}#batch-${batchId}`);
-}
-
-/** Owner only: wipe all purchasing data to start over (confirmation word required). */
-export async function resetPurchasingAction(formData: FormData): Promise<void> {
-  const session = await requireAdmin("inventory");
-  if (session.role !== "owner") go("error", "Chỉ chủ shop mới xoá được toàn bộ dữ liệu mua hàng.");
-  if (text(formData, "confirm").toUpperCase() !== "XOA") go("error", "Gõ đúng chữ XOA để xác nhận xoá toàn bộ dữ liệu mua hàng.");
-  const r = resetPurchasingData();
-  for (const p of r.files) await deleteUpload(p).catch(() => false);
-  revalidatePath("/admin", "layout");
-  go("saved", `Đã xoá: ${r.batches} đợt · ${r.receipts} bill (${r.files.length} ảnh) · ${r.lots} mã hàng · ${r.shipments} chuyến đóng hàng; ${r.lines} dòng đơn trở về “Cần mua”.`);
 }
 
 /** Đổi mã bill (the shop's own number, e.g. BILL_260927_1454 matching the photo). */
