@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.87.0] - 2026-09-28
+
 ### Changed
 - **Từng cái có mã riêng** (migration 65, bảng `stock_units` + nhật ký `stock_unit_events`): mỗi món hàng mua về là một dòng với mã ngắn `H` + 6 số + 1 số kiểm tra (Damm) — vd `H0001235`, gõ sai một số hoặc đảo hai số liền nhau đều bị từ chối, hợp in tem / QR. Mỗi cái mang nguồn gốc (bill, đợt mua, nơi mua, cửa hàng, ngày mua, HSD, ¥), vị trí (dự định mua → đã đặt mua → Kho Nhật → ĐVVC Nhật → đang bay → ĐVVC HN → đang về → Kho VN → đang giao → khách nhận), chuyến đóng hàng và đơn đang giữ nó. Bỏ khái niệm “lô” và “phiếu mua lưu kho”; dữ liệu cũ chuyển sang từng cái (tồn kho từng sản phẩm và phần giữ cho từng dòng đơn không đổi), bảng cũ giữ nguyên để quay lại được.
 - **Một nguồn sự thật, tự đồng bộ**: mọi thay đổi ở từng cái (đợt mua, Tồn kho, Đóng hàng / Vận chuyển, đơn hàng) tự tính lại: đơn nào giữ cái nào (đơn cũ trước; gần khách nhất → hạn dùng gần nhất → bill sớm hơn; bỏ qua hàng hết hạn; hàng đã thanh toán / đã đóng chuyến / chọn tay không bị đổi), trạng thái dòng đơn, tiến độ đơn + 4 chặng (chỉ tiến, và chỉ khi đơn đã thanh toán hoặc COD), trạng thái đợt, tồn web. Đổi tiến độ / chặng bằng tay trên đơn thì hàng của đơn đi theo — hết lệch giữa các màn. Huỷ đơn: hàng về tồn và đơn đang chờ được giữ ngay. Khởi động lại cũng tự tính lại toàn bộ.
