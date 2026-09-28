@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.88.0] - 2026-09-28
+
 ### Changed
 - **Chuỗi kho hàng có thêm bước Đơn hàng**: menu Kho hàng và thanh bước đi theo thứ tự ① Đơn hàng → ② Quản lý mua hàng → ③ Tồn kho Nhật → ④ Đóng hàng → ⑤ Vận chuyển → ⑥ Tồn kho VN; trang Đơn hàng hiện thanh bước (số đơn đang xử lý / chờ).
 - **Đóng hàng**: trạng thái chuyến là một timeline (Đang đóng → Đã đóng xong → Đã giao ĐVVC → NB→VN → Kho ĐVVC VN → Về kho VN), bấm mốc để chuyển, nút “Lùi về” / “Tiếp”. Khung thêm hàng gộp với nút “+ Thêm vào chuyến” trên một thanh ghim khi cuộn (lọc theo đơn / đợt mua / tìm). Cuối bảng chuyến có dòng **Tổng cộng**: số cái · số dòng bill · số cái cho đơn khách · ≈ ¥. Tick dòng → “Rút khỏi chuyến”.
