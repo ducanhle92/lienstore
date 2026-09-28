@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.102.0] - 2026-09-28
+
 ### Changed
 - **Menu Kho hàng**: **⓪ Sản phẩm** đứng đầu chuỗi (① Đơn hàng … ⑦ Giao hàng VN), thanh bước có thêm bước 0 (số sản phẩm đang bán · nháp) và hiện trên trang Sản phẩm; nhóm **Chung** đổi tên **Khác** và xuống cuối. Nhãn trên thanh bước rút gọn (Kho Nhật, Đóng hàng, JP → VN, Kho VN, Giao hàng) để 8 bước nằm một hàng.
 - **Đơn hàng**: bỏ hàng nút “Trạng thái đơn” phía trên (lọc trạng thái bằng ▾ ở cột **Trạng thái đơn** của bảng); bỏ ô tick **Khách quen** (nhãn “Khách quen” trên từng dòng vẫn còn); số đơn · doanh thu bộ lọc hiện màu xanh ngay cạnh tiêu đề, không xuống dòng.
