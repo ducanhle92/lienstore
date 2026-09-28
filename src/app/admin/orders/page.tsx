@@ -3,7 +3,7 @@ import { deleteOrdersAction } from "@/app/admin/orders/actions";
 import { BULK_FORM_ID, BulkDeleteButton, SelectAllOrders } from "@/components/sites/lienstore/admin/OrdersBulk";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
-import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { ADMIN_STATUSES, adminInput, btnPrimary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
@@ -53,31 +53,15 @@ export default async function AdminOrders({ searchParams }: Props) {
   const q = first(sp.q).trim().toLowerCase();
   const [all, unread, regular] = await Promise.all([getOrders(), getUnreadMessageCounts("admin"), listRegularSets()]);
   const isReg = (o: (typeof all)[number]) => isRegularBy({ accountRegular: !!o.customerId && regular.customerIds.has(o.customerId), phone: o.customer.phone, regularPhones: regular.phones });
-  const onlyRegular = first(sp.regular) === "1";
   // order dates are stored in UTC; compare on the shop's local day
   const localDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const items = all
     .filter((o) => !status || o.status === status)
     .filter((o) => !stage || (o.shipStage === stage && o.status !== "cancelled"))
     .filter((o) => !payment || (payment === "unpaid" ? !o.paidAt && o.status !== "cancelled" : o.paymentMethod === payment))
-    .filter((o) => !onlyRegular || isReg(o))
     .filter((o) => !from || localDay(o.createdAt) >= from)
     .filter((o) => !to || localDay(o.createdAt) <= to)
     .filter((o) => !q || `#${o.number} ${o.customer.lastName} ${o.customer.firstName} ${o.customer.phone} ${o.customer.email}`.toLowerCase().includes(q));
-  const counts = Object.fromEntries(ADMIN_STATUSES.map((s) => [s, all.filter((o) => o.status === s).length])) as Record<OrderStatus, number>;
-  const stageCount = (k: ShipStage) => all.filter((o) => o.shipStage === k && o.status !== "cancelled").length;
-  const keep = (over: Record<string, string | undefined>) => {
-    const qs = new URLSearchParams();
-    const cur: Record<string, string> = { status: status ?? "", stage: stage ?? "", payment, from, to, q, regular: onlyRegular ? "1" : "", ...over } as Record<string, string>;
-    for (const [k, v] of Object.entries(cur)) if (v) qs.set(k, v);
-    const s = qs.toString();
-    return `/admin/orders/${s ? `?${s}` : ""}`;
-  };
-  const tab = (href: string, label: string, active: boolean) => (
-    <Link key={href} href={href} className={cn("rounded-md px-3 py-1.5 text-[13px] leading-5 no-underline", active ? "bg-lien-blue text-white" : "border border-[#e5e7eb] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-      {label}
-    </Link>
-  );
   const total = items.reduce((s, o) => s + (o.status === "cancelled" ? 0 : o.total), 0);
   // second view: every open order's lines with where their goods are (what a salesperson still has to buy)
   const view: "pnl" | "stock" = first(sp.view) === "stock" ? "stock" : "pnl";
@@ -100,7 +84,7 @@ export default async function AdminOrders({ searchParams }: Props) {
       <FlowSteps current="orders" counts={flowCounts(getDb())} />
       <PageHeader
         title="Đơn hàng"
-        subtitle={view === "stock" ? `${new Set(stockLines.map((l) => l.orderId)).size} đơn đang xử lý · hàng của từng đơn đang ở đâu, còn thiếu gì` : `${items.length} / ${all.length} đơn · doanh thu bộ lọc ${formatPrice(total)}`}
+        summary={<span className="text-green-700">{view === "stock" ? `${new Set(stockLines.map((l) => l.orderId)).size} đơn đang xử lý` : `${items.length} / ${all.length} đơn · doanh thu ${formatPrice(total)}`}</span>}
         actions={
           <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Cách hiển thị" data-testid="orders-view">
             <Link href="/admin/orders/" role="tab" aria-selected={view === "pnl"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", view === "pnl" ? "bg-lien-blue text-white" : "bg-white text-lien-text hover:bg-[#f3f4f6]")}>
@@ -117,15 +101,7 @@ export default async function AdminOrders({ searchParams }: Props) {
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       {view === "stock" ? <OrdersStockPanel lines={stockLines} allocations={stockAllocs} stageByOrder={stageByOrder} /> : null}
       <Card className={cn("mb-5", view === "stock" && "hidden")}>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="w-[130px] text-[13px] font-semibold text-lien-heading">Trạng thái đơn:</span>
-          {tab(keep({ stage: "" }), `Tất cả (${all.filter((o) => o.status !== "cancelled").length})`, !stage && !status)}
-          {SHIP_STAGES.map((s) => tab(keep({ stage: s.key, status: "" }), `${s.label} (${stageCount(s.key)})`, stage === s.key))}
-          {tab(keep({ status: "cancelled", stage: "" }), `${ADMIN_STATUS_LABELS.cancelled} (${counts.cancelled})`, status === "cancelled")}
-        </div>
-        <form method="get" className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_auto_auto] md:items-end">
-          {stage ? <input type="hidden" name="stage" value={stage} /> : null}
-          {status ? <input type="hidden" name="status" value={status} /> : null}
+        <form method="get" className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_auto] md:items-end">
           <label className="text-[12px] font-semibold text-[#374151]">
             Tìm
             <input name="q" defaultValue={first(sp.q)} placeholder="#đơn, tên khách, điện thoại, email…" className={cn(adminInput, "mt-1")} />
@@ -146,9 +122,6 @@ export default async function AdminOrders({ searchParams }: Props) {
               <option value="cod">COD</option>
               <option value="unpaid">Chưa thanh toán</option>
             </select>
-          </label>
-          <label className="inline-flex items-center gap-2 self-end pb-2 text-[13px]" title="Chỉ đơn của khách quen (tài khoản được đánh dấu hoặc số điện thoại đã ghi nhớ)">
-            <input type="checkbox" name="regular" value="1" defaultChecked={onlyRegular} className="h-4 w-4" /> Khách quen
           </label>
           <button type="submit" className={btnPrimary}>
             <Fa name="check" /> Lọc

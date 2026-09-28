@@ -68,7 +68,7 @@ export function Card({ children, className, title, actions }: { children: ReactN
   );
 }
 
-export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: ReactNode; back?: { href: string; label: string } }) {
+export function PageHeader({ title, subtitle, summary, actions, back }: { title: string; subtitle?: string; /** Short figures shown right of the title, on the same line. */ summary?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3 md:mb-6 md:gap-4">
       <div className="min-w-0">
@@ -77,7 +77,10 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
             ← {back.label}
           </Link>
         ) : null}
-        <h1 className="font-oswald text-[24px] font-normal leading-8 text-lien-heading md:text-[28px] md:leading-9">{title}</h1>
+        <h1 className="flex flex-wrap items-baseline gap-x-3 font-oswald text-[24px] font-normal leading-8 text-lien-heading md:text-[28px] md:leading-9">
+          {title}
+          {summary ? <span className="font-sans text-[14px] font-semibold leading-6 md:text-[15px]" data-testid="page-summary">{summary}</span> : null}
+        </h1>
         {subtitle ? <p className="mt-1 text-[13px] leading-5 text-lien-muted md:text-[14px]">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

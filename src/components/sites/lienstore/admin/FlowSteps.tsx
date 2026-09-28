@@ -13,13 +13,14 @@ interface Step {
 }
 
 export const FLOW_STEPS: Step[] = [
+  { key: "products", n: "0", label: "Sản phẩm", href: "/admin/products/", icon: "list", value: (c) => `${c.products} bán${c.draftProducts ? ` · ${c.draftProducts} nháp` : ""}` },
   { key: "orders", n: "1", label: "Đơn hàng", href: "/admin/orders/", icon: "shopping-cart", value: (c) => `${c.openOrders} đơn${c.pendingOrders ? ` · ${c.pendingOrders} chờ` : ""}` },
   { key: "buy", n: "2", label: "Mua hàng", href: "/admin/purchases/", icon: "shopping-basket", value: (c) => `${c.openBatches} đợt${c.toBuy ? ` · ${c.toBuy} chưa mua` : ""}` },
-  { key: "jp", n: "3", label: "Tồn kho Nhật", href: "/admin/inventory/?side=jp", icon: "archive", value: (c) => `${c.jp} đv trên kệ` },
-  { key: "pack", n: "4", label: "Đóng hàng JP", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
-  { key: "transit", n: "5", label: "Vận chuyển JP-VN", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
-  { key: "vn", n: "6", label: "Tồn kho VN", href: "/admin/inventory/?side=vn", icon: "building", value: (c) => `${c.vn} đv` },
-  { key: "deliver", n: "7", label: "Giao hàng VN", href: "/admin/inventory/delivery/", icon: "map-marker", value: (c) => `${c.deliverReady} chờ giao${c.delivering ? ` · ${c.delivering} đang giao` : ""}` },
+  { key: "jp", n: "3", label: "Kho Nhật", href: "/admin/inventory/?side=jp", icon: "archive", value: (c) => `${c.jp} đv` },
+  { key: "pack", n: "4", label: "Đóng hàng", href: "/admin/inventory/shipments/", icon: "cube", value: (c) => `${c.pack} đv · ${c.packRuns} chuyến` },
+  { key: "transit", n: "5", label: "JP → VN", href: "/admin/inventory/shipments/?stage=transit", icon: "truck", value: (c) => `${c.transit} đv · ${c.transitRuns} chuyến` },
+  { key: "vn", n: "6", label: "Kho VN", href: "/admin/inventory/?side=vn", icon: "building", value: (c) => `${c.vn} đv` },
+  { key: "deliver", n: "7", label: "Giao hàng", href: "/admin/inventory/delivery/", icon: "map-marker", value: (c) => `${c.deliverReady} chờ${c.delivering ? ` · ${c.delivering} đang giao` : ""}` },
 ];
 
 /** The seven-step flow (order → buy → Kho Nhật → pack → JP-VN → Kho VN → deliver) as a bar on top of each step's page; the current step is highlighted. */

@@ -8,6 +8,9 @@ import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAl
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { filterProducts, PRICE_BUCKETS } from "@/lib/product-filter";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
+import { flowCounts } from "@/lib/flow-db";
+import { getDb } from "@/lib/sqlite";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
@@ -55,6 +58,7 @@ export default async function AdminProducts({ searchParams }: Props) {
 
   return (
     <>
+      <FlowSteps current="products" counts={flowCounts(getDb())} />
       <PageHeader
         title="Sản phẩm"
         subtitle={`${items.length} / ${all.length} sản phẩm · ${withCost.length} có giá vốn${missingPrice ? ` · ${missingPrice} chưa có giá bán` : ""} · vốn tồn kho và lãi/lỗ xem ở tab Kế toán`}

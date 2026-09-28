@@ -42,9 +42,18 @@ const NAV: NavGroup[] = [
     label: "Kho hàng",
     icon: "cubes",
     children: [
+      // the flow, in the order the goods travel: ⓪ the catalogue the customer orders from, then ① … ⑦
+      { href: "/admin/products/", label: "⓪ Sản phẩm", icon: "list", module: "products", match: (p) => p.startsWith("/admin/products/") && !p.startsWith("/admin/products/sources") && !p.startsWith("/admin/products/pricing") && !p.startsWith("/admin/products/groups") },
+      { href: "/admin/orders/", label: "① Đơn hàng", icon: "shopping-cart", module: "orders" },
+      { href: "/admin/purchases/", label: "② Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
+      { href: "/admin/inventory/?side=jp", label: "③ Tồn kho Nhật", icon: "archive", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/lots") || (isInventoryHome(p) && q.get("side") === "jp") },
+      { href: "/admin/inventory/shipments/", label: "④ Đóng hàng JP", icon: "cube", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") !== "transit" },
+      { href: "/admin/inventory/shipments/?stage=transit", label: "⑤ Vận chuyển JP-VN", icon: "truck", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
+      { href: "/admin/inventory/?side=vn", label: "⑥ Tồn kho VN", icon: "building", module: "inventory", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" },
+      { href: "/admin/inventory/delivery/", label: "⑦ Giao hàng VN", icon: "map-marker", module: "orders", match: (p) => p.startsWith("/admin/inventory/delivery") },
       {
         href: "/admin/categories/",
-        label: "Chung",
+        label: "Khác",
         icon: "cog",
         children: [
           { href: "/admin/categories/", label: "Danh mục", icon: "align-left", module: "categories" },
@@ -54,15 +63,6 @@ const NAV: NavGroup[] = [
           { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
         ],
       },
-      { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
-      // the import flow, in the order the goods travel
-      { href: "/admin/orders/", label: "① Đơn hàng", icon: "shopping-cart", module: "orders" },
-      { href: "/admin/purchases/", label: "② Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
-      { href: "/admin/inventory/?side=jp", label: "③ Tồn kho Nhật", icon: "archive", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/lots") || (isInventoryHome(p) && q.get("side") === "jp") },
-      { href: "/admin/inventory/shipments/", label: "④ Đóng hàng JP", icon: "cube", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") !== "transit" },
-      { href: "/admin/inventory/shipments/?stage=transit", label: "⑤ Vận chuyển JP-VN", icon: "truck", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
-      { href: "/admin/inventory/?side=vn", label: "⑥ Tồn kho VN", icon: "building", module: "inventory", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" },
-      { href: "/admin/inventory/delivery/", label: "⑦ Giao hàng VN", icon: "map-marker", module: "orders", match: (p) => p.startsWith("/admin/inventory/delivery") },
     ],
   },
   {

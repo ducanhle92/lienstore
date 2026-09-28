@@ -6,9 +6,12 @@ import { listOrdersReadyToShip } from "./lots-db";
  * ① Đơn hàng → ② Quản lý mua hàng → ③ Tồn kho Nhật → ④ Đóng hàng JP → ⑤ Vận chuyển JP-VN → ⑥ Tồn kho VN → ⑦ Giao hàng VN.
  * One number per step (units physically at that step) for the step bar on top of those pages.
  */
-export type FlowStep = "orders" | "buy" | "jp" | "pack" | "transit" | "vn" | "deliver";
+export type FlowStep = "products" | "orders" | "buy" | "jp" | "pack" | "transit" | "vn" | "deliver";
 
 export interface FlowCounts {
+  /** ⓪ the catalogue: published products, and drafts still to finish. */
+  products: number;
+  draftProducts: number;
   /** Orders being handled (pending + processing) and, of them, those still waiting ("Chờ xử lý"). */
   openOrders: number;
   pendingOrders: number;
@@ -32,7 +35,7 @@ export interface FlowCounts {
 }
 
 export function flowCounts(db: DatabaseSync): FlowCounts {
-  const c: FlowCounts = { openOrders: 0, pendingOrders: 0, toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0, deliverReady: 0, delivering: 0 };
+  const c: FlowCounts = { products: 0, draftProducts: 0, openOrders: 0, pendingOrders: 0, toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0, deliverReady: 0, delivering: 0 };
   const rows = db
     .prepare("SELECT u.status, (u.shipment_id IS NOT NULL AND s.status IN ('packing','packed')) AS boxed, COUNT(*) AS n FROM stock_units u LEFT JOIN shipments s ON s.id = u.shipment_id WHERE u.removed IS NULL GROUP BY u.status, boxed")
     .all() as Array<{ status: string; boxed: number; n: number }>;
@@ -63,6 +66,9 @@ export function flowCounts(db: DatabaseSync): FlowCounts {
     if (r.status === "packing" || r.status === "packed") c.packRuns += Number(r.n);
     else c.transitRuns += Number(r.n);
   }
+  const pr = db.prepare("SELECT SUM(status = 'publish') AS p, SUM(status = 'draft') AS d FROM products").get() as { p: number | null; d: number | null };
+  c.products = Number(pr.p ?? 0);
+  c.draftProducts = Number(pr.d ?? 0);
   c.deliverReady = listOrdersReadyToShip(db).length;
   c.delivering = Number((db.prepare("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing') AND ship_stage = 'delivering'").get() as { n: number }).n);
   return c;
