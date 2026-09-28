@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.86.0] - 2026-09-28
+
 ### Changed
 - **Tiến độ đơn hàng theo hình thức thanh toán** (migration 64, cột `orders.paid_at`): thanh toán là một mốc riêng, không còn là một bước vận chuyển.
   - Trả trước (chuyển khoản): Đã đặt hàng → **Đã thanh toán** → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đã giao hàng thành công.
