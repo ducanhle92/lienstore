@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.85.0] - 2026-09-28
+
 ### Changed
 - **Quy trình nhập hàng 5 bước**: menu Kho hàng xếp theo đường đi của hàng — ① Quản lý mua hàng → ② Tồn kho Nhật → ③ Đóng hàng → ④ Vận chuyển → ⑤ Tồn kho VN. Mỗi trang có thanh bước ở trên cùng (số đv / chuyến ở từng bước, bấm để sang bước khác).
 - ③ Đóng hàng chỉ còn chuyến đang đóng / đã đóng xong; chuyến đã giao ĐVVC sang **④ Vận chuyển** (kho Kiến Nhật → bay NB→VN → kho ĐVVC Hà Nội → về kho shop VN). Mỗi chuyến có nút **bước tiếp** một bấm (vd “Đã chuyển cho ĐVVC”, “Đã về kho shop VN”). ④ liệt kê cả lô đang ở ĐVVC mà không nằm trong chuyến nào.
