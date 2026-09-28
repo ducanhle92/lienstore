@@ -4,6 +4,9 @@ import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setSh
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
+import { OpenDetailsButton } from "@/components/sites/lienstore/admin/AddRowButton";
+import { AutoSubmitSelect } from "@/components/sites/lienstore/admin/AutoSubmitSelect";
+import { BatchBody, BatchToggle } from "@/components/sites/lienstore/admin/BatchCollapse";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -12,7 +15,7 @@ import { listPurchaseSources } from "@/lib/db";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentStage } from "@/lib/shipments";
+import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex } from "@/lib/shipments";
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { listStockGroups } from "@/lib/lots-db";
@@ -79,17 +82,6 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       <PageHeader
         title={transit ? "Vận chuyển JP-VN" : "Đóng hàng JP"}
         subtitle={transit ? `Chuyến đã giao ĐVVC: kho Kiến Nhật → bay NB→VN → kho ĐVVC Hà Nội → về kho shop VN · ${shipments.filter((s) => s.status !== "done").length} chuyến đang đi` : `Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.length} chuyến đang đóng · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
-        actions={
-          transit ? (
-            <Link href="/admin/inventory/?side=vn" className={btnSecondary}>
-              <Fa name="building" /> ⑥ Tồn kho VN
-            </Link>
-          ) : (
-            <Link href="/admin/inventory/?side=jp" className={btnSecondary}>
-              <Fa name="archive" /> ③ Tồn kho Nhật
-            </Link>
-          )
-        }
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
@@ -108,9 +100,9 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       ) : null}
 
       <div className={cn("mb-4 grid gap-3 md:grid-cols-2", transit && "hidden")}>
-        <details className="min-w-0" open={shipments.length === 0} data-testid="new-shipment">
-          <summary className={cn(btnPrimary, "inline-block cursor-pointer list-none")}>+ Chuyến hàng mới</summary>
-          <div className="mt-2">
+        <details id="new-shipment" className="min-w-0" open={shipments.length === 0} data-testid="new-shipment">
+          <summary className="hidden">Chuyến hàng mới</summary>
+          <div>
             <Card title="Mở chuyến đóng hàng mới">
               <form action={createShipmentAction} className="grid gap-3 sm:grid-cols-[1fr_150px] sm:items-end" data-testid="shipment-create">
                 <div>
@@ -138,27 +130,13 @@ export default async function ShipmentsPage({ searchParams }: Props) {
             </Card>
           </div>
         </details>
-        <details className="min-w-0">
-          <summary className={cn(btnSecondary, "inline-block cursor-pointer list-none")}>Cách dùng</summary>
-          <div className="mt-2">
-            <Card title="Cách dùng">
-              <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
-                <li>
-                  <b>Mở chuyến</b> (một thùng / một lần gửi), rồi trong chuyến <b>chọn hàng đóng</b>: theo <b>đơn</b> (mọi sản phẩm của đơn), theo <b>đợt mua</b> (mọi hàng của đợt còn ở Kho Nhật) hoặc <b>tìm</b> sản phẩm / đơn. Tick dòng (hoặc chọn tất cả), sửa SL nếu chỉ đóng một phần, bấm <b>Thêm vào chuyến</b> → hàng rời kệ Kho Nhật ngay.
-                </li>
-                <li>
-                  Hàng đã đóng nằm ở nhánh <b>“Đã đóng hàng, chờ xuất ĐVVC”</b> trong Tồn kho › Kho Nhật; số “tại kho shop” giảm tương ứng. Rút lại được khi chuyến chưa xuất.
-                </li>
-                <li>
-                  <b>Trạng thái chuyến:</b> Đang đóng → Đã đóng xong → <b>Đã chuyển cho ĐVVC</b> → NB→VN → Kho ĐVVC VN → Về kho shop VN. Từ “Đã chuyển cho ĐVVC” mọi lô trong chuyến đổi vị trí theo, dòng đơn khách cập nhật theo.
-                </li>
-                <li>Ở Tồn kho › Kho Nhật cũng có thể tick lô → “Đóng vào chuyến”.</li>
-              </ol>
-            </Card>
-          </div>
-        </details>
       </div>
 
+      {!transit && barId === null ? (
+        <BarTools>
+          <OpenDetailsButton target="new-shipment" label="+ Chuyến mới" className={cn(btnSecondary, "!py-1.5")} />
+        </BarTools>
+      ) : null}
       <div className="space-y-5">
         {at ? <TransitTable title={`${at.label} — ${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill`} groups={atGroups} withRun testId={`at-${at.key}`} /> : null}
         {runsShown.length === 0 && !at ? (
@@ -167,7 +145,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {runsShown.map((s) => (
-          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} multi={shipments.filter((x) => shipmentEditable(x.status)).length > 1} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit ? (
@@ -252,11 +230,9 @@ type PickSources = ReturnType<typeof listPackSources>;
 function ShipmentTimeline({ s }: { s: Shipment }) {
   const cur = shipmentIndex(s.status);
   const n = SHIPMENT_STAGES.length;
-  const prev = SHIPMENT_STAGES[cur - 1] ?? null;
-  const next = SHIPMENT_STAGES[cur + 1] ?? null;
   const pct = n > 1 ? (cur / (n - 1)) * 100 : 0;
   return (
-    <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 pb-3 pt-4" data-testid={`ship-timeline-${s.id}`}>
+    <div className="mb-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-3" data-testid={`ship-timeline-${s.id}`}>
       <ol className="relative m-0 grid list-none p-0" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
         <span aria-hidden="true" className="absolute top-[9px] h-[3px] rounded bg-[#e5e5e5]" style={{ left: `calc(100% / ${n * 2})`, right: `calc(100% / ${n * 2})` }} />
         <span aria-hidden="true" className="absolute top-[9px] h-[3px] rounded bg-lien-heart" style={{ left: `calc(100% / ${n * 2})`, width: `calc((100% - 100% / ${n}) * ${pct / 100})` }} />
@@ -279,59 +255,44 @@ function ShipmentTimeline({ s }: { s: Shipment }) {
           );
         })}
       </ol>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
-        {prev ? (
-          <form action={setShipmentStatusAction}>
-            <input type="hidden" name="shipmentId" value={s.id} />
-            <input type="hidden" name="status" value={prev.key} />
-            <button type="submit" className={cn(btnSecondary, "!py-1")} data-testid={`ship-back-${s.id}`} title={`Lùi về: ${prev.label}`}>
-              <Fa name="angle-left" /> Lùi
-            </button>
-          </form>
-        ) : null}
-        <span className="font-semibold text-lien-heading">{shipmentStage(s.status).label}</span>
-        {next ? (
-          <form action={setShipmentStatusAction}>
-            <input type="hidden" name="shipmentId" value={s.id} />
-            <input type="hidden" name="status" value={next.key} />
-            <button type="submit" className={cn(btnPrimary, "!py-1")} data-testid={`ship-next-${s.id}`} title="Mọi cái trong chuyến đổi vị trí theo; đơn hàng, đợt mua, Tồn kho cập nhật">
-              Tiếp: {next.label} <Fa name="angle-right" />
-            </button>
-          </form>
-        ) : null}
-        <span className="ml-auto text-[12px] text-lien-muted">
-          dự kiến gửi {s.plannedAt ? formatDate(s.plannedAt) : "—"} · đã gửi {s.shippedAt ? formatDate(s.shippedAt) : "—"}
-          {s.tracking ? ` · ${s.tracking}` : ""}
-          {s.note ? ` · ${s.note}` : ""}
-        </span>
-      </div>
     </div>
   );
 }
 
-function ShipmentCard({ s, sources, pick, pickSources, inBar }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; inBar: boolean }) {
-  const stage = shipmentStage(s.status);
+function ShipmentCard({ s, sources, pick, pickSources, inBar, multi = false }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; inBar: boolean; multi?: boolean }) {
   const editable = shipmentEditable(s.status);
+  const infoId = `si-${s.id}`;
   const pkId = `pk-${s.id}`;
   const outId = `out-${s.id}`;
   return (
     <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`}>
       <Card
-        title={`${s.code}${s.label ? ` · ${s.label}` : ""}`}
         actions={
-          <span className="flex items-center gap-3">
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", stage.cls)}>{stage.short}</span>
-            {editable ? (
-              <form action={deleteShipmentAction}>
-                <input type="hidden" name="shipmentId" value={s.id} />
-                <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.units} cái trở lại kệ Kho Nhật.`} className="text-[12px] text-lien-heart hover:underline">
-                  Xoá chuyến
-                </ConfirmSubmit>
-              </form>
-            ) : null}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+            <h2 className="text-[15px] font-semibold leading-6 text-lien-heading">
+              {s.code}
+              {s.label ? ` · ${s.label}` : ""}
+            </h2>
+            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
+              Dự kiến gửi
+              <input type="date" name="plannedAt" form={infoId} defaultValue={s.plannedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày dự kiến gửi" data-testid={`planned-${s.id}`} />
+            </label>
+            {s.shippedAt ? <span className="text-[12px] text-lien-muted">đã gửi {formatDate(s.shippedAt)}</span> : null}
+            <span className="ml-auto flex items-center gap-3">
+              {editable ? (
+                <form action={deleteShipmentAction}>
+                  <input type="hidden" name="shipmentId" value={s.id} />
+                  <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.units} cái trở lại kệ Kho Nhật.`} className="text-[12px] text-lien-heart hover:underline">
+                    Xoá chuyến
+                  </ConfirmSubmit>
+                </form>
+              ) : null}
+              <BatchToggle id={s.id} ns="ship" labels={["Thu gọn", "Mở chuyến"]} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} />
+            </span>
+          </div>
         }
       >
+        <BatchBody id={s.id} ns="ship">
         <ShipmentTimeline s={s} />
 
         {editable ? (
@@ -449,7 +410,7 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar }: { s: Shipment; s
             {inBar ? (
               <>
                 <BarTools>
-                  <PackControls s={s} pick={pick} pkId={pkId} bar />
+                  <PackControls s={s} pick={pick} pkId={pkId} bar multi={multi} />
                   <span className="hidden md:contents">
                     <PickFilters s={s} pick={pick} pickSources={pickSources} testIds />
                   </span>
@@ -493,20 +454,14 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar }: { s: Shipment; s
         ) : null}
 
         <details className="mt-3">
-          <summary className="cursor-pointer text-[12px] text-lien-blue">Sửa thông tin chuyến (tên, ngày dự kiến gửi, ngày gửi, mã vận đơn, ghi chú)</summary>
-          <form action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_130px_160px_1fr_auto] lg:items-end">
+          <summary className="cursor-pointer text-[12px] text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú)</summary>
+          <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_160px_1fr_auto] lg:items-end">
             <input type="hidden" name="shipmentId" value={s.id} />
             <div>
               <label className={adminLabel} htmlFor={`ul-${s.id}`}>
                 Tên chuyến
               </label>
               <input id={`ul-${s.id}`} name="label" defaultValue={s.label} maxLength={80} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor={`up-${s.id}`}>
-                Dự kiến gửi
-              </label>
-              <input id={`up-${s.id}`} name="plannedAt" defaultValue={s.plannedAt ?? ""} placeholder="2026-10-02" className={cn(adminInput, "!py-1.5 !text-[13px]")} />
             </div>
             <div>
               <label className={adminLabel} htmlFor={`ud-${s.id}`}>
@@ -531,24 +486,31 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar }: { s: Shipment; s
             </button>
           </form>
         </details>
+        </BatchBody>
       </Card>
     </div>
   );
 }
 
 /** "+ Thêm vào chuyến" of one run with what the picker currently lists (in the bottom bar for the run being packed). */
-function PackControls({ s, pick, pkId, bar = false }: { s: Shipment; pick: Pick; pkId: string; bar?: boolean }) {
+function PackControls({ s, pick, pkId, bar = false, multi = false }: { s: Shipment; pick: Pick; pkId: string; bar?: boolean; multi?: boolean }) {
   return (
     <>
-      <span className="self-center text-[13px] font-semibold text-lien-heading">
-        <Fa name="cube" /> {bar ? s.code : "Thêm hàng vào chuyến"}
-      </span>
-      <button type="submit" form={pkId} className={cn(btnPrimary, "!py-1 !text-[13px] disabled:opacity-50")} data-testid={`pack-${s.id}`}>
+      {bar ? <OpenDetailsButton target="new-shipment" label="+ Chuyến mới" className={cn(btnSecondary, "!py-1 !text-[13px]")} /> : null}
+      {/* in the bar the run's code only matters when several runs are being packed */}
+      {!bar || multi ? (
+        <span className="self-center text-[13px] font-semibold text-lien-heading">
+          <Fa name="cube" /> {bar ? s.code : "Thêm hàng vào chuyến"}
+        </span>
+      ) : null}
+      <button type="submit" form={pkId} className={cn(btnPrimary, "!py-1 !text-[13px] disabled:opacity-50")} title={`Đang hiện ${pick.rows.length} dòng · ${pick.rows.reduce((k, c) => k + c.qty, 0)} cái`} data-testid={`pack-${s.id}`}>
         + Thêm vào chuyến
       </button>
-      <span className="self-center text-[12px] text-lien-muted">
-        {pick.rows.length} dòng · {pick.rows.reduce((k, c) => k + c.qty, 0)} cái
-      </span>
+      {bar ? null : (
+        <span className="self-center text-[12px] text-lien-muted">
+          {pick.rows.length} dòng · {pick.rows.reduce((k, c) => k + c.qty, 0)} cái
+        </span>
+      )}
     </>
   );
 }
@@ -561,40 +523,31 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
       <form method="get" className="flex items-end gap-1" data-testid={tid("order")}>
         <input type="hidden" name="pick" value={s.id} />
         <input type="hidden" name="by" value="order" />
-        <select name="order" defaultValue={pick.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !w-[190px] !py-1 !text-[13px]")} aria-label="Theo đơn">
+        <AutoSubmitSelect name="order" defaultValue={pick.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[13px]")} label="Theo đơn">
           <option value="">Theo đơn ({pickSources.orders.length})</option>
           {pickSources.orders.map((o) => (
             <option key={o.orderId} value={o.orderId}>
               #{o.orderNumber} · {o.customer} · {o.units} cái
             </option>
           ))}
-        </select>
-        <button type="submit" className={cn(btnSecondary, "!py-1")}>
-          Xem
-        </button>
+        </AutoSubmitSelect>
       </form>
       <form method="get" className="flex items-end gap-1" data-testid={tid("batch")}>
         <input type="hidden" name="pick" value={s.id} />
         <input type="hidden" name="by" value="batch" />
-        <select name="batch" defaultValue={pick.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[13px]")} aria-label="Theo đợt mua">
+        <AutoSubmitSelect name="batch" defaultValue={pick.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} label="Theo đợt mua">
           <option value="">Theo đợt mua ({pickSources.batches.length})</option>
           {pickSources.batches.map((b) => (
             <option key={b.batchId} value={b.batchId}>
               {b.code} · {b.units} cái
             </option>
           ))}
-        </select>
-        <button type="submit" className={cn(btnSecondary, "!py-1")}>
-          Xem
-        </button>
+        </AutoSubmitSelect>
       </form>
       <form method="get" className="flex items-end gap-1" data-testid={tid("q")}>
         <input type="hidden" name="pick" value={s.id} />
         <input type="hidden" name="by" value="q" />
-        <input name="q" defaultValue={pick.by === "q" ? pick.q : ""} placeholder="tên, SKU, mã H…, #đơn…" className={cn(adminInput, "!mb-0 !w-[180px] !py-1 !text-[13px]")} aria-label="Tìm" />
-        <button type="submit" className={cn(btnSecondary, "!py-1")}>
-          Tìm
-        </button>
+        <input name="q" type="search" defaultValue={pick.by === "q" ? pick.q : ""} placeholder="tìm tên, SKU, mã H… (Enter)" className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[13px]")} aria-label="Tìm hàng để đóng (Enter)" />
       </form>
       {pick.by ? (
         <Link href={`/admin/inventory/shipments/#shipment-${s.id}`} className="self-center text-[12px] text-lien-blue hover:underline">

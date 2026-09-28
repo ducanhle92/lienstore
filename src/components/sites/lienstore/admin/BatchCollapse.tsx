@@ -5,10 +5,10 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
 
 const EVENT = "lien-batch-collapse";
-const key = (id: number) => `lien-batch-collapsed:${id}`;
-const read = (id: number) => {
+const key = (id: number, ns: string) => `lien-${ns}-collapsed:${id}`;
+const read = (id: number, ns: string) => {
   try {
-    return window.localStorage.getItem(key(id)) === "1";
+    return window.localStorage.getItem(key(id, ns)) === "1";
   } catch {
     return false;
   }
@@ -21,30 +21,30 @@ const subscribe = (cb: () => void) => {
     window.removeEventListener("storage", cb);
   };
 };
-const useCollapsed = (id: number) => useSyncExternalStore(subscribe, () => read(id), () => false);
+const useCollapsed = (id: number, ns: string) => useSyncExternalStore(subscribe, () => read(id, ns), () => false);
 
 /** "Ẩn đợt" / "Hiện đợt" in the header of a purchase trip: only the header (totals, Sửa, trạng thái) stays; remembered per browser. */
-export function BatchToggle({ id, className }: { id: number; className?: string }) {
-  const collapsed = useCollapsed(id);
+export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn đợt", "Hiện đợt"] }: { id: number; className?: string; ns?: string; labels?: [string, string] }) {
+  const collapsed = useCollapsed(id, ns);
   const toggle = () => {
     try {
-      if (collapsed) window.localStorage.removeItem(key(id));
-      else window.localStorage.setItem(key(id), "1");
+      if (collapsed) window.localStorage.removeItem(key(id, ns));
+      else window.localStorage.setItem(key(id, ns), "1");
     } catch {
       /* private window: the toggle just does nothing */
     }
     window.dispatchEvent(new Event(EVENT));
   };
   return (
-    <button type="button" onClick={toggle} className={className} aria-expanded={!collapsed} data-testid={`batch-toggle-${id}`}>
-      <Fa name={collapsed ? "angle-down" : "angle-up"} /> {collapsed ? "Hiện đợt" : "Ẩn đợt"}
+    <button type="button" onClick={toggle} className={className} aria-expanded={!collapsed} data-testid={`${ns}-toggle-${id}`}>
+      <Fa name={collapsed ? "angle-down" : "angle-up"} /> {collapsed ? labels[1] : labels[0]}
     </button>
   );
 }
 
 /** Body of the trip card; hidden while the trip is collapsed (the card's padding goes too — see globals.css). */
-export function BatchBody({ id, children }: { id: number; children: ReactNode }) {
-  const collapsed = useCollapsed(id);
+export function BatchBody({ id, children, ns = "batch" }: { id: number; children: ReactNode; ns?: string }) {
+  const collapsed = useCollapsed(id, ns);
   return (
     <div data-batch-collapsed={collapsed ? "1" : "0"} className={cn(collapsed && "hidden")}>
       {children}

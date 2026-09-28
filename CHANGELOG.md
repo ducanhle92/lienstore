@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **④ Đóng hàng JP / ⑤ Vận chuyển JP-VN** gọn hơn:
+  - Timeline của chuyến chỉ còn các mốc (bấm mốc để chuyển); bỏ hàng “Lùi · tên trạng thái · Tiếp: …”.
+  - Đầu mỗi chuyến: mã · tên chuyến, ô **Dự kiến gửi** (chọn ngày rồi **Lưu thay đổi**), ngày đã gửi nếu có; bên phải **Xoá chuyến** và nút **Thu gọn / Mở chuyến** (trình duyệt nhớ chuyến nào đang thu gọn). Bỏ nhãn trạng thái cạnh “Xoá chuyến”.
+  - Bỏ nút **Cách dùng** và **Tồn kho Nhật / Tồn kho VN** ở đầu trang (thanh bước đã có).
+  - Thanh dưới đáy một hàng: Lưu thay đổi · Huỷ · **+ Chuyến mới** · **+ Thêm vào chuyến** · lọc Theo đơn / Theo đợt mua (chọn là lọc ngay, bỏ nút “Xem”) · ô tìm (Enter). Mã chuyến chỉ hiện khi đang đóng nhiều chuyến.
+
 ## [1.95.1] - 2026-09-28
 
 ### Added
