@@ -5,7 +5,6 @@ import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAl
 import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
 import { OpenDetailsButton } from "@/components/sites/lienstore/admin/AddRowButton";
-import { AutoSubmitSelect } from "@/components/sites/lienstore/admin/AutoSubmitSelect";
 import { BatchBody, BatchToggle } from "@/components/sites/lienstore/admin/BatchCollapse";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -59,13 +58,14 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const shelfUnits = allCands.reduce((n, c) => n + c.qty, 0);
   const shelfProducts = new Set(allCands.map((c) => c.productId)).size;
   const pickSources = listPackSources(db);
-  // the picker of one run: ?pick=<shipmentId>&by=order|batch|q&order=…&batch=…&q=…
+  // the picker of one run: ?pick=<shipmentId>&order=<id|none>&batch=<id|none>&q=… — the three combine
   const pickFor = Number.parseInt(first(sp.pick), 10);
-  const by = first(sp.by) === "order" ? "order" : first(sp.by) === "batch" ? "batch" : first(sp.by) === "q" ? "q" : "";
   const pickOrder = first(sp.order);
-  const pickBatch = Number.parseInt(first(sp.batch), 10);
+  const pickBatchRaw = first(sp.batch);
+  const pickBatch: number | "none" | null = pickBatchRaw === "none" ? "none" : Number.isInteger(Number.parseInt(pickBatchRaw, 10)) ? Number.parseInt(pickBatchRaw, 10) : null;
   const pickQ = first(sp.q).trim();
-  const pickFilter = by === "order" && pickOrder ? { orderId: pickOrder } : by === "batch" && Number.isInteger(pickBatch) ? { batchId: pickBatch } : by === "q" ? { q: pickQ } : null;
+  const pickActive = !!pickOrder || pickBatch !== null || !!pickQ;
+  const pickFilter = pickActive ? { orderId: pickOrder || undefined, batchId: pickBatch ?? undefined, q: pickQ || undefined } : null;
   const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
   const saved = first(sp.saved);
   const error = first(sp.error);
@@ -146,7 +146,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {runsShown.map((s) => (
-          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} multi={shipments.filter((x) => shipmentEditable(x.status)).length > 1} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} inBar={s.id === barId} multi={shipments.filter((x) => shipmentEditable(x.status)).length > 1} sources={sources} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit ? (
@@ -221,9 +221,12 @@ function TransitTable({ title, groups, withRun = false, testId }: { title: strin
 }
 
 interface Pick {
-  by: "" | "order" | "batch" | "q";
+  /** Some filter is on (order / trip / search). */
+  active: boolean;
+  /** "" | "none" | order id */
   order: string;
-  batch: number | null;
+  /** "" | "none" | trip id */
+  batch: string;
   q: string;
   rows: PackCandidate[];
 }
@@ -444,7 +447,7 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar, multi = false }: {
                     </p>
                     <CandTable rows={orderRows} pkId={pkId} pick={pick} sources={sources} checked empty="Không có hàng theo đơn nào ở Kho Nhật (shop)." />
                     {stockRows.length ? (
-                      <details className="mt-3" open={pick.by !== ""} data-testid={`pick-stock-${s.id}`}>
+                      <details className="mt-3" open={pick.active} data-testid={`pick-stock-${s.id}`}>
                         <summary className="cursor-pointer text-[13px] font-semibold text-lien-heading">
                           ② Hàng tồn kho không theo đơn <span className="font-normal text-lien-muted">({stockRows.length} dòng · {units(stockRows)} cái)</span>
                         </summary>
@@ -520,46 +523,43 @@ function PackControls({ s, pick, pkId, bar = false, multi = false }: { s: Shipme
   );
 }
 
-/** What the picker lists: goods of one order, of one purchase trip, or a search (GET — the page re-renders). */
+/**
+ * What the picker lists — one form: order (or "không theo đơn") × purchase trip (or "không theo đợt mua") × search,
+ * applied with "Lọc" (or Enter). A trip includes the goods its units hold for orders.
+ */
 function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; pick: Pick; pickSources: PickSources; testIds?: boolean }) {
   const tid = (k: string) => (testIds ? `pick-${k}-${s.id}` : undefined);
   return (
-    <>
-      <form method="get" className="flex items-end gap-1" data-testid={tid("order")}>
-        <input type="hidden" name="pick" value={s.id} />
-        <input type="hidden" name="by" value="order" />
-        <AutoSubmitSelect name="order" defaultValue={pick.by === "order" ? pick.order : ""} className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[13px]")} label="Theo đơn">
-          <option value="">Theo đơn ({pickSources.orders.length})</option>
-          {pickSources.orders.map((o) => (
-            <option key={o.orderId} value={o.orderId}>
-              #{o.orderNumber} · {o.customer} · {o.units} cái
-            </option>
-          ))}
-        </AutoSubmitSelect>
-      </form>
-      <form method="get" className="flex items-end gap-1" data-testid={tid("batch")}>
-        <input type="hidden" name="pick" value={s.id} />
-        <input type="hidden" name="by" value="batch" />
-        <AutoSubmitSelect name="batch" defaultValue={pick.by === "batch" && pick.batch ? String(pick.batch) : ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} label="Theo đợt mua">
-          <option value="">Theo đợt mua ({pickSources.batches.length})</option>
-          {pickSources.batches.map((b) => (
-            <option key={b.batchId} value={b.batchId}>
-              {b.code} · {b.units} cái
-            </option>
-          ))}
-        </AutoSubmitSelect>
-      </form>
-      <form method="get" className="flex items-end gap-1" data-testid={tid("q")}>
-        <input type="hidden" name="pick" value={s.id} />
-        <input type="hidden" name="by" value="q" />
-        <input name="q" type="search" defaultValue={pick.by === "q" ? pick.q : ""} placeholder="tìm tên, SKU, mã H… (Enter)" className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[13px]")} aria-label="Tìm hàng để đóng (Enter)" />
-      </form>
-      {pick.by ? (
-        <Link href={`/admin/inventory/shipments/#shipment-${s.id}`} className="self-center text-[12px] text-lien-blue hover:underline">
+    <form method="get" className="flex flex-wrap items-center gap-1" data-testid={tid("form")}>
+      <input type="hidden" name="pick" value={s.id} />
+      <select name="order" defaultValue={pick.order} className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[13px]")} aria-label="Theo đơn" data-testid={tid("order")}>
+        <option value="">Theo đơn: tất cả ({pickSources.orders.length})</option>
+        <option value="none">— Không theo đơn ({pickSources.noOrderUnits} cái)</option>
+        {pickSources.orders.map((o) => (
+          <option key={o.orderId} value={o.orderId}>
+            #{o.orderNumber} · {o.customer} · {o.units} cái
+          </option>
+        ))}
+      </select>
+      <select name="batch" defaultValue={pick.batch} className={cn(adminInput, "!mb-0 !w-[160px] !py-1 !text-[13px]")} aria-label="Theo đợt mua" data-testid={tid("batch")}>
+        <option value="">Theo đợt mua: tất cả ({pickSources.batches.length})</option>
+        <option value="none">— Không theo đợt mua ({pickSources.noBatchUnits} cái)</option>
+        {pickSources.batches.map((b) => (
+          <option key={b.batchId} value={b.batchId}>
+            {b.code} · {b.units} cái (gồm hàng theo đơn)
+          </option>
+        ))}
+      </select>
+      <input name="q" type="search" defaultValue={pick.q} placeholder="tên, SKU, mã H…" className={cn(adminInput, "!mb-0 !w-[140px] !py-1 !text-[13px]")} aria-label="Tìm hàng để đóng" />
+      <button type="submit" className={cn(btnPrimary, "!px-3 !py-1 !text-[13px]")} data-testid={tid("go")}>
+        Lọc
+      </button>
+      {pick.active ? (
+        <Link href={`/admin/inventory/shipments/#shipment-${s.id}`} className="self-center px-1 text-[12px] text-lien-blue hover:underline">
           bỏ lọc
         </Link>
       ) : null}
-    </>
+    </form>
   );
 }
 

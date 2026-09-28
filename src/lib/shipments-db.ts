@@ -246,7 +246,8 @@ const fold = (s: string) =>
     .replace(/đ/g, "d");
 
 /** Everything that could be packed right now, optionally narrowed to one order / one purchase batch / a search text. */
-export function listPackCandidates(db: DatabaseSync, filter: { orderId?: string; batchId?: number; q?: string } = {}): PackCandidate[] {
+/** `orderId: "none"` = goods no order holds; `batchId: "none"` = goods bought outside a purchase trip. Filters combine. */
+export function listPackCandidates(db: DatabaseSync, filter: { orderId?: string; batchId?: number | "none"; q?: string } = {}): PackCandidate[] {
   const shelf = listUnits(db, { statuses: ["bought"] }).filter((u) => !u.shipmentId);
   const out: PackCandidate[] = [];
   for (const g of groupUnits(shelf)) {
@@ -281,15 +282,17 @@ export function listPackCandidates(db: DatabaseSync, filter: { orderId?: string;
   }
   const q = filter.q ? fold(filter.q.trim()) : "";
   return out
-    .filter((c) => (filter.orderId ? c.orders.some((o) => o.orderId === filter.orderId) : true))
-    .filter((c) => (filter.batchId ? c.batchId === filter.batchId : true))
+    .filter((c) => (filter.orderId === "none" ? c.orders.length === 0 : filter.orderId ? c.orders.some((o) => o.orderId === filter.orderId) : true))
+    .filter((c) => (filter.batchId === "none" ? !c.batchId : filter.batchId ? c.batchId === filter.batchId : true))
     .filter((c) => (q ? fold(`${c.productName} ${c.productSku ?? ""} #${c.productId} ${c.orders.map((o) => `#${o.orderNumber} ${o.customer}`).join(" ")} ${c.batchCode} ${c.receiptCode} ${c.codes.join(" ")}`).includes(q) : true))
     .sort((a, b) => a.productName.localeCompare(b.productName, "vi") || (a.expiry ?? "9999").localeCompare(b.expiry ?? "9999"));
 }
 
 /** Orders / batches that currently have something packable (for the pickers). */
-export function listPackSources(db: DatabaseSync): { orders: Array<{ orderId: string; orderNumber: number; customer: string; units: number }>; batches: Array<{ batchId: number; code: string; units: number }> } {
+export function listPackSources(db: DatabaseSync): { orders: Array<{ orderId: string; orderNumber: number; customer: string; units: number }>; batches: Array<{ batchId: number; code: string; units: number }>; noOrderUnits: number; noBatchUnits: number } {
   const all = listPackCandidates(db);
+  const noOrderUnits = all.filter((c) => !c.orders.length).reduce((n, c) => n + c.qty, 0);
+  const noBatchUnits = all.filter((c) => !c.batchId).reduce((n, c) => n + c.qty, 0);
   const orders = new Map<string, { orderId: string; orderNumber: number; customer: string; units: number }>();
   const batches = new Map<number, { batchId: number; code: string; units: number }>();
   for (const c of all) {
@@ -304,7 +307,7 @@ export function listPackSources(db: DatabaseSync): { orders: Array<{ orderId: st
       batches.set(c.batchId, g);
     }
   }
-  return { orders: [...orders.values()].sort((a, b) => b.orderNumber - a.orderNumber), batches: [...batches.values()].sort((a, b) => b.batchId - a.batchId) };
+  return { orders: [...orders.values()].sort((a, b) => b.orderNumber - a.orderNumber), batches: [...batches.values()].sort((a, b) => b.batchId - a.batchId), noOrderUnits, noBatchUnits };
 }
 
 /** Ticked candidate rows → the run; `qty` below the row count packs only that many (in pick order). */

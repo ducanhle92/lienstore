@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **④ Đóng hàng JP › thanh dưới**: bộ lọc hàng để đóng gộp thành một: **Theo đơn** (tất cả · **Không theo đơn** · từng đơn) × **Theo đợt mua** (tất cả · **Không theo đợt mua** · từng đợt — đã gồm hàng giữ cho đơn của đợt đó) × ô tìm, bấm **Lọc** (hoặc Enter) để áp dụng cùng lúc; “bỏ lọc” khi đang lọc.
+- **Mua theo đợt**: cột Sản phẩm · bill · mã đứng yên cạnh ô tick khi cuộn bảng sang ngang (màn hình hẹp), không còn bị trượt mất tên.
+
 ## [1.98.1] - 2026-09-28
 
 ### Changed

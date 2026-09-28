@@ -393,7 +393,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                     ["bill", "Bill · cho đơn"],
                   ] as const
                 ).map(([k, label]) => (
-                  <th key={k} className={thClass}>
+                  <th key={k} className={cn(thClass, k === "name" && "sticky left-12 z-10 bg-[#f9fafb] shadow-[1px_0_0_#e5e7eb]")}>
                     <button type="button" data-sort={k} className="group inline-flex items-center gap-1 font-semibold uppercase text-inherit hover:text-lien-blue data-[dir=asc]:text-lien-blue data-[dir=desc]:text-lien-blue" title="Bấm để sắp xếp">
                       {label}
                       <span className="text-[10px] text-lien-muted group-data-[dir=asc]:hidden group-data-[dir=desc]:hidden">⇅</span>
@@ -415,7 +415,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
               {rows}
               <tr className="hidden bg-[#fffbeb] align-top [&:not(.hidden)]:max-lg:block" data-add-row={b.id} data-sheet-ignore data-testid={`add-row-${b.id}`}>
                 <td className={cn(tdClass, TD, STICKY_L, "w-8 !bg-[#fffbeb]")} />
-                <td className={cn(tdClass, TD, "min-w-[220px]")}>
+                <td className={cn(tdClass, TD, STICKY_N, "min-w-[220px] !bg-[#fffbeb]")}>
                   <span className="mb-1 block text-[11px] font-semibold uppercase text-lien-muted">Sản phẩm đã mua</span>
                   <ProductSearchSelect products={products} form={addId} placeholder="Gõ tên Việt / Nhật hoặc SKU…" />
                 </td>
@@ -473,8 +473,8 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
             {rows.length ? (
               <tfoot className="max-lg:hidden">
                 <tr className="bg-[#f9fafb] text-[13px] font-semibold text-lien-heading" data-testid={`totals-${b.id}`}>
-                  <td className={tdClass} />
-                  <td className={tdClass}>
+                  <td className={cn(tdClass, STICKY_L)} />
+                  <td className={cn(tdClass, STICKY_N)}>
                     Tổng cộng <span className="font-normal text-lien-muted">(theo dòng đang hiện)</span>
                   </td>
                   <td className={tdClass}>
@@ -636,6 +636,8 @@ function BillRow({ r, b, sources, tabField }: { r: PurchaseBatchBill; b: Purchas
 const TD = "max-lg:block max-lg:border-0 max-lg:px-0 max-lg:py-1";
 const LBL = "max-lg:before:mr-1 max-lg:before:text-[11px] max-lg:before:text-lien-muted max-lg:before:content-[attr(data-label)]";
 const STICKY_L = "lg:sticky lg:left-0 lg:z-[5] lg:bg-inherit";
+/** The product / bill-line column stays next to the tick column when the table scrolls sideways (like a frozen column). */
+const STICKY_N = "lg:sticky lg:left-12 lg:z-[4] lg:bg-inherit lg:shadow-[1px_0_0_#e5e7eb]";
 const Toggle = ({ label }: { label: string }) => (
   <button type="button" data-toggle className="mr-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-[#d1d5db] bg-white text-[10px] text-lien-heading transition-transform hover:border-lien-blue group-data-[open=1]:rotate-90" aria-label={label} title={label}>
     ▶
@@ -664,7 +666,7 @@ function ProductRow({ pid, n, units, idx, b, searchOf, sources }: { pid: number;
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" data-tick={`p:${pid}`} className="h-4 w-4" aria-label={`Chọn mọi cái của ${n.name}`} title="Chọn mọi cái của sản phẩm (đang hiện)" />
       </td>
-      <td className={cn(tdClass, TD, "min-w-[240px] max-w-[320px]")}>
+      <td className={cn(tdClass, TD, STICKY_N, "min-w-[240px] max-w-[320px]")}>
         <div className="flex items-start gap-1.5">
           <Toggle label="Mở / đóng các dòng bill" />
           {n.thumb ? <Image src={n.thumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : <span className="h-8 w-8 shrink-0 rounded border border-dashed border-[#e5e7eb]" />}
@@ -730,7 +732,7 @@ function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: Uni
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" data-tick={`g:${u.id}`} className="h-4 w-4" aria-label="Chọn mọi cái của dòng bill" title="Chọn mọi cái của dòng bill (đang hiện)" />
       </td>
-      <td className={cn(tdClass, TD, "min-w-[240px] pl-6")}>
+      <td className={cn(tdClass, TD, STICKY_N, "min-w-[240px] pl-6")}>
         <input type="hidden" name={`${g}ids`} form={saveId} value={units.map((x) => x.id).join(",")} />
         <div className="flex items-start gap-1">
           <Toggle label="Mở / đóng từng mã" />
@@ -808,7 +810,7 @@ function UnitRow({ u, gid, idx, bulkId, saveId, sources, searchOf, channelOf }: 
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" name="uids" value={u.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn ${u.code}`} />
       </td>
-      <td className={cn(tdClass, TD, "pl-12")}>
+      <td className={cn(tdClass, TD, STICKY_N, "pl-12")}>
         <Link href={`/admin/inventory/units/${u.code}/`} className="font-mono text-[13px] font-bold text-lien-blue no-underline hover:underline" title="Xem lịch sử của mã">
           {u.code}
         </Link>
@@ -865,7 +867,7 @@ function NeedRow({ l, idx, bulkId, sources, searchOf, channelOf }: { l: Purchase
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" name="needIds" value={l.itemId} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng cần mua của đơn #${l.orderNumber}`} />
       </td>
-      <td className={cn(tdClass, TD, "pl-6")}>
+      <td className={cn(tdClass, TD, STICKY_N, "pl-6")}>
         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-800">Cần mua</span>{" "}
         <Link href={`/admin/orders/${l.orderId}/`} className="font-semibold text-[#3730a3] no-underline hover:underline">
           Đơn #{l.orderNumber} · {l.customerName}
