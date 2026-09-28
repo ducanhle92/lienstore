@@ -311,40 +311,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           </Card>
 
 
-          <div id="bill">
-          <Card
-            title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}
-            actions={files.length ? <span className="text-[13px] text-lien-muted">Bill: {files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
-          >
-            <OrderChat
-              orderId={order.id}
-              messages={messages}
-              me="admin"
-              action={adminSendMessageAction}
-              shopName={shop}
-              attach
-              files={files.map((f) => ({ id: f.id, fileName: f.fileName, url: publicReceiptUrl(f.path), mime: f.mime, size: formatBytes(f.size), amountJpy: f.amountJpy ?? null, note: f.note ?? "", createdAt: f.createdAt }))}
-              fileDeleteAction={deleteOrderFileAction}
-              quickReplies={[
-                `Cảm ơn anh/chị đã mua hàng của ${shop}! Đơn #${order.number} đã được xác nhận thanh toán và đang được xử lý để gửi tới anh/chị. Bên em sẽ nhắn ngay khi hàng lên đường ạ.`,
-                `Đơn #${order.number} của anh/chị đã thanh toán xong, bên em đang đặt mua tại Nhật. Dự kiến 7–14 ngày hàng về tới kho Việt Nam; có tiến độ mới em báo liền nhé.`,
-                `${shop} đã nhận đơn #${order.number}, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.`,
-                "Đã mua hàng tại Nhật, bill đính kèm trong đơn. Hàng về kho Nhật trong 2–4 ngày.",
-                "Kiện hàng đã lên đường về Việt Nam, dự kiến 5–7 ngày nữa tới kho.",
-                `Hàng đã về kho Thanh Hóa, ${shop} giao cho đơn vị vận chuyển hôm nay. Anh/chị để ý điện thoại giúp em nhé.`,
-                `Đơn #${order.number} đã giao thành công. Cảm ơn anh/chị đã ủng hộ ${shop}, có gì cần hỗ trợ cứ nhắn em ạ!`,
-              ]}
-            />
-            {files.length ? (
-              <p className="m-0 mt-3 text-[12px] leading-5 text-lien-muted">
-                Khách xem bill trong trang đơn hàng (không cần đăng nhập):{" "}
-                <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
-                  {siteUrl}/checkout/order-received/{order.id}/
-                </code>
-              </p>
-            ) : null}
-          </Card>
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -549,6 +515,40 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : null}
             </dl>
           </Card>
+          <div id="bill">
+          <Card
+            title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}
+            actions={files.length ? <span className="text-[13px] text-lien-muted">Bill: {files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
+          >
+            <OrderChat
+              orderId={order.id}
+              messages={messages}
+              me="admin"
+              action={adminSendMessageAction}
+              shopName={shop}
+              attach
+              files={files.map((f) => ({ id: f.id, fileName: f.fileName, url: publicReceiptUrl(f.path), mime: f.mime, size: formatBytes(f.size), amountJpy: f.amountJpy ?? null, note: f.note ?? "", createdAt: f.createdAt }))}
+              fileDeleteAction={deleteOrderFileAction}
+              quickReplies={[
+                `Cảm ơn anh/chị đã mua hàng của ${shop}! Đơn #${order.number} đã được xác nhận thanh toán và đang được xử lý để gửi tới anh/chị. Bên em sẽ nhắn ngay khi hàng lên đường ạ.`,
+                `Đơn #${order.number} của anh/chị đã thanh toán xong, bên em đang đặt mua tại Nhật. Dự kiến 7–14 ngày hàng về tới kho Việt Nam; có tiến độ mới em báo liền nhé.`,
+                `${shop} đã nhận đơn #${order.number}, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.`,
+                "Đã mua hàng tại Nhật, bill đính kèm trong đơn. Hàng về kho Nhật trong 2–4 ngày.",
+                "Kiện hàng đã lên đường về Việt Nam, dự kiến 5–7 ngày nữa tới kho.",
+                `Hàng đã về kho Thanh Hóa, ${shop} giao cho đơn vị vận chuyển hôm nay. Anh/chị để ý điện thoại giúp em nhé.`,
+                `Đơn #${order.number} đã giao thành công. Cảm ơn anh/chị đã ủng hộ ${shop}, có gì cần hỗ trợ cứ nhắn em ạ!`,
+              ]}
+            />
+            {files.length ? (
+              <p className="m-0 mt-3 text-[12px] leading-5 text-lien-muted">
+                Khách xem bill trong trang đơn hàng (không cần đăng nhập):{" "}
+                <code className="rounded bg-[#f3f4f6] px-1.5 py-0.5">
+                  {siteUrl}/checkout/order-received/{order.id}/
+                </code>
+              </p>
+            ) : null}
+          </Card>
+          </div>
 
         </div>
       </div>

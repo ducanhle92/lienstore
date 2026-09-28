@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang đơn: khung **Trao đổi với khách** (kèm bill) chuyển sang cột bên phải, dưới Khách hàng.
+- **Kế toán › Theo đơn**: thêm cột **Tiền hàng** và **Voucher**, cột doanh thu ghi rõ **Doanh thu (sau voucher)**, thêm dòng **Tổng cộng** cuối bảng. Lãi / lỗ vẫn tính như trước (đã trừ voucher): doanh thu sau voucher + ship khách trả − giá vốn − nhập 3 chặng − giao VN trả hãng. Bảng theo tháng ghi “Voucher (đã trừ)”.
+
+### Fixed
+- CSV lãi / lỗ: hai cột cuối (voucher, giảm giá SP) không có tiêu đề; nay có đủ cột Tiền hàng · Voucher · Doanh thu sau voucher.
+
 ## [1.98.0] - 2026-09-28
 
 ### Added

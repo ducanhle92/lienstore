@@ -114,10 +114,10 @@ export default async function AdminAccounting({ searchParams }: Props) {
               <tr>
                 <th className={thClass}>Tháng</th>
                 <th className={`${thClass} text-right`}>Đơn</th>
-                <th className={`${thClass} text-right`}>Doanh thu</th>
+                <th className={`${thClass} text-right`} title="Tiền hàng − voucher + ship khách trả">Doanh thu</th>
                 <th className={`${thClass} text-right`}>Giá vốn</th>
                 <th className={`${thClass} text-right`}>Vận chuyển</th>
-                <th className={`${thClass} text-right`} title="Mã giảm giá khách dùng">Voucher</th>
+                <th className={`${thClass} text-right`} title="Mã giảm giá khách dùng — đã trừ trong Doanh thu và Lợi nhuận">Voucher (đã trừ)</th>
                 <th className={`${thClass} text-right`} title="Giá kỳ vọng − giá khuyến mại, nhân số lượng">Giảm giá SP</th>
                 <th className={`${thClass} text-right`}>Lợi nhuận</th>
               </tr>
@@ -185,12 +185,14 @@ export default async function AdminAccounting({ searchParams }: Props) {
                 <th className={thClass}>Ngày</th>
                 <th className={thClass}>Khách</th>
                 <th className={thClass}>Trạng thái</th>
-                <th className={`${thClass} text-right`}>Doanh thu</th>
+                <th className={`${thClass} text-right`} title="Tổng tiền hàng theo giá đã bán, chưa trừ voucher">Tiền hàng</th>
+                <th className={`${thClass} text-right`} title="Mã giảm giá khách nhập khi thanh toán">Voucher</th>
+                <th className={`${thClass} text-right`} title="Tiền hàng − voucher">Doanh thu (sau voucher)</th>
                 <th className={`${thClass} text-right`}>Ship khách trả</th>
                 <th className={`${thClass} text-right`}>Giá vốn</th>
                 <th className={`${thClass} text-right`}>Nhập 3 chặng</th>
                 <th className={`${thClass} text-right`}>Giao VN trả hãng</th>
-                <th className={`${thClass} text-right`}>Lãi / lỗ</th>
+                <th className={`${thClass} text-right`} title="Doanh thu sau voucher + ship khách trả − giá vốn − nhập 3 chặng − giao VN trả hãng">Lãi / lỗ</th>
               </tr>
             </thead>
             <tbody>
@@ -208,6 +210,8 @@ export default async function AdminAccounting({ searchParams }: Props) {
                     <StatusBadge status={r.status} />
                     {r.paid ? <span className="ml-1 text-[11px] text-green-700">đã TT</span> : <span className="ml-1 text-[11px] text-amber-700">chờ TT</span>}
                   </td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.goods)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap text-amber-700`}>{r.voucher ? `−${money(r.voucher)}` : "—"}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.revenue)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{r.shipOnDelivery ? <span className="text-lien-muted">trả shipper</span> : money(r.shipCollected)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>
@@ -221,12 +225,29 @@ export default async function AdminAccounting({ searchParams }: Props) {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={12} className={`${tdClass} text-center text-lien-muted`}>
                     Không có đơn trong khoảng đã chọn.
                   </td>
                 </tr>
               ) : null}
             </tbody>
+            {rows.length ? (
+              <tfoot>
+                <tr className="bg-[#f9fafb] font-semibold text-lien-heading" data-testid="acc-totals">
+                  <td className={tdClass} colSpan={4}>
+                    Tổng cộng ({totals.orders} đơn)
+                  </td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.goods)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap text-amber-700`}>{totals.voucher ? `−${money(totals.voucher)}` : "—"}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.revenue)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.shipCollected)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.cogs)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.importFees)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.vnCarrierFee)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`}>{signed(totals.profit)}</td>
+                </tr>
+              </tfoot>
+            ) : null}
           </table>
           </SheetTable>
         </div>

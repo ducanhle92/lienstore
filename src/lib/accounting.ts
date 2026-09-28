@@ -17,6 +17,9 @@ export interface AccountingRow {
   paid: boolean;
   customer: string;
   items: number;
+  /** Goods as charged (Σ price × qty), before the voucher. */
+  goods: number;
+  /** goods − voucher: what the customer pays for the goods. */
   revenue: number;
   /** Shipping the customer pays with the order (0 when paid to the courier on delivery). */
   shipCollected: number;
@@ -36,6 +39,7 @@ export interface AccountingRow {
 export interface AccountingTotals {
   orders: number;
   paidOrders: number;
+  goods: number;
   revenue: number;
   shipCollected: number;
   cogs: number;
@@ -51,11 +55,12 @@ export interface MonthRow extends AccountingTotals {
   month: string;
 }
 
-export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0 });
+export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, goods: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0 });
 
 function add(t: AccountingTotals, r: AccountingRow): void {
   t.orders++;
   if (r.paid) t.paidOrders++;
+  t.goods += r.goods;
   t.revenue += r.revenue;
   t.shipCollected += r.shipCollected;
   t.cogs += r.cogs;
@@ -101,6 +106,7 @@ export function accountingRow(o: Order, products: Map<number, CatalogProduct>, l
       paid: !!o.paidAt,
       customer: `${o.customer.lastName} ${o.customer.firstName}`.trim(),
       items: o.items.reduce((n, it) => n + it.quantity, 0),
+      goods: o.subtotal,
       revenue,
       shipCollected,
       shipOnDelivery,
