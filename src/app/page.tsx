@@ -21,7 +21,9 @@ import { groupVouchersByProgram } from "@/lib/voucher-programs";
 export const dynamic = "force-dynamic";
 
 /** How many category rows the home page shows (largest categories first). */
-const CATEGORY_ROWS = 6;
+const CATEGORY_ROWS = 4;
+/** Products per category row — the home page carries ~100 cards already; more only bloats the first load. */
+const ROW_ITEMS = 8;
 
 export default async function Home() {
   const lang = await getLang();
@@ -55,7 +57,7 @@ export default async function Home() {
     .slice(0, CATEGORY_ROWS)
     .map((n) => ({ ...n.category, count: n.total }));
   const rows = await Promise.all(
-    topCategories.map(async (c) => ({ cat: c, products: localizeProducts((await queryProducts({ category: c.slug, orderby: "date", perPage: 12 })).items, lang) })),
+    topCategories.map(async (c) => ({ cat: c, products: localizeProducts((await queryProducts({ category: c.slug, orderby: "date", perPage: ROW_ITEMS })).items, lang) })),
   );
 
   return (

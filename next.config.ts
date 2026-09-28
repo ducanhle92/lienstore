@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // optimised images are immutable per (url, w, q): let browsers and Cloudflare keep them for a month
+  images: { minimumCacheTTL: 2592000 },
   // The original WordPress site uses trailing slashes everywhere (/shop/, /product/<slug>/).
   trailingSlash: true,
   // "Về chúng tôi" and "Liên hệ" were merged into one page (UI v2).

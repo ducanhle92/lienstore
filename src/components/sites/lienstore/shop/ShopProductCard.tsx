@@ -27,7 +27,7 @@ function excerptOf(p: CatalogProduct): string {
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return text.length > 220 ? `${text.slice(0, 220).trimEnd()}…` : text;
+  return text.length > 140 ? `${text.slice(0, 140).trimEnd()}…` : text;
 }
 
 function toQuickView(p: CatalogProduct): QuickViewProduct {
@@ -49,6 +49,8 @@ function toQuickView(p: CatalogProduct): QuickViewProduct {
 }
 
 const NEW_DAYS = 45;
+/** Real rendered width of a card image (3 per row on phones, 4 on tablets, 6 on desktop) so the browser picks a small variant. */
+const CARD_SIZES = "(max-width: 767px) 33vw, (max-width: 1199px) 25vw, 200px";
 
 /** % badge: promo below the expected price, else the web price below the market price (see lib/price-display.ts). */
 export function discountPercent(p: Pick<CatalogProduct, "price" | "regularPrice"> & { marketPrice?: number | null }): number | null {
@@ -91,6 +93,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
             alt={product.name}
             width={300}
             height={300}
+            sizes={CARD_SIZES}
             className={cn("absolute inset-0 h-full w-full object-contain transition-all duration-300", second ? "group-hover:opacity-0" : "group-hover:scale-[1.04]")}
           />
           {second ? (
@@ -99,6 +102,7 @@ export function ShopProductCard({ product, className, flashEndsAt, hot: hotProp 
               alt=""
               width={300}
               height={300}
+              sizes={CARD_SIZES}
               loading="lazy"
               className="absolute inset-0 h-full w-full object-contain opacity-0 transition-all duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
             />

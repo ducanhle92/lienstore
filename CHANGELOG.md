@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Tốc độ tải: trang chủ nhẹ hơn — 4 hàng danh mục × 8 sản phẩm (trước 6 × 12), đoạn mô tả xem nhanh ngắn hơn; ảnh thẻ sản phẩm khai báo đúng kích thước hiển thị (điện thoại tải bản 256/384 px thay vì 640 px); ảnh tối ưu giữ trong cache trình duyệt / Cloudflare 30 ngày (`images.minimumCacheTTL`). Kết hợp với Cloudflare Cache Rule cho `/_next/image` (đã tạo 28/09) để ảnh phục vụ từ edge.
+
 ## [1.82.1] - 2026-09-28
 
 ### Changed
