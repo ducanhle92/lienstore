@@ -1008,7 +1008,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     if (jpLegs.length) shippingLabel = [...jpLegs.map((l) => l.label), vnLabel].filter(Boolean).join(" + ");
     // Fee paid to the courier on delivery stays out of the amount the shop collects; a "Từ …" quote is always paid that way.
     const shipFeePayment: ShipFeePayment = delivery === "ship" && (fromPrice || input.shipFeePayment === "on_delivery") ? "on_delivery" : "prepaid";
-    const total = Math.max(0, subtotal - discount) + (shipFeePayment === "prepaid" ? shippingFee : 0);
+    const total = Math.max(0, subtotal - discount) + jpFee + (shipFeePayment === "prepaid" ? vnFee : 0);
     const number = Number(getSetting(db, "next_order_number") ?? "1001");
     setSetting(db, "next_order_number", String(number + 1));
     const id = randomUUID();
@@ -1332,14 +1332,29 @@ export async function setOrderCodCollected(id: string): Promise<{ ok: boolean; m
 }
 
 /** Admin override of what the customer pays for delivery; total is recomputed. */
-export async function updateOrderShipping(id: string, patch: { fee: number; label: string; delivery: "ship" | "pickup" }): Promise<boolean> {
+/**
+ * Leg ④ fee applied to what the customer pays ("Áp phí vào đơn khách"). `prevVnFee` = the leg's fee before this save:
+ * whatever else the order charged for shipping (Japan legs in per-order mode) stays. The fee is then collected by the
+ * shop, so an order that said "khách trả phí ship cho shipper" becomes prepaid (no double charge).
+ */
+export async function updateOrderShipping(id: string, patch: { fee: number; label: string; delivery: "ship" | "pickup"; prevVnFee?: number }): Promise<boolean> {
   const db = getDb();
-  const row = db.prepare("SELECT subtotal, discount FROM orders WHERE id = ?").get(id) as { subtotal: number; discount: number | null } | undefined;
+  const row = db.prepare("SELECT subtotal, discount, shipping_fee FROM orders WHERE id = ?").get(id) as { subtotal: number; discount: number | null; shipping_fee: number | null } | undefined;
   if (!row) return false;
   const fee = Math.max(0, Math.round(patch.fee));
-  const total = Math.max(0, row.subtotal - (row.discount ?? 0)) + fee;
-  db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, updated_at = ? WHERE id = ?").run(fee, patch.label, patch.delivery, total, new Date().toISOString(), id);
+  const other = Math.max(0, (row.shipping_fee ?? 0) - Math.max(0, Math.round(patch.prevVnFee ?? row.shipping_fee ?? 0)));
+  const shippingFee = other + fee;
+  const total = Math.max(0, row.subtotal - (row.discount ?? 0)) + shippingFee;
+  db.prepare("UPDATE orders SET shipping_fee = ?, shipping_label = ?, delivery = ?, total = ?, ship_fee_payment = 'prepaid', updated_at = ? WHERE id = ?").run(shippingFee, patch.label, patch.delivery, total, new Date().toISOString(), id);
   return true;
+}
+
+/** Admin "Sửa" of the customer block on an order (the customer asked to change name / phone / address…). */
+export async function updateOrderCustomer(id: string, c: { name: string; phone: string; email: string; address: string; note: string }): Promise<boolean> {
+  const r = getDb()
+    .prepare("UPDATE orders SET first_name = ?, last_name = '', phone = ?, email = ?, address = ?, note = ?, updated_at = ? WHERE id = ?")
+    .run(c.name.trim().slice(0, 120), c.phone.trim().slice(0, 30), c.email.trim().slice(0, 160), c.address.trim().slice(0, 400), c.note.trim().slice(0, 1000), new Date().toISOString(), id);
+  return Number(r.changes) > 0;
 }
 
 /** Sum of chargeable weight (max of actual and volumetric) × quantity over the order's lines, in grams. */

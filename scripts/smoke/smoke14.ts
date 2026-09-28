@@ -2,7 +2,7 @@
 // (units leave the shop), arrived → đã giao; collecting the money completes it. Run on a copy of a DB (LIEN_DB_PATH).
 // With KEEP=1 it only prepares such an order (for a browser check) and prints its id.
 import assert from "node:assert/strict";
-import { getOrderById, setOrderCod, setOrderCodCollected, setOrderLegStatus } from "../../src/lib/db";
+import { getOrderById, setOrderCod, setOrderCodCollected, setOrderLegStatus, updateOrderCustomer, updateOrderShipping } from "../../src/lib/db";
 import { listOrdersReadyToShip } from "../../src/lib/lots-db";
 import { getDb, withTransaction } from "../../src/lib/sqlite";
 import { createUnitsSync, listUnits, touchSync } from "../../src/lib/units-db";
@@ -42,6 +42,26 @@ async function main() {
   assert.ok(r.ok, r.message);
   o = (await getOrderById(oid))!;
   assert.equal(o.status, "completed", "money collected → Hoàn thành");
+
+  // --- fee paid to the shipper: out of Tổng until the admin applies it on purpose; then the shop collects it (no double charge)
+  const sub = Number((db.prepare("SELECT subtotal FROM orders WHERE id = ?").get(oid) as { subtotal: number }).subtotal);
+  db.prepare("UPDATE orders SET ship_fee_payment = 'on_delivery', shipping_fee = 35000, discount = 0, total = ? WHERE id = ?").run(sub, oid);
+  await updateOrderShipping(oid, { fee: 40000, label: "GHN · Tiêu chuẩn", delivery: "ship", prevVnFee: 35000 });
+  o = (await getOrderById(oid))!;
+  assert.equal(o.shipFeePayment, "prepaid", "applied → the shop collects the fee");
+  assert.equal(o.total, sub + 40000, "Tổng = hàng + phí vừa áp");
+  // per-order mode: the Japan legs already in the fee stay when leg ④ changes
+  db.prepare("UPDATE orders SET shipping_fee = 100000, total = ? WHERE id = ?").run(sub + 100000, oid);
+  await updateOrderShipping(oid, { fee: 30000, label: "GHN", delivery: "ship", prevVnFee: 40000 });
+  o = (await getOrderById(oid))!;
+  assert.equal(o.shippingFee, 90000, "Japan part (60.000) kept, VN part replaced");
+  assert.equal(o.total, sub + 90000);
+  // customer block edit
+  assert.ok(await updateOrderCustomer(oid, { name: "Nguyễn Văn Mới", phone: "0912 345 678", email: "moi@example.com", address: "Số 1, Hà Nội", note: "giao giờ hành chính" }));
+  o = (await getOrderById(oid))!;
+  assert.equal(`${o.customer.lastName} ${o.customer.firstName}`.trim(), "Nguyễn Văn Mới");
+  assert.equal(o.customer.phone, "0912 345 678");
+  assert.equal(o.customer.address, "Số 1, Hà Nội");
   console.log("SMOKE14 OK");
 }
 main().catch((e) => {

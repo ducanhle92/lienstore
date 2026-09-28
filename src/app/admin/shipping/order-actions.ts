@@ -51,6 +51,7 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
       }
     }
   }
+  const prevVnFee = (await getOrderLegs([orderId])).get(orderId)?.find((l) => l.leg === "vn_domestic")?.fee ?? 0;
   await saveOrderLeg({
     orderId,
     leg,
@@ -62,7 +63,7 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
     note: text(formData, "note"),
   });
   if (leg === "vn_domestic" && formData.get("applyToCustomer") === "on") {
-    await updateOrderShipping(orderId, { fee: fee ?? 0, label: label || order.shippingLabel, delivery: pickup ? "pickup" : methodId ? "ship" : order.delivery });
+    await updateOrderShipping(orderId, { fee: fee ?? 0, label: label || order.shippingLabel, delivery: pickup ? "pickup" : methodId ? "ship" : order.delivery, prevVnFee });
   }
   // shipment status of the leg (chưa gửi / đã gửi / đã đến) — logged, and the order's lines + stage follow
   const statusRaw = text(formData, "status");

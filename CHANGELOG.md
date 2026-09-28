@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Trang đơn › **Khách hàng** có nút **Sửa**: đổi họ tên, điện thoại, email, địa chỉ, ghi chú của khách trên đơn khi khách yêu cầu (phí ship đã báo không tự tính lại).
+
+### Fixed
+- **Phí ship “khách trả cho shipper”**: đơn như vậy không cộng phí giao nội địa VN vào Tổng (đúng thiết kế — khách trả shipper khi nhận; bắt buộc khi hãng chỉ báo giá “Từ …”, hoặc do khách chọn khi thanh toán). Sửa hai chỗ sai liên quan:
+  - Lưu chặng ④ trên trang đơn với ô “Áp phí vào đơn khách” (mặc định tick) cộng phí vào Tổng trong khi đơn vẫn ghi “khách trả shipper” → khách có thể bị thu hai lần. Giờ với đơn trả shipper ô này mặc định **không tick** và ghi rõ “Tính phí này vào Tổng (khách trả shop, không trả shipper nữa)”; tick thì đơn chuyển sang shop thu phí.
+  - Áp phí chặng ④ không còn làm mất phần phí chặng Nhật (chế độ tính phí theo đơn); khi đặt hàng, phí chặng Nhật luôn nằm trong Tổng, chỉ phí giao VN trả shipper mới nằm ngoài (khớp trang thanh toán).
+
 ## [1.95.0] - 2026-09-28
 
 ### Changed

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction, updateOrderCustomerAction } from "@/app/admin/orders/actions";
 import { isRegularBy } from "@/lib/regular-customers";
 import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { deleteOrderFileAction } from "@/app/admin/orders/files-actions";
 import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
-import { adminInput, btnDanger, btnPrimary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
@@ -391,6 +391,40 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     <Fa name="star" /> Khách quen
                   </span>
                 ) : null}
+                <details className="relative" data-testid="edit-customer">
+                  <summary className={cn(btnSecondary, "inline-flex cursor-pointer list-none !px-2 !py-0.5 !text-[12px]")} title="Sửa thông tin khách của đơn này (khi khách yêu cầu đổi)">
+                    <Fa name="pencil" /> Sửa
+                  </summary>
+                  <div className="absolute right-0 z-30 mt-1 w-[min(92vw,380px)] rounded-md border border-[#e5e7eb] bg-white p-3 shadow-lg">
+                    <form action={updateOrderCustomerAction} className="grid gap-2 text-[13px]">
+                      <input type="hidden" name="id" value={order.id} />
+                      <label className="grid gap-0.5 font-semibold text-lien-heading">
+                        Họ tên
+                        <input name="name" defaultValue={`${c.lastName} ${c.firstName}`.trim()} required maxLength={120} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                      </label>
+                      <label className="grid gap-0.5 font-semibold text-lien-heading">
+                        Điện thoại
+                        <input name="phone" defaultValue={c.phone} required inputMode="tel" maxLength={30} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                      </label>
+                      <label className="grid gap-0.5 font-semibold text-lien-heading">
+                        Email
+                        <input name="email" type="email" defaultValue={c.email} maxLength={160} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                      </label>
+                      <label className="grid gap-0.5 font-semibold text-lien-heading">
+                        Địa chỉ
+                        <textarea name="address" defaultValue={c.address} rows={2} maxLength={400} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                      </label>
+                      <label className="grid gap-0.5 font-semibold text-lien-heading">
+                        Ghi chú của khách
+                        <textarea name="note" defaultValue={c.note} rows={2} maxLength={1000} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                      </label>
+                      <p className="m-0 text-[11px] text-lien-muted">Chỉ sửa thông tin trên đơn này; phí ship đã báo không tự tính lại — đổi địa chỉ thì kiểm tra chặng ④.</p>
+                      <button type="submit" className={cn(btnPrimary, "justify-self-start !py-1.5 !text-[13px]")}>
+                        <Fa name="check" /> Lưu
+                      </button>
+                    </form>
+                  </div>
+                </details>
                 <Link href={`/admin/customers/${encodeURIComponent(customerKey)}/`} className="text-[13px] text-lien-blue hover:underline">
                   Lịch sử mua →
                 </Link>

@@ -7,7 +7,7 @@ import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
-import { addOrderMessage, getOrderById, deleteOrder, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
+import { addOrderMessage, getOrderById, deleteOrder, updateOrderCustomer, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
 import { isShipStage, SHIP_STAGES } from "@/lib/shipping";
@@ -57,6 +57,24 @@ export async function setOrderStateAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/admin", "layout");
   redirect(`${back}?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
+}
+
+/** "Sửa" on the order's customer block: the customer asked to update name / phone / e-mail / address / note. */
+export async function updateOrderCustomerAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const back = `/admin/orders/${id}/`;
+  const v = (k: string) => String(formData.get(k) ?? "").trim();
+  const name = v("name");
+  const phone = v("phone");
+  const email = v("email");
+  if (!name) redirect(`${back}?error=${encodeURIComponent("Nhập họ tên khách.")}`);
+  if (phone.replace(/\D/g, "").length < 8) redirect(`${back}?error=${encodeURIComponent("Số điện thoại không hợp lệ.")}`);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) redirect(`${back}?error=${encodeURIComponent("Email không hợp lệ.")}`);
+  const ok = await updateOrderCustomer(id, { name, phone, email, address: v("address"), note: v("note") });
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/checkout/order-received/${id}`);
+  redirect(`${back}?${ok ? "saved" : "error"}=${encodeURIComponent(ok ? "Đã cập nhật thông tin khách hàng của đơn." : "Không tìm thấy đơn.")}`);
 }
 
 /** Delete an order permanently (list and detail "Xóa đơn" buttons, confirmed in the browser first). */

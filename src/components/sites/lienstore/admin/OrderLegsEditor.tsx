@@ -18,7 +18,7 @@ export interface TransferQuotesView {
 }
 
 interface Props {
-  order: Pick<Order, "id" | "number" | "shippingFee" | "shippingLabel" | "delivery" | "subtotal" | "shipQuote">;
+  order: Pick<Order, "id" | "number" | "shippingFee" | "shippingLabel" | "delivery" | "subtotal" | "shipQuote" | "shipFeePayment">;
   /** Leg ③ quotes from the carrier APIs, when the admin asked for them. */
   transferQuotes?: TransferQuotesView | null;
   legs: OrderLeg[];
@@ -125,7 +125,10 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG, quot
       {leg === "vn_domestic" && weightG ? <p className="m-0 text-[11px] text-lien-muted">Cân tính phí của đơn: {formatAmount(weightG)} g (đã nhân hệ số an toàn theo độ tin cậy kích thước)</p> : null}
       {leg === "vn_domestic" ? (
         <label className="flex items-center gap-1.5 text-[11px] text-lien-muted">
-          <input type="checkbox" name="applyToCustomer" defaultChecked className="h-3.5 w-3.5" /> Áp phí vào đơn khách (hiện: {order.delivery === "pickup" ? "nhận tại kho" : order.shippingLabel || "—"} · {formatAmount(order.shippingFee)}đ)
+          {/* an order whose fee goes to the shipper keeps that unless the admin ticks this on purpose */}
+          <input type="checkbox" name="applyToCustomer" defaultChecked={order.shipFeePayment !== "on_delivery"} className="h-3.5 w-3.5" />{" "}
+          {order.shipFeePayment === "on_delivery" ? "Tính phí này vào Tổng (khách trả shop, không trả shipper nữa)" : "Áp phí vào đơn khách"} (hiện: {order.delivery === "pickup" ? "nhận tại kho" : order.shippingLabel || "—"} · {formatAmount(order.shippingFee)}đ
+          {order.shipFeePayment === "on_delivery" ? " · khách trả shipper" : ""})
         </label>
       ) : null}
       {current?.label ? (
