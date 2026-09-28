@@ -1,6 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { listLotViews } from "./lots-db";
-import { shipmentEditable, isShipmentStatus } from "./shipments";
 
 /**
  * The import flow the owner works through, left to right:
@@ -10,7 +8,7 @@ import { shipmentEditable, isShipmentStatus } from "./shipments";
 export type FlowStep = "buy" | "jp" | "pack" | "transit" | "vn";
 
 export interface FlowCounts {
-  /** Order lines (open orders) not bought yet — units. */
+  /** Units open orders still need bought (lines not fully covered by units). */
   toBuy: number;
   /** Purchase batches not yet at the VN shop. */
   openBatches: number;
@@ -18,31 +16,40 @@ export interface FlowCounts {
   jp: number;
   /** Boxed in a packing run that has not left the shop. */
   pack: number;
-  /** With the carrier: JP carrier warehouse, flying, carrier warehouse in VN. */
+  /** With the carrier: JP carrier warehouse, flying, carrier warehouse in VN, on the truck. */
   transit: number;
   /** At the VN shop. */
   vn: number;
-  /** Open packing runs / runs on the way. */
   packRuns: number;
   transitRuns: number;
 }
 
 export function flowCounts(db: DatabaseSync): FlowCounts {
   const c: FlowCounts = { toBuy: 0, openBatches: 0, jp: 0, pack: 0, transit: 0, vn: 0, packRuns: 0, transitRuns: 0 };
-  for (const l of listLotViews(db)) {
-    if (l.warehouse === "vn") c.vn += l.physical;
-    else if (l.warehouse === "jp") {
-      if (l.shipmentId && isShipmentStatus(l.shipmentStatus) && shipmentEditable(l.shipmentStatus)) c.pack += l.physical;
-      else c.jp += l.physical;
-    } else c.transit += l.physical;
+  const rows = db
+    .prepare("SELECT u.status, (u.shipment_id IS NOT NULL AND s.status IN ('packing','packed')) AS boxed, COUNT(*) AS n FROM stock_units u LEFT JOIN shipments s ON s.id = u.shipment_id WHERE u.removed IS NULL GROUP BY u.status, boxed")
+    .all() as Array<{ status: string; boxed: number; n: number }>;
+  for (const r of rows) {
+    const n = Number(r.n);
+    if (r.status === "bought") {
+      if (r.boxed) c.pack += n;
+      else c.jp += n;
+    } else if (["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"].includes(r.status)) c.transit += n;
+    else if (r.status === "at_shop") c.vn += n;
   }
-  const buy = db
-    .prepare("SELECT COALESCE(SUM(oi.quantity), 0) AS n FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status IN ('pending','processing') AND COALESCE(oi.purchase_status, 'not_bought') IN ('not_bought','ordered')")
-    .get() as { n: number };
-  c.toBuy = Number(buy.n);
+  c.toBuy = Number(
+    (
+      db
+        .prepare(
+          `SELECT COALESCE(SUM(oi.quantity - (SELECT COUNT(*) FROM stock_units u WHERE u.order_item_id = oi.id AND u.removed IS NULL)), 0) AS n
+           FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status IN ('pending','processing')
+           AND oi.quantity > (SELECT COUNT(*) FROM stock_units u WHERE u.order_item_id = oi.id AND u.removed IS NULL)`,
+        )
+        .get() as { n: number }
+    ).n,
+  );
   c.openBatches = Number((db.prepare("SELECT COUNT(*) AS n FROM purchase_batches WHERE status <> 'at_shop'").get() as { n: number }).n);
-  const runs = db.prepare("SELECT status, COUNT(*) AS n FROM shipments WHERE status <> 'done' GROUP BY status").all() as Array<{ status: string; n: number }>;
-  for (const r of runs) {
+  for (const r of db.prepare("SELECT status, COUNT(*) AS n FROM shipments WHERE status <> 'done' GROUP BY status").all() as Array<{ status: string; n: number }>) {
     if (r.status === "packing" || r.status === "packed") c.packRuns += Number(r.n);
     else c.transitRuns += Number(r.n);
   }

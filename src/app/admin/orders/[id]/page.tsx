@@ -156,6 +156,15 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                                   {it.quantity > 1 ? <span className="ml-1 font-semibold">×{a.qty}</span> : null}
                                   {a.manual ? <span className="ml-1 text-[10px] text-lien-muted">(ghi đè)</span> : null}
                                   {a.detail ? <span className="block text-lien-muted">{a.detail}</span> : null}
+                                  {a.codes.length ? (
+                                    <span className="mt-0.5 flex flex-wrap gap-1">
+                                      {a.codes.map((c) => (
+                                        <Link key={c} href={`/admin/inventory/units/${c}/`} className="rounded bg-[#f3f4f6] px-1 font-mono text-[10px] font-semibold text-lien-blue no-underline hover:underline" title="Xem lịch sử của mã">
+                                          {c}
+                                        </Link>
+                                      ))}
+                                    </span>
+                                  ) : null}
                                 </div>
                               ))}
                             {!allocViews.some((a) => a.orderItemId === it.itemId) ? <span className="text-[12px] text-lien-muted">— theo trạng thái tay: {it.purchaseStatus ?? "chưa mua"}</span> : null}
@@ -168,9 +177,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                                 <option value="" disabled>
                                   — đổi nguồn —
                                 </option>
-                                <option value="buy">Cần mua (bỏ giữ chỗ)</option>
+                                <option value="buy">Cần mua (trả hàng đang giữ về tồn)</option>
                                 {(sourceOptions.get(it.itemId) ?? []).map((o) => (
-                                  <option key={`${o.type}:${o.id}`} value={`${o.type}:${o.id}`}>
+                                  <option key={o.value} value={o.value}>
                                     {o.label}
                                   </option>
                                 ))}

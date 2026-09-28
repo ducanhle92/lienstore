@@ -5,6 +5,17 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Từng cái có mã riêng** (migration 65, bảng `stock_units` + nhật ký `stock_unit_events`): mỗi món hàng mua về là một dòng với mã ngắn `H` + 6 số + 1 số kiểm tra (Damm) — vd `H0001235`, gõ sai một số hoặc đảo hai số liền nhau đều bị từ chối, hợp in tem / QR. Mỗi cái mang nguồn gốc (bill, đợt mua, nơi mua, cửa hàng, ngày mua, HSD, ¥), vị trí (dự định mua → đã đặt mua → Kho Nhật → ĐVVC Nhật → đang bay → ĐVVC HN → đang về → Kho VN → đang giao → khách nhận), chuyến đóng hàng và đơn đang giữ nó. Bỏ khái niệm “lô” và “phiếu mua lưu kho”; dữ liệu cũ chuyển sang từng cái (tồn kho từng sản phẩm và phần giữ cho từng dòng đơn không đổi), bảng cũ giữ nguyên để quay lại được.
+- **Một nguồn sự thật, tự đồng bộ**: mọi thay đổi ở từng cái (đợt mua, Tồn kho, Đóng hàng / Vận chuyển, đơn hàng) tự tính lại: đơn nào giữ cái nào (đơn cũ trước; gần khách nhất → hạn dùng gần nhất → bill sớm hơn; bỏ qua hàng hết hạn; hàng đã thanh toán / đã đóng chuyến / chọn tay không bị đổi), trạng thái dòng đơn, tiến độ đơn + 4 chặng (chỉ tiến, và chỉ khi đơn đã thanh toán hoặc COD), trạng thái đợt, tồn web. Đổi tiến độ / chặng bằng tay trên đơn thì hàng của đơn đi theo — hết lệch giữa các màn. Huỷ đơn: hàng về tồn và đơn đang chờ được giữ ngay. Khởi động lại cũng tự tính lại toàn bộ.
+- **Quản lý mua hàng › Mua theo đợt** dạng cây: sản phẩm (gộp SL) → dòng bill (sửa nơi mua, cửa hàng, HSD, ngày mua, ¥, bill, SL, trạng thái cho mọi cái) → từng mã (trạng thái riêng, đơn giữ, chuyến). Hai cách xem “Theo sản phẩm” / “Từng mã”; lọc thêm theo **Kênh** (đặt online / mua tại cửa hàng), mã H…, Loại (hàng theo đơn / lưu kho / cần mua); tick theo sản phẩm / dòng bill / từng mã; thao tác Cập nhật trạng thái · Thất lạc · Xoá (nhập nhầm). Dòng “cần mua” của đơn trong đợt: tick + trạng thái = tạo mã cho đơn. Dòng thêm sản phẩm có ô trạng thái (mua tại quầy = Tại kho Nhật, đặt online = Đã đặt mua).
+- Tab **Hàng lưu kho** (thay Mua lưu kho): mọi cái chưa có khách theo dòng bill, chuyển trạng thái / đưa vào đợt; form nhập hàng lưu kho không theo đợt.
+- **Tồn kho Nhật / VN**, **Đóng hàng**, **Vận chuyển**: theo dòng bill × vị trí, mở ra xem từng mã; chuyển / đóng một phần theo số cái; chuyến đổi trạng thái là mọi cái trong chuyến đổi vị trí, đơn và đợt đổi theo.
+- Trang **hàng của sản phẩm** (từ tên sản phẩm): mọi cái theo dòng bill, sửa một lần, loại khỏi tồn (thất lạc / hỏng / loại bỏ) và khôi phục, nhập hàng trực tiếp / khách trả lại, đính ảnh bill theo dòng. Trang **mã hàng** `/admin/inventory/units/H…`: nguồn gốc + lịch sử từng lần đổi (nền cho quét tem / kiểm hàng sau này), ô “Tra mã”.
+- Kiểm kê / sửa tồn bằng tay: thừa → cái mới trên bill kiểm kê `KK-yymmdd`; thiếu → cái hạn gần nhất được đánh dấu thất lạc (giữ mã và lịch sử).
+- Trang đơn: nguồn hàng hiện mã từng cái; “đổi nguồn” chọn theo dòng bill (hoặc Cần mua); “Tự động phân bổ” bỏ chọn tay và xếp lại.
+- **Mã nhóm biến thể** tự sinh theo tên (vd `SUA-TAM-HATOMUGI`), sửa được ở trang nhóm, hiện cạnh sản phẩm trong bảng mua hàng / tồn kho.
+
 ## [1.86.0] - 2026-09-28
 
 ### Changed

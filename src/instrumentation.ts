@@ -114,36 +114,18 @@ export async function register() {
       console.warn(`[flow] v2 job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 20_000);
-  // every start: slips / allocations left behind by a hand-deleted lot
+  // every start: holds, order lines, order stages / legs, batches and product stock re-derived from the units
+  // (units-db is the single truth; this is the safety net — every write already re-derives what it touched)
   setTimeout(async () => {
     try {
-      const { cleanupOrphanLotRefs } = await import("./lib/allocations-db");
-      const r = await cleanupOrphanLotRefs();
-      if (r.slips || r.allocations) console.info(`[lots] cleaned ${r.slips} orphan slip(s), ${r.allocations} orphan allocation(s)`);
+      const [{ getDb, withTransaction }, { resyncAllUnitsSync }] = await Promise.all([import("./lib/sqlite"), import("./lib/units-db")]);
+      const db = getDb();
+      const r = withTransaction(db, () => resyncAllUnitsSync(db));
+      console.info(`[units] re-derived ${r.products} product(s)`);
     } catch (e) {
-      console.warn(`[lots] orphan cleanup failed: ${e instanceof Error ? e.message : e}`);
-    }
-  }, 24_000);
-  // one-time after migration 61: lots created from bought slips → recompute products.stock and serve waiting lines
-  setTimeout(async () => {
-    try {
-      const { resyncStockAfterLotsOnce } = await import("./lib/allocations-db");
-      const n = await resyncStockAfterLotsOnce();
-      if (n) console.info(`[lots] resynced stock for ${n} product(s)`);
-    } catch (e) {
-      console.warn(`[lots] resync failed: ${e instanceof Error ? e.message : e}`);
+      console.warn(`[units] resync failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 22_000);
-  // one-time after migration 59: legacy "Cần mua" lines take the stock that already exists (see lib/allocations-db.ts)
-  setTimeout(async () => {
-    try {
-      const { backfillAllocationsOnce } = await import("./lib/allocations-db");
-      const n = await backfillAllocationsOnce();
-      if (n) console.info(`[alloc] backfill: ${n} order line(s) now have a source`);
-    } catch (e) {
-      console.warn(`[alloc] backfill failed: ${e instanceof Error ? e.message : e}`);
-    }
-  }, 25_000);
   // one-time: stored texts still saying "LienStore" → the theme's shop name (see lib/brand-rename-job.ts)
   setTimeout(async () => {
     try {

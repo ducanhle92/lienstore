@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, unpackLotAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
 import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
 import { SelectAll } from "@/components/sites/lienstore/admin/SelectAll";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
@@ -14,8 +14,8 @@ import { purchaseSourceName } from "@/lib/purchase-sources";
 import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentStage } from "@/lib/shipments";
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
-import { listLotViews } from "@/lib/lots-db";
-import { describeLocation } from "@/lib/warehouses";
+import { listStockGroups } from "@/lib/lots-db";
+import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
@@ -42,7 +42,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const [allShipments, sources] = await Promise.all([Promise.resolve(listShipments(transit && includeDone)), listPurchaseSources()]);
   const shipments = allShipments.filter((x) => (transit ? !shipmentEditable(x.status) : shipmentEditable(x.status)));
   const db = getDb();
-  // what could still be packed: lots on the shelf at Kho Nhật (shop) + bought order lines without a lot yet
+  // what could still be packed: units on the shelf at Kho Nhật (shop), not boxed yet
   const allCands = listPackCandidates(db);
   const shelfUnits = allCands.reduce((n, c) => n + c.qty, 0);
   const shelfProducts = new Set(allCands.map((c) => c.productId)).size;
@@ -57,8 +57,8 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const picked = Number.isInteger(pickFor) && pickFilter ? listPackCandidates(db, pickFilter) : [];
   const saved = first(sp.saved);
   const error = first(sp.error);
-  // ④: lots with the carrier that are not in any run (moved by hand from Tồn kho) — still on the way, so listed here
-  const looseTransit = transit ? listLotViews(db).filter((l) => (l.warehouse === "jp_carrier" || l.warehouse === "carrier") && !l.shipmentId) : [];
+  // ④: units with the carrier that are not in any run (moved by hand) — still on the way, so listed here
+  const looseTransit = transit ? listStockGroups(db, { statuses: ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"] }).filter((g) => !g.shipmentId) : [];
   return (
     <>
       <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
@@ -143,33 +143,33 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           <ShipmentCard key={s.id} s={s} sources={sources} pick={s.id === pickFor && pickFilter ? { by, order: pickOrder, batch: Number.isInteger(pickBatch) ? pickBatch : null, q: pickQ, rows: picked } : shipmentEditable(s.status) ? { by: "", order: "", batch: null, q: "", rows: allCands } : null} pickSources={pickSources} />
         ))}
         {looseTransit.length ? (
-          <Card title={`Hàng đang vận chuyển ngoài chuyến (${looseTransit.reduce((n, l) => n + l.physical, 0)} đv · ${looseTransit.length} lô)`}>
-            <p className="mb-2 mt-0 text-[12px] text-lien-muted">Lô đã được chuyển vị trí ở Tồn kho mà không qua chuyến đóng hàng. Đổi vị trí từng lô (hoặc tick nhiều lô ở Tồn kho → Chuyển) khi hàng tới nơi.</p>
+          <Card title={`Hàng đang vận chuyển ngoài chuyến (${looseTransit.reduce((n, g) => n + g.qty, 0)} cái · ${looseTransit.length} dòng bill)`}>
+            <p className="mb-2 mt-0 text-[12px] text-lien-muted">Hàng đã được chuyển vị trí (ở Tồn kho, đợt mua hoặc đơn hàng) mà không qua chuyến đóng hàng. Đổi trạng thái khi hàng tới nơi.</p>
             <div className="overflow-x-auto">
               <table className={tableClass} data-testid="loose-transit">
                 <thead>
                   <tr>
                     <th className={thClass}>Sản phẩm</th>
-                    <th className={thClass}>Bill · lô</th>
+                    <th className={thClass}>Bill · mã</th>
                     <th className={thClass}>Đang ở</th>
                     <th className={thClass}>SL</th>
                     <th className={thClass}>Giữ cho đơn</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {looseTransit.map((l) => (
-                    <tr key={l.id}>
+                  {looseTransit.map((g) => (
+                    <tr key={g.key}>
                       <td className={tdClass}>
-                        <Link href={`/admin/inventory/lots/${l.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
-                          {l.productName}
+                        <Link href={`/admin/inventory/lots/${g.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
+                          {g.productName}
                         </Link>
                       </td>
                       <td className={cn(tdClass, "font-mono text-[12px]")}>
-                        {l.receiptCode || "chưa có bill"} <span className="text-lien-muted">· lô #{l.id}</span>
+                        {g.receiptCode || "chưa có bill"} <CodeList codes={g.codes} />
                       </td>
-                      <td className={cn(tdClass, "text-[13px]")}>{describeLocation(l.warehouse, l.inTransit)}</td>
-                      <td className={cn(tdClass, "font-semibold")}>{l.physical}</td>
-                      <td className={cn(tdClass, "text-[12px]")}>{l.reserved.length ? l.reserved.map((r) => `#${r.orderNumber} ×${r.qty}`).join(", ") : "—"}</td>
+                      <td className={cn(tdClass, "text-[13px]")}>{PURCHASE_STAGES[purchaseIndex(g.status)].label}</td>
+                      <td className={cn(tdClass, "font-semibold")}>{g.qty}</td>
+                      <td className={cn(tdClass, "text-[12px]")}>{g.holders.length ? g.holders.map((h) => `#${h.orderNumber} ×${h.qty}`).join(", ") : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -210,14 +210,14 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
         actions={
           <span className="flex items-center gap-3">
             <span className="text-[12px] text-lien-muted">
-              <b className="text-lien-heading">{s.units}</b> đv · {s.lots.length} lô{s.heldUnits ? ` · ${s.heldUnits} đv đã có khách` : ""}
+              <b className="text-lien-heading">{s.units}</b> cái · {s.groups.length} dòng bill{s.heldUnits ? ` · ${s.heldUnits} cái cho đơn khách` : ""}
               {s.jpy !== null ? ` · ≈ ¥${formatAmount(s.jpy)}` : ""}
             </span>
             <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", stage.cls)}>{stage.short}</span>
             {editable ? (
               <form action={deleteShipmentAction}>
                 <input type="hidden" name="shipmentId" value={s.id} />
-                <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.lots.length} lô trở lại kệ Kho Nhật.`} className="text-[12px] text-lien-heart hover:underline">
+                <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.units} cái trở lại kệ Kho Nhật.`} className="text-[12px] text-lien-heart hover:underline">
                   Xoá chuyến
                 </ConfirmSubmit>
               </form>
@@ -244,7 +244,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
             <form action={setShipmentStatusAction}>
               <input type="hidden" name="shipmentId" value={s.id} />
               <input type="hidden" name="status" value={next.key} />
-              <button type="submit" className={cn(btnPrimary, "!py-1")} data-testid={`ship-next-${s.id}`} title="Chuyển chuyến sang bước tiếp theo; các lô trong chuyến đổi vị trí theo">
+              <button type="submit" className={cn(btnPrimary, "!py-1")} data-testid={`ship-next-${s.id}`} title="Chuyển chuyến sang bước tiếp theo; mọi cái trong chuyến đổi vị trí theo, đơn hàng / đợt mua / Tồn kho cập nhật">
                 <Fa name="angle-right" /> {next.label}
               </button>
             </form>
@@ -262,7 +262,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               <tr>
                 <th className={thClass}>Sản phẩm</th>
                 <th className={thClass}>SL đóng</th>
-                <th className={thClass}>Bill · lô</th>
+                <th className={thClass}>Bill · mã</th>
                 <th className={thClass}>HSD</th>
                 <th className={thClass}>Cho đơn</th>
                 <th className={thClass}>Mua ở · ¥/đv</th>
@@ -271,64 +271,61 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               </tr>
             </thead>
             <tbody>
-              {s.lots.length === 0 ? (
+              {s.groups.length === 0 ? (
                 <tr>
                   <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
                     Chưa đóng gì — tick hàng ở khối “Chọn hàng đóng vào chuyến” bên dưới rồi bấm Thêm vào chuyến.
                   </td>
                 </tr>
               ) : null}
-              {s.lots.map((l) => {
-                const st = expiryState(l.expiry);
-                const days = daysToExpiry(l.expiry);
+              {s.groups.map((g) => {
+                const st = expiryState(g.expiry);
+                const days = daysToExpiry(g.expiry);
                 return (
-                  <tr key={l.id} className="hover:bg-[#fafafa]" data-testid={`shipment-lot-${l.id}`}>
+                  <tr key={g.key} className="align-top hover:bg-[#fafafa]" data-testid={`shipment-group-${g.unitIds[0]}`}>
                     <td className={`${tdClass} min-w-[220px]`}>
                       <div className="flex items-center gap-2">
-                        {l.productThumb ? <Image src={l.productThumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
+                        {g.productThumb ? <Image src={g.productThumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
                         <span className="flex min-w-0 flex-col leading-4">
-                          <Link href={`/admin/inventory/lots/${l.productId}/`} className="line-clamp-2 text-[13px] font-semibold text-lien-heading hover:text-lien-blue">
-                            {l.productName}
+                          <Link href={`/admin/inventory/lots/${g.productId}/`} className="line-clamp-2 text-[13px] font-semibold text-lien-heading hover:text-lien-blue">
+                            {g.productName}
                           </Link>
                           <span className="text-[11px] text-lien-muted">
-                            #{l.productId}
-                            {l.productSku ? ` · ${l.productSku}` : ""}
+                            #{g.productId}
+                            {g.productSku ? ` · ${g.productSku}` : ""}
                           </span>
                         </span>
                       </div>
                     </td>
                     <td className={`${tdClass} font-semibold`}>
-                      {l.physical}
-                      {l.heldQty ? <span className="block text-[11px] font-normal text-green-700">{l.heldQty} đã TT</span> : null}
+                      {g.qty}
+                      {g.committedQty ? <span className="block text-[11px] font-normal text-green-700">{g.committedQty} đã TT</span> : null}
                     </td>
                     <td className={`${tdClass} text-[12px]`}>
-                      {l.receiptCode ? <span className="font-mono text-[11px] font-semibold text-lien-heading">{l.receiptCode}</span> : <span className="text-lien-muted">chưa có bill</span>}
-                      <span className="block text-[11px] text-lien-muted">
-                        lô #{l.id}
-                        {l.parentLotId ? ` · tách từ #${l.parentLotId}` : ""}
-                      </span>
-                      {l.batchCode ? <span className="block text-lien-muted">đợt {l.batchCode}</span> : null}
+                      {g.receiptCode ? <span className="font-mono text-[11px] font-semibold text-lien-heading">{g.receiptCode}</span> : <span className="text-lien-muted">chưa có bill</span>}
+                      <CodeList codes={g.codes} />
+                      {g.batchCode ? <span className="block text-lien-muted">đợt {g.batchCode}</span> : null}
                     </td>
-                    <td className={`${tdClass} whitespace-nowrap text-[12px]`}>{l.expiry ? <span className={cn("rounded px-1.5 py-0.5", EXP_CLS[st])} title={days !== null ? `${days} ngày` : undefined}>{formatDate(l.expiry)}</span> : <span className="text-lien-muted">—</span>}</td>
+                    <td className={`${tdClass} whitespace-nowrap text-[12px]`}>{g.expiry ? <span className={cn("rounded px-1.5 py-0.5", EXP_CLS[st])} title={days !== null ? `${days} ngày` : undefined}>{formatDate(g.expiry)}</span> : <span className="text-lien-muted">—</span>}</td>
                     <td className={`${tdClass} text-[12px]`}>
-                      {l.reserved.length === 0 ? <span className="text-lien-muted">—</span> : null}
-                      {l.reserved.map((r) => (
-                        <Link key={r.orderId} href={`/admin/orders/${r.orderId}/`} className={cn("mr-1 inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", r.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.committed ? "Đơn đã thanh toán / COD" : "Đơn chưa thanh toán (chỉ giữ chỗ)"}>
-                          #{r.orderNumber} ×{r.qty}
+                      {g.holders.length === 0 ? <span className="text-lien-muted">— lưu kho</span> : null}
+                      {g.holders.map((h) => (
+                        <Link key={h.itemId} href={`/admin/orders/${h.orderId}/`} className={cn("mr-1 inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", h.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={h.committed ? "Đơn đã thanh toán / COD" : "Đơn chưa thanh toán (chỉ giữ chỗ)"}>
+                          #{h.orderNumber} ×{h.qty}
                         </Link>
                       ))}
                     </td>
                     <td className={`${tdClass} text-[12px]`}>
-                      {purchaseSourceName(l.sourceKey, sources)}
-                      {l.unitCostJpy ? ` · ¥${formatAmount(l.unitCostJpy)}` : ""}
+                      {purchaseSourceName(g.sourceKey, sources)}
+                      {g.unitCostJpy ? ` · ¥${formatAmount(g.unitCostJpy)}` : ""}
                     </td>
-                    <td className={`${tdClass} text-[12px]`}>{editable ? "Kho Nhật (shop) · đã đóng" : l.inTransit ? "đang bay / đang về" : l.warehouse === "jp_carrier" ? "Kho ĐVVC Nhật" : l.warehouse === "carrier" ? "Kho ĐVVC VN" : l.warehouse === "vn" ? "Kho Việt Nam (shop)" : "Kho Nhật (shop)"}</td>
+                    <td className={`${tdClass} text-[12px]`}>{editable ? "Kho Nhật (shop) · đã đóng" : PURCHASE_STAGES[purchaseIndex(g.status)].label}</td>
                     {editable ? (
                       <td className={`${tdClass} whitespace-nowrap`}>
-                        <form action={unpackLotAction} className="inline">
+                        <form action={unpackUnitsAction} className="inline">
                           <input type="hidden" name="shipmentId" value={s.id} />
-                          <input type="hidden" name="lotId" value={l.id} />
-                          <button type="submit" className={cn(btnSecondary, "!px-2 !py-1 !text-[12px] !text-lien-heart")} title="Rút khỏi chuyến — trở lại kệ Kho Nhật">
+                          <input type="hidden" name="uids" value={g.unitIds.join(",")} />
+                          <button type="submit" className={cn(btnSecondary, "!px-2 !py-1 !text-[12px] !text-lien-heart")} title="Rút cả dòng khỏi chuyến — trở lại kệ Kho Nhật">
                             ✕ rút
                           </button>
                         </form>
@@ -491,7 +488,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
   );
 }
 
-function CandTable({ rows, pkId, pick, sources, checked, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; checked: boolean; empty: string }) {
+function CandTable({ rows, pkId, sources, checked, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; checked: boolean; empty: string }) {
   return (
     <div className="overflow-x-auto">
       <table className={tableClass}>
@@ -516,7 +513,7 @@ function CandTable({ rows, pkId, pick, sources, checked, empty }: { rows: PackCa
             </tr>
           ) : null}
           {rows.map((c) => (
-            <tr key={c.key} className="hover:bg-[#fafafa]" data-testid={`cand-${c.key.replace(":", "-")}`}>
+            <tr key={c.key} className="hover:bg-[#fafafa]" data-testid={`cand-${c.unitIds[0]}`}>
               <td className={`${tdClass} w-8`}>
                 <input type="checkbox" name="keys" value={c.key} form={pkId} defaultChecked={checked} className="h-4 w-4" aria-label={`Chọn ${c.productName}`} />
               </td>
@@ -528,8 +525,9 @@ function CandTable({ rows, pkId, pick, sources, checked, empty }: { rows: PackCa
                     <span className="text-[11px] text-lien-muted">
                       #{c.productId}
                       {c.productSku ? ` · ${c.productSku}` : ""}
-                      {c.kind === "lot" ? ` · lô #${c.lotId}` : " · hàng theo đơn (chưa có lô)"}
+                      {c.receiptCode ? ` · ${c.receiptCode}` : ""}
                     </span>
+                    <CodeList codes={c.codes} />
                   </span>
                 </div>
               </td>
@@ -538,17 +536,7 @@ function CandTable({ rows, pkId, pick, sources, checked, empty }: { rows: PackCa
                 {c.heldQty ? <span className="block text-[11px] font-normal text-green-700">{c.heldQty} đã TT</span> : null}
               </td>
               <td className={tdClass}>
-                {c.kind === "lot" && c.qty - c.heldQty >= 1 ? (
-                  (() => {
-                    // prefill with what the customers on this row need (paid units travel by themselves); "theo đơn" narrows to that order
-                    const mine = pick.by === "order" ? c.orders.filter((o) => o.orderId === pick.order) : c.orders;
-                    const unpaid = mine.filter((o) => !o.committed).reduce((n, o) => n + o.qty, 0);
-                    const def = mine.length ? Math.min(unpaid, c.qty - c.heldQty) : undefined;
-                    return <input name={`qty_${c.key.replace(":", "_")}`} form={pkId} inputMode="numeric" defaultValue={def === undefined ? "" : String(def)} placeholder={String(c.qty - c.heldQty)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số đơn vị chưa bán đóng (trống = cả dòng)" title="Trống = cả dòng; số nhỏ hơn = chỉ đóng bấy nhiêu đơn vị chưa bán (hàng khách đã thanh toán luôn đi cùng); 0 = chỉ hàng đã thanh toán" />;
-                  })()
-                ) : (
-                  <span className="text-[12px] text-lien-muted">cả dòng</span>
-                )}
+                {c.qty > 1 ? <input name={`qty_${c.unitIds[0]}`} form={pkId} inputMode="numeric" defaultValue="" placeholder={String(c.qty)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số cái đóng (trống = cả dòng)" title="Trống = cả dòng; số nhỏ hơn = chỉ đóng bấy nhiêu cái (hàng khách đã thanh toán đi trước)" /> : <span className="text-[12px] text-lien-muted">1 cái</span>}
               </td>
               <td className={`${tdClass} text-[12px]`}>
                 {c.orders.length === 0 ? <span className="text-lien-muted">— lưu kho</span> : null}
@@ -569,5 +557,30 @@ function CandTable({ rows, pkId, pick, sources, checked, empty }: { rows: PackCa
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** Unit codes of a row, collapsed: the first one + "…n mã" that opens the full list. */
+function CodeList({ codes }: { codes: string[] }) {
+  if (!codes.length) return null;
+  if (codes.length === 1)
+    return (
+      <Link href={`/admin/inventory/units/${codes[0]}/`} className="block font-mono text-[11px] text-lien-blue no-underline hover:underline">
+        {codes[0]}
+      </Link>
+    );
+  return (
+    <details className="text-[11px]">
+      <summary className="cursor-pointer font-mono text-lien-blue">
+        {codes[0]} … {codes.length} mã
+      </summary>
+      <span className="flex flex-wrap gap-1 pt-1">
+        {codes.map((c) => (
+          <Link key={c} href={`/admin/inventory/units/${c}/`} className="rounded bg-[#f3f4f6] px-1 font-mono text-[10px] text-lien-blue no-underline hover:underline">
+            {c}
+          </Link>
+        ))}
+      </span>
+    </details>
   );
 }

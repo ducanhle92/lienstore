@@ -1,7 +1,6 @@
 import "server-only";
-import { allocatePendingForProductSync, listReservationsForStockPurchases } from "./allocations-db";
-import { createStockPurchase } from "./db";
 import { purchaseIndex, type PurchaseStatus } from "./purchase";
+import { createUnitsSync, moveUnitsSync, touchSync } from "./units-db";
 import { UNKNOWN_SOURCE } from "./purchase-sources";
 import { type BillItem, type MatchCandidate, matchBillItem, parseBillText, receiptCode, type ReceiptStatus } from "./receipts";
 import { getDb, withTransaction } from "./sqlite";
@@ -48,8 +47,10 @@ export interface Receipt {
   items: ReceiptItem[];
   /** Order lines linked to this receipt: order number × qty × status. */
   lines: Array<{ itemId: number; orderId: string; orderNumber: number; productName: string; quantity: number; purchaseStatus: string }>;
-  /** Units bought for the warehouse on this receipt. */
+  /** Units of this bill no order holds (stock). */
   stockUnits: number;
+  /** Every unit bought on this bill. */
+  units: number;
 }
 
 interface ReceiptRow {
@@ -98,7 +99,7 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
   const ph = ids.map(() => "?").join(",");
   const items = db.prepare(`SELECT ri.*, p.name AS pname, p.thumb AS pthumb FROM purchase_receipt_items ri LEFT JOIN products p ON p.id = ri.product_id WHERE ri.receipt_id IN (${ph}) ORDER BY ri.id`).all(...ids) as unknown as ItemRow[];
   const lines = db.prepare(`SELECT oi.id, oi.order_id, o.number, oi.name, oi.quantity, oi.purchase_status, oi.receipt_id FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.receipt_id IN (${ph}) ORDER BY o.number, oi.id`).all(...ids) as unknown as Array<{ id: number; order_id: string; number: number; name: string; quantity: number; purchase_status: string; receipt_id: number }>;
-  const stock = db.prepare(`SELECT receipt_id, COALESCE(SUM(qty), 0) AS n FROM stock_purchases WHERE receipt_id IN (${ph}) GROUP BY receipt_id`).all(...ids) as unknown as Array<{ receipt_id: number; n: number }>;
+  const stock = db.prepare(`SELECT receipt_id, SUM(order_item_id IS NULL) AS n, COUNT(*) AS total FROM stock_units WHERE removed IS NULL AND receipt_id IN (${ph}) GROUP BY receipt_id`).all(...ids) as unknown as Array<{ receipt_id: number; n: number; total: number }>;
   return rows.map((r) => ({
     id: r.id,
     code: r.code,
@@ -118,6 +119,7 @@ function hydrate(rows: ReceiptRow[]): Receipt[] {
     items: items.filter((i) => i.receipt_id === r.id).map((i) => ({ id: i.id, receiptId: i.receipt_id, productId: i.product_id, productName: i.pname ?? "", productThumb: i.pthumb ?? "", rawName: i.raw_name ?? "", qty: i.qty, unitJpy: i.unit_jpy, asin: i.asin ?? "", matchScore: i.match_score })),
     lines: lines.filter((l) => l.receipt_id === r.id).map((l) => ({ itemId: l.id, orderId: l.order_id, orderNumber: l.number, productName: l.name, quantity: l.quantity, purchaseStatus: l.purchase_status })),
     stockUnits: Number(stock.find((s) => s.receipt_id === r.id)?.n ?? 0),
+    units: Number(stock.find((s) => s.receipt_id === r.id)?.total ?? 0),
   }));
 }
 
@@ -160,9 +162,20 @@ export function createReceiptFromLines(itemIds: number[], input: { sourceKey: st
     }
     const ins = db.prepare("INSERT INTO purchase_receipt_items (receipt_id, product_id, raw_name, qty, unit_jpy, asin, match_score) VALUES (?, ?, ?, ?, ?, '', 1)");
     for (const [pid, g] of byProduct) ins.run(rid, pid, g.name, g.qty, g.jpy);
-    const upd = db.prepare("UPDATE order_items SET receipt_id = ?, source_key = ?, purchase_status = CASE WHEN purchase_status IS NULL OR purchase_status = 'not_bought' THEN 'bought' ELSE purchase_status END, purchase_updated_at = ? WHERE id = ?");
-    for (const l of rows) upd.run(rid, input.sourceKey || UNKNOWN_SOURCE, now, l.id);
+    // each line was bought for its customer: it gets its own units (codes H…) on this bill, pinned to it
+    const touched: number[] = [];
+    for (const l of rows) {
+      const have = (db.prepare("SELECT id FROM stock_units WHERE order_item_id = ? AND removed IS NULL").all(l.id) as Array<{ id: number }>).map((r) => r.id);
+      const status: PurchaseStatus = l.purchase_status && purchaseIndex(l.purchase_status as PurchaseStatus) > purchaseIndex("bought") ? (l.purchase_status as PurchaseStatus) : "bought";
+      if (have.length) {
+        db.prepare(`UPDATE stock_units SET receipt_id = ?, source_key = ?, updated_at = ? WHERE id IN (${have.map(() => "?").join(",")})`).run(rid, input.sourceKey || UNKNOWN_SOURCE, now, ...have);
+        moveUnitsSync(db, have, status, { raiseOnly: true, note: `bill ${code}` });
+      }
+      const made = l.quantity > have.length ? createUnitsSync(db, { productId: l.product_id, qty: l.quantity - have.length, status, itemId: l.id, receiptId: rid, sourceKey: input.sourceKey || UNKNOWN_SOURCE, boughtAt: input.boughtAt, unitCostJpy: l.cost_jpy, origin: "order", note: `bill ${code}` }) : [];
+      touched.push(...have, ...made);
+    }
     db.prepare("UPDATE purchase_receipts SET total_jpy = (SELECT SUM(COALESCE(unit_jpy, 0) * qty) FROM purchase_receipt_items WHERE receipt_id = ?) WHERE id = ?").run(rid, rid);
+    touchSync(db, { unitIds: touched, itemIds: rows.map((l) => l.id) });
     return rid;
   });
   return getReceipt(id);
@@ -231,21 +244,17 @@ export async function confirmReceipt(id: number, productByItem: Record<number, n
     db.prepare("UPDATE purchase_receipts SET status = 'bought', updated_at = ? WHERE id = ?").run(now, id);
     if (batch) db.prepare("UPDATE purchase_batches SET updated_at = ? WHERE id = ?").run(now, batch.id);
   });
-  // every bill line becomes one stock row (bought, on this receipt); waiting order lines reserve from it
-  // (oldest order first — see lib/allocations-db.ts), the rest stays as stock for later orders
-  for (const l of bought) {
-    const sp = await createStockPurchase({ productId: l.productId, qty: l.qty, sourceKey: receipt.sourceKey, unitCostJpy: l.unitJpy, expiry: null, boughtAt: receipt.boughtAt, warehouse: batch ? "vn" : "jp", location: "", note: batch ? `Đợt ${batch.code} · phiếu ${receipt.code}` : `Phiếu ${receipt.code}`, status: batchStatus, batchId: batch?.id ?? null });
-    db.prepare("UPDATE stock_purchases SET receipt_id = ? WHERE id = ?").run(id, sp.id);
-    const served = withTransaction(db, () => allocatePendingForProductSync(db, l.productId));
-    const res = listReservationsForStockPurchases(db, [sp.id]).get(sp.id) ?? [];
-    if (res.length) {
-      // the covered lines remember the receipt and the source it was bought at
-      const ph = res.map(() => "?").join(",");
-      db.prepare(`UPDATE order_items SET receipt_id = ?, source_key = ? WHERE id IN (SELECT order_item_id FROM order_item_allocations WHERE source_type = 'stock_purchase' AND source_id = ?) AND order_id IN (${ph})`).run(id, receipt.sourceKey, sp.id, ...res.map((r) => r.orderId));
-    }
-    void served;
-    linesCovered += res.length;
-    stockUnits += Math.max(0, l.qty - res.reduce((n, r) => n + r.qty, 0));
+  // every bill line becomes its units (codes H…) on this bill; waiting order lines are served from them (oldest order first)
+  const made = withTransaction(db, () => {
+    const ids: number[] = [];
+    for (const l of bought) ids.push(...createUnitsSync(db, { productId: l.productId, qty: l.qty, status: batchStatus, receiptId: id, batchId: batch?.id ?? null, sourceKey: receipt.sourceKey, boughtAt: receipt.boughtAt, unitCostJpy: l.unitJpy, origin: "bill", note: `bill ${receipt.code}` }));
+    touchSync(db, { unitIds: ids });
+    return ids;
+  });
+  if (made.length) {
+    const r = db.prepare(`SELECT COUNT(DISTINCT order_item_id) AS lines, SUM(order_item_id IS NULL) AS free FROM stock_units WHERE id IN (${made.map(() => "?").join(",")})`).get(...made) as { lines: number; free: number };
+    linesCovered = Number(r.lines);
+    stockUnits = Number(r.free ?? 0);
   }
   return { linesCovered, stockUnits };
 }
@@ -261,11 +270,10 @@ export function updateReceipt(id: number, patch: { shippedAt?: string | null; tr
   withTransaction(db, () => {
     db.prepare("UPDATE purchase_receipts SET shipped_at = ?, tracking = ?, note = ?, order_ref = ?, bought_at = ?, source_key = ?, status = ?, updated_at = ? WHERE id = ?").run(shippedAt, patch.tracking ?? cur.tracking, patch.note ?? cur.note, patch.orderRef ?? cur.orderRef, patch.boughtAt ?? cur.boughtAt, patch.sourceKey ?? cur.sourceKey, status, now, id);
     if (shippedAt && cur.status !== "draft") {
-      const min: PurchaseStatus = "to_carrier_jp";
-      const lines = db.prepare("SELECT id, purchase_status FROM order_items WHERE receipt_id = ?").all(id) as unknown as Array<{ id: number; purchase_status: string | null }>;
-      const upd = db.prepare("UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id = ?");
-      for (const l of lines) if (purchaseIndex((l.purchase_status as PurchaseStatus) || "not_bought") < purchaseIndex(min)) upd.run(min, now, l.id);
-      db.prepare("UPDATE stock_purchases SET status = ?, updated_at = ? WHERE receipt_id = ? AND lot_id IS NULL AND status IN ('not_bought','bought')").run(min, now, id);
+      // the bill's goods were sent straight to the carrier: its units still at / before Kho Nhật move there
+      const ids = (db.prepare("SELECT id FROM stock_units WHERE receipt_id = ? AND removed IS NULL AND status IN ('not_bought','ordered','bought') AND shipment_id IS NULL").all(id) as Array<{ id: number }>).map((r) => r.id);
+      moveUnitsSync(db, ids, "to_carrier_jp", { note: `bill ${cur.code} gửi ĐVVC` });
+      touchSync(db, { unitIds: ids });
     }
     if (patch.tracking !== undefined && patch.tracking) db.prepare("UPDATE order_items SET purchase_note = CASE WHEN purchase_note = '' THEN ? ELSE purchase_note END WHERE receipt_id = ?").run(patch.tracking, id);
   });
@@ -279,7 +287,7 @@ export function deleteReceipt(id: number): boolean {
     const cur = db.prepare("SELECT id FROM purchase_receipts WHERE id = ?").get(id);
     if (!cur) return false;
     db.prepare("UPDATE order_items SET receipt_id = NULL WHERE receipt_id = ?").run(id);
-    db.prepare("UPDATE stock_purchases SET receipt_id = NULL WHERE receipt_id = ?").run(id);
+    db.prepare("UPDATE stock_units SET receipt_id = NULL WHERE receipt_id = ?").run(id);
     db.prepare("DELETE FROM purchase_receipts WHERE id = ?").run(id);
     return true;
   });

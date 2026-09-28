@@ -46,7 +46,7 @@ export async function saveGroupAction(formData: FormData): Promise<void> {
   const name = text(formData, "name");
   if (!name) back("error", "Tên nhóm không được trống.", `${PAGE}${id}/`);
   // one field per level (AttrLabelsEditor) or a single comma-separated field — both accepted
-  const g = await saveProductGroup({ id: Number.isInteger(id) && id > 0 ? id : undefined, name, attrLabels: normalizeAttrLabels(formData.getAll("attrLabels").map(String).join(",")) });
+  const g = await saveProductGroup({ id: Number.isInteger(id) && id > 0 ? id : undefined, name, attrLabels: normalizeAttrLabels(formData.getAll("attrLabels").map(String).join(",")), code: formData.has("code") ? text(formData, "code") : undefined });
   revalidatePath("/", "layout");
   redirect(`${PAGE}${g.id}/?saved=${encodeURIComponent("Đã lưu nhóm.")}`);
 }

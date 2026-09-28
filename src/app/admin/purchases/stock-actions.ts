@@ -2,70 +2,74 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
-import { createStockPurchase, deleteStockPurchase, setStockPurchaseStatus } from "@/lib/db";
+import { getAdminSession, requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
-import { isPurchaseStatus, PURCHASE_LABEL } from "@/lib/purchase";
-import { isWarehouse } from "@/lib/warehouses";
+import { isPurchaseStatus, PURCHASE_LABEL, type PurchaseStatus } from "@/lib/purchase";
+import { moveUnitsToBatch } from "@/lib/purchase-batches-db";
+import { createManualReceipt } from "@/lib/receipts-db";
+import { getDb, withTransaction } from "@/lib/sqlite";
+import { createUnitsSync, moveUnitsSync, touchSync } from "@/lib/units-db";
 
 const PAGE = "/admin/purchases/?tab=stock";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
-const intOr = (s: string, d: number | null): number | null => {
+const num = (s: string, d: number | null): number | null => {
   const t = s.replace(/[^\d]/g, "");
   return t ? Number.parseInt(t, 10) : d;
 };
+const ints = (fd: FormData, k: string) => fd.getAll(k).flatMap((v) => String(v).split(/[,.\s]+/)).map((v) => Number.parseInt(v, 10)).filter(Number.isInteger);
 const back = (key: "saved" | "error", msg: string): never => redirect(`${PAGE}&${key}=${encodeURIComponent(msg)}`);
 
-/** "Mua lưu kho": buy for stock (a good price, not for a specific order); tracked along the same chain as order lines. */
-export async function createStockPurchaseAction(formData: FormData): Promise<void> {
+/** "Mua lưu kho": bought for stock (no order, no trip) — `qty` units with their own codes; waiting orders are served first. */
+export async function createStockUnitsAction(formData: FormData): Promise<void> {
   await requireAdmin("inventory");
   const productId = Number.parseInt(text(formData, "productId"), 10);
   if (!Number.isInteger(productId)) back("error", "Chọn sản phẩm.");
-  const qty = intOr(text(formData, "qty"), 0) ?? 0;
-  if (qty <= 0) back("error", "Số lượng phải > 0.");
+  const qty = num(text(formData, "qty"), 0) ?? 0;
+  if (qty <= 0 || qty > 500) back("error", "Số lượng phải từ 1 đến 500.");
   const expiryRaw = text(formData, "expiry");
   const expiry = expiryRaw ? parseExpiry(expiryRaw) : null;
   if (expiryRaw && !expiry) back("error", "Hạn dùng không hợp lệ — ghi 2027-03-31, 31/03/2027 hoặc 2027-03.");
   const boughtRaw = text(formData, "boughtAt");
-  const boughtAt = boughtRaw ? parseExpiry(boughtRaw) : null;
+  const boughtAt = boughtRaw ? parseExpiry(boughtRaw) : new Date().toISOString().slice(0, 10);
   if (boughtRaw && !boughtAt) back("error", "Ngày mua không hợp lệ (VD 2026-09-27).");
-  // "Đã cầm hàng (tại quầy)" = a lot at Kho Nhật (shop) right away; "Đã đặt mua online" = slip waiting to be received
   const statusRaw = text(formData, "status");
-  const status = statusRaw === "ordered" || statusRaw === "not_bought" ? statusRaw : isPurchaseStatus(statusRaw) ? statusRaw : "bought";
-  const wh = text(formData, "warehouse");
-  const sp = await createStockPurchase({ productId, qty, sourceKey: text(formData, "sourceKey") || "unknown", unitCostJpy: intOr(text(formData, "unitCostJpy"), null), expiry, boughtAt, warehouse: isWarehouse(wh) ? wh : undefined, location: text(formData, "location").slice(0, 80), note: text(formData, "note").slice(0, 200), status });
+  const status: PurchaseStatus = isPurchaseStatus(statusRaw) ? statusRaw : "bought";
+  const sourceKey = text(formData, "sourceKey") || "unknown";
+  const billCode = text(formData, "billCode");
+  const receiptId = createManualReceipt({ sourceKey, boughtAt: boughtAt ?? new Date().toISOString().slice(0, 10), code: billCode || undefined })?.id ?? null;
+  const actor = (await getAdminSession())?.label ?? "";
+  const db = getDb();
+  const ids = withTransaction(db, () => {
+    const made = createUnitsSync(db, { productId, qty, status, receiptId, sourceKey, store: text(formData, "store").slice(0, 80), boughtAt, expiry, unitCostJpy: num(text(formData, "unitCostJpy"), null), origin: "bill", note: text(formData, "note").slice(0, 200), actor });
+    touchSync(db, { unitIds: made });
+    return made;
+  });
   revalidatePath("/admin", "layout");
-  back("saved", status === "at_shop" ? `Đã nhập kho ${qty} × ${sp.productName} (tạo lô).` : `Đã tạo phiếu mua lưu kho #${sp.id}: ${qty} × ${sp.productName} — ${PURCHASE_LABEL[status]}.`);
+  back("saved", `Đã nhập ${ids.length} cái (${PURCHASE_LABEL[status]}) — mỗi cái một mã riêng; đơn đang chờ sản phẩm này được giữ hàng trước.`);
 }
 
-export async function setStockPurchaseStatusAction(formData: FormData): Promise<void> {
+/** Ticked stock lines: move their units to a status, or into a purchase batch (to travel with that trip). */
+export async function bulkStockUnitsAction(formData: FormData): Promise<void> {
   await requireAdmin("inventory");
-  const id = Number.parseInt(text(formData, "purchaseId"), 10);
+  const ids = ints(formData, "uids");
+  if (!ids.length) back("error", "Chưa tick dòng nào.");
+  const op = text(formData, "op");
+  if (op === "batch") {
+    const batchId = Number.parseInt(text(formData, "batchId"), 10);
+    if (!Number.isInteger(batchId)) back("error", "Chọn đợt.");
+    const n = moveUnitsToBatch(ids, batchId);
+    revalidatePath("/admin", "layout");
+    back("saved", `Đã đưa ${n} cái vào đợt.`);
+  }
   const status = text(formData, "status");
-  if (!Number.isInteger(id) || !isPurchaseStatus(status)) return back("error", "Yêu cầu không hợp lệ.");
-  const res = await setStockPurchaseStatus(id, status, formData.has("note") ? text(formData, "note") : undefined);
+  if (!isPurchaseStatus(status)) back("error", "Chưa chọn trạng thái.");
+  const actor = (await getAdminSession())?.label ?? "";
+  const db = getDb();
+  const n = withTransaction(db, () => {
+    const k = moveUnitsSync(db, ids, status as PurchaseStatus, { actor });
+    touchSync(db, { unitIds: ids });
+    return k;
+  });
   revalidatePath("/admin", "layout");
-  if (!res.ok) back("error", res.message ?? "Không cập nhật được.");
-  back("saved", res.lotId && status === "at_shop" ? `Đã nhận hàng — tạo lô #${res.lotId}, tồn kho cập nhật.` : `Đã chuyển sang "${PURCHASE_LABEL[status]}".`);
-}
-
-export async function bulkStockPurchaseAction(formData: FormData): Promise<void> {
-  await requireAdmin("inventory");
-  const ids = formData.getAll("spids").map((v) => Number.parseInt(String(v), 10)).filter(Number.isInteger);
-  const status = text(formData, "status");
-  if (!ids.length) back("error", "Chưa chọn phiếu nào.");
-  if (!isPurchaseStatus(status)) return back("error", "Chưa chọn trạng thái.");
-  let n = 0;
-  for (const id of ids) if ((await setStockPurchaseStatus(id, status)).ok) n++;
-  revalidatePath("/admin", "layout");
-  back("saved", `Đã cập nhật ${n} phiếu sang "${PURCHASE_LABEL[status]}".`);
-}
-
-export async function deleteStockPurchaseAction(formData: FormData): Promise<void> {
-  await requireAdmin("inventory");
-  const id = Number.parseInt(text(formData, "purchaseId"), 10);
-  const ok = Number.isInteger(id) && (await deleteStockPurchase(id));
-  revalidatePath("/admin", "layout");
-  if (!ok) back("error", "Không xoá được: phiếu đã thành lô — sửa lô trong Kho hàng.");
-  back("saved", "Đã xoá phiếu mua lưu kho.");
+  back("saved", `Đã chuyển ${n} cái sang "${PURCHASE_LABEL[status as PurchaseStatus]}".`);
 }

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
+import { backfillGroupCodes, convertLegacyStock } from "./units-migrate";
 
 /**
  * SQLite connection + schema migrations for LienStore.
@@ -25,6 +26,8 @@ interface Migration {
   version: number;
   name: string;
   up: string[];
+  /** Data step run after the SQL, inside the same transaction. */
+  run?: (db: DatabaseSync) => void;
 }
 
 /** Append new entries here — never edit an already-shipped one. */
@@ -1364,6 +1367,64 @@ export const MIGRATIONS: Migration[] = [
       `UPDATE orders SET ship_stage = 'ordered' WHERE ship_stage = 'paid'`,
     ],
   },
+  {
+    // Từng cái: one row per physical item (own code H0001235), replacing lots / purchase slips / order-line allocations
+    // as the single truth for where goods are and who they are held for. Legacy tables are kept (unused) for rollback.
+    version: 65,
+    name: "stock-units",
+    up: [
+      `CREATE TABLE IF NOT EXISTS stock_units (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        code          TEXT NOT NULL UNIQUE,
+        product_id    INTEGER NOT NULL,
+        receipt_id    INTEGER,
+        batch_id      INTEGER,
+        shipment_id   INTEGER,
+        order_item_id INTEGER,
+        manual        INTEGER NOT NULL DEFAULT 0,
+        committed_at  TEXT,
+        status        TEXT NOT NULL DEFAULT 'bought',
+        removed       TEXT,
+        source_key    TEXT NOT NULL DEFAULT 'unknown',
+        store         TEXT NOT NULL DEFAULT '',
+        bought_at     TEXT,
+        expiry        TEXT,
+        unit_cost_jpy INTEGER,
+        unit_cost_vnd INTEGER,
+        origin        TEXT NOT NULL DEFAULT 'bill',
+        note          TEXT NOT NULL DEFAULT '',
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_units_product ON stock_units(product_id, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_units_item ON stock_units(order_item_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_units_receipt ON stock_units(receipt_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_units_batch ON stock_units(batch_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_units_shipment ON stock_units(shipment_id)`,
+      `CREATE TABLE IF NOT EXISTS stock_unit_events (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        unit_id       INTEGER NOT NULL,
+        kind          TEXT NOT NULL,
+        from_status   TEXT,
+        to_status     TEXT,
+        order_item_id INTEGER,
+        actor         TEXT NOT NULL DEFAULT '',
+        note          TEXT NOT NULL DEFAULT '',
+        created_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_unit_events_unit ON stock_unit_events(unit_id)`,
+      `ALTER TABLE product_groups ADD COLUMN code TEXT`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_product_groups_code ON product_groups(code) WHERE code IS NOT NULL`,
+      // 0 = the admin decided this line's source by hand ("Cần mua" / a picked bill line): automatic re-serving leaves it alone
+      `ALTER TABLE order_items ADD COLUMN auto_hold INTEGER NOT NULL DEFAULT 1`,
+      `UPDATE order_items SET auto_hold = 0 WHERE id IN (SELECT order_item_id FROM order_item_allocations WHERE manual = 1)`,
+    ],
+    run: (db) => {
+      const r = convertLegacyStock(db);
+      backfillGroupCodes(db);
+      console.info(`[db] stock units: ${r.units} unit(s) from ${r.lots} lot(s), ${r.slips} slip(s), ${r.lines} bought line(s)`);
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -1439,6 +1500,7 @@ function migrate(db: DatabaseSync) {
     if (applied.has(m.version)) continue;
     withTransaction(db, () => {
       for (const sql of m.up) db.exec(sql);
+      m.run?.(db);
       db.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)").run(
         m.version,
         m.name,

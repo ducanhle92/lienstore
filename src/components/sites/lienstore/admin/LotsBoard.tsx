@@ -1,14 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { moveLotsAction, packLotsAction } from "@/app/admin/inventory/lot-actions";
+import { moveUnitsAction, packUnitsAction } from "@/app/admin/inventory/lot-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { formatAmount, formatDate, formatPrice } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
-import { lotTotals, type LotView, type OrderReadyToShip } from "@/lib/lots-db";
+import { groupTotals, type OrderReadyToShip, type StockGroup } from "@/lib/lots-db";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
-import { WAREHOUSE_LABEL } from "@/lib/warehouses";
 import type { PurchaseSource } from "@/types/shop";
 import { LotPicker } from "./LotPicker";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
@@ -22,13 +21,11 @@ export interface LotsFilter {
 
 interface Props {
   side: "jp" | "vn";
-  lots: LotView[];
-  /** Lots flying NB→VN (jp_carrier + in transit) — shown between the two tabs. */
-  flying: LotView[];
+  /** Every stock group of both sides (bill line × place × packing run). */
+  groups: StockGroup[];
   filter: LotsFilter;
   sources: PurchaseSource[];
-  batches: Array<{ id: number; code: string; label: string; status: string }>;
-  /** Open packing runs (Đóng hàng) ticked lots can be boxed into. */
+  /** Open packing runs (Đóng hàng) ticked rows can be boxed into. */
   shipments?: Array<{ id: number; code: string; label: string }>;
   readyOrders: OrderReadyToShip[];
   backUrl: string;
@@ -42,63 +39,75 @@ const fold = (s: string) =>
     .replace(/[̀-ͯ]/g, "")
     .replace(/đ/g, "d");
 
-export function applyLotsFilter(lots: LotView[], f: LotsFilter): LotView[] {
+/** A shelf row: one bill line × who holds it (an order, or nobody) — what the admin ticks to move or pack. */
+interface Row {
+  key: string;
+  g: StockGroup;
+  unitIds: number[];
+  codes: string[];
+  qty: number;
+  holder: StockGroup["holders"][number] | null;
+}
+function splitByHolder(groups: StockGroup[]): Row[] {
+  const out: Row[] = [];
+  for (const g of groups) {
+    const parts = new Map<string, typeof g.units>();
+    for (const u of g.units) parts.set(u.itemId ? `i${u.itemId}` : "free", [...(parts.get(u.itemId ? `i${u.itemId}` : "free") ?? []), u]);
+    for (const [k, us] of parts) out.push({ key: `${g.key}|${k}`, g, unitIds: us.map((u) => u.id), codes: us.map((u) => u.code), qty: us.length, holder: us[0].itemId ? (g.holders.find((h) => h.itemId === us[0].itemId) ?? null) : null });
+  }
+  return out;
+}
+
+export function applyLotsFilter(groups: StockGroup[], f: LotsFilter): StockGroup[] {
   const q = fold(f.q.trim());
-  return lots.filter((l) => {
-    if (q && !fold(`${l.productName} ${l.productSku ?? ""} #${l.productId} #${l.id} ${l.receiptCode}`).includes(q)) return false;
-    if (f.src && l.sourceKey !== f.src) return false;
+  return groups.filter((g) => {
+    if (q && !fold(`${g.productName} ${g.productSku ?? ""} #${g.productId} ${g.receiptCode} ${g.codes.join(" ")} ${g.holders.map((h) => `#${h.orderNumber} ${h.customer}`).join(" ")}`).includes(q)) return false;
+    if (f.src && g.sourceKey !== f.src) return false;
     if (f.exp) {
-      const st = expiryState(l.expiry);
+      const st = expiryState(g.expiry);
       if (f.exp === "soon" && st !== "soon") return false;
       if (f.exp === "expired" && st !== "expired") return false;
     }
-    if (f.mode === "orders" && l.reservedQty + l.heldQty <= 0) return false;
-    if (f.mode === "free" && l.free <= 0) return false;
+    if (f.mode === "orders" && g.heldQty <= 0) return false;
+    if (f.mode === "free" && g.free <= 0) return false;
     return true;
   });
 }
 
-/**
- * Kho hàng by lot: two coloured tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho shop" (actions) and "Tại kho ĐVVC"
- * (read-only), the NB→VN flight strip in between. FEFO order everywhere.
- */
-/** Places a lot at Kho Nhật (shop) can be sent to. */
+/** Places goods at Kho Nhật (shop) can be sent to. */
 const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchaseIndex("bought") && purchaseIndex(s.key) <= purchaseIndex("at_shop"));
 
-export function LotsBoard({ side, lots, flying, filter, sources, batches, shipments = [], readyOrders, backUrl }: Props) {
-  const totals = lotTotals(lots, side);
-  // the "tại kho shop" tile counts the shelf only — boxed lots (Đóng hàng) are listed apart
-  if (side === "jp") totals.atShop -= lots.filter((l) => l.warehouse === "jp" && l.shipmentId).reduce((n, l) => n + l.physical, 0);
-  const shopWh = side === "jp" ? "jp" : "vn";
-  const carrierWh = side === "jp" ? "jp_carrier" : "carrier";
-  const shown = applyLotsFilter(
-    lots.filter((l) => (side === "jp" ? l.warehouse === "jp" || (l.warehouse === "jp_carrier" && !l.inTransit) : l.warehouse === "vn" || l.warehouse === "carrier")),
-    filter,
-  );
-  // Kho Nhật (shop): the shelf vs. what is already boxed for a packing run
-  const atShop = shown.filter((l) => l.warehouse === shopWh && !(side === "jp" && l.shipmentId));
-  const boxed = side === "jp" ? shown.filter((l) => l.warehouse === "jp" && l.shipmentId) : [];
-  const atCarrier = shown.filter((l) => l.warehouse === carrierWh);
+/**
+ * Tồn kho by bill line (every row expands to its unit codes): two tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho
+ * shop" (actions) and "Tại kho ĐVVC" (read-only), the NB→VN flight strip in between. FEFO order everywhere.
+ */
+export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl }: Props) {
+  const totals = groupTotals(groups, side);
+  const shopStatus = side === "jp" ? "bought" : "at_shop";
+  const shown = applyLotsFilter(groups, filter);
+  const shelf = shown.filter((g) => g.status === shopStatus && !(side === "jp" && g.shipmentId));
+  const boxed = side === "jp" ? shown.filter((g) => g.status === "bought" && g.shipmentId) : [];
+  const atCarrier = shown.filter((g) => (side === "jp" ? g.status === "to_carrier_jp" : g.status === "at_carrier_vn" || g.status === "to_shop"));
+  const flying = side === "jp" ? shown.filter((g) => g.status === "shipped_jp_vn") : [];
+  if (side === "jp") totals.atShop -= boxed.reduce((n, g) => n + g.qty, 0);
   const accent = side === "jp" ? "blue" : "red";
-  void batches;
-  const srcOptions = Array.from(new Set(lots.map((l) => l.sourceKey))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
+  const srcOptions = Array.from(new Set(groups.map((g) => g.sourceKey))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
   const formId = `lots-${side}`;
+  const units = (xs: StockGroup[]) => xs.reduce((n, g) => n + g.qty, 0);
   return (
     <div className="space-y-4" data-testid={`lots-board-${side}`}>
-      {/* tiles */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Tile label="Lô" value={String(totals.lots)} accent={accent} />
-        <Tile label={side === "jp" ? "Tại kho shop Nhật" : "Tại kho shop VN"} value={`${totals.atShop} đv`} accent={accent} />
-        <Tile label={side === "jp" ? "Tại kho ĐVVC Nhật" : "Tại kho ĐVVC VN"} value={`${totals.atCarrier} đv`} accent="gray" />
-        <Tile label="Giữ cho đơn" value={`${totals.reserved} đv`} accent="amber" />
-        <Tile label="Tồn tự do" value={`${totals.free} đv`} accent="green" />
-        <Tile label="Vốn" value={formatPrice(totals.costVnd)} accent="gray" />
+        <Tile label="Dòng bill" value={String(totals.groups)} accent={accent} />
+        <Tile label={side === "jp" ? "Tại kho shop Nhật" : "Tại kho shop VN"} value={`${totals.atShop} cái`} accent={accent} />
+        <Tile label={side === "jp" ? "ĐVVC Nhật / đang bay" : "ĐVVC VN / đang về"} value={`${totals.atCarrier} cái`} accent="gray" />
+        <Tile label="Giữ cho đơn" value={`${totals.held} cái`} accent="amber" />
+        <Tile label="Tồn tự do" value={`${totals.free} cái`} accent="green" />
+        <Tile label="Vốn (tồn tự do)" value={formatPrice(totals.costVnd)} accent="gray" />
       </div>
 
-      {/* filter */}
       <form method="get" className="flex flex-wrap items-center gap-2 text-[13px]">
         <input type="hidden" name="side" value={side} />
-        <input name="q" defaultValue={filter.q} placeholder="Sản phẩm / SKU / #id / mã bill / #lô" className={cn(adminInput, "!mb-0 !w-[240px] !py-1")} aria-label="Tìm lô" />
+        <input name="q" defaultValue={filter.q} placeholder="Sản phẩm / SKU / mã H… / mã bill / #đơn" className={cn(adminInput, "!mb-0 !w-[260px] !py-1")} aria-label="Tìm" />
         <select name="src" defaultValue={filter.src} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Nguồn mua">
           <option value="">Mọi nguồn mua</option>
           {srcOptions.map((s) => (
@@ -131,27 +140,26 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
         <span className="ml-auto text-[12px] text-lien-muted">Sắp xếp theo hạn dùng gần nhất trước (FEFO)</span>
       </form>
 
-      {/* shop block */}
-      <Card title={`${WAREHOUSE_LABEL[shopWh]} — tại kho shop (${atShop.length} lô · ${atShop.reduce((n, l) => n + l.physical, 0)} đv)`}>
-        {side === "jp" ? (
-          <>
-            <form id={formId} action={moveLotsAction}>
-              <input type="hidden" name="back" value={backUrl} />
-            </form>
-            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid="jp-bulk-bar">
-              <LotPicker formId={formId} scope={`shop-${side}`} />
-              <span className="mx-1 text-lien-muted">|</span>
-              <span className="font-semibold text-lien-heading">Lô đã tick →</span>
-              <select name="status" form={formId} defaultValue="to_carrier_jp" className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
-                {MOVE_STAGES.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển cả lô đã tick sang vị trí đã chọn (đóng một phần lô → màn Đóng hàng); đợt mua của lô giữ nguyên">
-                <Fa name="truck" /> Chuyển
-              </button>
+      <Card title={`${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — tại kho shop (${shelf.length} dòng bill · ${units(shelf)} cái)`}>
+        <form id={formId} action={moveUnitsAction}>
+          <input type="hidden" name="back" value={backUrl} />
+        </form>
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid={`${side}-bulk-bar`}>
+          <LotPicker formId={formId} scope={`shop-${side}`} />
+          <span className="mx-1 text-lien-muted">|</span>
+          <span className="font-semibold text-lien-heading">Đã tick →</span>
+          <select name="status" form={formId} defaultValue={side === "jp" ? "to_carrier_jp" : "shipped_to_customer"} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
+            {(side === "jp" ? MOVE_STAGES : PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchaseIndex("bought"))).map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển các cái đã tick (ô SL nhỏ hơn = chỉ bấy nhiêu cái) sang trạng thái đã chọn; đơn hàng và đợt mua đổi theo">
+            <Fa name="truck" /> Chuyển
+          </button>
+          {side === "jp" ? (
+            <>
               <span className="mx-1 text-lien-muted">|</span>
               {shipments.length ? (
                 <>
@@ -163,7 +171,7 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
                       </option>
                     ))}
                   </select>
-                  <button type="submit" form={formId} formAction={packLotsAction} className={cn(btnSecondary, "!py-1")} title="Đóng cả lô đã tick vào chuyến (đóng theo số lượng → màn Đóng hàng); hàng rời kệ, chờ xuất ĐVVC">
+                  <button type="submit" form={formId} formAction={packUnitsAction} className={cn(btnSecondary, "!py-1")} title="Đóng các cái đã tick vào chuyến; hàng rời kệ, chờ xuất ĐVVC">
                     <Fa name="cube" /> Đóng vào chuyến
                   </button>
                 </>
@@ -172,81 +180,75 @@ export function LotsBoard({ side, lots, flying, filter, sources, batches, shipme
                   <Fa name="cube" /> Mở chuyến đóng hàng
                 </Link>
               )}
-            </div>
-          </>
-        ) : null}
-        <LotTable lots={atShop} sources={sources} scope={`shop-${side}`} formId={side === "jp" ? formId : null} backUrl={backUrl} />
-        {side === "jp" && boxed.length ? (
+            </>
+          ) : null}
+        </div>
+        <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />
+        {boxed.length ? (
           <div className="mt-3 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-3 py-2" data-testid="boxed-lots">
             <p className="m-0 mb-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-lien-heading">
-              <Fa name="cube" /> Đã đóng hàng, chờ xuất ĐVVC ({boxed.length} lô · {boxed.reduce((n, l) => n + l.physical, 0)} đv)
+              <Fa name="cube" /> Đã đóng hàng, chờ xuất ĐVVC ({units(boxed)} cái)
               <Link href="/admin/inventory/shipments/" className="text-[12px] font-normal text-lien-blue hover:underline">
                 Đóng hàng →
               </Link>
             </p>
             <ul className="m-0 list-none space-y-0.5 p-0 text-[12px]">
-              {boxed.map((l) => (
-                <li key={l.id}>
-                  lô #{l.id} · {l.productName} ×{l.physical} · chuyến <b>{l.shipmentCode}</b>
-                  {l.reserved.length ? ` · ${l.reserved.map((r) => `#${r.orderNumber}×${r.qty}`).join(", ")}` : ""}
+              {boxed.map((g) => (
+                <li key={g.key}>
+                  {g.productName} ×{g.qty} · chuyến <b>{g.shipmentCode}</b> · <span className="font-mono">{g.receiptCode || "chưa có bill"}</span>
+                  {g.holders.length ? ` · ${g.holders.map((h) => `#${h.orderNumber}×${h.qty}`).join(", ")}` : ""}
                 </li>
               ))}
             </ul>
           </div>
         ) : null}
         {side === "vn" ? (
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
-              <p className="m-0 mb-1 font-semibold text-lien-heading">Đơn cần giao có hàng sẵn ({readyOrders.length})</p>
-              {readyOrders.length === 0 ? <p className="m-0 text-lien-muted">Chưa có đơn nào đủ hàng tại kho shop VN.</p> : null}
-              <ul className="m-0 list-none space-y-1 p-0">
-                {readyOrders.map((o) => (
-                  <li key={o.orderId} className="flex flex-wrap items-center gap-2">
-                    <Link href={`/admin/orders/${o.orderId}/`} className="font-semibold text-lien-blue hover:underline">
-                      #{o.orderNumber}
-                    </Link>
-                    <span>{o.customerName}</span>
-                    <span className="text-lien-muted">
-                      · {o.units} đv · {o.lots.map((l) => `lô #${l}`).join(", ")} · {o.paymentMethod === "cod" ? "COD" : "đã thanh toán"}
-                    </span>
-                    <Link href={`/admin/orders/${o.orderId}/#tracking`} className={cn(btnSecondary, "ml-auto !px-2 !py-0.5 !text-[12px]")}>
-                      Đóng gói giao →
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
-              <p className="m-0 mb-1 font-semibold text-lien-heading">Nhập lại / điều chỉnh</p>
-              <p className="m-0 text-lien-muted">Hàng khách trả, hàng mua trực tiếp tại VN hay kiểm kê lệch: mở trang lô của sản phẩm (bấm tên sản phẩm) → “Nhập lô trực tiếp” hoặc sửa số “còn” của lô; kiểm kê cả kho ở tab “Theo sản phẩm”.</p>
-            </div>
+          <div className="mt-3 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]">
+            <p className="m-0 mb-1 font-semibold text-lien-heading">Đơn cần giao có hàng sẵn ({readyOrders.length})</p>
+            {readyOrders.length === 0 ? <p className="m-0 text-lien-muted">Chưa có đơn nào đủ hàng tại kho shop VN.</p> : null}
+            <ul className="m-0 list-none space-y-1 p-0">
+              {readyOrders.map((o) => (
+                <li key={o.orderId} className="flex flex-wrap items-center gap-2">
+                  <Link href={`/admin/orders/${o.orderId}/`} className="font-semibold text-lien-blue hover:underline">
+                    #{o.orderNumber}
+                  </Link>
+                  <span>{o.customerName}</span>
+                  <span className="font-mono text-[11px] text-lien-muted">
+                    · {o.units} cái · {o.codes.slice(0, 4).join(" ")}
+                    {o.codes.length > 4 ? " …" : ""} · {o.paymentMethod === "cod" ? "COD" : "đã thanh toán"}
+                  </span>
+                  <Link href={`/admin/orders/${o.orderId}/#tracking`} className={cn(btnSecondary, "ml-auto !px-2 !py-0.5 !text-[12px]")}>
+                    Đóng gói giao →
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </Card>
 
-      {/* carrier block (read-only) */}
-      <Card title={`${WAREHOUSE_LABEL[carrierWh]} — tại kho ĐVVC (${atCarrier.length} lô · ${atCarrier.reduce((n, l) => n + l.physical, 0)} đv)`}>
-        <p className="m-0 mb-2 text-[12px] text-lien-muted">{side === "jp" ? "Đã giao cho Kiến Express tại Nhật, chờ bay. Chỉ xem; đổi trạng thái ở Quản lý mua hàng › Mua theo đợt (từng dòng hoặc cả đợt)." : "Đã về Hà Nội, chờ chuyển tới kho shop. Lô đang trên đường tới shop có nhãn “đang về”."}</p>
-        <LotTable lots={atCarrier} sources={sources} scope={`carrier-${side}`} formId={null} backUrl={backUrl} readOnly />
+      <Card title={`${side === "jp" ? "Kho ĐVVC Nhật" : "Kho ĐVVC VN / đang về kho shop"} — tại kho ĐVVC (${atCarrier.length} dòng bill · ${units(atCarrier)} cái)`}>
+        <p className="m-0 mb-2 text-[12px] text-lien-muted">{side === "jp" ? "Đã giao cho Kiến Express tại Nhật, chờ bay. Đổi trạng thái ở chuyến (④ Vận chuyển) hoặc ở đợt mua." : "Đã về Hà Nội / đang trên xe về kho shop. Đổi trạng thái ở chuyến (④ Vận chuyển) hoặc ở đợt mua."}</p>
+        <GroupTable rows={splitByHolder(atCarrier)} sources={sources} scope={`carrier-${side}`} formId={null} />
       </Card>
 
       {side === "jp" ? (
         <div className="rounded-md border border-dashed border-sky-300 bg-sky-50/50 px-3 py-2 text-[13px]" data-testid="flying-strip">
           <p className="m-0 mb-1 font-semibold text-sky-900">
-            <Fa name="plane" /> Đang bay NB→VN ({flying.length} lô · {flying.reduce((n, l) => n + l.physical, 0)} đv)
+            <Fa name="plane" /> Đang bay NB→VN ({units(flying)} cái)
           </p>
           {flying.length ? (
             <ul className="m-0 list-none space-y-0.5 p-0 text-[12px]">
-              {flying.map((l) => (
-                <li key={l.id}>
-                  lô #{l.id} · {l.productName} ×{l.physical}
-                  {l.batchCode ? ` · đợt ${l.batchCode}` : ""}
-                  {l.reserved.length ? ` · giữ cho ${l.reserved.map((r) => `#${r.orderNumber}×${r.qty}`).join(", ")}` : ""}
+              {flying.map((g) => (
+                <li key={g.key}>
+                  {g.productName} ×{g.qty} · <span className="font-mono">{g.receiptCode || "chưa có bill"}</span>
+                  {g.shipmentCode ? ` · chuyến ${g.shipmentCode}` : ""}
+                  {g.holders.length ? ` · giữ cho ${g.holders.map((h) => `#${h.orderNumber}×${h.qty}`).join(", ")}` : ""}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="m-0 text-lien-muted">Không có lô nào đang bay.</p>
+            <p className="m-0 text-lien-muted">Không có hàng nào đang bay.</p>
           )}
         </div>
       ) : null}
@@ -264,9 +266,7 @@ function Tile({ label, value, accent }: { label: string; value: string; accent: 
   );
 }
 
-function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: { lots: LotView[]; sources: PurchaseSource[]; scope: string; formId: string | null; backUrl: string; readOnly?: boolean }) {
-  void backUrl;
-  void readOnly;
+function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: PurchaseSource[]; scope: string; formId: string | null }) {
   return (
     <div className="overflow-x-auto">
       <table className={tableClass}>
@@ -274,108 +274,109 @@ function LotTable({ lots, sources, scope, formId, backUrl, readOnly = false }: {
           <tr>
             {formId ? <th className={cn(thClass, "w-8")} /> : null}
             <th className={thClass}>Sản phẩm</th>
-            <th className={thClass}>Bill · lô</th>
-            <th className={thClass}>Ngày nhập</th>
+            <th className={thClass}>Bill · mã</th>
+            <th className={thClass}>Ngày mua</th>
             <th className={thClass}>Nguồn mua</th>
             <th className={thClass}>HSD</th>
-            <th className={thClass}>Còn</th>
-            <th className={thClass}>Giữ cho đơn</th>
-            <th className={thClass}>Tự do</th>
-            <th className={thClass}>¥/đv</th>
+            <th className={thClass}>SL</th>
+            {formId ? <th className={thClass}>SL chuyển</th> : null}
+            <th className={thClass}>Cho đơn</th>
+            <th className={thClass}>¥/cái</th>
             <th className={thClass}>Đợt mua</th>
-            <th className={thClass}>Ghi chú</th>
           </tr>
         </thead>
         <tbody>
-          {lots.length === 0 ? (
+          {rows.length === 0 ? (
             <tr>
               <td colSpan={12} className={`${tdClass} text-center text-lien-muted`}>
-                Không có lô nào.
+                Không có hàng nào.
               </td>
             </tr>
           ) : null}
-          {lots.map((l) => {
-            const st = expiryState(l.expiry);
-            const days = daysToExpiry(l.expiry);
-            const committed = l.reserved.filter((r) => r.committed).reduce((n, r) => n + r.qty, 0);
+          {rows.map((r) => {
+            const g = r.g;
+            const st = expiryState(g.expiry);
+            const days = daysToExpiry(g.expiry);
             return (
-              <tr key={l.id} className={cn("hover:bg-[#fafafa]", l.inTransit && "bg-indigo-50/40")} data-lot-scope={scope} data-committed={committed} data-left={l.qtyLeft} data-testid={`lot-${l.id}`}>
+              <tr key={r.key} className={cn("align-top hover:bg-[#fafafa]", (g.status === "to_shop" || g.status === "shipped_jp_vn") && "bg-indigo-50/40")} data-lot-scope={scope} data-committed={r.holder?.committed ? r.qty : 0} data-left={r.holder ? 0 : r.qty} data-testid={`group-${r.unitIds[0]}`}>
                 {formId ? (
                   <td className={`${tdClass} w-8`}>
-                    <input type="checkbox" name="lotIds" value={l.id} form={formId} className="h-4 w-4" aria-label={`Chọn lô #${l.id}`} />
+                    <input type="checkbox" name="uids" value={r.unitIds.join(",")} form={formId} className="h-4 w-4" aria-label={`Chọn ${g.productName}`} />
                   </td>
                 ) : null}
                 <td className={`${tdClass} min-w-[200px]`}>
                   <div className="flex items-center gap-2">
-                    {l.productThumb ? <Image src={l.productThumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
+                    {g.productThumb ? <Image src={g.productThumb} alt="" width={32} height={32} unoptimized className="h-8 w-8 shrink-0 rounded border border-[#e5e7eb] object-contain" /> : null}
                     <span className="flex min-w-0 flex-col leading-4">
-                      <Link href={`/admin/inventory/lots/${l.productId}/`} className="line-clamp-2 text-[13px] font-semibold text-lien-heading hover:text-lien-blue" title={l.productName}>
-                        {l.productName}
+                      <Link href={`/admin/inventory/lots/${g.productId}/`} className="line-clamp-2 text-[13px] font-semibold text-lien-heading hover:text-lien-blue" title={g.productName}>
+                        {g.productName}
                       </Link>
                       <span className="text-[11px] text-lien-muted">
-                        #{l.productId}
-                        {l.productSku ? ` · ${l.productSku}` : ""}
+                        #{g.productId}
+                        {g.productSku ? ` · ${g.productSku}` : ""}
+                        {g.groupCode ? ` · ${g.groupCode}` : ""}
                       </span>
                     </span>
                   </div>
                 </td>
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
-                  {l.receiptId ? (
-                    <Link href={`/admin/purchases/?tab=batches&bills=${l.batchId ?? ""}#receipt-${l.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[11px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill mua — mở trong đợt">
-                      {l.receiptCode}
+                  {g.receiptId ? (
+                    <Link href={`/admin/purchases/?tab=batches&bills=${g.batchId ?? ""}#receipt-${g.receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[11px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill mua — mở trong đợt">
+                      {g.receiptCode}
                     </Link>
                   ) : (
-                    <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted" title="Gắn bill ở Quản lý mua hàng › Mua theo đợt (cột Bill) hoặc trang lô của sản phẩm">chưa có bill</span>
+                    <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted">chưa có bill</span>
                   )}
-                  <span className="block text-[11px] text-lien-muted">
-                    lô #{l.id}
-                    {l.parentLotId ? ` · tách từ #${l.parentLotId}` : ""}
-                  </span>
-                  {l.inTransit ? <span className="block rounded bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-800">đang về</span> : null}
+                  <details className="mt-0.5 text-[11px]">
+                    <summary className="cursor-pointer font-mono text-lien-blue">{r.codes.length > 1 ? `${r.codes[0]} … ${r.codes.length} mã` : r.codes[0]}</summary>
+                    <span className="flex max-w-[260px] flex-wrap gap-1 pt-1">
+                      {r.codes.map((c) => (
+                        <Link key={c} href={`/admin/inventory/units/${c}/`} className="rounded bg-[#f3f4f6] px-1 font-mono text-[10px] text-lien-blue no-underline hover:underline">
+                          {c}
+                        </Link>
+                      ))}
+                    </span>
+                  </details>
+                  {g.status === "to_shop" || g.status === "shipped_jp_vn" ? <span className="block rounded bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-800">đang đi</span> : null}
+                </td>
+                <td className={`${tdClass} whitespace-nowrap text-[12px]`}>{g.boughtAt ? formatDate(g.boughtAt) : "—"}</td>
+                <td className={`${tdClass} text-[12px]`}>
+                  {purchaseSourceName(g.sourceKey, sources)}
+                  {g.store ? <span className="block text-lien-muted">{g.store}</span> : null}
                 </td>
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
-                  {formatDate(l.receivedAt)}
-                  {l.boughtAt && l.boughtAt !== l.receivedAt ? <span className="block text-lien-muted">mua {formatDate(l.boughtAt)}</span> : null}
-                </td>
-                <td className={`${tdClass} text-[12px]`}>{purchaseSourceName(l.sourceKey, sources)}</td>
-                <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
-                  {l.expiry ? (
+                  {g.expiry ? (
                     <span className={cn("rounded px-1.5 py-0.5", EXP_CLS[st])} title={days !== null ? `${days} ngày` : undefined}>
-                      {formatDate(l.expiry)}
+                      {formatDate(g.expiry)}
                     </span>
                   ) : (
                     <span className="text-lien-muted">—</span>
                   )}
                 </td>
-                <td className={`${tdClass} font-semibold`} title={l.heldQty ? `${l.qtyLeft} đv chưa bán + ${l.heldQty} đv khách đã thanh toán (chờ giao)` : undefined}>
-                  {l.physical}
-                  {l.heldQty ? <span className="block text-[11px] font-normal text-green-700">{l.heldQty} đã TT</span> : null}
-                </td>
+                <td className={`${tdClass} font-semibold`}>{r.qty}</td>
+                {formId ? (
+                  <td className={tdClass}>
+                    {r.qty > 1 ? <input name={`qty_${r.unitIds[0]}`} form={formId} inputMode="numeric" placeholder={String(r.qty)} className={cn(adminInput, "!mb-0 !w-14 !py-1 !text-center !text-[13px]")} aria-label="Số cái (trống = cả dòng)" title="Trống = cả dòng; số nhỏ hơn = chỉ bấy nhiêu cái (hạn dùng gần nhất trước)" /> : <span className="text-[12px] text-lien-muted">1</span>}
+                  </td>
+                ) : null}
                 <td className={`${tdClass} text-[12px]`}>
-                  {l.reserved.length === 0 ? (
-                    <span className="text-lien-muted">—</span>
+                  {r.holder ? (
+                    <Link href={`/admin/orders/${r.holder.orderId}/`} className={cn("inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", r.holder.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.holder.committed ? "Đơn đã thanh toán / COD" : "Đơn chưa thanh toán (chỉ giữ chỗ)"}>
+                      #{r.holder.orderNumber} {r.holder.customer}
+                    </Link>
                   ) : (
-                    l.reserved.map((r) => (
-                      <Link key={`${r.orderId}`} href={`/admin/orders/${r.orderId}/`} className={cn("mr-1 inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", r.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")} title={r.committed ? "Đơn đã thanh toán / COD — hàng đi cùng lô" : "Đơn chưa thanh toán (chỉ giữ chỗ)"}>
-                        #{r.orderNumber} ×{r.qty}
-                      </Link>
-                    ))
+                    <span className="text-green-700">tự do</span>
                   )}
                 </td>
-                <td className={cn(tdClass, "font-semibold", l.free ? "text-green-700" : "text-lien-muted")}>{l.free}</td>
-                <td className={`${tdClass} whitespace-nowrap text-[12px] text-lien-muted`}>{l.unitCostJpy ? `¥${formatAmount(l.unitCostJpy)}` : "—"}</td>
+                <td className={`${tdClass} whitespace-nowrap text-[12px] text-lien-muted`}>{g.unitCostJpy ? `¥${formatAmount(g.unitCostJpy)}` : "—"}</td>
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
-                  {l.batchCode ? (
-                    <Link href={`/admin/purchases/?tab=batches#batch-${l.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline">
-                      {l.batchCode}
+                  {g.batchCode ? (
+                    <Link href={`/admin/purchases/?tab=batches#batch-${g.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline">
+                      {g.batchCode}
                     </Link>
                   ) : (
                     <span className="text-lien-muted">—</span>
                   )}
-                  {l.batchStatus ? <span className="block text-[11px] text-lien-muted">{PURCHASE_STAGES[purchaseIndex((l.batchStatus as never) || "not_bought")]?.short}</span> : null}
-                </td>
-                <td className={`${tdClass} max-w-[180px] truncate text-[12px] text-lien-muted`} title={l.note}>
-                  {l.note || "—"}
                 </td>
               </tr>
             );

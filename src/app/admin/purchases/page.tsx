@@ -1,15 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
-import { addLinesToBatchAction, allocateSurplusAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
 import { OrdersByOrderPanel } from "@/components/sites/lienstore/admin/OrdersByOrderPanel";
 import { PurchaseBatchPanel } from "@/components/sites/lienstore/admin/PurchaseBatchPanel";
-import { listAllocationViews, listReservationsForStockPurchases } from "@/lib/allocations-db";
+import { listAllocationViews } from "@/lib/allocations-db";
 import { itemIdsNeedingPurchase } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
-import { listBatchHeads, listOpenSurplus, listPurchaseBatches } from "@/lib/purchase-batches-db";
-import { listLotViews } from "@/lib/lots-db";
+import { listBatchHeads, listPurchaseBatches } from "@/lib/purchase-batches-db";
+import { listStockGroups } from "@/lib/lots-db";
 import { ReceiptsPanel } from "@/components/sites/lienstore/admin/ReceiptsPanel";
 import { todayIso } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
@@ -19,7 +18,7 @@ import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTabl
 import { adminInput, btnPrimary, btnSecondary, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { getAllProducts, getPurchaseLines, listPurchaseSources, listStockPurchases } from "@/lib/db";
+import { getAllProducts, getPurchaseLines, listPurchaseSources } from "@/lib/db";
 import { StockPurchasePanel } from "@/components/sites/lienstore/admin/StockPurchasePanel";
 import { IN_TRANSIT_STATUSES, PURCHASE_STAGES, type PurchaseStatus } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
@@ -56,7 +55,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const source = first(sp.source);
   const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
-  const [all, stockPurchases, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listStockPurchases(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
+  const [all, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
   const receipts = listReceipts(40);
   // Mua theo đợt: search by name / code and bought-date range (searching also looks at finished batches)
   const bq = first(sp.bq).trim();
@@ -67,13 +66,12 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const bstatus: "" | "done" | "all" = first(sp.bstatus) === "done" ? "done" : first(sp.bstatus) === "all" ? "all" : "";
   const batches = tab === "batches" ? listPurchaseBatches({ includeDone: includeDone || bstatus === "all" || !!(bq || bfrom || bto), onlyDone: bstatus === "done", q: bq, from: bfrom, to: bto }) : [];
   const batchHeads = listBatchHeads();
-  const openSurplus = listOpenSurplus();
-  void openSurplus;
   const allocViews = tab === "orders" ? listAllocationViews(getDb(), all.map((l) => l.itemId)) : [];
-  const stockLots = tab === "stock" ? listLotViews(getDb(), {}).filter((l) => l.free > 0) : [];
+  // units no order holds (planned → Kho VN): the "Hàng lưu kho" tab
+  const stockGroups = listStockGroups(getDb(), { free: true, statuses: ["not_bought", "ordered", "bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] });
+  const stockUnits = stockGroups.reduce((n, g) => n + g.qty, 0);
   const draftId = Number.parseInt(first(sp.draft), 10);
   const pickable = allProducts.map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: p.costJpy, stock: p.stock }));
-  const stockInTransit = stockPurchases.filter((p) => !p.lotId).reduce((n, p) => n + p.qty, 0);
   const lines = all
     .filter((l) => showAll || includeDone || needIds.has(l.itemId))
     .filter((l) => !status || l.purchaseStatus === status)
@@ -123,12 +121,12 @@ export default async function AdminPurchases({ searchParams }: Props) {
           Mua theo đặt hàng ({needCount} dòng cần mua)
         </Link>
         <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Mua lưu kho ({stockPurchases.filter((p) => !p.lotId).length} phiếu · {stockInTransit} đv đang về)
+          Hàng lưu kho ({stockUnits} cái chưa có khách)
         </Link>
 
       </div>
 
-      {tab === "stock" ? <StockPurchasePanel purchases={stockPurchases} products={pickable} sources={sources} includeDone={includeDone} batches={batchHeads} reserved={listReservationsForStockPurchases(getDb(), stockPurchases.map((p) => p.id))} lots={stockLots} /> : null}
+      {tab === "stock" ? <StockPurchasePanel groups={stockGroups} products={pickable} sources={sources} batches={batchHeads} /> : null}
       {tab === "batches" && receiptsOpen ? (
         <div className="mb-5" id="receipts">
           <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)} />

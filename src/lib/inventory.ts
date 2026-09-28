@@ -1,6 +1,10 @@
 import "server-only";
-import type { CatalogProduct, StockLot } from "@/types/shop";
-import { type DemandLine, emptyPipeline, getAllProducts, getOpenOrderDemand, getPipelineUnits, getPlannedLotUnits, getRecentUnitsSold, listStockLots, type PipelineUnits } from "./db";
+import type { CatalogProduct } from "@/types/shop";
+import { type DemandLine, emptyPipeline, getAllProducts, getOpenOrderDemand, getPipelineUnits, getPlannedLotUnits, getRecentUnitsSold, type PipelineUnits } from "./db";
+import { groupUnits } from "./lots-db";
+import { getDb } from "./sqlite";
+import { listUnits } from "./units-db";
+import { locationForStatus } from "./warehouses";
 import { daysToExpiry, expiryState } from "./lots";
 import { DEFAULT_WAREHOUSE, emptyByWarehouse, type TransitWhere, type Warehouse } from "./warehouses";
 
@@ -37,8 +41,8 @@ export interface InventoryLine {
   pipeline: PipelineUnits;
   /** (stock + pipeline) × cost price — capital tied up in goods bought at Japan, in transit and in Vietnam. */
   stockValue: number;
-  /** Warehouse lots with units left (ngày nhập · SL · nguồn · HSD · vị trí), FEFO order. */
-  lots: StockLot[];
+  /** Free stock by bill line and place (ngày mua · SL · nguồn · HSD), FEFO order. */
+  lots: InventoryLot[];
   /** Stock on hand + everything already bought and not yet delivered to a customer — total goods currently in circulation. */
   totalGoods: number;
   /** Units sold in the last `SALES_PACE_DAYS` days (non-cancelled orders). */
@@ -57,6 +61,17 @@ export interface InventoryLine {
   stockByWarehouse: Record<Warehouse, number>;
   /** Warehouse lots on the way, by where they are now (tại Nhật · NB → VN · kho ĐVVC VN). */
   incomingWhere: Record<TransitWhere, number>;
+}
+
+/** Free units of one bill line at one place (the "lô" column of the product table). */
+export interface InventoryLot {
+  id: string;
+  receivedAt: string;
+  qtyLeft: number;
+  warehouse: Warehouse;
+  sourceKey: string;
+  expiry: string | null;
+  location: string;
 }
 
 export interface InventorySummary {
@@ -121,10 +136,11 @@ export function computeToBuy(stock: number | null, minStock: number, rawDemand: 
 }
 
 export async function getInventory(): Promise<{ lines: InventoryLine[]; summary: InventorySummary }> {
-  const [products, demand, pipe, allLots] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits(), listStockLots()]);
+  const [products, demand, pipe] = await Promise.all([getAllProducts(true), getOpenOrderDemand(), getPipelineUnits()]);
+  const allLots: Array<InventoryLot & { productId: number }> = groupUnits(listUnits(getDb(), { free: true, statuses: ["bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] })).map((g) => ({ id: g.key, productId: g.productId, receivedAt: g.boughtAt ?? g.units[0].createdAt.slice(0, 10), qtyLeft: g.qty, warehouse: locationForStatus(g.status)?.warehouse ?? "vn", sourceKey: g.sourceKey, expiry: g.expiry, location: g.store }));
   const soldRecentMap = getRecentUnitsSold(SALES_PACE_DAYS);
   const plannedMap = getPlannedLotUnits();
-  const lotsByProduct = new Map<number, StockLot[]>();
+  const lotsByProduct = new Map<number, InventoryLot[]>();
   for (const l of allLots) lotsByProduct.set(l.productId, [...(lotsByProduct.get(l.productId) ?? []), l]);
   const lines: InventoryLine[] = products.map((p) => {
     const minStock = p.minStock ?? DEFAULT_MIN_STOCK;

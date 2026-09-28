@@ -1,24 +1,23 @@
-import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addLotAction, saveLotsAction, updateLotAction, uploadLotBillFilesAction } from "@/app/admin/inventory/lots/actions";
-import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { addUnitsAction, removeUnitsAction, saveProductUnitsAction, uploadUnitsBillFilesAction } from "@/app/admin/inventory/lots/actions";
 import { FixedSaveBar } from "@/components/sites/lienstore/admin/FixedSaveBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { listAllocationViews } from "@/lib/allocations-db";
 import { requireAdmin } from "@/lib/auth";
-import { listReservationsForProduct } from "@/lib/allocations-db";
-import { getProductById, listPurchaseSources, listStockLots, listStockPurchases } from "@/lib/db";
-import { getDb } from "@/lib/sqlite";
-import { listLotViews } from "@/lib/lots-db";
-import { parseReceiptFiles } from "@/lib/receipts-db";
+import { getProductById, listPurchaseSources } from "@/lib/db";
 import { formatAmount, formatDate } from "@/lib/format";
+import { groupUnits } from "@/lib/lots-db";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
+import { parseReceiptFiles } from "@/lib/receipts-db";
+import { getDb } from "@/lib/sqlite";
+import { UNIT_ORIGIN_LABEL, UNIT_REMOVED_LABEL, unitInHand } from "@/lib/units";
+import { listUnits } from "@/lib/units-db";
 import { cn } from "@/lib/utils";
-import { describeLocation, WAREHOUSE_HINT, WAREHOUSE_LABEL, WAREHOUSE_SIDE, WAREHOUSES } from "@/lib/warehouses";
 
 export const dynamic = "force-dynamic";
 
@@ -28,62 +27,40 @@ interface Props {
 }
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "bg-green-100 text-green-800", none: "bg-gray-100 text-gray-600" } as const;
+const cell = "!mb-0 !py-1 !text-[13px]";
+/** Places a unit can be entered at / moved to on this page. */
+const PLACES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) <= purchaseIndex("delivered"));
 
-/** Kho hàng › Lô hàng của một sản phẩm: mỗi lần nhập là một dòng — ngày nhập, số lượng, nguồn, hạn dùng, vị trí. */
-export default async function ProductLotsPage({ params, searchParams }: Props) {
+/** Kho hàng › hàng của một sản phẩm: every unit (code H…) as bill lines × place, editable; plus the lines waiting for it. */
+export default async function ProductUnitsPage({ params, searchParams }: Props) {
   await requireAdmin("inventory");
   const { id } = await params;
   const pid = Number.parseInt(id, 10);
   if (!Number.isInteger(pid)) notFound();
-  const [product, lots, sources, purchases, sp] = await Promise.all([getProductById(pid), listStockLots(pid, false), listPurchaseSources(), listStockPurchases(false), searchParams]);
+  const [product, sources, sp] = await Promise.all([getProductById(pid), listPurchaseSources(), searchParams]);
   if (!product) notFound();
-  const open = purchases.filter((p) => p.productId === pid);
-  const reservations = listReservationsForProduct(getDb(), pid);
-  // bill (phiếu mua) behind each lot — the paper trail to check against
-  const billOf = new Map(listLotViews(getDb(), { productId: pid, includeEmpty: true }).map((v) => [v.id, v]));
-  // bills a lot of this product can point at: those of the lots' purchase batches, plus any already referenced
-  const batchIds = Array.from(new Set(Array.from(billOf.values()).map((v) => v.batchId).filter((x): x is number => x !== null)));
-  const receiptIds = Array.from(new Set(Array.from(billOf.values()).map((v) => v.receiptId).filter((x): x is number => x !== null)));
-  const bills = (batchIds.length || receiptIds.length
-    ? (getDb()
-        .prepare(`SELECT id, code, bought_at, files FROM purchase_receipts WHERE ${[batchIds.length ? `batch_id IN (${batchIds.map(() => "?").join(",")})` : "", receiptIds.length ? `id IN (${receiptIds.map(() => "?").join(",")})` : ""].filter(Boolean).join(" OR ")} ORDER BY bought_at DESC, id DESC`)
-        .all(...batchIds, ...receiptIds) as Array<{ id: number; code: string; bought_at: string; files: string | null }>)
-    : []
-  ).map((r) => ({ id: r.id, code: r.code, boughtAt: r.bought_at, files: parseReceiptFiles(r.files) }));
-  // one line per order line of this product: its parts (lot / slip / batch / buy)
-  const orderLines = Array.from(
-    reservations.reduce((acc, r) => {
-      const g = acc.get(r.itemId) ?? { itemId: r.itemId, orderId: r.orderId, orderNumber: r.orderNumber, qty: 0, parts: [] as typeof reservations };
-      g.qty += r.qty;
-      g.parts.push(r);
-      acc.set(r.itemId, g);
-      return acc;
-    }, new Map<number, { itemId: number; orderId: string; orderNumber: number; qty: number; parts: typeof reservations }>()).values(),
-  ).filter((g) => g.parts.some((p) => !p.consumed));
-  const left = lots.reduce((s, l) => s + l.qtyLeft, 0);
-  const whField = (value: string, id: string, cls = "!mb-0 !w-[130px] !py-1 !text-[13px]", name = "warehouse") => (
-    <select id={id} name={name} form={name === "warehouse" ? undefined : "lots-save"} defaultValue={value} className={`${adminInput} ${cls}`} aria-label="Kho">
-      {WAREHOUSES.map((w) => (
-        <option key={w} value={w} title={WAREHOUSE_HINT[w]}>
-          {WAREHOUSE_LABEL[w]}
-        </option>
-      ))}
-    </select>
-  );
-  const srcField = (name: string, value: string, id: string, form?: string) => (
-    <select id={id} name={name} form={form} defaultValue={value} className={`${adminInput} !mb-0 !w-[170px] !py-1 !text-[13px]`} aria-label="Nguồn nhập">
-      {sources.map((s) => (
-        <option key={s.key} value={s.key}>
-          {s.name}
-        </option>
-      ))}
-    </select>
-  );
+  const db = getDb();
+  const all = listUnits(db, { productId: pid, withDelivered: true, withRemoved: true });
+  const live = all.filter((u) => !u.removed && purchaseIndex(u.status) <= purchaseIndex("at_shop"));
+  const gone = all.filter((u) => !u.removed && purchaseIndex(u.status) > purchaseIndex("at_shop"));
+  const removed = all.filter((u) => u.removed);
+  const groups = groupUnits(live).sort((a, b) => purchaseIndex(b.status) - purchaseIndex(a.status));
+  const inHand = live.filter((u) => unitInHand(u.status));
+  const held = live.filter((u) => u.itemId).length;
+  // open order lines of the product: what each one holds / still needs
+  const lines = db
+    .prepare("SELECT oi.id, oi.quantity, o.id AS order_id, o.number, o.first_name, o.last_name FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.product_id = ? AND o.status IN ('pending','processing') ORDER BY o.created_at, oi.id")
+    .all(pid) as Array<{ id: number; quantity: number; order_id: string; number: number; first_name: string; last_name: string }>;
+  const allocs = listAllocationViews(db, lines.map((l) => l.id));
+  const receiptIds = Array.from(new Set(live.map((u) => u.receiptId).filter((x): x is number => x !== null)));
+  const bills = new Map((receiptIds.length ? (db.prepare(`SELECT id, code, files FROM purchase_receipts WHERE id IN (${receiptIds.map(() => "?").join(",")})`).all(...receiptIds) as Array<{ id: number; code: string; files: string | null }>) : []).map((r) => [r.id, { code: r.code, files: parseReceiptFiles(r.files) }]));
+  const saveId = "units-save";
+  const removeId = "units-remove";
   return (
     <>
       <PageHeader
         title={product.name}
-        subtitle={`Lô hàng · tồn ${product.stock ?? 0} đơn vị trong ${lots.filter((l) => l.qtyLeft > 0).length} lô${open.length ? ` · ${open.reduce((s, p) => s + p.qty, 0)} đv đang mua lưu kho` : ""}`}
+        subtitle={`Tồn web ${product.stock ?? "—"} · ${inHand.length} cái trong tay (${inHand.filter((u) => u.status === "bought").length} Kho Nhật · ${inHand.filter((u) => u.status !== "bought" && u.status !== "at_shop").length} đang về · ${inHand.filter((u) => u.status === "at_shop").length} Kho VN) · giữ cho đơn ${held}${live.length > inHand.length ? ` · ${live.length - inHand.length} dự định / đã đặt mua` : ""}`}
         back={{ href: "/admin/inventory/", label: "Tồn kho" }}
         actions={
           <Link href={`/admin/products/${product.id}/`} className="text-[14px] text-lien-blue hover:underline">
@@ -95,207 +72,227 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
-          <Card title={`Các lô đang có (${left} đơn vị)`}>
-            {/* bill codes already known (for the datalist on each row) */}
+        <div className="min-w-0 space-y-6">
+          <Card title={`Hàng của sản phẩm (${live.length} cái · ${groups.length} dòng bill)`}>
             <datalist id="bill-codes">
-              {bills.map((b) => (
-                <option key={b.id} value={b.code} />
+              {[...bills.values()].map((b) => (
+                <option key={b.code} value={b.code} />
               ))}
             </datalist>
-            {/* every input below belongs to this one form; the red bar saves all rows at once */}
-            <form id="lots-save" action={saveLotsAction}>
+            <form id={saveId} action={saveProductUnitsAction}>
+              <input type="hidden" name="productId" value={pid} />
+            </form>
+            <form id={removeId} action={removeUnitsAction}>
               <input type="hidden" name="productId" value={pid} />
             </form>
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
                   <tr>
-                    <th className={thClass}>Ngày nhập</th>
-                    <th className={thClass}>Còn / nhập</th>
-                    <th className={thClass}>Đã giữ cho đơn</th>
-                    <th className={thClass}>Nguồn nhập</th>
-                    <th className={thClass}>Giá vốn ¥/đv</th>
-                    <th className={thClass}>Hạn dùng</th>
-                    <th className={thClass}>Kho</th>
-                    <th className={thClass}>Bill</th>
-                    <th className={thClass}>Ghi chú</th>
-                    <th className={thClass} />
+                    <th className={thClass}>Dòng bill · mã</th>
+                    <th className={thClass}>SL</th>
+                    <th className={thClass}>Trạng thái</th>
+                    <th className={thClass}>Mua ở · cửa hàng</th>
+                    <th className={thClass}>Ngày mua</th>
+                    <th className={thClass}>HSD</th>
+                    <th className={thClass}>¥/cái</th>
+                    <th className={thClass}>Cho đơn</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[...lots]
-                    .sort((a, b) => WAREHOUSES.indexOf(a.warehouse) - WAREHOUSES.indexOf(b.warehouse))
-                    .map((l, i, arr) => {
-                      const p = `lot_${l.id}_`;
-                      const v = billOf.get(l.id);
-                      const sideHeader =
-                        i === 0 || WAREHOUSE_SIDE[arr[i - 1].warehouse] !== WAREHOUSE_SIDE[l.warehouse] ? (
-                          <tr key={`side-${l.warehouse}`} className={WAREHOUSE_SIDE[l.warehouse] === "jp" ? "bg-sky-50" : "bg-red-50"}>
-                            <td colSpan={10} className="px-4 py-1 text-[12px] font-semibold uppercase tracking-wide">
-                              {WAREHOUSE_SIDE[l.warehouse] === "jp" ? "Kho Nhật (shop · ĐVVC Nhật)" : "Kho Việt Nam (ĐVVC VN · shop)"}
-                            </td>
-                          </tr>
-                        ) : null;
-                      const st = expiryState(l.expiry);
-                      const days = daysToExpiry(l.expiry);
-                      const held = reservations.filter((r) => r.sourceType === "lot" && r.sourceId === l.id && !r.consumed);
-                      const free = l.qtyLeft - held.reduce((n, r) => n + r.qty, 0);
-                      const bill = v?.receiptId ? bills.find((b) => b.id === v.receiptId) : undefined;
-                      return (
-                        <React.Fragment key={l.id}>
-                          {sideHeader}
-                          <tr className={cn(l.qtyLeft === 0 && "opacity-50")} data-testid={`lot-${l.id}`}>
-                            <td className={tdClass}>
-                              <input form="lots-save" name={`${p}receivedAt`} defaultValue={l.receivedAt} className={`${adminInput} !mb-0 !w-[118px] !py-1 !text-[13px]`} aria-label="Ngày nhập" />
-                              {l.boughtAt ? <span className="block text-[11px] text-lien-muted">mua tại Nhật {formatDate(l.boughtAt)}</span> : null}
-                            </td>
-                            <td className={`${tdClass} whitespace-nowrap`}>
-                              <input form="lots-save" name={`${p}qtyLeft`} inputMode="numeric" defaultValue={l.qtyLeft} className={`${adminInput} !mb-0 inline-block !w-[64px] !py-1 text-center !text-[13px]`} aria-label="Số lượng còn" />
-                              <span className="ml-1 text-[12px] text-lien-muted">/ {l.qtyIn}</span>
-                              {v?.heldQty ? <span className="block text-[11px] text-green-700">+{v.heldQty} đã thanh toán</span> : null}
-                            </td>
-                            <td className={`${tdClass} text-[12px]`}>
-                              {held.length ? (
-                                <>
-                                  {held.map((r) => (
-                                    <Link key={`${r.itemId}`} href={`/admin/orders/${r.orderId}/`} className="mr-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800 no-underline hover:underline" title="Giữ chỗ cho đơn (chưa trừ)">
-                                      #{r.orderNumber} ×{r.qty}
-                                    </Link>
-                                  ))}
-                                  <span className="block text-lien-muted">trống {Math.max(0, free)}</span>
-                                </>
-                              ) : (
-                                <span className="text-lien-muted">—</span>
-                              )}
-                            </td>
-                            <td className={tdClass}>{srcField(`${p}sourceKey`, l.sourceKey, `lot-${l.id}-src`, "lots-save")}</td>
-                            <td className={tdClass}>
-                              <input form="lots-save" name={`${p}unitCostJpy`} inputMode="numeric" defaultValue={l.unitCostJpy ?? ""} placeholder="¥" className={`${adminInput} !mb-0 !w-[84px] !py-1 !text-[13px]`} aria-label="Giá vốn ¥" />
-                              {l.unitCostVnd ? <span className="block text-[11px] text-lien-muted">≈ {formatAmount(l.unitCostVnd)}đ</span> : null}
-                            </td>
-                            <td className={tdClass}>
-                              <input form="lots-save" name={`${p}expiry`} defaultValue={l.expiry ?? ""} placeholder="2027-03-31" className={`${adminInput} !mb-0 !w-[118px] !py-1 !text-[13px]`} aria-label="Hạn dùng" />
-                              <span className={cn("mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", EXP_CLS[st])}>
-                                {EXPIRY_LABEL[st]}
-                                {days !== null ? ` · ${days < 0 ? `${-days} ngày trước` : `${days} ngày`}` : ""}
-                              </span>
-                            </td>
-                            <td className={tdClass}>
-                              {whField(l.warehouse, `lot-${l.id}-wh`, undefined, `${p}warehouse`)}
-                              {l.inTransit ? <span className="block text-[11px] text-indigo-700">{describeLocation(l.warehouse, true)}</span> : null}
-                              {v?.batchCode ? <span className="block text-[11px] text-lien-muted">đợt {v.batchCode}</span> : null}
-                              {v?.shipmentCode ? <span className="block text-[11px] text-amber-800">chuyến {v.shipmentCode}</span> : null}
-                            </td>
-                            <td className={tdClass}>
-                              {/* the bill number is typed by hand (a new one is created, an existing one is linked); photos attach per lot */}
-                              <input form="lots-save" name={`${p}billCode`} defaultValue={bill?.code ?? ""} list="bill-codes" placeholder="mã bill…" className={`${adminInput} !mb-0 !w-[150px] !py-1 font-mono !text-[12px]`} aria-label="Mã bill" title="Gõ mã bill của cửa hàng (trống = chưa gắn); mã có sẵn → gắn vào bill đó" />
-                              <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
-                                {bill ? (
-                                  <Link href={`/admin/purchases/?tab=batches&bills=${v?.batchId ?? ""}#receipt-${bill.id}`} className="text-lien-blue no-underline hover:underline" title="Mở bill trong đợt mua">
-                                    mở bill →
-                                  </Link>
-                                ) : null}
-                                {(bill?.files ?? []).map((f) => (
-                                  <a key={f.path} href={f.url} target="_blank" rel="noreferrer" title={f.name} className="no-underline">
-                                    {f.mime.startsWith("image/") ? <Image src={f.url} alt={f.name} width={36} height={36} unoptimized className="h-9 w-9 rounded border border-[#e5e7eb] object-cover" /> : <span className="text-lien-blue">📄</span>}
-                                  </a>
-                                ))}
-                                <form action={uploadLotBillFilesAction} className="inline-flex items-center gap-1" data-testid={`lot-bill-upload-${l.id}`}>
-                                  <input type="hidden" name="productId" value={pid} />
-                                  <input type="hidden" name="lotId" value={l.id} />
-                                  <input type="file" name="files" accept="image/*,application/pdf" multiple className="w-[118px] text-[11px]" aria-label="Ảnh bill" />
-                                  <button type="submit" className={`${btnSecondary} !px-1.5 !py-0.5 !text-[11px]`} title={bill ? "Đính thêm ảnh vào bill này" : "Đính ảnh — bill của lô được tạo luôn (mã PM-… hoặc mã đã gõ ở ô Mã bill sau khi lưu)"}>
-                                    <Fa name="paperclip" /> ảnh
-                                  </button>
-                                </form>
-                              </div>
-                            </td>
-                            <td className={tdClass}>
-                              <input form="lots-save" name={`${p}note`} defaultValue={l.note} className={`${adminInput} !mb-0 !w-[180px] !py-1 !text-[13px]`} aria-label="Ghi chú" />
-                            </td>
-                            <td className={`${tdClass} whitespace-nowrap`}>
-                              <form action={updateLotAction} className="inline">
-                                <input type="hidden" name="productId" value={pid} />
-                                <input type="hidden" name="lotId" value={l.id} />
-                                <input type="hidden" name="remove" value="1" />
-                                <ConfirmSubmit message={`Xoá lô #${l.id} (${l.qtyLeft} đv)? Tồn kho tính lại.`} className={`${btnSecondary} !px-2 !py-1 !text-[12px] !text-lien-heart`}>
-                                  <Fa name="trash" />
-                                </ConfirmSubmit>
-                              </form>
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      );
-                    })}
-                  {lots.length === 0 ? (
+                  {groups.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
-                        Chưa có lô nào — nhập lô ở khung bên phải, hoặc thêm vào đợt ở Quản lý mua hàng › Mua theo đợt.
+                      <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
+                        Chưa có hàng — nhập ở khung bên phải, hoặc thêm vào đợt ở Quản lý mua hàng.
                       </td>
                     </tr>
                   ) : null}
+                  {groups.map((g) => {
+                    const p = `g_${g.unitIds[0]}_`;
+                    const st = expiryState(g.expiry);
+                    const days = daysToExpiry(g.expiry);
+                    const bill = g.receiptId ? bills.get(g.receiptId) : undefined;
+                    return (
+                      <tr key={g.key} className="align-top" data-testid={`pgroup-${g.unitIds[0]}`}>
+                        <td className={`${tdClass} min-w-[230px]`}>
+                          <input type="hidden" name={`${p}ids`} form={saveId} value={g.unitIds.join(",")} />
+                          <input name={`${p}billCode`} form={saveId} defaultValue={g.receiptCode} list="bill-codes" placeholder="mã bill…" className={cn(adminInput, cell, "!w-[170px] font-mono !text-[12px]")} aria-label="Mã bill" />
+                          <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px]">
+                            {(bill?.files ?? []).map((f) => (
+                              <a key={f.path} href={f.url} target="_blank" rel="noreferrer" title={f.name} className="no-underline">
+                                {f.mime.startsWith("image/") ? <Image src={f.url} alt={f.name} width={32} height={32} unoptimized className="h-8 w-8 rounded border border-[#e5e7eb] object-cover" /> : <span className="text-lien-blue">📄</span>}
+                              </a>
+                            ))}
+                            <form action={uploadUnitsBillFilesAction} className="inline-flex items-center gap-1">
+                              <input type="hidden" name="productId" value={pid} />
+                              <input type="hidden" name="uids" value={g.unitIds.join(",")} />
+                              <input type="file" name="files" accept="image/*,application/pdf" multiple className="w-[110px] text-[11px]" aria-label="Ảnh bill" />
+                              <button type="submit" className={`${btnSecondary} !px-1.5 !py-0.5 !text-[11px]`} title="Đính ảnh bill (bill được tạo nếu dòng chưa có)">
+                                <Fa name="paperclip" /> ảnh
+                              </button>
+                            </form>
+                          </div>
+                          <details className="mt-1 text-[12px]">
+                            <summary className="cursor-pointer font-mono text-lien-blue">{g.qty > 1 ? `${g.codes[0]} … ${g.qty} mã` : g.codes[0]}</summary>
+                            <ul className="m-0 mt-1 list-none space-y-1 p-0">
+                              {g.units.map((u) => (
+                                <li key={u.id} className="flex flex-wrap items-center gap-1.5">
+                                  <input type="checkbox" name="uids" value={u.id} form={removeId} className="h-3.5 w-3.5" aria-label={`Chọn ${u.code}`} />
+                                  <Link href={`/admin/inventory/units/${u.code}/`} className="font-mono font-semibold text-lien-blue no-underline hover:underline">
+                                    {u.code}
+                                  </Link>
+                                  <select name={`u_${u.id}_status`} form={saveId} defaultValue={u.status} className={cn(adminInput, "!mb-0 !w-[150px] !py-0.5 !text-[11px]")} aria-label={`Trạng thái ${u.code}`}>
+                                    {PLACES.map((x) => (
+                                      <option key={x.key} value={x.key}>
+                                        {x.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="text-[11px] text-lien-muted">{UNIT_ORIGIN_LABEL[u.origin]}</span>
+                                  {u.orderId ? (
+                                    <Link href={`/admin/orders/${u.orderId}/`} className="text-[11px] text-[#3730a3] hover:underline">
+                                      #{u.orderNumber}
+                                    </Link>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        </td>
+                        <td className={tdClass}>
+                          <input name={`${p}qty`} form={saveId} inputMode="numeric" defaultValue={g.qty} className={cn(adminInput, cell, "!w-14 !text-center font-semibold")} aria-label="Số lượng" title="Tăng = thêm cái cùng bill / giá / HSD; giảm = bỏ các cái chưa giữ cho đơn" />
+                        </td>
+                        <td className={tdClass}>
+                          <select name={`${p}status`} form={saveId} defaultValue="" className={cn(adminInput, cell, "!w-44")} aria-label="Trạng thái cả dòng">
+                            <option value="">{PURCHASE_STAGES[purchaseIndex(g.status)].label}</option>
+                            {PLACES.filter((x) => x.key !== g.status).map((x) => (
+                              <option key={x.key} value={x.key}>
+                                → {x.label}
+                              </option>
+                            ))}
+                          </select>
+                          {g.shipmentCode ? <span className="mt-1 block text-[11px] text-amber-800">chuyến {g.shipmentCode}</span> : null}
+                          {g.batchCode ? (
+                            <Link href={`/admin/purchases/?tab=batches#batch-${g.batchId}`} className="block text-[11px] text-lien-blue hover:underline">
+                              đợt {g.batchCode}
+                            </Link>
+                          ) : null}
+                        </td>
+                        <td className={tdClass}>
+                          <select name={`${p}sourceKey`} form={saveId} defaultValue={g.sourceKey} className={cn(adminInput, cell, "!w-[150px]")} aria-label="Mua ở">
+                            {sources.map((s) => (
+                              <option key={s.key} value={s.key}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                          <input name={`${p}store`} form={saveId} defaultValue={g.store} placeholder="cửa hàng…" className={cn(adminInput, cell, "mt-1 !w-[150px] !text-[12px]")} aria-label="Cửa hàng" />
+                        </td>
+                        <td className={tdClass}>
+                          <input name={`${p}boughtAt`} form={saveId} defaultValue={g.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+                        </td>
+                        <td className={tdClass}>
+                          <input name={`${p}expiry`} form={saveId} defaultValue={g.expiry ?? ""} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
+                          <span className={cn("mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", EXP_CLS[st])}>
+                            {EXPIRY_LABEL[st]}
+                            {days !== null ? ` · ${days < 0 ? `${-days} ngày trước` : `${days} ngày`}` : ""}
+                          </span>
+                        </td>
+                        <td className={tdClass}>
+                          <input name={`${p}unitCostJpy`} form={saveId} inputMode="numeric" defaultValue={g.unitCostJpy ?? ""} placeholder="¥" className={cn(adminInput, cell, "!w-[84px]")} aria-label="¥ mỗi cái" />
+                          {g.unitCostVnd ? <span className="block text-[11px] text-lien-muted">≈ {formatAmount(g.unitCostVnd)}đ</span> : null}
+                        </td>
+                        <td className={`${tdClass} text-[12px]`}>
+                          {g.holders.map((h) => (
+                            <Link key={h.itemId} href={`/admin/orders/${h.orderId}/`} className={cn("mr-1 inline-block rounded px-1.5 py-0.5 font-semibold no-underline hover:underline", h.committed ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800")}>
+                              #{h.orderNumber} ×{h.qty}
+                            </Link>
+                          ))}
+                          {g.free ? <span className="text-green-700">tự do {g.free}</span> : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            {lots.length ? <FixedSaveBar forms={["lots-save"]} hint="Sửa nhiều ô rồi lưu một lần; đổi “Kho” = chuyển lô sang vị trí khác." /> : null}
-            <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Khi khách đặt hàng, đơn giữ chỗ trên lô có hạn dùng gần nhất trước (FEFO, kể cả lô đang ở Nhật); số “còn” chỉ trừ thật khi đơn được xác nhận thanh toán hoặc thu khi giao. Tồn kho ngoài web = tổng “còn” của các lô ở cả bốn vị trí trừ phần đã giữ.</p>
+            {groups.length ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+                <span className="font-semibold text-lien-heading">Mã đã tick →</span>
+                <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[12px]")} aria-label="Lý do">
+                  {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 !text-[12px]")} title="Loại khỏi tồn kho (giữ lại mã và lịch sử); đơn đang giữ cái đó tự tìm cái khác">
+                  Loại khỏi tồn kho
+                </button>
+              </div>
+            ) : null}
+            {groups.length ? <FixedSaveBar forms={[saveId]} hint="Sửa dòng bill (áp cho mọi cái) hoặc trạng thái từng mã rồi lưu một lần." /> : null}
           </Card>
 
-          {orderLines.length ? (
-            <Card title={`Đang mua theo đơn (${orderLines.length} dòng)`}>
+          {lines.length ? (
+            <Card title={`Đơn đang chờ sản phẩm này (${lines.length} dòng)`}>
               <ul className="m-0 list-none space-y-1 p-0 text-[13px]" data-testid="product-order-lines">
-                {orderLines.map((g) => (
-                  <li key={g.itemId} className="flex flex-wrap items-center gap-2">
-                    <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-blue hover:underline">
-                      #{g.orderNumber}
+                {lines.map((l) => (
+                  <li key={l.id} className="flex flex-wrap items-center gap-2">
+                    <Link href={`/admin/orders/${l.order_id}/`} className="font-semibold text-lien-blue hover:underline">
+                      #{l.number}
                     </Link>
-                    <span className="font-semibold">×{g.qty}</span>
-                    {g.parts.map((p, i) => (
-                      <span key={i} className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", p.sourceType === "buy" ? "bg-gray-200 text-gray-700" : p.consumed ? "bg-green-100 text-green-800" : p.sourceType === "lot" ? "bg-green-100 text-green-800" : "bg-sky-100 text-sky-800")}>
-                        {p.sourceType === "buy" ? "Cần mua" : p.sourceType === "lot" ? (p.consumed ? "đã trừ" : "giữ") + ` lô #${p.sourceId ?? "?"}` : p.sourceType === "stock_purchase" ? `phiếu #${p.sourceId}` : `đợt #${p.sourceId}`}
-                        {g.parts.length > 1 ? ` ×${p.qty}` : ""}
-                      </span>
-                    ))}
+                    <span>{`${l.last_name} ${l.first_name}`.trim()}</span>
+                    <span className="font-semibold">×{l.quantity}</span>
+                    {allocs
+                      .filter((a) => a.orderItemId === l.id)
+                      .map((a) => (
+                        <span key={a.id} className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", a.sourceType === "buy" ? "bg-gray-200 text-gray-700" : a.tone === "green" ? "bg-green-100 text-green-800" : "bg-sky-100 text-sky-800")} title={a.codes.join(" ")}>
+                          {a.label} ×{a.qty}
+                        </span>
+                      ))}
                   </li>
                 ))}
               </ul>
             </Card>
           ) : null}
 
-          {open.length ? (
-            <Card title="Đang mua lưu kho (chưa về)">
-              <ul className="m-0 list-none space-y-1 p-0 text-[13px]">
-                {open.map((p) => {
-                  const st = PURCHASE_STAGES[purchaseIndex(p.status)];
-                  return (
-                    <li key={p.id} className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{p.qty} đv</span>
-                      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", st.cls)}>{st.short}</span>
-                      <span className="text-lien-muted">
-                        {purchaseSourceName(p.sourceKey, sources)}
-                        {p.unitCostJpy ? ` · ¥${p.unitCostJpy.toLocaleString("ja-JP")}` : ""}
-                        {p.expiry ? ` · HSD ${formatDate(p.expiry)}` : ""} · tạo {formatDate(p.createdAt)}
-                      </span>
-                      {reservations
-                        .filter((r) => r.sourceType === "stock_purchase" && r.sourceId === p.id)
-                        .map((r) => (
-                          <Link key={r.itemId} href={`/admin/orders/${r.orderId}/`} className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800 no-underline hover:underline" title="Giữ cho đơn">
-                            #{r.orderNumber} ×{r.qty}
-                          </Link>
-                        ))}
-                      <Link href="/admin/purchases/?tab=stock" className="text-lien-blue hover:underline">
-                        cập nhật →
+          {gone.length || removed.length ? (
+            <Card title="Lịch sử: đã giao khách / đã loại">
+              {gone.length ? (
+                <p className="m-0 mb-2 text-[12px]">
+                  <b>Đã giao / đang giao ({gone.length}):</b>{" "}
+                  {gone.map((u) => (
+                    <Link key={u.id} href={`/admin/inventory/units/${u.code}/`} className="mr-1 font-mono text-[11px] text-lien-blue hover:underline" title={u.orderNumber ? `đơn #${u.orderNumber}` : undefined}>
+                      {u.code}
+                    </Link>
+                  ))}
+                </p>
+              ) : null}
+              {removed.length ? (
+                <form action={removeUnitsAction} className="text-[12px]">
+                  <input type="hidden" name="productId" value={pid} />
+                  <input type="hidden" name="reason" value="restore" />
+                  <b>Đã loại ({removed.length}):</b>{" "}
+                  {removed.map((u) => (
+                    <label key={u.id} className="mr-2 inline-flex items-center gap-1">
+                      <input type="checkbox" name="uids" value={u.id} className="h-3.5 w-3.5" />
+                      <Link href={`/admin/inventory/units/${u.code}/`} className="font-mono text-[11px] text-lien-blue hover:underline">
+                        {u.code}
                       </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                      <span className="text-lien-muted">{u.removed ? UNIT_REMOVED_LABEL[u.removed] : ""}</span>
+                    </label>
+                  ))}
+                  <button type="submit" className={cn(btnSecondary, "!px-2 !py-0.5 !text-[11px]")}>
+                    Khôi phục mã đã tick
+                  </button>
+                </form>
+              ) : null}
             </Card>
           ) : null}
         </div>
 
-        <Card title="Nhập lô trực tiếp">
+        <Card title="Nhập hàng trực tiếp">
           <div className="mb-3 flex items-center gap-2">
             {product.thumb ? <Image src={product.thumb} alt="" width={44} height={44} className="h-11 w-11 rounded border border-[#e5e7eb] object-contain" /> : null}
             <span className="text-[12px] text-lien-muted">
@@ -303,62 +300,92 @@ export default async function ProductLotsPage({ params, searchParams }: Props) {
               {product.sku ? ` · ${product.sku}` : ""} · giá vốn hiện tại {product.costJpy ? `¥${product.costJpy.toLocaleString("ja-JP")}` : "—"}
             </span>
           </div>
-          <form action={addLotAction} className="grid gap-3" data-testid="add-lot">
+          <form action={addUnitsAction} className="grid gap-3" data-testid="add-units">
             <input type="hidden" name="productId" value={pid} />
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className={adminLabel} htmlFor="al-qty">
+                <label className={adminLabel} htmlFor="au-qty">
                   Số lượng
                 </label>
-                <input id="al-qty" name="qty" inputMode="numeric" required className={adminInput} />
+                <input id="au-qty" name="qty" inputMode="numeric" required className={adminInput} />
               </div>
               <div>
-                <label className={adminLabel} htmlFor="al-date">
-                  Ngày nhập
+                <label className={adminLabel} htmlFor="au-st">
+                  Đang ở
                 </label>
-                <input id="al-date" name="receivedAt" defaultValue={todayIso()} className={adminInput} />
+                <select id="au-st" name="status" defaultValue="at_shop" className={adminInput}>
+                  {PLACES.filter((x) => purchaseIndex(x.key) <= purchaseIndex("at_shop")).map((x) => (
+                    <option key={x.key} value={x.key}>
+                      {x.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={adminLabel} htmlFor="au-src">
+                  Mua ở
+                </label>
+                <select id="au-src" name="sourceKey" defaultValue={product.costSource || "manual"} className={adminInput}>
+                  {sources.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="au-origin">
+                  Loại
+                </label>
+                <select id="au-origin" name="origin" defaultValue="manual" className={adminInput}>
+                  <option value="manual">Nhập tay (mua trực tiếp…)</option>
+                  <option value="return">Khách trả lại</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className={adminLabel} htmlFor="au-jpy">
+                  ¥/cái
+                </label>
+                <input id="au-jpy" name="unitCostJpy" inputMode="numeric" defaultValue={product.costJpy ?? ""} className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="au-exp">
+                  HSD
+                </label>
+                <input id="au-exp" name="expiry" placeholder="03/2027" className={adminInput} />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="au-date">
+                  Ngày mua
+                </label>
+                <input id="au-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
               </div>
             </div>
             <div>
-              <label className={adminLabel} htmlFor="al-src">
-                Nguồn nhập
+              <label className={adminLabel} htmlFor="au-bill">
+                Mã bill <span className="font-normal text-lien-muted">— tuỳ chọn</span>
               </label>
-              {srcField("sourceKey", product.costSource || "unknown", "al-src")}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={adminLabel} htmlFor="al-jpy">
-                  Giá vốn ¥/đv <span className="font-normal text-lien-muted">(trống = giá vốn hiện tại)</span>
-                </label>
-                <input id="al-jpy" name="unitCostJpy" inputMode="numeric" defaultValue={product.costJpy ?? ""} className={adminInput} />
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="al-exp">
-                  Hạn dùng
-                </label>
-                <input id="al-exp" name="expiry" placeholder="2027-03-31 · 03/2027" className={adminInput} />
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={adminLabel} htmlFor="al-wh">
-                  Kho
-                </label>
-                {whField("vn", "al-wh", "")}
-              </div>
-              
+              <input id="au-bill" name="billCode" list="bill-codes" maxLength={60} placeholder="BILL_260927_1454" className={cn(adminInput, "font-mono")} />
             </div>
             <div>
-              <label className={adminLabel} htmlFor="al-note">
+              <label className={adminLabel} htmlFor="au-note">
                 Ghi chú
               </label>
-              <input id="al-note" name="note" placeholder="Mua tại Don Quijote khi về Nhật 9/2026…" className={adminInput} />
+              <input id="au-note" name="note" placeholder="Mua tại Don Quijote khi về Nhật 9/2026…" className={adminInput} />
             </div>
             <button type="submit" className={`${btnPrimary} justify-self-start`}>
-              <Fa name="plus" /> Nhập lô
+              <Fa name="plus" /> Nhập hàng
             </button>
           </form>
-          <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">Hàng mua trước rồi mới về (theo dõi đường đi) thì tạo phiếu “Mua lưu kho” ở Quản lý mua hàng; khi chuyển trạng thái “Đã nhận được hàng (kho shop)” lô sẽ tự được tạo ở đây.</p>
+          <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">
+            Mỗi cái nhập được một mã riêng (H…). Hàng mua trong một đợt thì thêm ở Quản lý mua hàng › Mua theo đợt. Đơn khách giữ hàng theo thứ tự: gần khách nhất trước, cùng chỗ thì hạn dùng gần nhất, rồi bill mua sớm hơn.
+            {live.length ? ` · ${purchaseSourceName(live[0].sourceKey, sources)} là nơi mua gần nhất.` : ""}
+            {live.length ? ` Lần mua gần nhất ${formatDate(live[live.length - 1].boughtAt ?? live[live.length - 1].createdAt)}.` : ""}
+          </p>
         </Card>
       </div>
     </>

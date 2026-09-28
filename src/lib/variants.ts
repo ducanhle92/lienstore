@@ -154,5 +154,5 @@ export function groupSlug(name: string): string {
 }
 
 export function emptyGroup(name: string, attrLabels: string[] = []): Omit<ProductGroup, "id" | "createdAt"> {
-  return { slug: groupSlug(name), name: name.trim(), attrLabels: normalizeAttrLabels(attrLabels) };
+  return { slug: groupSlug(name), name: name.trim(), attrLabels: normalizeAttrLabels(attrLabels), code: "" };
 }

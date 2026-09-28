@@ -141,6 +141,7 @@ export interface StockPurchase {
 }
 
 /** One order line travelling inside a shipment batch. */
+/** An order line planned to be bought in a batch that still misses units ("Cần mua" of that trip). */
 export interface PurchaseBatchLine {
   itemId: number;
   orderId: string;
@@ -151,16 +152,12 @@ export interface PurchaseBatchLine {
   productSku: string | null;
   productThumb: string;
   quantity: number;
+  /** Units still to buy for it. */
+  need: number;
   purchaseStatus: import("@/lib/purchase").PurchaseStatus;
   costJpy: number | null;
-  /** Where this line was bought (purchase_sources.key); "" = not decided. */
+  /** Where this line is to be bought (purchase_sources.key); "" = not decided. */
   sourceKey: string;
-  /** Purchase facts typed on the line (HSD, ngày mua) — for the customer's unit; ¥ is costJpy. */
-  expiry: string | null;
-  boughtAt: string | null;
-  /** Bill (phiếu mua) the line was bought on, if any. */
-  receiptId: number | null;
-  receiptCode: string;
 }
 
 export interface PurchaseBatchBill {
@@ -173,41 +170,14 @@ export interface PurchaseBatchBill {
   status: string;
   /** Lines parsed from the bill text. */
   items: number;
+  /** Units (codes H…) bought on the bill. */
+  units: number;
   files: import("@/lib/receipts-db").ReceiptFile[];
 }
 
-/** Surplus units bought in the same batch with no order behind them; becomes a lot when the batch reaches the shop. */
-export interface PurchaseBatchStock {
-  id: number;
-  productId: number;
-  productName: string;
-  productSku: string | null;
-  productThumb: string;
-  qty: number;
-  expiry: string | null;
-  boughtAt: string | null;
-  unitCostJpy: number | null;
-  status: import("@/lib/purchase").PurchaseStatus;
-  warehouse: Warehouse;
-  lotId: number | null;
-  note: string;
-  /** Where these units were bought — each product in a batch can come from its own source. */
-  sourceKey: string;
-  /** Batch the row travels in now (null = waiting in Japan for the next one). */
-  batchId: number | null;
-  batchCode: string;
-  /** Batch the row was split off from ("giữ lại Nhật chờ đợt sau"). */
-  originBatchId: number | null;
-  /** Units of this row already reserved for customer orders (see order_item_allocations). */
-  reserved: Array<{ orderId: string; orderNumber: number; qty: number }>;
-  /** Bill the slip was bought on, if any. */
-  receiptId: number | null;
-  receiptCode: string;
-}
-
 /**
- * "Đợt gửi": one Japan → shop shipment that carries order lines and surplus for stock together (one carrier fee).
- * Its status drives every line and surplus row at once; reaching the shop books the surplus as lots.
+ * Đợt mua: one buying trip in Japan. It owns the units bought in it (one row per physical item, code H…) and lists
+ * the order lines planned in it that still miss units. Its status is its slowest unit.
  */
 export interface PurchaseBatch {
   id: number;
@@ -215,7 +185,7 @@ export interface PurchaseBatch {
   code: string;
   label: string;
   status: import("@/lib/purchase").PurchaseStatus;
-  /** Default source for new rows; every product row carries its own. */
+  /** Default source for new rows; every unit carries its own. */
   sourceKey: string;
   boughtAt: string | null;
   shippedAt: string | null;
@@ -223,15 +193,14 @@ export interface PurchaseBatch {
   note: string;
   createdAt: string;
   updatedAt: string;
-  lines: PurchaseBatchLine[];
-  /** Lots travelling in this shipment (a lot exists from "Tại kho Nhật" on). */
-  lots: import("@/lib/lots-db").LotView[];
+  /** Every unit bought in the batch (including those already with the customer). */
+  units: import("@/lib/units-db").UnitView[];
+  /** The same units as bill lines × place × packing run. */
+  groups: import("@/lib/lots-db").StockGroup[];
+  /** Order lines planned in the batch still missing units. */
+  needs: PurchaseBatchLine[];
   /** Bills booked into this batch — the numbered paper trail. */
   receipts: PurchaseBatchBill[];
-  /** Purchase slips in the batch that are not lots yet (Chưa mua / Đã đặt mua). */
-  stock: PurchaseBatchStock[];
-  /** Rows split off this batch and kept in Japan: still waiting, or already travelling in a later batch. */
-  held: PurchaseBatchStock[];
 }
 
 export type PurchaseSourceKind = "website" | "store" | "auction" | "secondhand" | "other";
@@ -262,6 +231,8 @@ export interface ProductGroup {
   name: string;
   /** Attribute labels used by the picker (≤ 3), e.g. ["Vị", "Khối lượng"]; empty = chips by name/thumbnail. */
   attrLabels: string[];
+  /** Memorable code of the family (from its name, editable, unique), e.g. "HATOMUGI-SUA-TAM". */
+  code: string;
   createdAt: string;
 }
 

@@ -25,7 +25,7 @@ export default async function AdminProductGroups({ searchParams }: Props) {
   const members = (id: number) => all.filter((p) => p.groupId === id).sort((a, b) => a.variantPosition - b.variantPosition || a.id - b.id);
   // search by group name, attribute label, or any member's name / SKU / slug / #id
   const q = first(sp.q).trim().toLowerCase();
-  const hay = (g: (typeof allGroups)[number]) => [g.name, ...g.attrLabels, ...members(g.id).flatMap((p) => [p.name, p.sku ?? "", p.slug, `#${p.id}`, ...Object.values(p.variantAttrs)])].join(" ").toLowerCase();
+  const hay = (g: (typeof allGroups)[number]) => [g.name, g.code, ...g.attrLabels, ...members(g.id).flatMap((p) => [p.name, p.sku ?? "", p.slug, `#${p.id}`, ...Object.values(p.variantAttrs)])].join(" ").toLowerCase();
   const groups = q ? allGroups.filter((g) => hay(g).includes(q)) : allGroups;
   return (
     <>
@@ -73,7 +73,7 @@ export default async function AdminProductGroups({ searchParams }: Props) {
           {groups.map((g) => {
             const list = members(g.id);
             return (
-              <Card key={g.id} title={`${g.name} · ${list.length} biến thể`} actions={<Link href={`/admin/products/groups/${g.id}/`} className="text-[13px] text-lien-blue hover:underline">Sửa nhóm →</Link>}>
+              <Card key={g.id} title={`${g.name}${g.code ? ` · ${g.code}` : ""} · ${list.length} biến thể`} actions={<Link href={`/admin/products/groups/${g.id}/`} className="text-[13px] text-lien-blue hover:underline">Sửa nhóm →</Link>}>
                 <p className="m-0 mb-3 text-[12px] text-lien-muted">
                   Thuộc tính: {g.attrLabels.length ? g.attrLabels.join(" · ") : <em>chưa đặt — chip sẽ hiện phần tên khác nhau</em>} · /product/{list[0]?.slug ?? "…"}/
                 </p>

@@ -3,8 +3,6 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypt
 import type {
   ProductGroup,
   PurchaseSource,
-  StockLot,
-  StockPurchase,
   CustomerAddress,
   Banner,
   BlogPost,
@@ -49,18 +47,20 @@ import { applyShipPolicy, parseShipPolicy, type ShipPolicy } from "./ship-policy
 import { billableProductWeightG, buildQuoteConfig, isDimsConfidence, isJpSubLeg, isShippingLeg, isShipStage, isSpecialHandling, quoteImportLegs, SHIP_STAGES, type ShippingLeg, type ShipStage, type ShippingPricingMode, type ShippingQuoteConfig } from "./shipping";
 import { parsePricing, quoteImportLegsProRata, serializePricing, type PricingConfig } from "./pricing";
 import { liveGhnTransferMethod } from "./carriers/ghn-transfer";
-import { IN_TRANSIT_STATUSES, isPurchaseStatus, PIPELINE_STATUSES, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex, STAGE_TO_PURCHASE } from "./purchase";
+import { isPurchaseStatus, PIPELINE_STATUSES, PURCHASE_STAGES, type PurchaseStatus, purchaseIndex } from "./purchase";
 import { parseTheme, type SiteTheme } from "./theme";
 import type { DatabaseSync } from "node:sqlite";
 import { getDb, getSchemaInfo, getSetting, setSetting, withTransaction } from "./sqlite";
-import { allocateOrderSync, allocatePendingForProductSync, commitOrderSync, onStockPurchaseChangedSync, onStockPurchaseDeletedSync, releaseOrderSync, syncItemStatusSync } from "./allocations-db";
+import { allocateOrderSync, commitOrderSync } from "./allocations-db";
+import { adjustUnitsToTotalSync, createUnitsSync, deleteUnitsSync, moveUnitsSync, raiseOrderUnitsSync, releaseItemToBuySync, releaseOrderSync as releaseUnitsSync, touchSync } from "./units-db";
+import { groupCodeFromName, normalizeGroupCode, STAGE_UNIT_STATUS } from "./units";
 import { locationForStatus, statusForLocation } from "./warehouses";
 import { syncProductStock } from "./stock-sync";
 import { isRegularBy, normalizePhone } from "./regular-customers";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
-import { planConsumption, todayIso } from "./lots";
+import { todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
 
 /** Synchronous category list for use inside transactions. */
@@ -669,6 +669,7 @@ interface GroupRow {
   slug: string;
   name: string;
   attr_labels: string;
+  code: string | null;
   created_at: string;
 }
 const rowToGroup = (r: GroupRow): ProductGroup => {
@@ -679,7 +680,7 @@ const rowToGroup = (r: GroupRow): ProductGroup => {
   } catch {
     labels = [];
   }
-  return { id: r.id, slug: r.slug, name: r.name, attrLabels: labels, createdAt: r.created_at };
+  return { id: r.id, slug: r.slug, name: r.name, attrLabels: labels, code: r.code ?? "", createdAt: r.created_at };
 };
 
 export async function listProductGroups(): Promise<ProductGroup[]> {
@@ -689,18 +690,29 @@ export async function getProductGroupById(id: number): Promise<ProductGroup | nu
   const r = getDb().prepare("SELECT * FROM product_groups WHERE id = ?").get(id) as GroupRow | undefined;
   return r ? rowToGroup(r) : null;
 }
-export async function saveProductGroup(input: { id?: number; name: string; attrLabels: string[] }): Promise<ProductGroup> {
+/** A free group code: the typed one (cleaned) or one from the name; "-2", "-3"… when taken by another group. */
+function uniqueGroupCode(db: DatabaseSync, wanted: string, exceptId?: number): string {
+  const base = wanted || "NHOM";
+  let code = base;
+  for (let i = 2; db.prepare("SELECT 1 FROM product_groups WHERE code = ? AND id <> ?").get(code, exceptId ?? -1); i++) code = `${base}-${i}`;
+  return code;
+}
+export async function saveProductGroup(input: { id?: number; name: string; attrLabels: string[]; code?: string }): Promise<ProductGroup> {
   const db = getDb();
   const name = input.name.trim().slice(0, 120);
   const cleaned = normalizeAttrLabels(input.attrLabels);
   const labels = JSON.stringify(cleaned.length ? cleaned : ["Loại"]);
+  const typed = input.code === undefined ? null : normalizeGroupCode(input.code);
   if (input.id) {
-    db.prepare("UPDATE product_groups SET name = ?, attr_labels = ? WHERE id = ?").run(name, labels, input.id);
+    const cur = db.prepare("SELECT code FROM product_groups WHERE id = ?").get(input.id) as { code: string | null } | undefined;
+    const code = uniqueGroupCode(db, typed || cur?.code || groupCodeFromName(name), input.id);
+    db.prepare("UPDATE product_groups SET name = ?, attr_labels = ?, code = ? WHERE id = ?").run(name, labels, code, input.id);
     return (await getProductGroupById(input.id))!;
   }
   let slug = groupSlug(name) || `nhom-${Date.now()}`;
   for (let i = 2; db.prepare("SELECT 1 FROM product_groups WHERE slug = ?").get(slug); i++) slug = `${groupSlug(name)}-${i}`;
-  const res = db.prepare("INSERT INTO product_groups (slug, name, attr_labels, created_at) VALUES (?, ?, ?, ?)").run(slug, name, labels, new Date().toISOString());
+  const code = uniqueGroupCode(db, typed || groupCodeFromName(name));
+  const res = db.prepare("INSERT INTO product_groups (slug, name, attr_labels, code, created_at) VALUES (?, ?, ?, ?, ?)").run(slug, name, labels, code, new Date().toISOString());
   return (await getProductGroupById(Number(res.lastInsertRowid)))!;
 }
 /** Put products into a family; new members go after the existing ones. Returns how many rows changed. */
@@ -1161,29 +1173,25 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return order;
 }
 
-/** Move an order to a logistics stage (recorded in the log so the customer sees dates). */
+/** Move an order to a logistics stage (recorded in the log so the customer sees dates); the order's goods follow. */
 export async function setOrderStage(id: string, stage: ShipStage, note = ""): Promise<boolean> {
   const db = getDb();
   const now = new Date().toISOString();
-  const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
-  if (r.changes === 0) return false;
-  db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
-  // the goods left for this order (Đã gửi hàng or later) → the reserved lot units are deducted for real
-  if (SHIP_STAGES.findIndex((s) => s.key === stage) >= SHIP_STAGES.findIndex((s) => s.key === "sent")) commitOrderSync(db, id);
-  // every line of the order has at least reached the purchase status implied by the logistics stage (never lowered)
-  const minStatus = STAGE_TO_PURCHASE[stage];
-  if (minStatus) {
-    const lines = db.prepare("SELECT id, purchase_status FROM order_items WHERE order_id = ?").all(id) as unknown as Array<{ id: number; purchase_status: string | null }>;
-    const upd = db.prepare("UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id = ?");
-    for (const l of lines) {
-      const cur = isPurchaseStatus(l.purchase_status) ? l.purchase_status : "not_bought";
-      if (purchaseIndex(cur) < purchaseIndex(minStatus)) upd.run(minStatus, now, l.id);
-    }
-  }
-  // delivered AND paid = done (a COD order waits for "Hoàn tất thanh toán"); anything before keeps it "processing"
-  if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
-  else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
-  return true;
+  return withTransaction(db, () => {
+    const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
+    if (r.changes === 0) return false;
+    db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
+    // the goods left for this order (Đã gửi hàng or later) → its units are deducted for real
+    if (SHIP_STAGES.findIndex((s) => s.key === stage) >= SHIP_STAGES.findIndex((s) => s.key === "sent")) commitOrderSync(db, id);
+    // the order's units are at least where the stage says (never moved back) — Tồn kho, Đóng hàng and the batch follow
+    const target = STAGE_UNIT_STATUS[stage];
+    const unitIds = target ? raiseOrderUnitsSync(db, id, target, { note: `Theo tiến độ đơn${note ? ` · ${note}` : ""}` }) : [];
+    // delivered AND paid = done (a COD order waits for "Hoàn tất thanh toán"); anything before keeps it "processing"
+    if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
+    else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
+    touchSync(db, { unitIds, orderIds: [id] });
+    return true;
+  });
 }
 
 /**
@@ -1199,6 +1207,8 @@ export async function setOrderPaid(id: string, note = ""): Promise<boolean> {
     db.prepare("UPDATE orders SET paid_at = ?, updated_at = ?, status = CASE WHEN ship_stage = 'delivered' THEN 'completed' WHEN status = 'pending' THEN 'processing' ELSE status END WHERE id = ?").run(now, now, id);
     db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'paid', ?, ?)").run(id, note, now);
     commitOrderSync(db, id);
+    // money in: the stage may now follow where the order's goods already are
+    touchSync(db, { orderIds: [id] });
     return true;
   });
 }
@@ -1272,9 +1282,10 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   withTransaction(db, () => {
     db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, now, id);
     if (status === "cancelled" && cur.status !== "cancelled") {
-      // reservations vanish; units already deducted come back as a return lot
-      releaseOrderSync(db, id, !!cur.stock_committed_at);
+      // the order's units go back to stock (paid ones too — the goods are still ours) and serve waiting orders
       db.prepare("UPDATE orders SET stock_committed_at = NULL WHERE id = ?").run(id);
+      const r = releaseUnitsSync(db, id);
+      touchSync(db, { productIds: r.productIds });
     } else if (cur.status === "cancelled" && status !== "cancelled") allocateOrderSync(db, id, true);
   });
   return getOrderById(id);
@@ -1294,6 +1305,7 @@ export async function setOrderCod(id: string): Promise<{ ok: boolean; message: s
   withTransaction(db, () => {
     db.prepare("UPDATE orders SET payment_method = 'cod', prepaid_required = 0, status = CASE WHEN status = 'pending' THEN 'processing' ELSE status END, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
     commitOrderSync(db, id);
+    touchSync(db, { orderIds: [id] });
   });
   return { ok: true, message: "Đơn chuyển sang thanh toán khi nhận hàng (COD) — tồn kho đã trừ theo đơn; bước “Hoàn tất thanh toán” ở cuối tiến độ." };
 }
@@ -1405,15 +1417,9 @@ export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, statu
     db.prepare(`UPDATE order_legs SET status = ?, tracking = ?, sent_at = CASE WHEN ? = 'pending' THEN NULL WHEN ? IN ('sent','arrived') AND sent_at IS NULL THEN ? ELSE sent_at END, arrived_at = CASE WHEN ? = 'arrived' THEN COALESCE(arrived_at, ?) ELSE NULL END, updated_at = ? WHERE order_id = ? AND leg = ?`).run(status, tracking, status, status, now, status, now, now, orderId, leg);
     db.prepare("INSERT INTO order_leg_events (order_id, leg, status, tracking, note, actor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(orderId, leg, status, tracking, opts.note ?? "", opts.actor ?? "", now);
     if (status !== "pending") {
+      // the goods of the order are at least where the leg says (Tồn kho / Đóng hàng / the batch follow)
       const minStatus = LEG_PURCHASE[leg][status];
-      if (minStatus) {
-        const lines = db.prepare("SELECT id, purchase_status FROM order_items WHERE order_id = ?").all(orderId) as unknown as Array<{ id: number; purchase_status: string | null }>;
-        const upd = db.prepare("UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id = ?");
-        for (const l of lines) {
-          const c = isPurchaseStatus(l.purchase_status) ? l.purchase_status : "not_bought";
-          if (purchaseIndex(c) < purchaseIndex(minStatus)) upd.run(minStatus, now, l.id);
-        }
-      }
+      if (minStatus) raiseOrderUnitsSync(db, orderId, minStatus, { actor: opts.actor, note: `Theo chặng ${leg}${tracking ? ` · ${tracking}` : ""}` });
       const stage = LEG_ORDER_STAGE[leg][status];
       const curStage: ShipStage = isShipStage(order.ship_stage) ? order.ship_stage : "ordered";
       if (stage && stageRank(stage) > stageRank(curStage)) {
@@ -1424,6 +1430,7 @@ export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, statu
         if (SHIP_STAGES.findIndex((x) => x.key === stage) >= SHIP_STAGES.findIndex((x) => x.key === "sent")) commitOrderSync(db, orderId);
       }
     }
+    touchSync(db, { orderIds: [orderId] });
     return true;
   });
 }
@@ -1741,11 +1748,13 @@ export async function deleteOrder(id: string): Promise<{ number: number; filePat
   const row = db.prepare("SELECT number FROM orders WHERE id = ?").get(id) as { number: number } | undefined;
   if (!row) return null;
   const files = (db.prepare("SELECT path FROM order_files WHERE order_id = ?").all(id) as unknown as Array<{ path: string }>).map((f) => f.path);
-  const committed = !!(db.prepare("SELECT stock_committed_at FROM orders WHERE id = ?").get(id) as { stock_committed_at: string | null }).stock_committed_at;
   withTransaction(db, () => {
-    releaseOrderSync(db, id, committed);
+    const r = releaseUnitsSync(db, id);
+    // units that already reached the customer keep their history but no longer point at a deleted line
+    db.prepare("UPDATE stock_units SET order_item_id = NULL, manual = 0 WHERE order_item_id IN (SELECT id FROM order_items WHERE order_id = ?)").run(id);
     db.prepare("UPDATE payment_events SET order_id = NULL WHERE order_id = ?").run(id);
     db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+    touchSync(db, { productIds: r.productIds });
   });
   return { number: row.number, filePaths: files };
 }
@@ -1770,69 +1779,30 @@ export async function updateProductStock(id: number, stock: number | null, minSt
       : db
           .prepare("UPDATE products SET stock = ?, stock_status = COALESCE(?, stock_status), min_stock = ?, updated_at = ? WHERE id = ?")
           .run(stock, status, minStock, now, id);
-  // keep the lots in step with a hand-typed total: extra units become an adjustment lot, fewer units leave FEFO
-  if (stock !== null) adjustLotsToTotal(db, id, stock, now);
-  else db.prepare("DELETE FROM stock_lots WHERE product_id = ?").run(id);
+  // keep the units in step with a hand-typed total: extra → units on today's stock-check bill, fewer → written off
+  withTransaction(db, () => {
+    if (stock !== null) adjustUnitsToTotalSync(db, id, stock, { actor });
+    else {
+      // back to "hàng order": free units in hand are dropped (held / delivered ones keep their history)
+      const ids = (db.prepare("SELECT id FROM stock_units WHERE product_id = ? AND order_item_id IS NULL AND removed IS NULL AND status IN ('bought','to_carrier_jp','shipped_jp_vn','at_carrier_vn','to_shop','at_shop')").all(id) as Array<{ id: number }>).map((r) => r.id);
+      deleteUnitsSync(db, ids);
+    }
+    touchSync(db, { productIds: [id] });
+    if (stock === null) db.prepare("UPDATE products SET stock = NULL WHERE id = ? AND NOT EXISTS (SELECT 1 FROM stock_units WHERE product_id = ?)").run(id, id);
+  });
   return Number(res.changes) > 0;
 }
 
-// ---------- Stock lots (lô hàng) ----------
+// ---------- Stock (từng cái — see lib/units-db.ts) ----------
 
-interface LotRow {
-  id: number;
-  product_id: number;
-  qty_in: number;
-  qty_left: number;
-  received_at: string;
-  source_key: string;
-  unit_cost_jpy: number | null;
-  unit_cost_vnd: number | null;
-  expiry: string | null;
-  warehouse: string;
-  location: string;
-  note: string;
-  purchase_id: number | null;
-  bought_at: string | null;
-  in_transit: number | null;
-  batch_id: number | null;
-  parent_lot_id: number | null;
-  created_at: string;
-  updated_at: string;
-}
-const whOf = (v: string | null | undefined): Warehouse => (isWarehouse(v) ? v : DEFAULT_WAREHOUSE);
-const rowToLot = (r: LotRow): StockLot => ({ id: r.id, productId: r.product_id, qtyIn: r.qty_in, qtyLeft: r.qty_left, receivedAt: r.received_at, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, unitCostVnd: r.unit_cost_vnd, expiry: r.expiry, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", purchaseId: r.purchase_id, boughtAt: r.bought_at ?? null, inTransit: (r.in_transit ?? 0) === 1, batchId: r.batch_id ?? null, parentLotId: r.parent_lot_id ?? null, createdAt: r.created_at, updatedAt: r.updated_at });
-
-/** products.stock := what is left in the lots minus what open orders have reserved (see lib/stock-sync.ts). */
-function syncStockFromLots(db: DatabaseSync, productId: number, now: string): void {
-  syncProductStock(db, productId, now);
-}
-/** Take `qty` units out of the product's lots, earliest expiry first. Silent when the product has no lots. */
-function consumeLotsSync(db: DatabaseSync, productId: number, qty: number, now: string, warehouse?: Warehouse): void {
-  const lots = (db.prepare(`SELECT * FROM stock_lots WHERE product_id = ? AND qty_left > 0${warehouse ? " AND warehouse = ?" : ""}`).all(...(warehouse ? [productId, warehouse] : [productId])) as unknown as LotRow[]).map(rowToLot);
-  if (!lots.length) return;
-  const { takes } = planConsumption(lots, qty);
-  const upd = db.prepare("UPDATE stock_lots SET qty_left = qty_left - ?, updated_at = ? WHERE id = ?");
-  for (const [lotId, take] of takes) upd.run(take, now, lotId);
-}
-/** Bring the lots of a product (or of one of its warehouses) to `target` units: extra units become an adjustment lot, fewer leave FEFO. */
-function adjustLotsToTotal(db: DatabaseSync, productId: number, target: number, now: string, warehouse?: Warehouse): void {
-  const cur = db.prepare(`SELECT COALESCE(SUM(qty_left), 0) AS s, COUNT(*) AS n FROM stock_lots WHERE product_id = ?${warehouse ? " AND warehouse = ?" : ""}`).get(...(warehouse ? [productId, warehouse] : [productId])) as { s: number; n: number };
-  const have = Number(cur.s);
-  if (target > have) {
-    const p = db.prepare("SELECT cost_jpy, cost_price FROM products WHERE id = ?").get(productId) as { cost_jpy: number | null; cost_price: number | null } | undefined;
-    db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, location, note, created_at, updated_at) VALUES (?, ?, ?, ?, 'unknown', ?, ?, NULL, ?, '', ?, ?, ?)").run(productId, target - have, target - have, todayIso(), p?.cost_jpy ?? null, p?.cost_price ?? null, warehouse ?? DEFAULT_WAREHOUSE, Number(cur.n) ? "Điều chỉnh kiểm kho (+)" : "Tồn đầu kỳ", now, now);
-  } else if (target < have) consumeLotsSync(db, productId, have - target, now, warehouse);
-}
-
-/** Stocktake of ONE warehouse: set what that warehouse holds of a product; the product total follows from all lots. */
+/** Stocktake of ONE warehouse: the free units of a product there become `count` (extra → KK bill, missing → thất lạc). */
 export async function setProductStockInWarehouse(productId: number, warehouse: Warehouse, count: number): Promise<boolean> {
   const db = getDb();
-  const now = new Date().toISOString();
   return withTransaction(db, () => {
-    const p = db.prepare("SELECT stock FROM products WHERE id = ?").get(productId) as { stock: number | null } | undefined;
+    const p = db.prepare("SELECT id FROM products WHERE id = ?").get(productId) as { id: number } | undefined;
     if (!p) return false;
-    adjustLotsToTotal(db, productId, Math.max(0, count), now, warehouse);
-    syncStockFromLots(db, productId, now);
+    adjustUnitsToTotalSync(db, productId, Math.max(0, count), { warehouse });
+    touchSync(db, { productIds: [productId] });
     return true;
   });
 }
@@ -1852,259 +1822,6 @@ export function getMonthlyUnitsSold(productId: number, months = 6): Array<{ mont
     out.push({ month: key, units: byMonth.get(key) ?? 0 });
   }
   return out;
-}
-
-export async function listStockLots(productId?: number, onlyLeft = true): Promise<StockLot[]> {
-  const db = getDb();
-  const where = [productId !== undefined ? "product_id = ?" : "", onlyLeft ? "qty_left > 0" : ""].filter(Boolean).join(" AND ");
-  const rows = db.prepare(`SELECT * FROM stock_lots ${where ? `WHERE ${where}` : ""} ORDER BY CASE WHEN expiry IS NULL THEN 1 ELSE 0 END, expiry, received_at, id`).all(...(productId !== undefined ? [productId] : [])) as unknown as LotRow[];
-  return rows.map(rowToLot);
-}
-export async function getStockLot(id: number): Promise<StockLot | null> {
-  const r = getDb().prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
-  return r ? rowToLot(r) : null;
-}
-export async function addStockLot(input: { productId: number; qty: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; unitCostVnd?: number | null; expiry?: string | null; warehouse?: Warehouse; inTransit?: boolean; batchId?: number | null; parentLotId?: number | null; location?: string; note?: string; purchaseId?: number | null; /** the caller converts its own reservations first (stock purchase → lot) */ skipAllocate?: boolean }): Promise<StockLot> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  return withTransaction(db, () => {
-    const p = db.prepare("SELECT cost_jpy, cost_price FROM products WHERE id = ?").get(input.productId) as { cost_jpy: number | null; cost_price: number | null } | undefined;
-    if (!p) throw new Error("Sản phẩm không tồn tại.");
-    const jpy = input.unitCostJpy ?? p.cost_jpy ?? null;
-    const vnd = input.unitCostVnd ?? (jpy && jpy !== p.cost_jpy ? null : p.cost_price) ?? null;
-    const res = db.prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, bought_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, in_transit, batch_id, parent_lot_id, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.qty, input.receivedAt || todayIso(), input.boughtAt ?? null, input.sourceKey || UNKNOWN_SOURCE, jpy, vnd, input.expiry ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.inTransit ? 1 : 0, input.batchId ?? null, input.parentLotId ?? null, input.location ?? "", input.note ?? "", input.purchaseId ?? null, now, now);
-    syncStockFromLots(db, input.productId, now);
-    if (!input.skipAllocate) allocatePendingForProductSync(db, input.productId); // lines still "Cần mua" take from the new lot
-    return rowToLot(db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(Number(res.lastInsertRowid)) as unknown as LotRow);
-  });
-}
-export async function updateStockLot(id: number, patch: { qtyLeft?: number; receivedAt?: string; boughtAt?: string | null; sourceKey?: string; unitCostJpy?: number | null; expiry?: string | null; warehouse?: Warehouse; inTransit?: boolean; location?: string; note?: string }): Promise<boolean> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  return withTransaction(db, () => {
-    const cur = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(id) as LotRow | undefined;
-    if (!cur) return false;
-    const qtyLeft = patch.qtyLeft ?? cur.qty_left;
-    db.prepare("UPDATE stock_lots SET qty_left = ?, qty_in = MAX(qty_in, ?), received_at = ?, bought_at = ?, source_key = ?, unit_cost_jpy = ?, expiry = ?, warehouse = ?, in_transit = ?, location = ?, note = ?, updated_at = ? WHERE id = ?").run(qtyLeft, qtyLeft, patch.receivedAt ?? cur.received_at, patch.boughtAt === undefined ? cur.bought_at : patch.boughtAt, patch.sourceKey ?? cur.source_key, patch.unitCostJpy === undefined ? cur.unit_cost_jpy : patch.unitCostJpy, patch.expiry === undefined ? cur.expiry : patch.expiry, patch.warehouse ?? whOf(cur.warehouse), patch.inTransit === undefined ? (cur.in_transit ?? 0) : patch.inTransit ? 1 : 0, patch.location ?? cur.location, patch.note ?? cur.note, now, id);
-    // a lot moved by hand: the lines it serves follow
-    for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(id) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
-    syncStockFromLots(db, cur.product_id, now);
-    allocatePendingForProductSync(db, cur.product_id);
-    return true;
-  });
-}
-export async function deleteStockLot(id: number): Promise<boolean> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  return withTransaction(db, () => {
-    const cur = db.prepare("SELECT product_id FROM stock_lots WHERE id = ?").get(id) as { product_id: number } | undefined;
-    if (!cur) return false;
-    db.prepare("DELETE FROM stock_lots WHERE id = ?").run(id);
-    const left = db.prepare("SELECT COUNT(*) AS n FROM stock_lots WHERE product_id = ?").get(cur.product_id) as { n: number };
-    if (Number(left.n) > 0) syncStockFromLots(db, cur.product_id, now);
-    else db.prepare("UPDATE products SET stock = 0, updated_at = ? WHERE id = ? AND stock IS NOT NULL").run(now, cur.product_id);
-    // reservations on the deleted lot become "Cần mua" again and look for another source
-    db.prepare("UPDATE order_item_allocations SET source_type = 'buy', source_id = NULL, manual = 0 WHERE source_type = 'lot' AND source_id = ? AND consumed_at IS NULL").run(id);
-    allocatePendingForProductSync(db, cur.product_id);
-    return true;
-  });
-}
-
-// ---------- Purchases for stock (mua lưu kho) ----------
-
-interface StockPurchaseRow {
-  id: number;
-  product_id: number;
-  qty: number;
-  source_key: string;
-  unit_cost_jpy: number | null;
-  status: string;
-  expiry: string | null;
-  warehouse: string;
-  location: string;
-  note: string;
-  lot_id: number | null;
-  batch_id: number | null;
-  bought_at: string | null;
-  created_at: string;
-  updated_at: string;
-  name: string;
-  sku: string | null;
-  thumb: string;
-}
-const SP_SELECT = "SELECT sp.*, p.name, p.sku, p.thumb FROM stock_purchases sp JOIN products p ON p.id = sp.product_id";
-const rowToStockPurchase = (r: StockPurchaseRow): StockPurchase => ({ id: r.id, productId: r.product_id, productName: r.name, productSku: r.sku, productThumb: r.thumb ?? "", qty: r.qty, sourceKey: r.source_key, unitCostJpy: r.unit_cost_jpy, status: isPurchaseStatus(r.status) ? r.status : "not_bought", expiry: r.expiry, boughtAt: r.bought_at ?? null, warehouse: whOf(r.warehouse), location: r.location ?? "", note: r.note ?? "", lotId: r.lot_id, batchId: r.batch_id ?? null, createdAt: r.created_at, updatedAt: r.updated_at });
-
-export async function listStockPurchases(includeDone = false): Promise<StockPurchase[]> {
-  const rows = getDb().prepare(`${SP_SELECT} ${includeDone ? "" : "WHERE sp.lot_id IS NULL"} ORDER BY sp.id DESC`).all() as unknown as StockPurchaseRow[];
-  return rows.map(rowToStockPurchase);
-}
-export async function createStockPurchase(input: { productId: number; qty: number; sourceKey: string; unitCostJpy: number | null; expiry: string | null; boughtAt?: string | null; warehouse?: Warehouse; location: string; note: string; status?: PurchaseStatus; batchId?: number | null }): Promise<StockPurchase> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  const status = input.status ?? "not_bought";
-  const res = db.prepare("INSERT INTO stock_purchases (product_id, qty, source_key, unit_cost_jpy, status, expiry, bought_at, warehouse, location, note, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(input.productId, input.qty, input.sourceKey || UNKNOWN_SOURCE, input.unitCostJpy, purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status, input.expiry, input.boughtAt ?? null, input.warehouse ?? DEFAULT_WAREHOUSE, input.location, input.note, input.batchId ?? null, now, now);
-  const id = Number(res.lastInsertRowid);
-  if (purchaseIndex(status) >= purchaseIndex("bought")) await setStockPurchaseStatus(id, status);
-  return rowToStockPurchase(db.prepare(`${SP_SELECT} WHERE sp.id = ?`).get(id) as unknown as StockPurchaseRow);
-}
-/**
- * Move a stock purchase along the chain. From "Tại kho Nhật (shop)" on the goods are a lot: the lot is booked at the
- * place the status implies (jp → jp_carrier → carrier → vn, with the in-transit flag between) and later statuses move
- * that lot. Before that ("Chưa mua", "Đã đặt mua") only the slip exists. Going back before "Tại kho Nhật" once a lot
- * exists is refused (manage the lot in Kho hàng).
- */
-export async function setStockPurchaseStatus(id: number, status: PurchaseStatus, note?: string): Promise<{ ok: boolean; lotId: number | null; message?: string }> {
-  const db = getDb();
-  const cur = db.prepare("SELECT * FROM stock_purchases WHERE id = ?").get(id) as StockPurchaseRow | undefined;
-  if (!cur) return { ok: false, lotId: null, message: "Không tìm thấy phiếu mua." };
-  const target: PurchaseStatus = purchaseIndex(status) > purchaseIndex("at_shop") ? "at_shop" : status;
-  const loc = locationForStatus(target);
-  if (cur.lot_id && !loc) return { ok: false, lotId: cur.lot_id, message: "Hàng đã thành lô ở Kho Nhật — không lùi về trước “Tại kho Nhật (shop)”; sửa / xoá lô trong Kho hàng." };
-  const now = new Date().toISOString();
-  let lotId = cur.lot_id;
-  if (loc && !lotId) {
-    const lot = await addStockLot({ productId: cur.product_id, qty: cur.qty, receivedAt: cur.bought_at ?? todayIso(), boughtAt: cur.bought_at ?? null, sourceKey: cur.source_key, unitCostJpy: cur.unit_cost_jpy, expiry: cur.expiry, warehouse: loc.warehouse, inTransit: loc.inTransit, batchId: cur.batch_id ?? null, location: cur.location, note: cur.note, purchaseId: cur.id, skipAllocate: true });
-    lotId = lot.id;
-  } else if (loc && lotId) {
-    db.prepare("UPDATE stock_lots SET warehouse = ?, in_transit = ?, updated_at = ? WHERE id = ?").run(loc.warehouse, loc.inTransit ? 1 : 0, now, lotId);
-  }
-  db.prepare("UPDATE stock_purchases SET status = ?, note = COALESCE(?, note), lot_id = ?, updated_at = ? WHERE id = ?").run(target, note ?? null, lotId, now, id);
-  // lines served from this slip follow it (and take the lot once it exists); then the free units serve waiting lines
-  onStockPurchaseChangedSync(db, id);
-  if (lotId && !cur.lot_id) allocatePendingForProductSync(db, cur.product_id);
-  syncStockFromLots(db, cur.product_id, now);
-  return { ok: true, lotId };
-}
-
-/** Lots currently at a place; the lines they serve follow the move. */
-export function setLotLocationSync(db: DatabaseSync, lotIds: number[], warehouse: Warehouse, inTransit: boolean): void {
-  if (!lotIds.length) return;
-  const now = new Date().toISOString();
-  const upd = db.prepare("UPDATE stock_lots SET warehouse = ?, in_transit = ?, updated_at = ? WHERE id = ?");
-  for (const id of lotIds) {
-    upd.run(warehouse, inTransit ? 1 : 0, now, id);
-    // the slip that became this lot mirrors the location (its status is read on the "Mua lưu kho" history)
-    db.prepare("UPDATE stock_purchases SET status = ?, updated_at = ? WHERE lot_id = ?").run(statusForLocation(warehouse, inTransit), now, id);
-    for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(id) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
-  }
-}
-
-/**
- * Split `qty` units off a lot into a child lot (same product, source, expiry, ¥, place; parent_lot_id set).
- * Reservations move with the units when asked — committed orders first, then the oldest — so the child can travel
- * with the orders it serves. Returns the child lot id.
- */
-/** Allocations already deducted (paid / COD) whose goods are still in the lot — the order has not left the shop. */
-export function heldAllocationsSync(db: DatabaseSync, lotId: number): Array<{ id: number; qty: number }> {
-  return db
-    .prepare(
-      `SELECT a.id, a.qty FROM order_item_allocations a JOIN order_items oi ON oi.id = a.order_item_id JOIN orders o ON o.id = oi.order_id
-       WHERE a.source_type = 'lot' AND a.source_id = ? AND a.consumed_at IS NOT NULL AND o.status <> 'cancelled' AND o.ship_stage NOT IN ('delivering','delivered') ORDER BY o.created_at, a.id`,
-    )
-    .all(lotId) as unknown as Array<{ id: number; qty: number }>;
-}
-/**
- * Split `qty` unsold units off a lot into a child lot. With `moveReservations` the goods of paid orders (already deducted,
- * still on the shelf) go along too — so qty 0 means "only what customers already paid for", the usual pick for a shipment.
- */
-export function splitLotSync(db: DatabaseSync, lotId: number, qty: number, opts: { moveReservations?: boolean; batchId?: number | null } = {}): { ok: boolean; childId?: number; message: string } {
-  const cur = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(lotId) as LotRow | undefined;
-  if (!cur) return { ok: false, message: "Không tìm thấy lô." };
-  const held = opts.moveReservations ? heldAllocationsSync(db, lotId) : [];
-  const heldUnits = held.reduce((n, a) => n + a.qty, 0);
-  if (!Number.isInteger(qty) || qty < 0 || qty >= cur.qty_left || (qty === 0 && heldUnits === 0)) return { ok: false, message: cur.qty_left >= 2 ? `Số tách phải từ 1 đến ${cur.qty_left - 1} (lô còn ${cur.qty_left} đv chưa bán).` : `Lô #${lotId} không còn gì để tách.` };
-  const now = new Date().toISOString();
-  const r = db
-    .prepare("INSERT INTO stock_lots (product_id, qty_in, qty_left, received_at, bought_at, source_key, unit_cost_jpy, unit_cost_vnd, expiry, warehouse, in_transit, batch_id, parent_lot_id, location, note, purchase_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(cur.product_id, qty + heldUnits, qty, cur.received_at, cur.bought_at, cur.source_key, cur.unit_cost_jpy, cur.unit_cost_vnd, cur.expiry, cur.warehouse, cur.in_transit ?? 0, opts.batchId === undefined ? cur.batch_id : opts.batchId, cur.parent_lot_id ?? cur.id, cur.location, cur.note, cur.purchase_id, now, now);
-  const childId = Number(r.lastInsertRowid);
-  db.prepare("UPDATE stock_lots SET qty_left = qty_left - ?, qty_in = MAX(qty_in - ?, qty_left - ?), updated_at = ? WHERE id = ?").run(qty, qty + heldUnits, qty, now, lotId);
-  for (const a of held) db.prepare("UPDATE order_item_allocations SET source_id = ?, updated_at = ? WHERE id = ?").run(childId, now, a.id);
-  if (opts.moveReservations && qty > 0) {
-    // committed orders first (their units are the ones that must travel), then the oldest reservations
-    const allocs = db
-      .prepare(
-        `SELECT a.id, a.qty FROM order_item_allocations a JOIN order_items oi ON oi.id = a.order_item_id JOIN orders o ON o.id = oi.order_id
-         WHERE a.source_type = 'lot' AND a.source_id = ? AND a.consumed_at IS NULL AND o.status <> 'cancelled'
-         ORDER BY CASE WHEN o.stock_committed_at IS NULL THEN 1 ELSE 0 END, o.created_at, a.id`,
-      )
-      .all(lotId) as unknown as Array<{ id: number; qty: number }>;
-    let left = qty;
-    for (const a of allocs) {
-      if (left <= 0) break;
-      if (a.qty <= left) {
-        db.prepare("UPDATE order_item_allocations SET source_id = ?, updated_at = ? WHERE id = ?").run(childId, now, a.id);
-        left -= a.qty;
-      } else {
-        db.prepare("UPDATE order_item_allocations SET qty = qty - ?, updated_at = ? WHERE id = ?").run(left, now, a.id);
-        db.prepare("INSERT INTO order_item_allocations (order_item_id, source_type, source_id, qty, manual, consumed_at, created_at, updated_at) SELECT order_item_id, 'lot', ?, ?, manual, NULL, ?, ? FROM order_item_allocations WHERE id = ?").run(childId, left, now, now, a.id);
-        left = 0;
-      }
-    }
-  }
-  for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(childId) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
-  return { ok: true, childId, message: `Đã tách ${qty} đv${heldUnits ? ` + ${heldUnits} đv đã thanh toán` : ""} thành lô #${childId}.` };
-}
-/** Ticked lots (a part of each when qty is given: that many unsold units + the paid units) move to the place `status` means. */
-export async function moveLotsToStatus(items: Array<{ lotId: number; qty?: number | null }>, status: PurchaseStatus): Promise<{ ok: boolean; message: string; moved: number }> {
-  const db = getDb();
-  const loc = locationForStatus(status);
-  if (!loc) return { ok: false, message: "Trạng thái này không ứng với vị trí kho.", moved: 0 };
-  const skipped: string[] = [];
-  let moved = 0;
-  withTransaction(db, () => {
-    for (const it of items) {
-      const lot = db.prepare("SELECT id, qty_left FROM stock_lots WHERE id = ?").get(it.lotId) as { id: number; qty_left: number } | undefined;
-      if (!lot) continue;
-      let id = lot.id;
-      if (typeof it.qty === "number" && it.qty >= 0 && it.qty < lot.qty_left) {
-        const r = splitLotSync(db, lot.id, it.qty, { moveReservations: true });
-        if (!r.ok) {
-          skipped.push(`lô #${lot.id}: ${r.message}`);
-          continue;
-        }
-        id = r.childId!;
-      }
-      setLotLocationSync(db, [id], loc.warehouse, loc.inTransit);
-      moved++;
-    }
-  });
-  return { ok: moved > 0 || !skipped.length, message: `Đã chuyển ${moved} lô → ${PURCHASE_STAGES[purchaseIndex(status)].label}${skipped.length ? ` · bỏ qua: ${skipped.join("; ")}` : ""}.`, moved };
-}
-
-/** "Gộp lại": a split-off lot returns to its parent — same place, same shipment (or none), same expiry; reservations follow. */
-export function mergeLotBackSync(db: DatabaseSync, childId: number): { ok: boolean; parentId?: number; message: string } {
-  const c = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(childId) as LotRow | undefined;
-  if (!c) return { ok: false, message: "Không tìm thấy lô." };
-  if (!c.parent_lot_id) return { ok: false, message: `Lô #${childId} không tách từ lô nào.` };
-  const p = db.prepare("SELECT * FROM stock_lots WHERE id = ?").get(c.parent_lot_id) as LotRow | undefined;
-  if (!p) return { ok: false, message: `Lô gốc #${c.parent_lot_id} không còn.` };
-  if (p.warehouse !== c.warehouse || (p.in_transit ?? 0) !== (c.in_transit ?? 0) || (p.batch_id ?? null) !== (c.batch_id ?? null)) return { ok: false, message: `Lô #${childId} và lô gốc #${p.id} không cùng vị trí / chuyến — không gộp được.` };
-  if ((p.expiry ?? null) !== (c.expiry ?? null)) return { ok: false, message: `Lô #${childId} và lô gốc #${p.id} khác hạn dùng.` };
-  const now = new Date().toISOString();
-  db.prepare("UPDATE order_item_allocations SET source_id = ?, updated_at = ? WHERE source_type = 'lot' AND source_id = ?").run(p.id, now, c.id);
-  db.prepare("UPDATE stock_lots SET qty_in = qty_in + ?, qty_left = qty_left + ?, updated_at = ? WHERE id = ?").run(c.qty_in, c.qty_left, now, p.id);
-  db.prepare("UPDATE stock_lots SET parent_lot_id = ? WHERE parent_lot_id = ?").run(p.id, c.id);
-  db.prepare("UPDATE stock_purchases SET lot_id = ? WHERE lot_id = ?").run(p.id, c.id);
-  db.prepare("DELETE FROM stock_lots WHERE id = ?").run(c.id);
-  for (const it of db.prepare("SELECT DISTINCT order_item_id AS id FROM order_item_allocations WHERE source_type = 'lot' AND source_id = ?").all(p.id) as Array<{ id: number }>) syncItemStatusSync(db, it.id);
-  return { ok: true, parentId: p.id, message: `Đã gộp lô #${c.id} về lô #${p.id}.` };
-}
-export async function mergeLotBack(childId: number): Promise<{ ok: boolean; parentId?: number; message: string }> {
-  const db = getDb();
-  return withTransaction(db, () => mergeLotBackSync(db, childId));
-}
-export async function splitLot(lotId: number, qty: number, opts: { moveReservations?: boolean; batchId?: number | null } = {}): Promise<{ ok: boolean; childId?: number; message: string }> {
-  const db = getDb();
-  return withTransaction(db, () => splitLotSync(db, lotId, qty, opts));
-}
-export async function deleteStockPurchase(id: number): Promise<boolean> {
-  const db = getDb();
-  const cur = db.prepare("SELECT lot_id FROM stock_purchases WHERE id = ?").get(id) as { lot_id: number | null } | undefined;
-  if (!cur || cur.lot_id) return false; // once it became a lot, manage the lot instead
-  onStockPurchaseDeletedSync(db, id); // its lines fall back to "Cần mua" (or another source)
-  return Number(db.prepare("DELETE FROM stock_purchases WHERE id = ?").run(id).changes) > 0;
 }
 
 export interface DemandLine {
@@ -3295,17 +3012,38 @@ export async function setOrderItemSource(itemId: number, sourceKey: string): Pro
   getDb().prepare("UPDATE order_items SET source_key = ? WHERE id = ?").run(sourceKey, itemId);
 }
 
-/** Set the purchase status (and optionally the note) of order lines; returns the number of rows changed. */
+/**
+ * Purchase status of order lines set by hand ("Mua theo đặt hàng"): bought for that customer → the line gets its own
+ * units (codes H…, pinned, on the line's bill / batch / source) at that status; "Chưa mua" → units bought for the line
+ * are dropped and the others go back to stock. Returns the number of lines changed.
+ */
 export async function setOrderItemsPurchase(itemIds: number[], status: PurchaseStatus, note?: string): Promise<number> {
   if (itemIds.length === 0) return 0;
   const db = getDb();
-  const now = new Date().toISOString();
-  const ph = itemIds.map(() => "?").join(",");
-  const r =
-    note === undefined
-      ? db.prepare(`UPDATE order_items SET purchase_status = ?, purchase_updated_at = ? WHERE id IN (${ph})`).run(status, now, ...itemIds)
-      : db.prepare(`UPDATE order_items SET purchase_status = ?, purchase_note = ?, purchase_updated_at = ? WHERE id IN (${ph})`).run(status, note, now, ...itemIds);
-  return Number(r.changes);
+  return withTransaction(db, () => {
+    let n = 0;
+    const touched: number[] = [];
+    for (const itemId of itemIds) {
+      const l = db.prepare("SELECT oi.id, oi.product_id, oi.quantity, oi.source_key, oi.receipt_id, oi.batch_id, oi.purchase_expiry, oi.purchase_bought_at, oi.purchase_cost_jpy, o.number FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.id = ?").get(itemId) as { id: number; product_id: number; quantity: number; source_key: string | null; receipt_id: number | null; batch_id: number | null; purchase_expiry: string | null; purchase_bought_at: string | null; purchase_cost_jpy: number | null; number: number } | undefined;
+      if (!l || !l.product_id) continue;
+      if (note !== undefined) db.prepare("UPDATE order_items SET purchase_note = ? WHERE id = ?").run(note, itemId);
+      if (status === "not_bought") {
+        const own = (db.prepare("SELECT id FROM stock_units WHERE order_item_id = ? AND origin = 'order' AND committed_at IS NULL").all(itemId) as Array<{ id: number }>).map((r) => r.id);
+        deleteUnitsSync(db, own);
+        releaseItemToBuySync(db, itemId);
+        db.prepare("UPDATE order_items SET auto_hold = 1 WHERE id = ?").run(itemId);
+      } else {
+        const held = (db.prepare("SELECT id FROM stock_units WHERE order_item_id = ? AND removed IS NULL").all(itemId) as Array<{ id: number }>).map((r) => r.id);
+        const missing = l.quantity - held.length;
+        const made = missing > 0 ? createUnitsSync(db, { productId: l.product_id, qty: missing, status, itemId, sourceKey: l.source_key || UNKNOWN_SOURCE, receiptId: l.receipt_id, batchId: l.batch_id, expiry: l.purchase_expiry, boughtAt: l.purchase_bought_at ?? todayIso(), unitCostJpy: l.purchase_cost_jpy, origin: "order", note: `Mua theo đơn #${l.number}` }) : [];
+        moveUnitsSync(db, held, status, { note: "Mua theo đặt hàng" });
+        touched.push(...held, ...made);
+      }
+      n++;
+    }
+    touchSync(db, { itemIds, unitIds: touched });
+    return n;
+  });
 }
 
 export interface PipelineUnits {
@@ -3324,48 +3062,44 @@ export interface PipelineUnits {
 }
 export const emptyPipeline = (): PipelineUnits => ({ inTransit: 0, atShop: 0, pipeline: 0, stockIncoming: 0, where: emptyByTransit(), stockWhere: emptyByTransit() });
 
-/** Per product: units of non-cancelled orders that are bought but not yet delivered, split by where they are. */
+/** Per product: units held for open orders (bought → at the shop) plus free units ordered online and not received yet. */
 export async function getPipelineUnits(): Promise<Map<number, PipelineUnits>> {
   const ph = PIPELINE_STATUSES.map(() => "?").join(",");
-  const rows = getDb()
-    .prepare(
-      `SELECT oi.product_id, oi.purchase_status, SUM(oi.quantity) AS n FROM order_items oi JOIN orders o ON o.id = oi.order_id
-       WHERE o.status <> 'cancelled' AND oi.purchase_status IN (${ph}) GROUP BY oi.product_id, oi.purchase_status`,
-    )
-    .all(...PIPELINE_STATUSES) as unknown as Array<{ product_id: number; purchase_status: string; n: number }>;
   const out = new Map<number, PipelineUnits>();
-  for (const r of rows) {
+  const held = getDb()
+    .prepare(
+      `SELECT u.product_id, u.status, COUNT(*) AS n FROM stock_units u JOIN order_items oi ON oi.id = u.order_item_id JOIN orders o ON o.id = oi.order_id
+       WHERE u.removed IS NULL AND o.status <> 'cancelled' AND u.status IN (${ph}) GROUP BY u.product_id, u.status`,
+    )
+    .all(...PIPELINE_STATUSES) as unknown as Array<{ product_id: number; status: string; n: number }>;
+  for (const r of held) {
     const u = out.get(r.product_id) ?? emptyPipeline();
-    if (r.purchase_status === "at_shop") u.atShop += Number(r.n);
+    if (r.status === "at_shop") u.atShop += Number(r.n);
     else {
       u.inTransit += Number(r.n);
-      const w = isPurchaseStatus(r.purchase_status) ? transitWhereOf(r.purchase_status) : null;
+      const w = isPurchaseStatus(r.status) ? transitWhereOf(r.status) : null;
       if (w) u.where[w] += Number(r.n);
     }
     u.pipeline = u.inTransit + u.atShop;
     out.set(r.product_id, u);
   }
-  // goods bought for stock and still on the way (once at the shop they are a lot → counted in products.stock)
-  const inTransit = IN_TRANSIT_STATUSES.map(() => "?").join(",");
-  const sp = getDb().prepare(`SELECT product_id, status, SUM(qty) AS n FROM stock_purchases WHERE lot_id IS NULL AND status IN (${inTransit}) GROUP BY product_id, status`).all(...IN_TRANSIT_STATUSES) as unknown as Array<{ product_id: number; status: string; n: number }>;
-  for (const r of sp) {
+  // bought for stock online, not received yet (once received they are free units → products.stock)
+  const incoming = getDb().prepare("SELECT product_id, COUNT(*) AS n FROM stock_units WHERE removed IS NULL AND order_item_id IS NULL AND status = 'ordered' GROUP BY product_id").all() as unknown as Array<{ product_id: number; n: number }>;
+  for (const r of incoming) {
     const u = out.get(r.product_id) ?? emptyPipeline();
     u.inTransit += Number(r.n);
-    u.pipeline = u.inTransit + u.atShop;
     u.stockIncoming += Number(r.n);
-    const w = isPurchaseStatus(r.status) ? transitWhereOf(r.status) : null;
-    if (w) {
-      u.where[w] += Number(r.n);
-      u.stockWhere[w] += Number(r.n);
-    }
+    u.where.jp += Number(r.n);
+    u.stockWhere.jp += Number(r.n);
+    u.pipeline = u.inTransit + u.atShop;
     out.set(r.product_id, u);
   }
   return out;
 }
 
-/** Per product: units on "mua lưu kho" slips the Japan-side buyer has not bought yet (planned lots, not in the pipeline). */
+/** Per product: free units planned in a gathering batch and not bought yet (dự định mua). */
 export function getPlannedLotUnits(): Map<number, number> {
-  const rows = getDb().prepare("SELECT product_id, SUM(qty) AS n FROM stock_purchases WHERE lot_id IS NULL AND status = 'not_bought' GROUP BY product_id").all() as unknown as Array<{ product_id: number; n: number }>;
+  const rows = getDb().prepare("SELECT product_id, COUNT(*) AS n FROM stock_units WHERE removed IS NULL AND order_item_id IS NULL AND status = 'not_bought' GROUP BY product_id").all() as unknown as Array<{ product_id: number; n: number }>;
   return new Map(rows.map((r) => [r.product_id, Number(r.n)]));
 }
 

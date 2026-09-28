@@ -51,7 +51,7 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
     g.lines.push(l);
     const allocs = byItem.get(l.itemId) ?? [];
     // ready = every unit sits in a lot at Kho Việt Nam (shop), reserved ("Có sẵn · Kho VN") or already deducted ("Đã trừ kho · Kho Việt Nam (shop)")
-    if (!allocs.length || allocs.some((a) => !(a.sourceType === "lot" && /Kho VN|Kho Việt Nam \(shop\)/.test(a.label) && !/Sắp về/.test(a.label)))) g.readyVn = false;
+    if (!allocs.length || allocs.some((a) => !(a.sourceType === "unit" && a.status === "at_shop"))) g.readyVn = false;
     groups.set(l.orderId, g);
   }
   const q = fold(filter.q.trim());
@@ -176,6 +176,11 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                                 {l.quantity > 1 ? <span className="ml-1 font-semibold">×{a.qty}</span> : null}
                                 {a.detail ? <span className="ml-1 text-lien-muted">{a.detail}</span> : null}
                                 {a.consumedAt ? <span className="ml-1 text-[10px] text-green-700">đã trừ tồn</span> : null}
+                                {a.codes.length ? (
+                                  <Link href={`/admin/inventory/units/${a.codes[0]}/`} className="ml-1 font-mono text-[10px] text-lien-blue hover:underline" title={a.codes.join(" ")}>
+                                    {a.codes.length > 1 ? `${a.codes[0]} +${a.codes.length - 1}` : a.codes[0]}
+                                  </Link>
+                                ) : null}
                               </div>
                             ))}
                           </div>

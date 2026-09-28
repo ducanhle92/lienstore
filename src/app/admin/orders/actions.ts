@@ -109,11 +109,8 @@ export async function setItemSourceAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const itemId = Number.parseInt(String(formData.get("itemId") ?? ""), 10);
   const raw = String(formData.get("source") ?? "buy");
-  const [type, sid] = raw.split(":");
-  const sourceId = Number.parseInt(sid ?? "", 10);
-  const ok = type === "buy" || type === "lot" || type === "stock_purchase" || type === "batch";
-  if (!Number.isInteger(itemId) || !ok) redirect(`/admin/orders/${id}/?error=${encodeURIComponent("Yêu cầu không hợp lệ.")}`);
-  const r = await setManualAllocation(itemId, type as "buy" | "lot" | "stock_purchase" | "batch", Number.isInteger(sourceId) ? sourceId : null);
+  if (!Number.isInteger(itemId) || !(raw === "buy" || /^grp:\d+$/.test(raw))) redirect(`/admin/orders/${id}/?error=${encodeURIComponent("Yêu cầu không hợp lệ.")}`);
+  const r = await setManualAllocation(itemId, raw);
   revalidatePath("/admin", "layout");
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}`);
 }

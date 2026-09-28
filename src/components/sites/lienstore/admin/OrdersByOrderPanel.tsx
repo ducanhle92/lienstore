@@ -190,9 +190,9 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
                                 <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", TONE[a.tone])}>{a.label}</span>
                                 {l.quantity > 1 ? <span className="ml-1 font-semibold">×{a.qty}</span> : null}
                                 {a.detail ? <span className="ml-1 text-lien-muted">{a.detail}</span> : null}
-                                {a.sourceType === "lot" && a.sourceId ? (
-                                  <Link href={`/admin/inventory/lots/${l.productId}/`} className="ml-1 text-lien-blue hover:underline">
-                                    lô →
+                                {a.codes.length ? (
+                                  <Link href={`/admin/inventory/units/${a.codes[0]}/`} className="ml-1 font-mono text-[10px] text-lien-blue hover:underline" title={a.codes.join(" ")}>
+                                    {a.codes.length > 1 ? `${a.codes[0]} +${a.codes.length - 1}` : a.codes[0]}
                                   </Link>
                                 ) : null}
                                 {l.batchId ? (

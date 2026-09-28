@@ -20,7 +20,7 @@ export function LotPicker({ formId, scope }: Props) {
   const setAll = (on: boolean) => {
     for (const r of rows()) {
       if (r.classList.contains("hidden")) continue;
-      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="lotIds"]');
+      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="uids"]');
       if (box) box.checked = on;
     }
   };
@@ -28,14 +28,13 @@ export function LotPicker({ formId, scope }: Props) {
     let n = 0;
     for (const r of rows()) {
       const committed = Number(r.dataset.committed ?? 0);
-      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="lotIds"]');
+      const box = r.querySelector<HTMLInputElement>('input[type="checkbox"][name="uids"]');
       const qty = r.querySelector<HTMLInputElement>('input[name^="qty_"]');
       if (!box) continue;
       if (committed > 0) {
+        // the row is exactly the paid order's units: tick it whole
         box.checked = true;
-        // unsold units stay in Japan: send 0 of them (+ the paid units, which always travel) unless nothing unsold is left
-        const left = Number(r.dataset.left ?? 0);
-        if (qty) qty.value = left > 0 ? "0" : "";
+        if (qty) qty.value = "";
         n++;
       } else {
         box.checked = false;
@@ -43,14 +42,14 @@ export function LotPicker({ formId, scope }: Props) {
       }
     }
     const note = document.getElementById(`picker-note-${scope}`);
-    if (note) note.textContent = n ? `Đã tick ${n} lô đang giữ cho đơn đã thanh toán / COD.` : "Không có lô nào đang giữ cho đơn đã thanh toán.";
+    if (note) note.textContent = n ? `Đã tick ${n} dòng hàng của đơn đã thanh toán / COD.` : "Không có hàng nào của đơn đã thanh toán ở đây.";
   };
   return (
     <span className="inline-flex flex-wrap items-center gap-2 text-[12px]">
       <label className="inline-flex items-center gap-1.5">
-        <input type="checkbox" onChange={(e) => setAll(e.target.checked)} className="h-4 w-4" aria-label="Chọn tất cả lô đang hiện" /> chọn tất cả
+        <input type="checkbox" onChange={(e) => setAll(e.target.checked)} className="h-4 w-4" aria-label="Chọn tất cả dòng đang hiện" /> chọn tất cả
       </label>
-      <button type="button" onClick={byOrders} className={`${btnSecondary} !py-1 !text-[12px]`} title="Tick đúng lô / số đơn vị đang giữ cho đơn đã thanh toán hoặc COD (theo hạn dùng gần nhất trước)">
+      <button type="button" onClick={byOrders} className={`${btnSecondary} !py-1 !text-[12px]`} title="Tick đúng hàng của các đơn đã thanh toán hoặc COD">
         <Fa name="truck" /> Tự chọn theo đơn
       </button>
       <span id={`picker-note-${scope}`} className="text-lien-muted" />

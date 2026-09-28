@@ -51,6 +51,12 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                 <input id="name" name="name" defaultValue={group.name} required className={adminInput} />
               </div>
               <div>
+                <label className={adminLabel} htmlFor="code">
+                  Mã nhóm <span className="font-normal text-lien-muted">— tự sinh theo tên, sửa được (chữ in, số, dấu -); dùng để lọc và in tem</span>
+                </label>
+                <input id="code" name="code" defaultValue={group.code} maxLength={32} placeholder="HATOMUGI-SUA-TAM" className={`${adminInput} font-mono uppercase`} />
+              </div>
+              <div>
                 <p className={adminLabel}>Thuộc tính phân biệt (cha → con)</p>
                 <AttrLabelsEditor key={labels.join("|")} initial={labels} />
               </div>
