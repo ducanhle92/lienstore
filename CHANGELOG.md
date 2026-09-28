@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.82.0] - 2026-09-28
+
 ### Changed
 - Phân bổ nguồn hàng: **vị trí trước, hạn dùng sau** — đơn mới lấy hàng ở Kho VN (shop) trước, rồi kho ĐVVC VN, đang về kho shop, đang bay, kho ĐVVC Nhật, Kho Nhật; trong cùng vị trí mới xét hạn dùng gần trước, rồi bill mua sớm trước. Hàng có sẵn ở VN luôn được giao ngay; hàng ở Nhật chỉ dùng khi VN hết.
 
