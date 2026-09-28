@@ -500,3 +500,20 @@ export async function cleanupOrphanLotRefs(): Promise<{ slips: number; allocatio
     return { slips, allocations };
   });
 }
+
+/**
+ * "Ghép lại tất cả đơn đang chờ": every open order that has not been deducted yet gives up its automatic reservations,
+ * then the orders are served again oldest first under the current rule (place → expiry → bill). Manual choices and
+ * deducted units are kept.
+ */
+export async function reallocateOpenOrders(): Promise<{ orders: number; lines: number }> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const orders = (db.prepare("SELECT id FROM orders WHERE status IN ('pending','processing') AND stock_committed_at IS NULL ORDER BY created_at, id").all() as Array<{ id: string }>).map((r) => r.id);
+    if (!orders.length) return { orders: 0, lines: 0 };
+    const ph = orders.map(() => "?").join(",");
+    const lines = Number(db.prepare(`DELETE FROM order_item_allocations WHERE manual = 0 AND consumed_at IS NULL AND order_item_id IN (SELECT id FROM order_items WHERE order_id IN (${ph}))`).run(...orders).changes);
+    for (const id of orders) allocateOrderSync(db, id, false);
+    return { orders: orders.length, lines };
+  });
+}

@@ -1,10 +1,11 @@
 /**
  * Which stock serves an order line ("Phân bổ nguồn hàng"). Pure planner shared by the DB layer and the node:test suite.
  *
- * Priority (owner's rule): everything ALREADY BOUGHT first — lots in any warehouse (VN, ĐVVC, Nhật) and stock purchases
- * that are bought but not yet booked as lots — ordered FEFO (nearest expiry first); same / unknown expiry → the place
- * closest to Vietnam first (VN → ĐVVC → Nhật → purchase slip, slips closer to VN first). Then slips still to buy inside
- * a gathering batch, then plain "mua lưu kho" slips not bought yet. Whatever is left is "Cần mua".
+ * Priority (owner's rule, 2026-09-28): everything ALREADY BOUGHT first — lots in any warehouse and stock purchases that
+ * are bought but not yet booked as lots — ordered by PLACE (closest to the customer first: Kho VN → kho ĐVVC VN → đang về
+ * kho shop → đang bay → kho ĐVVC Nhật → Kho Nhật → purchase slip, slips closer to VN first); within the same place the
+ * nearest expiry first (FEFO), then the earlier bill. Then slips still to buy inside a gathering batch, then plain
+ * "mua lưu kho" slips not bought yet. Whatever is left is "Cần mua".
  */
 import { type PurchaseStatus, purchaseIndex } from "./purchase";
 import type { Warehouse } from "./warehouses";
@@ -35,7 +36,9 @@ export interface AllocTake {
   qty: number;
 }
 
-const WH_RANK: Record<Warehouse, number> = { vn: 0, carrier: 1, jp_carrier: 2, jp: 3 };
+const WH_RANK: Record<Warehouse, number> = { vn: 0, carrier: 2, jp_carrier: 4, jp: 5 };
+/** A lot on the move ranks just ahead of the place it is leaving (đang về kho shop = 1, đang bay = 3). */
+const placeOfLot = (c: AllocCandidate) => (c.warehouse === "carrier" && c.inTransit ? 1 : c.warehouse === "jp_carrier" && c.inTransit ? 3 : WH_RANK[c.warehouse ?? "jp"]);
 const FAR = "9999-12-31";
 
 /** 0 = already bought (lots + bought slips), 1 = slip waiting in a batch, 2 = slip waiting outside a batch. */
@@ -45,12 +48,12 @@ export function candidateTier(c: AllocCandidate): 0 | 1 | 2 {
   return c.batchId ? 1 : 2;
 }
 
-/** Lower = served first. Tier, then FEFO (bought tier only), then nearer to Vietnam, then bought earlier, then oldest id. */
-export function candidateRank(c: AllocCandidate): [number, string, number, string, number] {
+/** Lower = served first. Tier, then place (nearest the customer), then FEFO (bought tier only), then bought earlier, then oldest id. */
+export function candidateRank(c: AllocCandidate): [number, number, string, string, number] {
   const tier = candidateTier(c);
   const expiry = tier === 0 ? (c.expiry ?? FAR) : FAR;
-  const place = c.type === "lot" ? WH_RANK[c.warehouse ?? "jp"] : 3 + Math.max(0, purchaseIndex("at_shop") - purchaseIndex(c.status ?? "not_bought"));
-  return [tier, expiry, place, c.boughtAt ?? FAR, c.id];
+  const place = c.type === "lot" ? placeOfLot(c) : 6 + Math.max(0, purchaseIndex("at_shop") - purchaseIndex(c.status ?? "not_bought"));
+  return [tier, place, expiry, c.boughtAt ?? FAR, c.id];
 }
 
 export function sortCandidates<T extends AllocCandidate>(cands: T[]): T[] {

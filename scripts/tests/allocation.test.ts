@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { type AllocCandidate, candidateTier, combineStatuses, planAllocation, sortCandidates, statusFromSource } from "../../src/lib/allocation";
 import { isRegularBy, normalizePhone } from "../../src/lib/regular-customers";
 
-const lot = (id: number, warehouse: "vn" | "carrier" | "jp", available: number, expiry: string | null): AllocCandidate => ({ type: "lot", id, available, expiry, warehouse, status: null, batchId: null });
+const lot = (id: number, warehouse: "vn" | "carrier" | "jp_carrier" | "jp", available: number, expiry: string | null): AllocCandidate => ({ type: "lot", id, available, expiry, warehouse, status: null, batchId: null });
 const slip = (id: number, status: AllocCandidate["status"], available: number, expiry: string | null, batchId: number | null = null): AllocCandidate => ({ type: "stock_purchase", id, available, expiry, warehouse: null, status, batchId });
 
 describe("planAllocation", () => {
@@ -11,9 +11,17 @@ describe("planAllocation", () => {
     const r = planAllocation(2, [lot(1, "vn", 3, "2027-06-30"), slip(9, "not_bought", 5, null, 4)]);
     assert.deepEqual(r, { takes: [{ type: "lot", id: 1, qty: 2 }], short: 0 });
   });
-  it("FEFO: a lot in Japan with a nearer expiry beats a VN lot", () => {
+  it("place first: a VN lot beats a Japan lot even when the Japan lot expires sooner", () => {
     const r = planAllocation(1, [lot(1, "vn", 3, "2027-06-30"), lot(2, "jp", 3, "2027-01-31")]);
-    assert.deepEqual(r.takes, [{ type: "lot", id: 2, qty: 1 }]);
+    assert.deepEqual(r.takes, [{ type: "lot", id: 1, qty: 1 }]);
+  });
+  it("same place → FEFO, then the earlier bill", () => {
+    const sorted = sortCandidates([{ ...lot(1, "jp", 1, "2027-06-30"), boughtAt: "2026-09-27" }, { ...lot(2, "jp", 1, "2027-06-30"), boughtAt: "2026-09-26" }, lot(3, "jp", 1, "2027-01-31")]);
+    assert.deepEqual(sorted.map((c) => c.id), [3, 2, 1]);
+  });
+  it("a lot on the move ranks between the two places (đang về kho shop before kho ĐVVC VN, đang bay before kho ĐVVC Nhật)", () => {
+    const sorted = sortCandidates([lot(1, "jp", 1, null), { ...lot(2, "jp_carrier", 1, null), inTransit: true }, lot(3, "jp_carrier", 1, null), { ...lot(4, "carrier", 1, null), inTransit: true }, lot(5, "carrier", 1, null), lot(6, "vn", 1, null)]);
+    assert.deepEqual(sorted.map((c) => c.id), [6, 4, 5, 2, 3, 1]);
   });
   it("same expiry → closest to Vietnam first (VN → ĐVVC → Nhật → slip)", () => {
     const sorted = sortCandidates([slip(7, "bought", 1, "2027-03-31"), lot(3, "jp", 1, "2027-03-31"), lot(2, "carrier", 1, "2027-03-31"), lot(1, "vn", 1, "2027-03-31")]);

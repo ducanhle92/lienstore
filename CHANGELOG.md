@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Phân bổ nguồn hàng: **vị trí trước, hạn dùng sau** — đơn mới lấy hàng ở Kho VN (shop) trước, rồi kho ĐVVC VN, đang về kho shop, đang bay, kho ĐVVC Nhật, Kho Nhật; trong cùng vị trí mới xét hạn dùng gần trước, rồi bill mua sớm trước. Hàng có sẵn ở VN luôn được giao ngay; hàng ở Nhật chỉ dùng khi VN hết.
+
+### Added
+- Tồn kho › Hàng theo đơn: nút **Ghép lại tất cả đơn đang chờ** (xếp lại giữ chỗ tự động cho mọi đơn chưa trừ tồn, đơn cũ trước, theo quy tắc mới; phần đã trừ tồn và nguồn chọn tay giữ nguyên) và link **ghép lại** từng đơn.
+
 ## [1.81.1] - 2026-09-28
 
 ### Changed

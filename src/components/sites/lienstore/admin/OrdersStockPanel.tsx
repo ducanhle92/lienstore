@@ -4,7 +4,9 @@ import type { AllocationView } from "@/lib/allocations-db";
 import type { PurchaseLine } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { adminInput, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { reallocateAllAction, reallocateOneAction } from "@/app/admin/inventory/orders-actions";
+import { ConfirmSubmit } from "./ConfirmSubmit";
+import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 
 interface Props {
   lines: PurchaseLine[];
@@ -95,6 +97,12 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
           {chip("short", `Còn chờ hàng (${all.length - ready})`)}
           {chip("ready", `Đủ hàng tại kho VN (${ready})`)}
         </form>
+        <form action={reallocateAllAction} className="mb-3 flex flex-wrap items-center gap-2 text-[12px]" data-testid="reallocate-all">
+          <ConfirmSubmit message="Ghép lại nguồn hàng cho mọi đơn đang chờ (chưa trừ tồn)? Phần giữ chỗ tự động được xếp lại: đơn cũ trước, hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm. Phần đã trừ tồn và nguồn chọn tay giữ nguyên." confirmLabel="Ghép lại" className={cn(btnPrimary, "!py-1 !text-[13px]")}>
+            Ghép lại tất cả đơn đang chờ
+          </ConfirmSubmit>
+          <span className="text-lien-muted">Đơn mới và hàng mới nhập đã tự ghép; nút này chỉ cần khi muốn xếp lại toàn bộ (vd. vừa có hàng về VN).</span>
+        </form>
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào khớp.</p> : null}
         {shown.length ? (
           <div className="overflow-x-auto">
@@ -123,6 +131,14 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder, filter }: P
                             <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                               #{g.number}
                             </Link>
+                            {!g.committed ? (
+                              <form action={reallocateOneAction} className="mt-1">
+                                <input type="hidden" name="orderId" value={g.orderId} />
+                                <button type="submit" className="text-[11px] text-lien-blue hover:underline" title="Xếp lại nguồn hàng cho đơn này theo quy tắc hiện tại">
+                                  ghép lại
+                                </button>
+                              </form>
+                            ) : null}
                           </td>
                         ) : null}
                         {first ? (
