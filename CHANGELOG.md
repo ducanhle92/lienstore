@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.90.0] - 2026-09-28
+
 ### Changed
 - **Mua theo đợt**: nút **Ẩn đợt / Hiện đợt** ở đầu mỗi đợt — ẩn thì chỉ còn dòng tiêu đề (số cái, giữ cho đơn, lưu kho, ¥, Sửa, trạng thái); trình duyệt nhớ đợt nào đang ẩn.
 - **Xoá sản phẩm** trên thanh dưới đáy, cạnh “+ Thêm sản phẩm”: tick dòng (ở một hoặc nhiều đợt) → Xoá sản phẩm (hỏi lại trước khi xoá). **Xoá đợt** chuyển vào trong nút **Sửa** của đợt (cùng “Cập nhật theo đơn hàng”) để tránh bấm nhầm.
