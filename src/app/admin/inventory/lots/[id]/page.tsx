@@ -19,6 +19,7 @@ import { getDb } from "@/lib/sqlite";
 import { UNIT_ORIGIN_LABEL, UNIT_REMOVED_LABEL, unitInHand } from "@/lib/units";
 import { listUnits } from "@/lib/units-db";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               </BulkBar>
             ) : null}
             <div className="overflow-x-auto">
+              <SheetTable id="product-units">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -236,6 +238,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                   })}
                 </tbody>
               </table>
+              </SheetTable>
             </div>
           </Card>
 

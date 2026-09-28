@@ -5,6 +5,7 @@ import { getAdminSession, secretRevealActive } from "@/lib/auth";
 import { getSecretSetting, maskSecret, SECRET_SETTINGS } from "@/lib/secret-store";
 import { getDb } from "@/lib/sqlite";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 /**
  * Owner-only: every API key the shop has stored (sealed in the database), masked by default; the full values show for
@@ -19,6 +20,7 @@ export async function ApiKeysVault() {
   return (
     <Card className="mb-6" title="Khóa API đã lưu (chỉ chủ cửa hàng thấy thẻ này)" actions={revealed ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">đang hiện đầy đủ · tự ẩn sau 3 phút</span> : null}>
       <div id="api-keys" className="overflow-x-auto">
+        <SheetTable id="api-keys">
         <table className="w-full border-collapse text-[13px]" data-testid="api-keys-table">
           <thead>
             <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
@@ -49,6 +51,7 @@ export async function ApiKeysVault() {
             ))}
           </tbody>
         </table>
+        </SheetTable>
       </div>
       {revealed ? (
         <form action={hideApiKeysAction} className="mt-3">

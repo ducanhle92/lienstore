@@ -17,6 +17,7 @@ import { getDb } from "@/lib/sqlite";
 import { listUnits } from "@/lib/units-db";
 import { cn } from "@/lib/utils";
 import type { Order, OrderLeg } from "@/types/shop";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,7 @@ export default async function DeliveryPage({ searchParams }: Props) {
           <p className="m-0 text-[13px] text-lien-muted">{tab === "ready" ? "Chưa có đơn nào đủ hàng tại Kho VN để giao (đơn cần đã thanh toán hoặc COD)." : tab === "delivering" ? "Không có đơn nào đang giao." : "Chưa giao đơn nào trong 30 ngày qua."}</p>
         ) : (
           <div className="overflow-x-auto">
+            <SheetTable id={`delivery-${tab}`}>
             <table className={tableClass} data-testid={`delivery-${tab}`}>
               <thead>
                 <tr>
@@ -125,6 +127,7 @@ export default async function DeliveryPage({ searchParams }: Props) {
                 ))}
               </tbody>
             </table>
+            </SheetTable>
           </div>
         )}
       </Card>

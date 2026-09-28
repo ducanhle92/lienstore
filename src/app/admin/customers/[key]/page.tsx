@@ -7,6 +7,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { countOrderFiles, getCustomerById, getCustomerOverview, getOrdersForCustomerKey } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,7 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
           </Card>
           <Card title="Đã mua">
             {itemsBought.size === 0 ? <p className="m-0 text-lien-muted">—</p> : null}
+            <SheetTable id="customer-items">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -159,6 +161,7 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
                   ))}
               </tbody>
             </table>
+            </SheetTable>
           </Card>
           <Card title="Trạng thái đơn">
             <ul className="m-0 list-none p-0 text-[13px] leading-6">

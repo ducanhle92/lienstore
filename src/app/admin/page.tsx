@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { ADMIN_MODULES } from "@/lib/permissions";
 import { getOrders, getStats } from "@/lib/db";
 import { formatCompactVnd, formatDateTime, formatPrice } from "@/lib/format";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,7 @@ export default async function AdminDashboard({ searchParams }: DashboardProps) {
           <p className="text-[14px] text-lien-muted">Chưa có đơn hàng nào.</p>
         ) : (
           <div className="overflow-x-auto">
+            <SheetTable id="dashboard">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -149,6 +151,7 @@ export default async function AdminDashboard({ searchParams }: DashboardProps) {
                 ))}
               </tbody>
             </table>
+            </SheetTable>
           </div>
         )}
       </Card>

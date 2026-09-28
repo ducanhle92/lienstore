@@ -6,6 +6,7 @@ import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHead
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getSearchSuggestions, guessedBrands, searchLists, topSearchTerms } from "@/lib/search-suggest";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function SearchSuggestAdmin({ searchParams }: Props) {
                 <Fa name="eye" /> Hiện
               </button>
             </BulkBar>
+            <SheetTable id="search-terms">
             <table className={tableClass} data-testid="top-terms">
               <thead>
                 <tr>
@@ -106,6 +108,7 @@ export default async function SearchSuggestAdmin({ searchParams }: Props) {
                 ))}
               </tbody>
             </table>
+            </SheetTable>
           </>
         )}
       </Card>

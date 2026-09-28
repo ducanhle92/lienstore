@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
@@ -62,8 +62,19 @@ const valuesOf = (el: HTMLElement, col: string) => (el.getAttribute(`data-v-${co
 const rowsOf = (id: string) => Array.from(document.querySelectorAll<HTMLElement>(`[data-sheet="${id}"] [data-sheet-row]`));
 const collator = new Intl.Collator("vi", { numeric: true, sensitivity: "base" });
 
+/** Auto sheets (<SheetTable>) re-read their cells before each apply — the server may have re-rendered the rows. */
+const annotators = new Map<string, () => void>();
+export function registerAnnotator(id: string, fn: (() => void) | null) {
+  if (fn) annotators.set(id, fn);
+  else annotators.delete(id);
+}
+
+/** Rows that belong to a row (a group spanning several <tr>: rowspan cells, or a product with its bill lines). */
+const membersOf = (id: string, r: HTMLElement) => (r.dataset.sheetG ? Array.from(document.querySelectorAll<HTMLElement>(`[data-sheet="${id}"] [data-sheet-member="${r.dataset.sheetG}"]`)) : []);
+
 /** Show / hide and order the rows of a sheet from its state. */
 export function applySheet(id: string) {
+  annotators.get(id)?.();
   const st = getState(id);
   const rows = rowsOf(id);
   rows.forEach((r, i) => {
@@ -77,23 +88,30 @@ export function applySheet(id: string) {
       return vs.length ? vs.some((v) => set.has(v)) : set.has("(trống)");
     });
     r.hidden = !ok;
+    for (const m of membersOf(id, r)) m.hidden = !ok;
     if (ok) shown++;
   }
-  // order: the chosen column, else the server's order
+  // order: the chosen column, else the server's order (a group moves with its members)
   const parent = rows[0]?.parentElement;
-  if (parent) {
+  if (parent && rows.every((r) => r.parentElement === parent)) {
     const key = (r: HTMLElement) => (st.sort ? (r.getAttribute(`data-s-${st.sort.col}`) ?? valuesOf(r, st.sort.col)[0] ?? "") : "");
     const sorted = [...rows].sort((a, b) => {
       if (st.sort) {
         const ka = key(a);
         const kb = key(b);
-        const c = st.sort.kind === "number" ? Number(ka) - Number(kb) : collator.compare(ka, kb);
+        const c = st.sort.kind === "number" ? Number(ka || 0) - Number(kb || 0) : collator.compare(ka, kb);
         if (c) return c * st.sort.dir;
       }
       return Number(a.dataset.sheetI) - Number(b.dataset.sheetI);
     });
     const now = Array.from(parent.children).filter((c) => (c as HTMLElement).hasAttribute("data-sheet-row"));
-    if (sorted.some((r, i) => now[i] !== r)) for (const r of sorted) parent.appendChild(r);
+    if (sorted.some((r, i) => now[i] !== r)) {
+      for (const r of sorted) {
+        const members = membersOf(id, r);
+        parent.appendChild(r);
+        for (const m of members) parent.appendChild(m);
+      }
+    }
   }
   const info = document.querySelector<HTMLElement>(`[data-sheet-info="${id}"]`);
   if (info) info.dataset.shown = String(shown);
@@ -103,7 +121,7 @@ export function applySheet(id: string) {
 const SORT_LABEL: Record<Kind, [string, string]> = { text: ["A → Z", "Z → A"], number: ["Nhỏ → lớn", "Lớn → nhỏ"], date: ["Cũ → mới", "Mới → cũ"] };
 
 /** The ▾ of one column header: sort, search, tick the values to keep. */
-export function ColumnFilter({ sheet, col, kind = "text", label }: { sheet: string; col: string; kind?: Kind; label: string }) {
+export function ColumnFilter({ sheet, col, kind = "text", label, auto = false }: { sheet: string; col: string; kind?: Kind; label: string; /** Inside <SheetTable>, which watches the rows itself. */ auto?: boolean }) {
   const st = useSheetState(sheet);
   // the ▾ that opened the menu (null = closed)
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -112,6 +130,7 @@ export function ColumnFilter({ sheet, col, kind = "text", label }: { sheet: stri
 
   // re-apply when the server re-renders the rows (new / changed orders keep the current filter)
   useEffect(() => {
+    if (auto) return;
     const root = document.querySelector(`[data-sheet="${sheet}"]`);
     applySheet(sheet);
     if (!root) return;
@@ -126,7 +145,7 @@ export function ColumnFilter({ sheet, col, kind = "text", label }: { sheet: stri
       cancelAnimationFrame(frame);
       mo.disconnect();
     };
-  }, [sheet]);
+  }, [sheet, auto]);
 
   return (
     <>
@@ -152,10 +171,10 @@ export function ColumnFilter({ sheet, col, kind = "text", label }: { sheet: stri
 function Menu({ sheet, col, kind, label, anchor, onClose }: { sheet: string; col: string; kind: Kind; label: string; anchor: HTMLElement; onClose: () => void }) {
   const st = getState(sheet);
   const box = useRef<HTMLDivElement>(null);
-  // placed once under the ▾ (the menu closes on scroll, so it never has to follow)
+  // placed under the ▾ in page coordinates, so it scrolls with the page (the table stays next to it)
   const [pos] = useState(() => {
     const r = anchor.getBoundingClientRect();
-    return { left: Math.max(8, Math.min(r.left, window.innerWidth - 288)), top: r.bottom + 4 };
+    return { left: Math.max(8, Math.min(r.left, window.innerWidth - 288)) + window.scrollX, top: r.bottom + 4 + window.scrollY };
   });
   const [q, setQ] = useState("");
   // distinct values of the column with how many rows have them (among rows the OTHER filters let through)
@@ -177,21 +196,25 @@ function Menu({ sheet, col, kind, label, anchor, onClose }: { sheet: string; col
   const fold = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
   const visible = values.filter(([v]) => !q || fold(v).includes(fold(q)));
 
+  // not enough room under the ▾ (the fixed bottom bar counts) → open upwards; measured once it is on screen
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const r = anchor.getBoundingClientRect();
+    const bar = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--admin-bar-h")) || 0;
+    const room = window.innerHeight - bar - 8;
+    if (r.bottom + 4 + el.offsetHeight > room) el.style.top = `${Math.max(8, Math.min(r.top - el.offsetHeight - 4, room - el.offsetHeight)) + window.scrollY}px`;
+  }, [anchor]);
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (box.current && !box.current.contains(e.target as Node) && !anchor.contains(e.target as Node)) onClose();
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    const onScroll = (e: Event) => {
-      if (!box.current?.contains(e.target as Node)) onClose();
-    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onScroll, true);
     };
   }, [anchor, onClose]);
 
@@ -219,7 +242,7 @@ function Menu({ sheet, col, kind, label, anchor, onClose }: { sheet: string; col
   };
   const [asc, desc] = SORT_LABEL[kind];
   return createPortal(
-    <div ref={box} role="dialog" aria-label={`Lọc cột ${label}`} className="fixed z-[80] w-[280px] rounded-md border border-[#d1d5db] bg-white p-2 text-[13px] font-normal normal-case tracking-normal text-lien-text shadow-xl" style={{ left: pos.left, top: pos.top }} data-testid={`colf-menu-${col}`}>
+    <div ref={box} role="dialog" aria-label={`Lọc cột ${label}`} className="absolute z-[80] w-[280px] rounded-md border border-[#d1d5db] bg-white p-2 text-[13px] font-normal normal-case tracking-normal text-lien-text shadow-xl" style={{ left: pos.left, top: pos.top }} data-testid={`colf-menu-${col}`}>
       <div className="mb-2 grid grid-cols-2 gap-1">
         <button type="button" onClick={() => sortBy(1)} className={cn("rounded border px-2 py-1 text-left hover:border-lien-blue", st.sort?.col === col && st.sort.dir === 1 ? "border-lien-blue bg-lien-blue-soft" : "border-[#e5e7eb]")}>
           ↑ {asc}

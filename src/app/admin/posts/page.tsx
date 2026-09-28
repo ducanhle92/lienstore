@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllPosts } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function AdminPosts({ searchParams }: Props) {
           </ConfirmSubmit>
         </BulkBar>
         <ResizableTable id="posts">
+          <SheetTable id="posts">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -140,6 +142,7 @@ export default async function AdminPosts({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </ResizableTable>
       </Card>
     </>

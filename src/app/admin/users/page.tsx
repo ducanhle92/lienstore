@@ -8,6 +8,7 @@ import { listCustomers } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { ADMIN_MODULES, ROLE_LABELS, type UserRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,7 @@ export default async function AdminUsers({ searchParams }: Props) {
             </button>
           </form>
           <div className="overflow-x-auto">
+            <SheetTable id="users">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -116,6 +118,7 @@ export default async function AdminUsers({ searchParams }: Props) {
                 ) : null}
               </tbody>
             </table>
+            </SheetTable>
           </div>
         </Card>
 

@@ -13,6 +13,7 @@ import { BulkBar } from "./BulkBar";
 import { LotPicker } from "./LotPicker";
 import { TableSelectAll } from "./TableSelectAll";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 export interface LotsFilter {
   q: string;
@@ -249,6 +250,7 @@ function Tile({ label, value, accent }: { label: string; value: string; accent: 
 function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: PurchaseSource[]; scope: string; formId: string | null }) {
   return (
     <div className="overflow-x-auto">
+      <SheetTable id={`lots-${scope}`}>
       <table className={tableClass}>
         <thead>
           <tr>
@@ -361,6 +363,7 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
           })}
         </tbody>
       </table>
+      </SheetTable>
     </div>
   );
 }

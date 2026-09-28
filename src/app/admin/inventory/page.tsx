@@ -27,6 +27,7 @@ import { OrdersStockPanel } from "@/components/sites/lienstore/admin/OrdersStock
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getPurchaseLines } from "@/lib/db";
 import { getDb } from "@/lib/sqlite";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -231,6 +232,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         </BulkBar>
 
         <ResizableTable id="inventory">
+          <SheetTable id="inventory">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -269,6 +271,7 @@ export default async function AdminInventory({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </ResizableTable>
       </Card>
     </>

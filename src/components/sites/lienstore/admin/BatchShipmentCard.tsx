@@ -6,6 +6,7 @@ import { IMPORT_LEGS, LEG_LABEL } from "@/lib/shipping";
 import type { ShipmentBatch, ShippingMethod } from "@/types/shop";
 import { BulkBar } from "./BulkBar";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 export const BATCH_FORM_ID = "batch-form";
 
@@ -56,6 +57,7 @@ export function BatchShipmentCard({ methods, batches, defaultMethodIds }: { meth
       </BulkBar>
       {batches.length ? (
         <div className="mt-4 overflow-x-auto">
+          <SheetTable id="ship-batches">
           <table className="w-full border-collapse text-left text-[13px]">
             <thead>
               <tr className="text-[11px] font-bold uppercase tracking-wide text-lien-muted">
@@ -106,6 +108,7 @@ export function BatchShipmentCard({ methods, batches, defaultMethodIds }: { meth
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       ) : (
         <p className="mt-3 text-[13px] text-lien-muted">Chưa có lô nào.</p>

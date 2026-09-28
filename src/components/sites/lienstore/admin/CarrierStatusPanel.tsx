@@ -10,6 +10,7 @@ import { viettelCredentials, viettelTokenStored } from "@/lib/carriers/viettel";
 import { disabledCarriers, warehouseAddress } from "@/lib/ship-quote";
 import { VN_ADDRESS_VERSION } from "@/lib/vn-address";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 const ROWS: Array<{ code: CarrierCode; how: string; configured: () => boolean; source: string }> = [
   { code: "GHN", how: "API GHN (data.total quyết định; không cộng thêm xăng dầu/COD). Cần GHN_TOKEN + GHN_SHOP_ID trên máy chủ.", configured: ghnConfigured, source: "live_api" },
@@ -208,6 +209,7 @@ export function CarrierStatusPanel() {
         Khách nhập <strong>tỉnh/thành → xã/phường → số nhà</strong> (danh mục {VN_ADDRESS_VERSION}, 34 tỉnh) rồi mới thấy thẻ báo giá của từng hãng cho kiện hàng đã đóng gói. Báo giá lại khi vào thanh toán và lần nữa khi tạo đơn; cache tối đa 10 phút. Các bảng vùng bên dưới chỉ còn dùng làm nhãn/ghi chú, <strong>không</strong> dùng để thu tiền. Kho gửi: {wh.fullAddress}.
       </p>
       <form action={saveCarrierTogglesAction}>
+        <SheetTable id="carriers">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
@@ -248,6 +250,7 @@ export function CarrierStatusPanel() {
             })}
           </tbody>
         </table>
+        </SheetTable>
         <div className="mt-3 flex items-center gap-3">
           <button type="submit" className={btnPrimary}>
             <Fa name="check" /> Lưu lựa chọn hãng

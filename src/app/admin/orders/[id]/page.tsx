@@ -23,6 +23,7 @@ import { getDb, getSetting } from "@/lib/sqlite";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { FILES_URL_PREFIX, formatBytes, orderFileToken } from "@/lib/uploads";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </span>
             }
           >
+            <SheetTable id="order-items">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -235,6 +237,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 </tr>
               </tfoot>
             </table>
+            </SheetTable>
           </Card>
 
 

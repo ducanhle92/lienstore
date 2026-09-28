@@ -11,6 +11,7 @@ import { getReviewsForAdmin } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { maskReviewer } from "@/lib/reviews";
 import type { ProductReview } from "@/types/shop";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,7 @@ export default async function AdminReviews({ searchParams }: Props) {
           <>
           <ReviewsBulk id="reviews-pending-bulk" label="chờ duyệt" />
           <div className="overflow-x-auto">
+            <SheetTable id="reviews-pending">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -133,6 +135,7 @@ export default async function AdminReviews({ searchParams }: Props) {
               </thead>
               <tbody>{pending.map((r) => <Row key={r.id} r={r} bulk="reviews-pending-bulk" />)}</tbody>
             </table>
+            </SheetTable>
           </div>
           </>
         ) : (
@@ -144,6 +147,7 @@ export default async function AdminReviews({ searchParams }: Props) {
           <>
           <ReviewsBulk id="reviews-handled-bulk" label="đã xử lý" />
           <div className="overflow-x-auto">
+            <SheetTable id="reviews-handled">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -158,6 +162,7 @@ export default async function AdminReviews({ searchParams }: Props) {
               </thead>
               <tbody>{rest.map((r) => <Row key={r.id} r={r} bulk="reviews-handled-bulk" />)}</tbody>
             </table>
+            </SheetTable>
           </div>
           </>
         ) : (

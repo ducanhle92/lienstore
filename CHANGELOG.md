@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Lọc / sắp xếp kiểu Excel ở mọi bảng admin** (như Hàng theo đơn): nút ▾ ở tiêu đề từng cột — sắp xếp tăng / giảm (tự nhận cột số, ngày, chữ), ô tìm, tick chọn giá trị kèm số dòng, Bỏ lọc cột; dòng “Đang lọc n / m · Bỏ lọc & sắp xếp” khi đang lọc; nhớ theo tab trình duyệt và giữ nguyên khi lưu thay đổi. Áp dụng: Tổng quan, Đơn hàng (danh sách + sản phẩm của đơn), Tồn kho (theo sản phẩm, Kho Nhật / VN, hàng của sản phẩm), Quản lý mua hàng (mua theo đợt — lọc theo cả sản phẩm cùng các dòng bill / mã, hàng lưu kho, bill), Đóng hàng JP (chuyến, hàng để đóng), Vận chuyển JP-VN, Giao hàng VN, Vận chuyển (4 chặng, sheet từng chặng, lô gom), Sản phẩm, Nhóm biến thể, Công thức giá, Nguồn mua, Bài viết, Fanpage, Đánh giá, Giảm giá, Flash Sales, Nhãn, Tìm kiếm, Người dùng, Khách hàng, Kế toán, Thanh toán, khoá API, hãng vận chuyển.
+- Các ô bộ lọc / nút lọc sẵn có phía trên bảng vẫn giữ (lọc trên máy chủ, ví dụ theo ngày).
+
 ## [1.96.0] - 2026-09-28
 
 ### Changed

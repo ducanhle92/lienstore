@@ -13,6 +13,7 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getProductGroupById, listProductGroups } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,7 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
               </BulkBar>
             ) : null}
             <div className="overflow-x-auto">
+              <SheetTable id="group-members">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -196,6 +198,7 @@ export default async function AdminProductGroup({ params, searchParams }: Props)
                   ) : null}
                 </tbody>
               </table>
+              </SheetTable>
             </div>
             {members.length ? (
               <button type="submit" form="bulk-variants" className={`${btnPrimary} mt-3`}>

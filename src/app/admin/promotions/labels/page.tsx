@@ -13,6 +13,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getProductLabels, getUnitsSold } from "@/lib/db";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +109,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                             <Fa name="times" /> Gỡ nhãn
                           </ConfirmSubmit>
                         </BulkBar>
+                        <SheetTable id={`label-${l.id}`}>
                         <table className={tableClass}>
                           <thead>
                             <tr>
@@ -158,6 +160,7 @@ export default async function ProductLabelsAdmin({ searchParams }: Props) {
                             ))}
                           </tbody>
                         </table>
+                        </SheetTable>
                       </>
                     ) : (
                       <p className="m-0 text-[13px] text-lien-muted">Chưa có sản phẩm nào gắn nhãn này.</p>

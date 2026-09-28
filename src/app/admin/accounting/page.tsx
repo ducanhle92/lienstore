@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { getInventory } from "@/lib/inventory";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
 
       <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_380px]">
         <Card title="Theo tháng">
+          <SheetTable id="acc-months">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -142,6 +144,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
               ) : null}
             </tbody>
           </table>
+          </SheetTable>
         </Card>
         <Card title="Vốn tồn kho (hiện tại)">
           <dl className="m-0 grid grid-cols-[1fr_auto] gap-y-2 text-[13px] leading-6">
@@ -174,6 +177,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
 
       <Card title={`Theo đơn (${rows.length})`}>
         <div className="overflow-x-auto">
+          <SheetTable id="acc-orders">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -224,6 +228,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
               ) : null}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>

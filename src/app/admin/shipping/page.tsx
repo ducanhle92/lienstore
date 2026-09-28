@@ -22,6 +22,7 @@ import { formatAmount } from "@/lib/format";
 import { describeMethodFormula, isJpSubLeg, isShippingLeg, JP_SUB_LEG_LABEL, JP_SUB_LEGS, type JpSubLeg, LEG_LABEL, SHIPPING_LEGS, type ShippingLeg } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 import type { ShippingCarrier, ShippingMethod, ShippingZone } from "@/types/shop";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -579,6 +580,7 @@ export default async function AdminShipping({ searchParams }: Props) {
           }
         >
           <div className="overflow-x-auto">
+            <SheetTable id="ship-orders">
             <table className="w-full border-collapse text-left text-[13px]">
               <thead>
                 <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -639,6 +641,7 @@ export default async function AdminShipping({ searchParams }: Props) {
                 ) : null}
               </tbody>
             </table>
+            </SheetTable>
           </div>
         </Card>
         </>
@@ -782,6 +785,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
         </button>
       </BulkBar>
       <div className="overflow-x-auto">
+        <SheetTable id={`leg-${leg}`}>
         <table className="w-full border-collapse text-left text-[13px]">
           <thead>
             <tr className="text-[12px] font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -862,6 +866,7 @@ function LegShipmentsCard({ leg, orders, legMap, eventMap, filter }: { leg: Ship
             ) : null}
           </tbody>
         </table>
+        </SheetTable>
       </div>
     </Card>
   );

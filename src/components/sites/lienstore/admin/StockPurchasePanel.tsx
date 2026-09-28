@@ -11,6 +11,7 @@ import { TableSelectAll } from "./TableSelectAll";
 import { BulkBar } from "./BulkBar";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 /** Where stock bought without an order can be (dự định mua → đặt online → … → Kho VN). */
 const STOCK_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) <= purchaseIndex("at_shop"));
@@ -63,6 +64,7 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
           {groups.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có hàng lưu kho.</p> : null}
           {groups.length ? (
             <div className="overflow-x-auto" data-select-scope={formId}>
+              <SheetTable id="stock-purchase">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -117,6 +119,7 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
                   })}
                 </tbody>
               </table>
+              </SheetTable>
             </div>
           ) : null}
         </Card>

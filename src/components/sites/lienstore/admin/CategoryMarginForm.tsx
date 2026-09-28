@@ -7,6 +7,7 @@ import { ConfirmSubmit } from "./ConfirmSubmit";
 import { TableSelectAll } from "./TableSelectAll";
 import { BulkBar } from "./BulkBar";
 import { adminInput, adminLabel, btnDanger, btnPrimary } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 interface Cat {
   slug: string;
@@ -86,6 +87,7 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
               <Fa name="close" /> Bỏ
             </ConfirmSubmit>
           </BulkBar>
+          <SheetTable id="category-margins">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-[#f9fafb] text-left text-[11px] font-bold uppercase tracking-wide text-lien-muted">
@@ -126,6 +128,7 @@ export function CategoryMarginForm({ categories, overrides, defaultPct }: { cate
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       ) : null}
     </div>

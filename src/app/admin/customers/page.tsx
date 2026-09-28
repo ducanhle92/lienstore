@@ -3,6 +3,7 @@ import { adminInput, btnPrimary, Card, PageHeader, tableClass, tdClass, thClass 
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerOverview } from "@/lib/db";
 import { formatDateTime, formatPrice } from "@/lib/format";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
           </button>
         </form>
         <div className="overflow-x-auto">
+          <SheetTable id="customers">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -92,6 +94,7 @@ export default async function AdminCustomers({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>

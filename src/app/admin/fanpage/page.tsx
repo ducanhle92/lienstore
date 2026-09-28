@@ -14,6 +14,7 @@ import { type FanpagePostStatus, getFanpageConfig, getFanpagePost, listFanpagePo
 import { formatDateTime } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
               </ConfirmSubmit>
             </BulkBar>
             <div className="overflow-x-auto">
+              <SheetTable id="fanpage">
               <table className={tableClass}>
                 <thead>
                   <tr>
@@ -235,6 +237,7 @@ export default async function AdminFanpage({ searchParams }: Props) {
                   ) : null}
                 </tbody>
               </table>
+              </SheetTable>
             </div>
           </Card>
         </div>

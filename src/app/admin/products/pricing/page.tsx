@@ -13,6 +13,7 @@ import { formatAmount, formatPrice } from "@/lib/format";
 import { MARGIN_RANGE, suggestPrice } from "@/lib/pricing";
 import { IMPORT_LEGS, LEG_LABEL } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -204,6 +205,7 @@ export default async function AdminPricing({ searchParams }: Props) {
         }
       >
         <div className="overflow-x-auto">
+          <SheetTable id="pricing">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -256,6 +258,7 @@ export default async function AdminPricing({ searchParams }: Props) {
               })}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>

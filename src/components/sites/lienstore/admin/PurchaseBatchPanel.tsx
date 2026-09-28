@@ -23,6 +23,7 @@ import { BulkOpButton } from "./BulkOpButton";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 interface Props {
   batches: PurchaseBatch[];
@@ -373,6 +374,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
 
         <BatchTree batchId={b.id} sources={filterSources} statuses={filterStatuses} orders={filterOrders} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
         <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>
+          <SheetTable id={`batch-${b.id}`}>
           <table className={cn(tableClass, "max-lg:block")}>
             <thead className="max-lg:hidden">
               <tr>
@@ -411,7 +413,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                 </tr>
               ) : null}
               {rows}
-              <tr className="hidden bg-[#fffbeb] align-top [&:not(.hidden)]:max-lg:block" data-add-row={b.id} data-testid={`add-row-${b.id}`}>
+              <tr className="hidden bg-[#fffbeb] align-top [&:not(.hidden)]:max-lg:block" data-add-row={b.id} data-sheet-ignore data-testid={`add-row-${b.id}`}>
                 <td className={cn(tdClass, TD, STICKY_L, "w-8 !bg-[#fffbeb]")} />
                 <td className={cn(tdClass, TD, "min-w-[220px]")}>
                   <span className="mb-1 block text-[11px] font-semibold uppercase text-lien-muted">Sản phẩm đã mua</span>
@@ -486,6 +488,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
               </tfoot>
             ) : null}
           </table>
+          </SheetTable>
         </div>
         </BatchBody>
       </Card>
@@ -640,13 +643,24 @@ const Toggle = ({ label }: { label: string }) => (
 );
 
 /** Tầng 1 — one product of the batch: every unit of it summed (SL, places, dates, ¥), bill lines below. */
-function ProductRow({ pid, n, units, idx, b, searchOf }: { pid: number; n: { name: string; sku: string | null; thumb: string; groupCode: string; lines: Map<string, UnitView[]>; needs: PurchaseBatchLine[] }; units: UnitView[]; idx: number } & Ctx) {
+function ProductRow({ pid, n, units, idx, b, searchOf, sources }: { pid: number; n: { name: string; sku: string | null; thumb: string; groupCode: string; lines: Map<string, UnitView[]>; needs: PurchaseBatchLine[] }; units: UnitView[]; idx: number } & Ctx) {
   const need = n.needs.reduce((k, l) => k + l.need, 0);
   const heldN = units.filter((u) => u.itemId).length;
   const bills = new Set(units.map((u) => u.receiptCode).filter(Boolean));
   const slow = units.length ? units.reduce((m, u) => (purchaseIndex(u.status) < purchaseIndex(m) ? u.status : m), units[0].status) : ("not_bought" as PurchaseStatus);
+  // clean values for the column filter (▾) of the whole product: every status / store / bill / order of its units
+  const uniq = (xs: Array<string | null | undefined>) => [...new Set(xs.filter((x): x is string => !!x))].join("|");
+  const minOf = (xs: Array<string | number | null>) => xs.filter((x) => x !== null && x !== "").sort()[0] ?? "";
+  const fv = {
+    status: uniq([...units.map((u) => PURCHASE_STAGES[purchaseIndex(u.status)].label), need ? PURCHASE_STAGES[0].label : null]),
+    src: uniq([...units.map((u) => purchaseSourceName(u.sourceKey, sources)), ...n.needs.map((l) => (l.sourceKey ? purchaseSourceName(l.sourceKey, sources) : null))]),
+    bill: uniq([...units.map((u) => u.receiptCode || "chưa có bill"), ...units.map((u) => (u.orderNumber ? `#${u.orderNumber}` : "lưu kho")), ...n.needs.map((l) => `#${l.orderNumber}`)]),
+    expiry: uniq(units.map((u) => (u.expiry ? formatDate(u.expiry) : "—"))),
+    bought: uniq(units.map((u) => (u.boughtAt ? formatDate(u.boughtAt) : "—"))),
+  };
+  const minJpy = units.map((u) => u.unitCostJpy).filter((x): x is number => x !== null).sort((a, z) => a - z)[0];
   return (
-    <tr className="group border-t-2 border-[#e5e7eb] bg-[#f8fafc] align-top max-lg:block max-lg:rounded-md max-lg:border max-lg:p-3" data-lvl="p" data-p={pid} data-open="1" data-idx={idx} data-name={n.name} data-qty={units.length + need} data-statusidx={purchaseIndex(slow)} data-expiry={units.map((u) => u.expiry ?? "").filter(Boolean).sort()[0] ?? ""} data-bought={units.map((u) => u.boughtAt ?? "").filter(Boolean).sort()[0] ?? ""} data-unit={units.find((u) => u.unitCostJpy)?.unitCostJpy ?? ""} data-srcname={units[0] ? units[0].sourceKey : ""} data-bill={[...bills][0] ?? ""} data-testid={`bprod-${b.id}-${pid}`}>
+    <tr className="group border-t-2 border-[#e5e7eb] bg-[#f8fafc] align-top max-lg:block max-lg:rounded-md max-lg:border max-lg:p-3" data-lvl="p" data-sheet-start data-p={pid} data-open="1" data-idx={idx} data-name={n.name} data-qty={units.length + need} data-statusidx={purchaseIndex(slow)} data-expiry={units.map((u) => u.expiry ?? "").filter(Boolean).sort()[0] ?? ""} data-bought={units.map((u) => u.boughtAt ?? "").filter(Boolean).sort()[0] ?? ""} data-unit={units.find((u) => u.unitCostJpy)?.unitCostJpy ?? ""} data-srcname={units[0] ? units[0].sourceKey : ""} data-bill={[...bills][0] ?? ""} data-testid={`bprod-${b.id}-${pid}`}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" data-tick={`p:${pid}`} className="h-4 w-4" aria-label={`Chọn mọi cái của ${n.name}`} title="Chọn mọi cái của sản phẩm (đang hiện)" />
       </td>
@@ -670,22 +684,22 @@ function ProductRow({ pid, n, units, idx, b, searchOf }: { pid: number; n: { nam
         <span data-shown>{units.length}</span>
         {need ? <span className="block text-[11px] font-semibold text-lien-heart">+{need} cần mua</span> : null}
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="¥/đv">
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="¥/đv" data-s={minJpy ?? ""}>
         {jpyRange(units.map((u) => u.unitCostJpy))}
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="HSD">
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="HSD" data-v={fv.expiry} data-s={minOf(units.map((u) => u.expiry))}>
         {expRange(units.map((u) => u.expiry))}
       </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
+      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái" data-v={fv.status} data-s={purchaseIndex(slow)}>
         <StatusChips units={units} />
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="Ngày mua">
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="Ngày mua" data-v={fv.bought} data-s={minOf(units.map((u) => u.boughtAt))}>
         {expRange(units.map((u) => u.boughtAt))}
       </td>
-      <td className={cn(tdClass, TD, LBL, "text-[12px]")} data-label="Mua ở">
+      <td className={cn(tdClass, TD, LBL, "text-[12px]")} data-label="Mua ở" data-v={fv.src}>
         {Array.from(new Set(units.map((u) => u.sourceKey))).length} nơi
       </td>
-      <td className={cn(tdClass, TD, LBL, "text-[12px] text-lien-muted")} data-label="Bill">
+      <td className={cn(tdClass, TD, LBL, "text-[12px] text-lien-muted")} data-label="Bill" data-v={fv.bill}>
         {bills.size} bill · giữ cho đơn {heldN} · lưu kho {units.length - heldN}
       </td>
     </tr>

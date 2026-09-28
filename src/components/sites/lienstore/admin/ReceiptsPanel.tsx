@@ -14,6 +14,7 @@ import { ConfirmSubmit } from "./ConfirmSubmit";
 import { InfoPopover } from "./InfoPopover";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { SheetTable } from "./SheetTable";
 
 interface Props {
   receipts: Receipt[];
@@ -120,6 +121,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                         <input type="radio" name="received" value="0" defaultChecked={sources.find((s) => s.key === r.sourceKey)?.kind === "website"} className="h-4 w-4" /> Đã đặt mua online → chờ nhận
                       </label>
                     </div>
+                    <SheetTable id={`receipt-confirm-${r.id}`}>
                     <table className={tableClass}>
                       <thead>
                         <tr>
@@ -146,12 +148,14 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                         ))}
                       </tbody>
                     </table>
+                    </SheetTable>
                     <button type="submit" className={`${btnPrimary} mt-3`}>
                       Xác nhận phiếu mua
                     </button>
                   </form>
                 ) : (
                   <div className="mb-4 overflow-x-auto">
+                    <SheetTable id={`receipt-${r.id}`}>
                     <table className={tableClass}>
                       <thead>
                         <tr>
@@ -198,6 +202,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                         })}
                       </tbody>
                     </table>
+                    </SheetTable>
                   </div>
                 )}
                 <form action={updateReceiptAction} className="grid gap-2 border-t border-[#e5e7eb] pt-3 sm:grid-cols-3 lg:grid-cols-6" id={fid}>{tabField}

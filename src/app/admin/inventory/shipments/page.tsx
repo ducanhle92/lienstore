@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import type { PurchaseSource } from "@/types/shop";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +166,7 @@ function TransitTable({ title, groups, withRun = false, testId }: { title: strin
   return (
     <Card title={title}>
       <div className="overflow-x-auto">
+        <SheetTable id={`transit-${testId}`}>
         <table className={tableClass} data-testid={testId}>
           <thead>
             <tr>
@@ -212,6 +214,7 @@ function TransitTable({ title, groups, withRun = false, testId }: { title: strin
             ))}
           </tbody>
         </table>
+        </SheetTable>
       </div>
     </Card>
   );
@@ -308,6 +311,7 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar, multi = false }: {
           </>
         ) : null}
         <div className="overflow-x-auto">
+          <SheetTable id={`run-${s.id}`}>
           <table className={tableClass}>
             <thead>
               <tr>
@@ -399,6 +403,7 @@ function ShipmentCard({ s, sources, pick, pickSources, inBar, multi = false }: {
               </tfoot>
             ) : null}
           </table>
+          </SheetTable>
         </div>
 
         {editable && pick ? (
@@ -561,6 +566,7 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
 function CandTable({ rows, pkId, sources, checked, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; checked: boolean; empty: string }) {
   return (
     <div className="overflow-x-auto">
+      <SheetTable id={`${pkId}-${checked ? "orders" : "stock"}`}>
       <table className={tableClass}>
         <thead>
           <tr>
@@ -628,6 +634,7 @@ function CandTable({ rows, pkId, sources, checked, empty }: { rows: PackCandidat
           ))}
         </tbody>
       </table>
+      </SheetTable>
     </div>
   );
 }

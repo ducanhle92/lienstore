@@ -8,6 +8,7 @@ import { formatAmount, formatDateTime } from "@/lib/format";
 import { listPaymentEvents, sepayApiKey } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import type { PaymentEvent } from "@/types/shop";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export default async function AdminPayments({ searchParams }: Props) {
 
       <Card title={`Giao dịch đã nhận (${events.length} gần nhất)`}>
         <div className="overflow-x-auto">
+          <SheetTable id="payments">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -174,6 +176,7 @@ export default async function AdminPayments({ searchParams }: Props) {
               ) : null}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>

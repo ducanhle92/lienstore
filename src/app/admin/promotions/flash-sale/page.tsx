@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getFlashSaleItems, isFlashSaleItemActive, isFlashSaleTimeUnset } from "@/lib/db";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,7 @@ export default async function AdminFlashSale({ searchParams }: Props) {
           </ConfirmSubmit>
         </BulkBar>
         <div className="overflow-x-auto">
+          <SheetTable id="flash-sale">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -181,6 +183,7 @@ export default async function AdminFlashSale({ searchParams }: Props) {
               ) : null}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>

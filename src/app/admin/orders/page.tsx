@@ -16,6 +16,7 @@ import type { OrderStatus } from "@/types/shop";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { getDb } from "@/lib/sqlite";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,7 @@ export default async function AdminOrders({ searchParams }: Props) {
             </>
           ) : null}
           <ResizableTable id="orders">
+            <SheetTable id="orders">
             <table className={tableClass}>
               <thead>
                 <tr>
@@ -244,6 +246,7 @@ export default async function AdminOrders({ searchParams }: Props) {
                 </tr>
               </tfoot>
             </table>
+            </SheetTable>
           </ResizableTable>
           </>
         )}

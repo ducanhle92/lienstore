@@ -15,6 +15,7 @@ import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPri
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { suggestPrice } from "@/lib/pricing";
 import { formatDate, formatPrice } from "@/lib/format";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +171,7 @@ export default async function AdminProducts({ searchParams }: Props) {
           </button>
         </BulkBar>
         <ResizableTable id="products">
+          <SheetTable id="products">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -311,6 +313,7 @@ export default async function AdminProducts({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
+          </SheetTable>
         </ResizableTable>
       </Card>
     </>

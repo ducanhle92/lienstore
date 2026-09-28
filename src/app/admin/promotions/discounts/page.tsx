@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts } from "@/lib/db";
 import { formatAmount, formatPrice } from "@/lib/format";
 import { isPromoActive, priceView } from "@/lib/price-display";
+import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
           </ConfirmSubmit>
         </BulkBar>
         <div className="overflow-x-auto">
+          <SheetTable id="discounts">
           <table className={tableClass}>
             <thead>
               <tr>
@@ -135,6 +137,7 @@ export default async function AdminDiscounts({ searchParams }: Props) {
               ) : null}
             </tbody>
           </table>
+          </SheetTable>
         </div>
       </Card>
     </>
