@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { bulkMinStockAction, importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
-import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -23,9 +23,6 @@ import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { listOrdersReadyToShip, listStockGroups } from "@/lib/lots-db";
 import { listOpenShipments } from "@/lib/shipments-db";
-import { OrdersStockPanel } from "@/components/sites/lienstore/admin/OrdersStockPanel";
-import { listAllocationViews } from "@/lib/allocations-db";
-import { getPurchaseLines } from "@/lib/db";
 import { getDb } from "@/lib/sqlite";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
@@ -65,24 +62,17 @@ export default async function AdminInventory({ searchParams }: Props) {
   const [{ lines, summary }, categories, sources] = await Promise.all([getInventory(), getCategories(), listPurchaseSources(true)]);
   // Kho hàng by lot (default): two sides, FEFO; the product table stays under ?view=products
   const view = first(sp.view) === "products" ? "products" : "lots";
-  const side: "jp" | "vn" | "orders" = first(sp.side) === "jp" ? "jp" : first(sp.side) === "orders" ? "orders" : "vn";
+  // ?side=orders (old "Hàng theo đơn") now lives on the orders page
+  if (first(sp.side) === "orders") redirect("/admin/orders/?view=stock");
+  const side: "jp" | "vn" = first(sp.side) === "jp" ? "jp" : "vn";
   const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: first(sp.mode) === "orders" ? "orders" : first(sp.mode) === "free" ? "free" : "" };
   // every unit in hand (Kho Nhật → Kho VN) as bill lines × place × packing run
   const allGroups = view === "lots" ? listStockGroups(getDb(), { statuses: ["bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] }) : [];
   const flyingUnits = allGroups.filter((g) => g.status === "shipped_jp_vn").reduce((n, g) => n + g.qty, 0);
   const openShipments = view === "lots" && side === "jp" ? listOpenShipments() : [];
-  const lotSide: "jp" | "vn" = side === "jp" ? "jp" : "vn";
+  const lotSide: "jp" | "vn" = side;
 
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
-  // Hàng theo đơn: every open order's lines with where the goods are right now
-  const orderLines = view === "lots" && side === "orders" ? await getPurchaseLines(false) : [];
-  const orderAllocs = orderLines.length ? listAllocationViews(getDb(), orderLines.map((l) => l.itemId)) : [];
-  const stageByOrder = new Map<string, string>();
-  if (orderLines.length) {
-    const ids = Array.from(new Set(orderLines.map((l) => l.orderId)));
-    for (const r of getDb().prepare(`SELECT id, ship_stage FROM orders WHERE id IN (${ids.map(() => "?").join(",")})`).all(...ids) as Array<{ id: string; ship_stage: string }>) stageByOrder.set(r.id, r.ship_stage);
-  }
-  const openOrderCount = view === "lots" ? (getDb().prepare("SELECT COUNT(*) AS n FROM orders WHERE status IN ('pending','processing')").get() as { n: number }).n : 0;
   const lotsBack = `/admin/inventory/?side=${lotSide}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
   const jpUnits = allGroups.filter((g) => g.status === "bought").reduce((n, g) => n + g.qty, 0);
   const vnUnits = allGroups.filter((g) => g.status === "at_shop").reduce((n, g) => n + g.qty, 0);
@@ -96,9 +86,9 @@ export default async function AdminInventory({ searchParams }: Props) {
 
   return (
     <>
-      {view === "lots" ? <FlowSteps current={side === "jp" ? "jp" : side === "vn" ? "vn" : null} counts={flowCounts(getDb())} /> : null}
+      {view === "lots" ? <FlowSteps current={side} counts={flowCounts(getDb())} /> : null}
       <PageHeader
-        title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : side === "vn" ? "Tồn kho VN" : "Hàng theo đơn"}
+        title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : "Tồn kho VN"}
         subtitle={`Mặc định hàng order · ${summary.inStockProducts} sản phẩm có tồn kho (${summary.units} đơn vị) · ${summary.stockIncomingUnits} đơn vị đang về kho · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
         actions={
           <>
@@ -145,22 +135,17 @@ export default async function AdminInventory({ searchParams }: Props) {
 
       {/* view switch: by lot (two coloured sides) or by product (stocktake / CSV) */}
       <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="inventory-tabs">
-        <Link href="/admin/inventory/?side=jp" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "jp" ? "border-sky-600 bg-sky-600 text-white" : "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100")}>
-          <Fa name="globe" /> Kho Nhật ({jpUnits} cái)
-        </Link>
-        <Link href="/admin/inventory/?side=vn" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "vn" ? "border-lien-heart bg-lien-heart text-white" : "border-red-300 bg-red-50 text-red-900 hover:bg-red-100")}>
-          <Fa name="archive" /> Kho Việt Nam ({vnUnits} cái)
-        </Link>
-        {view === "lots" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
-        <Link href="/admin/inventory/?side=orders" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "lots" && side === "orders" ? "border-green-700 bg-green-700 text-white" : "border-green-300 bg-green-50 text-green-900 hover:bg-green-100")}>
-          <Fa name="user" /> Hàng theo đơn ({openOrderCount} đơn)
-        </Link>
+        {view === "lots" ? (
+          <span className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold", side === "jp" ? "border-sky-600 bg-sky-600 text-white" : "border-lien-heart bg-lien-heart text-white")}>
+            <Fa name={side === "jp" ? "globe" : "archive"} /> {side === "jp" ? `Kho Nhật (${jpUnits} cái)` : `Kho Việt Nam (${vnUnits} cái)`}
+          </span>
+        ) : null}
+        {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
         <Link href="/admin/inventory/?view=products" className={cn("ml-auto rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "products" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Theo sản phẩm · kiểm kê · CSV
         </Link>
       </div>
-      {view === "lots" && side === "orders" ? <OrdersStockPanel lines={orderLines} allocations={orderAllocs} stageByOrder={stageByOrder} /> : null}
-      {view === "lots" && side !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+      {view === "lots" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

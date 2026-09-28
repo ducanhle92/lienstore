@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { reallocateOpenOrders, reallocateOrder } from "@/lib/allocations-db";
 import { requireAdmin } from "@/lib/auth";
 
-const PAGE = "/admin/inventory/?side=orders";
+const PAGE = "/admin/orders/?view=stock";
 const go = (key: "saved" | "error", msg: string): never => redirect(`${PAGE}&${key}=${encodeURIComponent(msg)}`);
 
 /** Tồn kho › Hàng theo đơn › "Ghép lại tất cả đơn đang chờ". */

@@ -7,7 +7,9 @@ import { ADMIN_STATUS_LABELS, ADMIN_STATUSES, adminInput, btnPrimary, Card, Flas
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
-import { getOrders, getUnreadMessageCounts, listRegularSets } from "@/lib/db";
+import { getOrders, getPurchaseLines, getUnreadMessageCounts, listRegularSets } from "@/lib/db";
+import { listAllocationViews } from "@/lib/allocations-db";
+import { OrdersStockPanel } from "@/components/sites/lienstore/admin/OrdersStockPanel";
 import { isRegularBy } from "@/lib/regular-customers";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { isShipStage, SHIP_STAGES, type ShipStage, stageIndex } from "@/lib/shipping";
@@ -77,6 +79,12 @@ export default async function AdminOrders({ searchParams }: Props) {
     </Link>
   );
   const total = items.reduce((s, o) => s + (o.status === "cancelled" ? 0 : o.total), 0);
+  // second view: every open order's lines with where their goods are (what a salesperson still has to buy)
+  const view: "pnl" | "stock" = first(sp.view) === "stock" ? "stock" : "pnl";
+  const stockLines = view === "stock" ? await getPurchaseLines(false) : [];
+  const stockAllocs = stockLines.length ? listAllocationViews(getDb(), stockLines.map((l) => l.itemId)) : [];
+  const stageByOrder = new Map<string, string>();
+  for (const o of all) stageByOrder.set(o.id, o.shipStage);
   // P&L per order (same maths as Kế toán) + totals of what is on screen
   const pnl = await accountingRowsFor(items);
   const sum = [...pnl.values()].reduce((t, r) => ({ revenue: t.revenue + r.revenue + r.shipCollected, cogs: t.cogs + r.cogs, ship: t.ship + r.importFees + r.vnCarrierFee, profit: t.profit + r.profit, voucher: t.voucher + r.voucher, promo: t.promo + r.promoDiscount, missing: t.missing + r.missingCost }), { revenue: 0, cogs: 0, ship: 0, profit: 0, voucher: 0, promo: 0, missing: 0 });
@@ -90,10 +98,25 @@ export default async function AdminOrders({ searchParams }: Props) {
   return (
     <>
       <FlowSteps current="orders" counts={flowCounts(getDb())} />
-      <PageHeader title="Đơn hàng" subtitle={`${items.length} / ${all.length} đơn · doanh thu bộ lọc ${formatPrice(total)}`} />
+      <PageHeader
+        title="Đơn hàng"
+        subtitle={view === "stock" ? `${new Set(stockLines.map((l) => l.orderId)).size} đơn đang xử lý · hàng của từng đơn đang ở đâu, còn thiếu gì` : `${items.length} / ${all.length} đơn · doanh thu bộ lọc ${formatPrice(total)}`}
+        actions={
+          <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Cách hiển thị" data-testid="orders-view">
+            <Link href="/admin/orders/" role="tab" aria-selected={view === "pnl"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", view === "pnl" ? "bg-lien-blue text-white" : "bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+              <Fa name="money" /> Lãi / lỗ
+            </Link>
+            <Link href="/admin/orders/?view=stock" role="tab" aria-selected={view === "stock"} className={cn("border-l border-[#d1d5db] px-3 py-1.5 text-[13px] font-semibold no-underline", view === "stock" ? "bg-lien-blue text-white" : "bg-white text-lien-text hover:bg-[#f3f4f6]")}>
+              <Fa name="archive" /> Theo kho hàng
+            </Link>
+          </span>
+        }
+      />
       {first(sp.deleted) ? <Flash>{first(sp.deleted)}</Flash> : null}
+      {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
-      <Card className="mb-5">
+      {view === "stock" ? <OrdersStockPanel lines={stockLines} allocations={stockAllocs} stageByOrder={stageByOrder} /> : null}
+      <Card className={cn("mb-5", view === "stock" && "hidden")}>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="w-[130px] text-[13px] font-semibold text-lien-heading">Trạng thái đơn:</span>
           {tab(keep({ stage: "" }), `Tất cả (${all.filter((o) => o.status !== "cancelled").length})`, !stage && !status)}
@@ -132,7 +155,7 @@ export default async function AdminOrders({ searchParams }: Props) {
           </button>
         </form>
       </Card>
-      <Card>
+      <Card className={cn(view === "stock" && "hidden")}>
         {items.length === 0 ? (
           <p className="text-[14px] text-lien-muted">Không có đơn hàng phù hợp.</p>
         ) : (
