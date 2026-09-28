@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { describeLocation, statusForLocation } from "@/lib/warehouses";
 import type { PurchaseBatch, PurchaseBatchBill, PurchaseBatchLine, PurchaseBatchStock, PurchaseSource } from "@/types/shop";
 import { BatchFilter } from "./BatchFilter";
+import { SelectAll } from "./SelectAll";
+import { SortHeader } from "./SortHeader";
 import { FixedSaveBar } from "./FixedSaveBar";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
@@ -55,7 +57,6 @@ const LOT_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchas
  * it came from; photos attach on the bill inside the card.
  */
 export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null, isOwner = false }: Props) {
-  const heads = batches.filter((b) => b.status !== BATCH_DONE).map((b) => ({ id: b.id, code: b.code, label: b.label }));
   const searching = !!(search.q || search.from || search.to);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5" data-testid="batch-panel">
@@ -150,7 +151,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </details>
       </div>
       {searching && batches.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đợt nào khớp tìm kiếm.</p> : null}
-      {batches.some((b) => b.status !== BATCH_DONE) ? <FixedSaveBar forms={batches.filter((b) => b.status !== BATCH_DONE).map((b) => `bsave-${b.id}`)} hint="Sửa các ô trong bảng của đợt rồi lưu một lần; trạng thái đổi → lô đổi vị trí theo." /> : null}
+      {batches.some((b) => b.status !== BATCH_DONE) ? <FixedSaveBar forms={batches.filter((b) => b.status !== BATCH_DONE).map((b) => `bsave-${b.id}`)} hint="Sửa các ô trong bảng của đợt rồi lưu một lần; trạng thái đổi → lô đổi vị trí theo." addLabel="+ Thêm sản phẩm" /> : null}
 
       <div className="space-y-5">
         {batches.length === 0 && !searching ? (
@@ -159,7 +160,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
           </Card>
         ) : null}
         {batches.map((b) => (
-          <BatchCard key={b.id} batch={b} heads={heads.filter((h) => h.id !== b.id)} openLines={openLines} products={products} sources={sources} billsOpen={openBillsFor === b.id} />
+          <BatchCard key={b.id} batch={b} openLines={openLines} products={products} sources={sources} billsOpen={openBillsFor === b.id} />
         ))}
         <p className="m-0 text-[12px] text-lien-muted">
           <Link href={`/admin/purchases/?tab=batches${includeDone ? "" : "&done=1"}`} className="text-lien-blue hover:underline">
@@ -185,7 +186,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
 
 type Row = { kind: "line"; key: string; name: string; line: PurchaseBatchLine } | { kind: "stock"; key: string; name: string; stock: PurchaseBatchStock } | { kind: "lot"; key: string; name: string; lot: LotView };
 
-function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }: { batch: PurchaseBatch; heads: Array<{ id: number; code: string; label: string }>; openLines: PurchaseLine[]; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
+function BatchCard({ batch: b, openLines, products, sources, billsOpen }: { batch: PurchaseBatch; openLines: PurchaseLine[]; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
   const st = PURCHASE_STAGES[purchaseIndex(b.status)];
   const stage = BATCH_STAGES.find((s) => s.key === b.status) ?? BATCH_STAGES[0];
   const totals = batchTotals(b.lines, [...b.stock, ...b.lots.map((l) => ({ qty: l.physical, unitCostJpy: l.unitCostJpy }))]);
@@ -201,8 +202,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
   const searchOf = (productId: number, name: string, sku: string | null) => `${name} ${jaById.get(productId) ?? ""} ${sku ?? ""} #${productId}`;
   // chips / suggestions for the filter bar, built from what the batch actually holds
   const filterSources = Array.from(new Set([...b.lines.map((l) => l.sourceKey), ...b.stock.map((s) => s.sourceKey), ...b.lots.map((l) => l.sourceKey)].filter(Boolean))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
-  const filterStatuses = Array.from(new Set([...b.lines.map((l) => l.purchaseStatus), ...b.stock.map((s) => s.status), ...b.lots.map((l) => statusForLocation(l.warehouse, l.inTransit))])).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
-  const filterOrders = Array.from(new Map(b.lines.map((l) => [l.orderNumber, { number: l.orderNumber, customer: l.customerName }])).values()).sort((x, y) => y.number - x.number);
   // one row per order line / lot / slip, grouped by product name (order lines first)
   // an order line whose units are held by lots of this batch shows on the lot row ("hàng cho đơn #…"), not as a row of its own
   const customerByOrder = new Map(b.lines.map((l) => [l.orderId, l.customerName]));
@@ -219,16 +218,6 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
       ))}
     </select>
   );
-  const billBadge = (receiptId: number | null, code: string, fallback: string) =>
-    receiptId ? (
-      <a href={`#receipt-${receiptId}`} className="rounded border border-[#d1d5db] bg-white px-1 py-0.5 font-mono text-[10px] font-semibold text-lien-heading no-underline hover:border-lien-blue" title="Bill — mở khối Bill của đợt để xem / đính kèm ảnh">
-        {code}
-      </a>
-    ) : (
-      <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted" title={`${fallback} · chưa gắn bill (tick dòng → Gắn bill)`}>
-        chưa có bill
-      </span>
-    );
   const billCell = (name: string, code: string, receiptId: number | null) =>
     done ? (
       <span className="font-mono text-[12px]">{code || "—"}</span>
@@ -242,7 +231,8 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
         ) : null}
       </>
     );
-  const ctx = { b, done, bulkId, saveId, srcSelect, billBadge, billCell, sources, products, searchOf, customerByOrder };
+  const ctx = { b, done, bulkId, saveId, srcSelect, billCell, sources, products, searchOf, customerByOrder };
+  const tableId = `btable-${b.id}`;
   return (
     <div id={`batch-${b.id}`} data-testid={`batch-${b.id}`} className="min-w-0">
       <Card
@@ -309,81 +299,81 @@ function BatchCard({ batch: b, heads, openLines, products, sources, billsOpen }:
                 ))}
               </select>
               <button type="submit" form={bulkId} name="op" value="status" className={cn(btnPrimary, "!py-1")} title="Đặt trạng thái này cho mọi dòng đã tick (dòng đơn, phiếu, lô)">
-                Áp dụng
-              </button>
-              {b.receipts.length ? (
-                <>
-                  <span className="mx-1 text-lien-muted">|</span>
-                  <select name="billId" form={bulkId} defaultValue={b.receipts[0].id} className={cn(adminInput, cell, "!w-auto")} aria-label="Bill để gắn">
-                    {b.receipts.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.code} · {formatDate(r.boughtAt)}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" form={bulkId} name="op" value="bill" className={cn(btnSecondary, "!py-1")} title="Các dòng đã tick thuộc bill này">
-                    Gắn bill
-                  </button>
-                </>
-              ) : null}
-              <span className="mx-1 text-lien-muted">|</span>
-              <button type="submit" form={bulkId} name="op" value="remove" className={cn(btnSecondary, "!py-1")} title="Dòng đơn rời đợt (giữ trạng thái), dòng lưu kho bị xoá">
-                Bỏ khỏi đợt
+                Cập nhật
               </button>
               <ConfirmSubmit form={bulkId} name="op" value="delete" message="Xoá dữ liệu mua của các dòng đã tick? Dòng đơn về “Cần mua” và rời đợt; phiếu và lô bị xoá hẳn." confirmLabel="Xoá" className={cn(btnSecondary, "!border-red-300 !py-1 !text-lien-heart")}>
                 Xoá dòng đã tick
               </ConfirmSubmit>
-              {heads.length ? (
-                <>
-                  <span className="mx-1 text-lien-muted">|</span>
-                  <select name="targetBatchId" form={bulkId} defaultValue={heads[0].id} className={cn(adminInput, cell, "!w-auto")} aria-label="Chuyển sang đợt">
-                    {heads.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.code}
-                        {h.label ? ` · ${h.label}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" form={bulkId} name="op" value="move" className={cn(btnSecondary, "!py-1")}>
-                    Chuyển sang đợt
-                  </button>
-                </>
-              ) : null}
             </div>
           )}
         </div>
 
-        <BatchFilter batchId={b.id} total={rows.length} sources={filterSources} statuses={filterStatuses} orders={filterOrders} />
-        <div className="overflow-x-auto">
+        <BatchFilter batchId={b.id} total={rows.length} sources={filterSources} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
+        <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>
           <table className={cn(tableClass, "max-lg:block")}>
             <thead className="max-lg:hidden">
               <tr>
-                <th className={cn(thClass, "sticky left-0 z-10 w-8 bg-[#f9fafb]")} />
-                <th className={thClass}>Sản phẩm</th>
-                <th className={thClass}>SL</th>
-                <th className={thClass}>Mua ở</th>
-                <th className={thClass}>Mua (HSD · ngày · ¥/đv)</th>
-                <th className={thClass}>Trạng thái</th>
-                <th className={thClass}>Bill</th>
-                <th className={thClass}>Cửa hàng · ghi chú</th>
+                <th className={cn(thClass, "sticky left-0 z-10 w-8 bg-[#f9fafb]")}>{done ? null : <SelectAll scope={bulkId} label="" className="inline-flex" />}</th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="name" label="Sản phẩm" />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="qty" label="SL" numeric />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="srcname" label="Mua ở / cửa hàng" />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="expiry" label="HSD" />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="bought" label="Ngày mua" />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="unit" label="¥/đv" numeric />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="statusidx" label="Trạng thái" numeric />
+                </th>
+                <th className={thClass}>
+                  <SortHeader table={tableId} attr="bill" label="Bill" />
+                </th>
               </tr>
             </thead>
             <tbody className="max-lg:grid max-lg:grid-cols-1 max-lg:gap-3 md:max-lg:grid-cols-2">
               {rows.length === 0 ? (
                 <tr className="max-lg:block">
-                  <td colSpan={8} className={`${tdClass} text-center text-lien-muted`}>
-                    Đợt chưa có gì — nhập bill hoặc “+ Thêm sản phẩm đã mua” bên dưới.
+                  <td colSpan={9} className={`${tdClass} text-center text-lien-muted`}>
+                    Đợt chưa có gì — nhập bill hoặc bấm “+ Thêm sản phẩm” ở thanh dưới.
                   </td>
                 </tr>
               ) : null}
               {rows.map((r) => (r.kind === "line" ? <LineRow key={r.key} l={r.line} {...ctx} /> : r.kind === "lot" ? <LotRow key={r.key} l={r.lot} {...ctx} /> : <StockRow key={r.key} s={r.stock} {...ctx} />))}
             </tbody>
+            {rows.length ? (
+              <tfoot className="max-lg:hidden">
+                <tr className="bg-[#f9fafb] text-[13px] font-semibold text-lien-heading" data-testid={`totals-${b.id}`}>
+                  <td className={tdClass} />
+                  <td className={tdClass}>
+                    Tổng cộng <span className="font-normal text-lien-muted">(theo dòng đang hiện)</span> · <span data-total="rows">{rows.length}</span> dòng
+                  </td>
+                  <td className={tdClass}>
+                    <span data-total="units">{totals.units}</span>
+                  </td>
+                  <td className={tdClass} colSpan={3} />
+                  <td className={tdClass}>
+                    <span data-total="jpy">{totals.jpy !== null ? `¥${formatAmount(totals.jpy)}` : "—"}</span>
+                  </td>
+                  <td className={tdClass} colSpan={2} />
+                </tr>
+              </tfoot>
+            ) : null}
           </table>
         </div>
 
         {done ? null : (
           <>
-            <details className="mt-3 rounded-md border border-dashed border-[#d1d5db] bg-white" data-testid={`surplus-${b.id}`}>
+            <details className="mt-3 rounded-md border border-dashed border-[#d1d5db] bg-white" data-testid={`surplus-${b.id}`} data-add-form={b.id}>
               <summary className="cursor-pointer px-3 py-2 text-[13px] font-semibold text-lien-heading">
                 + Thêm sản phẩm đã mua <span className="font-normal text-lien-muted">— SL là tổng đã mua; tự gán cho đơn đang chờ trước, phần còn lại lưu kho</span>
               </summary>
@@ -737,7 +727,6 @@ interface RowCtx {
   bulkId: string;
   saveId: string;
   srcSelect: (name: string, value: string, label: string) => ReactNode;
-  billBadge: (receiptId: number | null, code: string, fallback: string) => ReactNode;
   billCell: (name: string, code: string, receiptId: number | null) => ReactNode;
   sources: PurchaseSource[];
   products: PickableProduct[];
@@ -765,13 +754,19 @@ function ProductCell({ productId, name, sku, thumb, badge, extra }: { productId:
   );
 }
 
-/** Three stacked inputs: HSD · bought date · ¥ per unit. */
-function BuyFacts({ p, saveId, expiry, boughtAt, jpy, jpyName }: { p: string; saveId: string; expiry: string | null; boughtAt: string | null; jpy: number | null; jpyName: string }) {
+/** "Mua ở" cell: source select with the store / note line under it (both saved by the red bar). */
+function SourceCell({ p, saveId, sourceKey, note, label, srcSelect, ro, sources }: { p: string; saveId: string; sourceKey: string; note: string; label: string; srcSelect: RowCtx["srcSelect"]; ro: boolean; sources: PurchaseSource[] }) {
+  if (ro)
+    return (
+      <span className="text-[12px]">
+        {purchaseSourceName(sourceKey, sources)}
+        {note ? <span className="block text-lien-muted">{note}</span> : null}
+      </span>
+    );
   return (
-    <div className="grid w-[92px] gap-1">
-      <input name={`${p}expiry`} form={saveId} defaultValue={expiry ?? ""} placeholder="HSD 03/2027" className={cn(adminInput, cell, "!w-full")} aria-label="Hạn dùng" />
-      <input name={`${p}boughtAt`} form={saveId} defaultValue={boughtAt ?? ""} placeholder="mua 2026-09-27" className={cn(adminInput, cell, "!w-full")} aria-label="Ngày mua" />
-      <input name={`${p}${jpyName}`} form={saveId} inputMode="numeric" defaultValue={jpy ?? ""} placeholder="¥/đv" className={cn(adminInput, cell, "!w-full")} aria-label="Giá ¥ mỗi đơn vị" />
+    <div className="grid w-[150px] gap-1">
+      {srcSelect(`${p}sourceKey`, sourceKey, label)}
+      <input name={`${p}note`} form={saveId} defaultValue={note} placeholder="cửa hàng / chi nhánh…" className={cn(adminInput, cell, "!w-full !text-[12px]")} aria-label="Cửa hàng" title="Cửa hàng / chi nhánh đã mua (ghi chú của dòng)" />
     </div>
   );
 }
@@ -796,11 +791,16 @@ function StatusSelect({ name, saveId, value, options, batchStatus }: { name: str
   );
 }
 
-/** A customer's order line bought in this batch: source, HSD / date / ¥ (profit per order), status, note. */
-function LineRow({ l, b, done, bulkId, saveId, srcSelect, billCell, searchOf }: { l: PurchaseBatchLine } & RowCtx) {
+const dateCell = (name: string, saveId: string, value: string | null, placeholder: string, label: string, ro: boolean) =>
+  ro ? <span className="text-[12px]">{value ? formatDate(value) : "—"}</span> : <input name={name} form={saveId} defaultValue={value ?? ""} placeholder={placeholder} className={cn(adminInput, cell, "!w-[112px]")} aria-label={label} />;
+const jpyCell = (name: string, saveId: string, value: number | null, ro: boolean) =>
+  ro ? <span className="text-[12px]">{value ? `¥${formatAmount(value)}` : "—"}</span> : <input name={name} form={saveId} inputMode="numeric" defaultValue={value ?? ""} placeholder="¥/đv" className={cn(adminInput, cell, "!w-[84px]")} aria-label="Giá ¥ mỗi đơn vị" />;
+
+/** A customer's order line bought in this batch: source, HSD / date / ¥ (profit per order), status, bill. */
+function LineRow({ l, b, done, bulkId, saveId, srcSelect, billCell, sources, searchOf }: { l: PurchaseBatchLine } & RowCtx) {
   const p = `l_${l.itemId}_`;
   return (
-    <tr className={ROW} data-testid={`bline-${l.itemId}`} data-brow="1" data-kind="line" data-search={searchOf(l.productId, l.productName, l.productSku)} data-product={l.productId} data-order={l.orderNumber} data-customer={l.customerName} data-src={l.sourceKey} data-status={l.purchaseStatus} data-note="0" data-qty={l.quantity} data-jpy={(l.costJpy ?? 0) * l.quantity}>
+    <tr className={ROW} data-testid={`bline-${l.itemId}`} data-brow="1" data-kind="line" data-search={searchOf(l.productId, l.productName, l.productSku)} data-name={l.productName} data-product={l.productId} data-order={l.orderNumber} data-customer={l.customerName} data-src={l.sourceKey} data-srcname={purchaseSourceName(l.sourceKey, sources)} data-status={l.purchaseStatus} data-statusidx={purchaseIndex(l.purchaseStatus)} data-expiry={l.expiry ?? ""} data-bought={l.boughtAt ?? ""} data-unit={l.costJpy ?? ""} data-bill={l.receiptCode || "—"} data-qty={l.quantity} data-jpy={(l.costJpy ?? 0) * l.quantity}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{done ? null : <input type="checkbox" name="ids" value={l.itemId} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng đơn #${l.orderNumber}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
@@ -809,11 +809,9 @@ function LineRow({ l, b, done, bulkId, saveId, srcSelect, billCell, searchOf }: 
           sku={l.productSku}
           thumb={l.productThumb}
           badge={
-            <>
-              <Link href={`/admin/orders/${l.orderId}/`} className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-semibold text-[#3730a3] no-underline hover:underline" title={l.customerName}>
-                Đơn #{l.orderNumber} · {l.customerName}
-              </Link>
-            </>
+            <Link href={`/admin/orders/${l.orderId}/`} className="rounded bg-[#eef2ff] px-1.5 py-0.5 font-semibold text-[#3730a3] no-underline hover:underline" title={l.customerName}>
+              Đơn #{l.orderNumber} · {l.customerName}
+            </Link>
           }
         />
       </td>
@@ -821,25 +819,22 @@ function LineRow({ l, b, done, bulkId, saveId, srcSelect, billCell, searchOf }: 
         {l.quantity}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
-        {done ? <span className="text-[12px]">{purchaseSourceName(l.sourceKey, [])}</span> : srcSelect(`${p}sourceKey`, l.sourceKey, `Nguồn dòng đơn #${l.orderNumber}`)}
+        <SourceCell p={p} saveId={saveId} sourceKey={l.sourceKey} note="" label={`Nguồn dòng đơn #${l.orderNumber}`} srcSelect={srcSelect} ro={done} sources={sources} />
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap")} data-label="Mua">
-        {done ? (
-          <span className="text-[12px]">
-            {l.expiry ? `HSD ${formatDate(l.expiry)}` : "HSD —"} · {l.boughtAt ? formatDate(l.boughtAt) : "—"} · {l.costJpy ? `¥${formatAmount(l.costJpy)}` : "—"}
-          </span>
-        ) : (
-          <BuyFacts p={p} saveId={saveId} expiry={l.expiry} boughtAt={l.boughtAt} jpy={l.costJpy} jpyName="costJpy" />
-        )}
+      <td className={cn(tdClass, TD, LBL)} data-label="HSD">
+        {dateCell(`${p}expiry`, saveId, l.expiry, "03/2027", "Hạn dùng", done)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
+        {dateCell(`${p}boughtAt`, saveId, l.boughtAt, "2026-09-27", "Ngày mua", done)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
+        {jpyCell(`${p}costJpy`, saveId, l.costJpy, done)}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
         {done ? <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", PURCHASE_STAGES[purchaseIndex(l.purchaseStatus)].cls)}>{PURCHASE_STAGES[purchaseIndex(l.purchaseStatus)].short}</span> : <StatusSelect name={`${p}status`} saveId={saveId} value={l.purchaseStatus} options={PURCHASE_STAGES} batchStatus={b.status} />}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Bill">
         {billCell(`${p}billCode`, l.receiptCode, l.receiptId)}
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Ghi chú">
-        {done ? <span className="text-[12px] text-lien-muted">—</span> : <input name={`${p}note`} form={saveId} defaultValue="" placeholder="cửa hàng, ghi chú…" className={cn(adminInput, cell, "!w-32 transition-[width] focus:!w-64")} aria-label="Ghi chú" />}
       </td>
     </tr>
   );
@@ -853,7 +848,7 @@ function StockRow({ s, b, done, bulkId, saveId, srcSelect, billCell, products, s
   const held = s.reserved.reduce((n, r) => n + r.qty, 0);
   const ro = done || locked;
   return (
-    <tr className={cn(ROW, locked && "opacity-70")} data-testid={`bstock-${s.id}`} data-brow="1" data-kind="stock" data-search={searchOf(s.productId, s.productName, s.productSku)} data-product={s.productId} data-src={s.sourceKey} data-status={s.status} data-note={note ? "1" : "0"} data-qty={s.qty} data-jpy={(s.unitCostJpy ?? 0) * s.qty}>
+    <tr className={cn(ROW, locked && "opacity-70")} data-testid={`bstock-${s.id}`} data-brow="1" data-kind="stock" data-search={searchOf(s.productId, s.productName, s.productSku)} data-name={s.productName} data-product={s.productId} data-src={s.sourceKey} data-srcname={purchaseSourceName(s.sourceKey, sources)} data-status={s.status} data-statusidx={purchaseIndex(s.status)} data-expiry={s.expiry ?? ""} data-bought={s.boughtAt ?? ""} data-unit={s.unitCostJpy ?? ""} data-bill={s.receiptCode || "—"} data-qty={s.qty} data-jpy={(s.unitCostJpy ?? 0) * s.qty}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{ro ? null : <input type="checkbox" name="sids" value={s.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn dòng lưu kho #${s.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
@@ -893,16 +888,16 @@ function StockRow({ s, b, done, bulkId, saveId, srcSelect, billCell, products, s
         {ro ? <span className="font-semibold">{s.qty}</span> : <input name={`${p}qty`} form={saveId} inputMode="numeric" defaultValue={s.qty} className={cn(adminInput, cell, "!w-14 !text-center")} aria-label="Số lượng" />}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
-        {ro ? <span className="text-[12px]">{purchaseSourceName(s.sourceKey, sources)}</span> : srcSelect(`${p}sourceKey`, s.sourceKey, `Nguồn dòng #${s.id}`)}
+        <SourceCell p={p} saveId={saveId} sourceKey={s.sourceKey} note={note} label={`Nguồn dòng #${s.id}`} srcSelect={srcSelect} ro={ro} sources={sources} />
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap")} data-label="Mua">
-        {ro ? (
-          <span className="text-[12px]">
-            {s.expiry ? `HSD ${formatDate(s.expiry)}` : "HSD —"} · {s.boughtAt ? formatDate(s.boughtAt) : "—"} · {s.unitCostJpy ? `¥${formatAmount(s.unitCostJpy)}` : "—"}
-          </span>
-        ) : (
-          <BuyFacts p={p} saveId={saveId} expiry={s.expiry} boughtAt={s.boughtAt} jpy={s.unitCostJpy} jpyName="unitCostJpy" />
-        )}
+      <td className={cn(tdClass, TD, LBL)} data-label="HSD">
+        {dateCell(`${p}expiry`, saveId, s.expiry, "03/2027", "Hạn dùng", ro)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
+        {dateCell(`${p}boughtAt`, saveId, s.boughtAt, "2026-09-27", "Ngày mua", ro)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
+        {jpyCell(`${p}unitCostJpy`, saveId, s.unitCostJpy, ro)}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
         {ro ? <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", PURCHASE_STAGES[purchaseIndex(s.status)].cls)}>{PURCHASE_STAGES[purchaseIndex(s.status)].short}</span> : <StatusSelect name={`${p}status`} saveId={saveId} value={s.status} options={BATCH_STAGES} batchStatus={b.status} />}
@@ -910,20 +905,17 @@ function StockRow({ s, b, done, bulkId, saveId, srcSelect, billCell, products, s
       <td className={cn(tdClass, TD, LBL)} data-label="Bill">
         {ro ? <span className="font-mono text-[12px]">{s.receiptCode || "—"}</span> : billCell(`${p}billCode`, s.receiptCode, s.receiptId)}
       </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Ghi chú">
-        {ro ? <span className="text-[12px] text-lien-muted">{note || "—"}</span> : <input name={`${p}note`} form={saveId} defaultValue={note} placeholder="cửa hàng, ghi chú…" title={s.note} className={cn(adminInput, cell, "!w-32 transition-[width] focus:!w-64")} aria-label="Ghi chú" />}
-      </td>
     </tr>
   );
 }
 
-/** A lot bought in this batch: unsold qty (+ paid units held), source, HSD / date / ¥, status (= place), store note. */
+/** A lot bought in this batch: unsold qty (+ paid units held), source / store, HSD, date, ¥, status (= place), bill. */
 function LotRow({ l, b, done, bulkId, saveId, srcSelect, billCell, sources, searchOf, customerByOrder }: { l: LotView } & RowCtx) {
   const p = `lot_${l.id}_`;
   const status = statusForLocation(l.warehouse, l.inTransit);
   const note = noteBody(l.note, b.code);
   return (
-    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind={l.reserved.length ? "line" : "stock"} data-search={searchOf(l.productId, l.productName, l.productSku)} data-product={l.productId} data-order={l.reserved.map((r) => r.orderNumber).join(" ")} data-customer={l.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-src={l.sourceKey} data-status={status} data-note={note ? "1" : "0"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
+    <tr className={ROW} data-testid={`blot-${l.id}`} data-brow="1" data-kind={l.reserved.length ? "line" : "stock"} data-search={searchOf(l.productId, l.productName, l.productSku)} data-name={l.productName} data-product={l.productId} data-order={l.reserved.map((r) => r.orderNumber).join(" ")} data-customer={l.reserved.map((r) => customerByOrder.get(r.orderId) ?? "").join(" ")} data-src={l.sourceKey} data-srcname={purchaseSourceName(l.sourceKey, sources)} data-status={status} data-statusidx={purchaseIndex(status)} data-expiry={l.expiry ?? ""} data-bought={l.boughtAt ?? l.receivedAt} data-unit={l.unitCostJpy ?? ""} data-bill={l.receiptCode || "—"} data-qty={l.physical} data-jpy={(l.unitCostJpy ?? 0) * l.physical}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>{done ? null : <input type="checkbox" name="lotIds" value={l.id} form={bulkId} className="h-4 w-4" aria-label={`Chọn lô #${l.id}`} />}</td>
       <td className={cn(tdClass, TD, "min-w-[220px] max-w-[300px]")}>
         <ProductCell
@@ -959,25 +951,22 @@ function LotRow({ l, b, done, bulkId, saveId, srcSelect, billCell, sources, sear
         )}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
-        {done ? <span className="text-[12px]">{purchaseSourceName(l.sourceKey, sources)}</span> : srcSelect(`${p}sourceKey`, l.sourceKey, `Nguồn lô #${l.id}`)}
+        <SourceCell p={p} saveId={saveId} sourceKey={l.sourceKey} note={note} label={`Nguồn lô #${l.id}`} srcSelect={srcSelect} ro={done} sources={sources} />
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap")} data-label="Mua">
-        {done ? (
-          <span className="text-[12px]">
-            {l.expiry ? `HSD ${formatDate(l.expiry)}` : "HSD —"} · {l.boughtAt ? formatDate(l.boughtAt) : formatDate(l.receivedAt)} · {l.unitCostJpy ? `¥${formatAmount(l.unitCostJpy)}` : "—"}
-          </span>
-        ) : (
-          <BuyFacts p={p} saveId={saveId} expiry={l.expiry} boughtAt={l.boughtAt} jpy={l.unitCostJpy} jpyName="unitCostJpy" />
-        )}
+      <td className={cn(tdClass, TD, LBL)} data-label="HSD">
+        {dateCell(`${p}expiry`, saveId, l.expiry, "03/2027", "Hạn dùng", done)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
+        {dateCell(`${p}boughtAt`, saveId, l.boughtAt, "2026-09-27", "Ngày mua", done)}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
+        {jpyCell(`${p}unitCostJpy`, saveId, l.unitCostJpy, done)}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
         {done ? <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold", PURCHASE_STAGES[purchaseIndex(status)].cls)}>{PURCHASE_STAGES[purchaseIndex(status)].short}</span> : <StatusSelect name={`${p}status`} saveId={saveId} value={status} options={LOT_STAGES} batchStatus={b.status} />}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Bill">
         {billCell(`${p}billCode`, l.receiptCode, l.receiptId)}
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Cửa hàng">
-        {done ? <span className="text-[12px] text-lien-muted">{note || "—"}</span> : <input name={`${p}note`} form={saveId} defaultValue={note} placeholder="cửa hàng mua, ghi chú…" title={l.note} className={cn(adminInput, cell, "!w-32 transition-[width] focus:!w-64")} aria-label="Cửa hàng mua / ghi chú" />}
       </td>
     </tr>
   );

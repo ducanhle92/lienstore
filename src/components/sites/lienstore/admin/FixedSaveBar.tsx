@@ -13,6 +13,8 @@ interface Props {
   hint?: string;
   /** Show the bar even before anything changed (default: always visible). */
   alwaysVisible?: boolean;
+  /** Extra button that opens the "add a row" block (<details data-add-form=…>) of the block being edited (or the first). */
+  addLabel?: string;
 }
 
 /**
@@ -20,7 +22,7 @@ interface Props {
  * forms, counts what changed, and on click submits the form that was edited last (each form is one server action).
  * "Huỷ" resets all of them. Works for table screens where the inputs sit in many rows / cards.
  */
-export function FixedSaveBar({ forms, label = "Lưu thay đổi", resetLabel = "Huỷ", hint, alwaysVisible = true }: Props) {
+export function FixedSaveBar({ forms, label = "Lưu thay đổi", resetLabel = "Huỷ", hint, alwaysVisible = true, addLabel }: Props) {
   const [dirty, setDirty] = useState<Record<string, number>>({});
   const [last, setLast] = useState<string | null>(null);
   useEffect(() => {
@@ -64,6 +66,14 @@ export function FixedSaveBar({ forms, label = "Lưu thay đổi", resetLabel = "
     for (const id of forms) (document.getElementById(id) as HTMLFormElement | null)?.reset();
     setDirty({});
   };
+  const openAdd = () => {
+    const key = (target ?? "").split("-").pop() ?? "";
+    const d = (document.querySelector<HTMLDetailsElement>(`details[data-add-form="${key}"]`) ?? document.querySelector<HTMLDetailsElement>("details[data-add-form]"));
+    if (!d) return;
+    d.open = true;
+    d.scrollIntoView({ block: "center", behavior: "smooth" });
+    window.setTimeout(() => d.querySelector<HTMLInputElement>("input:not([type=hidden])")?.focus(), 250);
+  };
   if (!alwaysVisible && !total) return null;
   return (
     <>
@@ -78,6 +88,11 @@ export function FixedSaveBar({ forms, label = "Lưu thay đổi", resetLabel = "
           <button type="button" onClick={reset} className={btnSecondary} title="Trả mọi ô về giá trị đang lưu">
             {resetLabel}
           </button>
+          {addLabel ? (
+            <button type="button" onClick={openAdd} className={btnSecondary} title="Mở dòng nhập sản phẩm đã mua của đợt đang sửa (hoặc đợt đầu)" data-testid="fixed-add">
+              {addLabel}
+            </button>
+          ) : null}
           {dirtyForms.length > 1 ? <span className="text-[12px] text-amber-800">Đã sửa ở {dirtyForms.length} khối — mỗi lần lưu ghi một khối (khối vừa sửa trước).</span> : hint ? <span className="text-[12px] text-lien-muted">{hint}</span> : null}
         </div>
       </div>

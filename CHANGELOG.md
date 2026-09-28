@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Mua theo đợt — bảng đợt gọn lại: bộ lọc là **ô tìm (sản phẩm / #đơn / khách) · Mua ở (dropdown) · Ngày mua · Bill**; bỏ các chip Loại / Mua ở / Chỉ dòng có ghi chú / Chỉ SL ≥ 2. **Ô tick ở đầu bảng chọn tất cả** dòng đang hiện (như màn Đơn hàng); thanh “Đã tick →” chỉ còn chọn trạng thái → **Cập nhật** và **Xoá dòng đã tick** (bỏ Bỏ khỏi đợt, Gắn bill, Chuyển sang đợt). Cột **sắp xếp được** (bấm tiêu đề): Sản phẩm, SL, Mua ở, HSD, Ngày mua, ¥/đv, Trạng thái, Bill; HSD · Ngày mua · ¥/đv tách thành ba cột; cửa hàng ghi ngay dưới ô Mua ở; bỏ cột Ghi chú. **Dòng Tổng cộng** cuối bảng (số dòng · đv · ¥) tự tính lại theo bộ lọc. Nút **+ Thêm sản phẩm** nằm cạnh Lưu thay đổi ở thanh cố định, mở dòng nhập của đợt đang sửa.
+
 ## [1.82.3] - 2026-09-28
 
 ### Changed
