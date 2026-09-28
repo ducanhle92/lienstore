@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.96.0] - 2026-09-28
+
 ### Changed
 - **④ Đóng hàng JP / ⑤ Vận chuyển JP-VN** gọn hơn:
   - Timeline của chuyến chỉ còn các mốc (bấm mốc để chuyển); bỏ hàng “Lùi · tên trạng thái · Tiếp: …”.
