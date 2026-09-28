@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Menu Kho hàng: **Nhóm biến thể** chuyển vào nhóm **Chung** (cùng Danh mục, Nguồn nhập, Địa chỉ kho, Công thức giá).
+- **Mua theo đợt** (cả “Theo sản phẩm” lẫn “Từng mã”): thứ tự cột mới — Sản phẩm · SL · **¥/ĐV** · HSD · Trạng thái · **Ngày mua** · **Mua ở / cửa hàng** · Bill · cho đơn; dòng tổng cộng đặt ¥ ngay sau SL.
+- Ô **Trạng thái** của dòng bill hiện luôn trạng thái hiện tại của cả dòng (bỏ lựa chọn “— cả dòng: giữ nguyên —”); chọn trạng thái khác rồi **Lưu thay đổi** = mọi cái của dòng bill chuyển theo. Dòng có nhiều trạng thái khác nhau mới hiện “— n cái, nhiều trạng thái —” kèm các nhãn. Danh sách chỉ còn các bước mua → Tại kho Việt Nam (giao cho khách làm ở ⑦ Giao hàng VN).
+- Trang Quản lý mua hàng: **CSV cần mua** và **+ Mở đợt mua mới** nằm ở đầu thanh dưới đáy (bên trái Lưu thay đổi); bỏ nút **Tồn kho** và **Cách dùng**; nguồn mặc định của đợt mới là **OS Drug Store**; nút **Tìm** màu đỏ.
+
 ## [1.94.1] - 2026-09-28
 
 ### Changed

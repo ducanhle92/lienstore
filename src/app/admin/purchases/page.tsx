@@ -16,6 +16,7 @@ import { listReceipts } from "@/lib/receipts-db";
 import type { PurchaseSource } from "@/types/shop";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
+import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getPurchaseLines, listPurchaseSources } from "@/lib/db";
@@ -99,17 +100,12 @@ export default async function AdminPurchases({ searchParams }: Props) {
       <PageHeader
         title="Quản lý mua hàng"
         subtitle={`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}
-        actions={
-          <>
-            <Link href="/admin/inventory/export/" className={btnSecondary}>
-              <Fa name="download" /> CSV cần mua
-            </Link>
-            <Link href="/admin/inventory/" className={btnSecondary}>
-              <Fa name="archive" /> Tồn kho
-            </Link>
-          </>
-        }
       />
+      <BarTools lead>
+        <Link href="/admin/inventory/export/" className={btnSecondary} data-testid="bar-csv">
+          <Fa name="download" /> CSV cần mua
+        </Link>
+      </BarTools>
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 

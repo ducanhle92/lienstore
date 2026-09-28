@@ -24,3 +24,19 @@ export function AddRowButton({ label, className }: { label: string; className?: 
     </button>
   );
 }
+
+/** Bottom-bar button that opens a <details id={target}> block (e.g. the "Mở đợt mua mới" form), scrolls to it, focuses it. */
+export function OpenDetailsButton({ target, label, className }: { target: string; label: string; className?: string }) {
+  const open = () => {
+    const d = document.getElementById(target);
+    if (!d) return;
+    if (d instanceof HTMLDetailsElement) d.open = true;
+    d.scrollIntoView({ block: "center", behavior: "smooth" });
+    window.setTimeout(() => d.querySelector<HTMLInputElement>("input:not([type=hidden])")?.focus(), 250);
+  };
+  return (
+    <button type="button" onClick={open} className={className} data-testid={`open-${target}`}>
+      {label}
+    </button>
+  );
+}

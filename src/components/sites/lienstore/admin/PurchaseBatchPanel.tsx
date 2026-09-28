@@ -16,7 +16,7 @@ import type { UnitView } from "@/lib/units-db";
 import type { PurchaseBatch, PurchaseBatchBill, PurchaseBatchLine, PurchaseSource } from "@/types/shop";
 import { BatchTree } from "./BatchTree";
 import { BulkBar } from "./BulkBar";
-import { AddRowButton } from "./AddRowButton";
+import { AddRowButton, OpenDetailsButton } from "./AddRowButton";
 import { BarTools } from "./BulkBar";
 import { BatchBody, BatchToggle } from "./BatchCollapse";
 import { BulkOpButton } from "./BulkOpButton";
@@ -65,7 +65,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
             <option value="done">Đợt đã về kho VN</option>
             <option value="all">Tất cả</option>
           </select>
-          <button type="submit" className={cn(btnSecondary, "!py-1")}>
+          <button type="submit" className={cn(btnPrimary, "!py-1")}>
             Tìm
           </button>
           {searching ? (
@@ -76,10 +76,13 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </form>
       </div>
 
+      <BarTools lead>
+        <OpenDetailsButton target="new-batch" label="+ Mở đợt mua mới" className={btnPrimary} />
+      </BarTools>
       <div className="grid gap-3 md:grid-cols-2">
-        <details className="min-w-0" open={batches.length === 0} data-testid="new-batch">
-          <summary className={cn(btnPrimary, "inline-block cursor-pointer list-none")}>+ Mở đợt mua mới</summary>
-          <div className="mt-2">
+        <details id="new-batch" className="min-w-0" open={batches.length === 0} data-testid="new-batch">
+          <summary className="hidden">Mở đợt mua mới</summary>
+          <div>
             <Card title="Mở đợt mua mới (một lần đi mua / một bill)">
               <form action={createBatchAction} className="grid gap-3" data-testid="batch-create">
                 <div>
@@ -93,7 +96,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
                     <label className={adminLabel} htmlFor="nb-src">
                       Nguồn mặc định
                     </label>
-                    <select id="nb-src" name="sourceKey" defaultValue="amazon" className={adminInput}>
+                    <select id="nb-src" name="sourceKey" defaultValue={sources.find((x) => /os\s*drug/i.test(x.name))?.key ?? "amazon"} className={adminInput}>
                       {sources.map((s) => (
                         <option key={s.key} value={s.key}>
                           {s.name}
@@ -118,30 +121,6 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
                   + Mở đợt mua
                 </button>
               </form>
-            </Card>
-          </div>
-        </details>
-        <details className="min-w-0">
-          <summary className={cn(btnSecondary, "inline-block cursor-pointer list-none")}>Cách dùng</summary>
-          <div className="mt-2">
-            <Card title="Cách dùng">
-              <ol className="m-0 space-y-1.5 pl-4 text-[12px] leading-5 text-lien-text">
-                <li>
-                  <b>Bill:</b> mỗi lần thanh toán là một bill (PM-…). Mở khối “Bill” trong đợt → dán nội dung bill (tự tách sản phẩm) hoặc tạo bill trống rồi <b>đính kèm ảnh chụp bill</b>. Mỗi dòng sản phẩm ghi mã bill của nó.
-                </li>
-                <li>
-                  <b>Thêm sản phẩm đã mua:</b> bấm “+ Thêm sản phẩm đã mua” → tìm theo tên, chọn bill, nơi mua, SL, HSD, ngày mua, ¥. Hàng thành lô ở Kho Nhật (shop) ngay, tự gán cho đơn đang chờ trước, phần còn lại lưu kho.
-                </li>
-                <li>
-                  <b>Sửa trong bảng</b> (SL, mua ở, HSD, ngày mua, ¥, trạng thái, cửa hàng / ghi chú) rồi bấm <b>Lưu thay đổi</b> ở thanh đỏ cuối màn — một lần cho cả đợt.
-                </li>
-                <li>
-                  <b>Tick nhiều dòng</b> → đặt trạng thái / gắn bill / Bỏ khỏi đợt / Chuyển sang đợt khác.
-                </li>
-                <li>
-                  <b>Gửi về VN:</b> đổi trạng thái từng dòng hoặc <b>cả đợt</b>: Tại kho Nhật → tới ĐVVC Nhật → NB→VN → kho ĐVVC VN → <b>Tại kho VN</b>; lô đổi vị trí theo, Tồn kho hiện đúng chỗ.
-                </li>
-              </ol>
             </Card>
           </div>
         </details>
@@ -404,11 +383,11 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                   [
                     ["name", "Sản phẩm · bill · mã"],
                     ["qty", "SL"],
-                    ["srcname", "Mua ở / cửa hàng"],
-                    ["expiry", "HSD"],
-                    ["bought", "Ngày mua"],
                     ["unit", "¥/đv"],
+                    ["expiry", "HSD"],
                     ["statusidx", "Trạng thái"],
+                    ["bought", "Ngày mua"],
+                    ["srcname", "Mua ở / cửa hàng"],
                     ["bill", "Bill · cho đơn"],
                   ] as const
                 ).map(([k, label]) => (
@@ -441,6 +420,24 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                 <td className={cn(tdClass, TD, LBL)} data-label="SL">
                   <input name="qty" form={addId} inputMode="numeric" required placeholder="SL" className={cn(adminInput, cell, "!w-14 !text-center")} aria-label="Số lượng mua" title="Mỗi cái được một mã riêng (H…)" />
                 </td>
+                <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
+                  <input name="unitCostJpy" form={addId} inputMode="numeric" placeholder="¥/đv" className={cn(adminInput, cell, "!w-[84px]")} aria-label="Giá ¥ mỗi đơn vị" />
+                </td>
+                <td className={cn(tdClass, TD, LBL)} data-label="HSD">
+                  <input name="expiry" form={addId} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
+                </td>
+                <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
+                  <select name="status" form={addId} defaultValue="bought" className={cn(adminInput, cell, "!w-40")} aria-label="Trạng thái" title="Mua tại cửa hàng = Tại kho Nhật; đặt online chưa về = Đã đặt mua">
+                    {BATCH_STAGES.map((x) => (
+                      <option key={x.key} value={x.key}>
+                        {x.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
+                  <input name="boughtAt" form={addId} defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+                </td>
                 <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
                   <div className="grid w-[150px] gap-1">
                     <select name="sourceKey" form={addId} defaultValue={b.sourceKey} className={cn(adminInput, cell, "!w-full")} aria-label="Mua ở">
@@ -452,24 +449,6 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                     </select>
                     <input name="note" form={addId} maxLength={80} placeholder="cửa hàng / chi nhánh…" className={cn(adminInput, cell, "!w-full !text-[12px]")} aria-label="Cửa hàng" />
                   </div>
-                </td>
-                <td className={cn(tdClass, TD, LBL)} data-label="HSD">
-                  <input name="expiry" form={addId} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
-                </td>
-                <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
-                  <input name="boughtAt" form={addId} defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
-                </td>
-                <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
-                  <input name="unitCostJpy" form={addId} inputMode="numeric" placeholder="¥/đv" className={cn(adminInput, cell, "!w-[84px]")} aria-label="Giá ¥ mỗi đơn vị" />
-                </td>
-                <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
-                  <select name="status" form={addId} defaultValue="bought" className={cn(adminInput, cell, "!w-40")} aria-label="Trạng thái" title="Mua tại cửa hàng = Tại kho Nhật; đặt online chưa về = Đã đặt mua">
-                    {BATCH_STAGES.map((x) => (
-                      <option key={x.key} value={x.key}>
-                        {x.label}
-                      </option>
-                    ))}
-                  </select>
                 </td>
                 <td className={cn(tdClass, TD, LBL)} data-label="Bill">
                   <div className="grid w-[170px] gap-1">
@@ -499,11 +478,10 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                   <td className={tdClass}>
                     <span data-total="units">{b.units.length + needUnits}</span>
                   </td>
-                  <td className={tdClass} colSpan={3} />
                   <td className={tdClass}>
                     <span data-total="jpy">{jpy ? `¥${formatAmount(jpy)}` : "—"}</span>
                   </td>
-                  <td className={tdClass} colSpan={2} />
+                  <td className={tdClass} colSpan={5} />
                 </tr>
               </tfoot>
             ) : null}
@@ -692,20 +670,20 @@ function ProductRow({ pid, n, units, idx, b, searchOf }: { pid: number; n: { nam
         <span data-shown>{units.length}</span>
         {need ? <span className="block text-[11px] font-semibold text-lien-heart">+{need} cần mua</span> : null}
       </td>
-      <td className={cn(tdClass, TD, LBL, "text-[12px]")} data-label="Mua ở">
-        {Array.from(new Set(units.map((u) => u.sourceKey))).length} nơi
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="¥/đv">
+        {jpyRange(units.map((u) => u.unitCostJpy))}
       </td>
       <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="HSD">
         {expRange(units.map((u) => u.expiry))}
       </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
+        <StatusChips units={units} />
+      </td>
       <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="Ngày mua">
         {expRange(units.map((u) => u.boughtAt))}
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-[12px]")} data-label="¥/đv">
-        {jpyRange(units.map((u) => u.unitCostJpy))}
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
-        <StatusChips units={units} />
+      <td className={cn(tdClass, TD, LBL, "text-[12px]")} data-label="Mua ở">
+        {Array.from(new Set(units.map((u) => u.sourceKey))).length} nơi
       </td>
       <td className={cn(tdClass, TD, LBL, "text-[12px] text-lien-muted")} data-label="Bill">
         {bills.size} bill · giữ cho đơn {heldN} · lưu kho {units.length - heldN}
@@ -715,6 +693,9 @@ function ProductRow({ pid, n, units, idx, b, searchOf }: { pid: number; n: { nam
 }
 
 /** Tầng 2 — a bill line: the units of one product bought on one bill at one price / HSD. Editing applies to all of them. */
+/** Statuses a purchase row can take here: buying → at Kho VN (delivery is ⑦ Giao hàng VN), plus the current one. */
+const stagesFor = (current: PurchaseStatus) => PURCHASE_STAGES.filter((x) => purchaseIndex(x.key) <= purchaseIndex("at_shop") || x.key === current);
+
 function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: UnitView[]; idx: number } & Ctx) {
   const u = units[0];
   const g = `g_${u.id}_`;
@@ -729,6 +710,7 @@ function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: Uni
   const free = units.filter((x) => !x.itemId).length;
   const locked = units.filter((x) => x.itemId || x.shipmentId).length;
   const slow = units.reduce((m, x) => (purchaseIndex(x.status) < purchaseIndex(m) ? x.status : m), u.status);
+  const uniform = units.every((x) => x.status === units[0].status) ? units[0].status : null;
   return (
     <tr className="group bg-white align-top max-lg:block max-lg:rounded-md max-lg:border max-lg:border-[#e5e7eb] max-lg:p-3" data-lvl="g" data-p={u.productId} data-g={u.id} data-open="0" data-idx={idx} data-testid={`bline-${u.id}`}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
@@ -751,6 +733,32 @@ function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: Uni
       <td className={cn(tdClass, TD, LBL)} data-label="SL">
         <input name={`${g}qty`} form={saveId} inputMode="numeric" defaultValue={units.length} className={cn(adminInput, cell, "!w-14 !text-center font-semibold")} aria-label="Số lượng của dòng bill" title={`Tăng = thêm cái mới cùng bill / giá / HSD; giảm = bỏ các cái chưa giữ cho đơn${locked ? ` (${locked} cái đang giữ cho đơn / đã đóng chuyến không bớt được)` : ""}`} />
       </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
+        <input name={`${g}unitCostJpy`} form={saveId} inputMode="numeric" defaultValue={u.unitCostJpy ?? ""} placeholder="¥/đv" className={cn(adminInput, cell, "!w-[84px]")} aria-label="Giá ¥ mỗi đơn vị" />
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="HSD">
+        <input name={`${g}expiry`} form={saveId} defaultValue={u.expiry ?? ""} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
+        {/* the status of every unit of the bill line: shows the line's status; picking another moves all of them
+            (only units whose status differs are written). Mixed lines show how many are where until one is picked. */}
+        <select name={`${g}status`} form={saveId} defaultValue={uniform ?? ""} className={cn(adminInput, cell, "!w-40")} aria-label="Trạng thái cả dòng bill" title="Đổi = mọi cái của dòng bill chuyển sang trạng thái này (từng mã vẫn đổi riêng được khi mở dòng)">
+          {uniform ? null : <option value="">{`— ${units.length} cái, nhiều trạng thái —`}</option>}
+          {stagesFor(uniform ?? slow).map((x) => (
+            <option key={x.key} value={x.key}>
+              {x.label}
+            </option>
+          ))}
+        </select>
+        {uniform ? null : (
+          <span className="mt-1 block">
+            <StatusChips units={units} />
+          </span>
+        )}
+      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
+        <input name={`${g}boughtAt`} form={saveId} defaultValue={u.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+      </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
         <div className="grid w-[150px] gap-1">
           <select name={`${g}sourceKey`} form={saveId} defaultValue={u.sourceKey} className={cn(adminInput, cell, "!w-full")} aria-label="Mua ở" data-ch={channelOf(u.sourceKey)}>
@@ -762,28 +770,6 @@ function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: Uni
           </select>
           <input name={`${g}store`} form={saveId} defaultValue={u.store} placeholder="cửa hàng / chi nhánh…" className={cn(adminInput, cell, "!w-full !text-[12px]")} aria-label="Cửa hàng" />
         </div>
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="HSD">
-        <input name={`${g}expiry`} form={saveId} defaultValue={u.expiry ?? ""} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
-        <input name={`${g}boughtAt`} form={saveId} defaultValue={u.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="¥/đv">
-        <input name={`${g}unitCostJpy`} form={saveId} inputMode="numeric" defaultValue={u.unitCostJpy ?? ""} placeholder="¥/đv" className={cn(adminInput, cell, "!w-[84px]")} aria-label="Giá ¥ mỗi đơn vị" />
-      </td>
-      <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
-        <select name={`${g}status`} form={saveId} defaultValue="" className={cn(adminInput, cell, "!w-40")} aria-label="Trạng thái cho cả dòng bill" title="Chọn để đặt trạng thái cho mọi cái của dòng bill; để trống = giữ trạng thái từng cái">
-          <option value="">— cả dòng: giữ nguyên —</option>
-          {PURCHASE_STAGES.map((x) => (
-            <option key={x.key} value={x.key}>
-              {x.label}
-            </option>
-          ))}
-        </select>
-        <span className="mt-1 block" data-status-summary={purchaseIndex(slow)}>
-          <StatusChips units={units} />
-        </span>
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Bill">
         <input name={`${g}billCode`} form={saveId} defaultValue={u.receiptCode} list={`bills-${b.id}`} placeholder="mã bill…" className={cn(adminInput, cell, "!w-[150px] font-mono !text-[12px]")} aria-label="Mã bill" title="Gõ mã bill của cửa hàng (vd BILL_260927_1454): mã mới → tạo bill trong đợt, mã có sẵn → gắn vào bill đó, xoá trống → bỏ gắn" />
@@ -820,27 +806,27 @@ function UnitRow({ u, gid, idx, bulkId, saveId, sources, searchOf, channelOf }: 
       <td className={cn(tdClass, TD, LBL)} data-label="SL">
         1
       </td>
-      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} data-label="Mua ở">
-        {purchaseSourceName(u.sourceKey, sources)}
-        {u.store ? ` · ${u.store}` : ""}
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-lien-muted")} data-label="¥/đv">
+        {u.unitCostJpy ? `¥${formatAmount(u.unitCostJpy)}` : "—"}
       </td>
       <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-lien-muted")} data-label="HSD">
         {u.expiry ? formatDate(u.expiry) : "—"}
       </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-lien-muted")} data-label="Ngày mua">
-        {u.boughtAt ? formatDate(u.boughtAt) : "—"}
-      </td>
-      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-lien-muted")} data-label="¥/đv">
-        {u.unitCostJpy ? `¥${formatAmount(u.unitCostJpy)}` : "—"}
-      </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Trạng thái">
         <select name={`u_${u.id}_status`} form={saveId} defaultValue={u.status} className={cn(adminInput, cell, "!w-40 !text-[12px]")} aria-label={`Trạng thái ${u.code}`} title={stage.label}>
-          {PURCHASE_STAGES.map((x) => (
+          {stagesFor(u.status).map((x) => (
             <option key={x.key} value={x.key}>
               {x.label}
             </option>
           ))}
         </select>
+      </td>
+      <td className={cn(tdClass, TD, LBL, "whitespace-nowrap text-lien-muted")} data-label="Ngày mua">
+        {u.boughtAt ? formatDate(u.boughtAt) : "—"}
+      </td>
+      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} data-label="Mua ở">
+        {purchaseSourceName(u.sourceKey, sources)}
+        {u.store ? ` · ${u.store}` : ""}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Cho đơn">
         {u.orderId ? (
@@ -875,15 +861,16 @@ function NeedRow({ l, idx, bulkId, sources, searchOf, channelOf }: { l: Purchase
         {l.need}
         {l.need < l.quantity ? <span className="block text-[10px] font-normal text-lien-muted">/ {l.quantity} đặt</span> : null}
       </td>
+      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} data-label="">
+        {l.costJpy ? `giá tham khảo ¥${formatAmount(l.costJpy)}` : ""}
+      </td>
+      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} colSpan={3} data-label="">
+        Mua xong: tick dòng → chọn trạng thái → <b>Cập nhật trạng thái</b> (tạo mã cho đơn) — hoặc thêm sản phẩm theo bill, đơn được giữ hàng tự động.
+      </td>
       <td className={cn(tdClass, TD, LBL, "text-lien-muted")} data-label="Mua ở">
         {l.sourceKey ? purchaseSourceName(l.sourceKey, sources) : "—"}
       </td>
-      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} colSpan={3} data-label="">
-        {l.costJpy ? `giá tham khảo ¥${formatAmount(l.costJpy)}` : ""}
-      </td>
-      <td className={cn(tdClass, TD, LBL, "text-lien-muted")} colSpan={2} data-label="">
-        Mua xong: tick dòng → chọn trạng thái → <b>Cập nhật trạng thái</b> (tạo mã cho đơn) — hoặc thêm sản phẩm theo bill, đơn được giữ hàng tự động.
-      </td>
+      <td className={cn(tdClass, TD, LBL)} data-label="" />
     </tr>
   );
 }

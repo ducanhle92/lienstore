@@ -51,10 +51,10 @@ const NAV: NavGroup[] = [
           { href: "/admin/products/sources/", label: "Nguồn nhập", icon: "shopping-bag", module: "products" },
           { href: "/admin/inventory/warehouses/", label: "Địa chỉ kho", icon: "map-marker", module: "inventory" },
           { href: "/admin/products/pricing/", label: "Công thức giá", icon: "money", module: "products" },
+          { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
         ],
       },
       { href: "/admin/products/", label: "Sản phẩm", icon: "list", module: "products" },
-      { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
       // the import flow, in the order the goods travel
       { href: "/admin/orders/", label: "① Đơn hàng", icon: "shopping-cart", module: "orders" },
       { href: "/admin/purchases/", label: "② Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },

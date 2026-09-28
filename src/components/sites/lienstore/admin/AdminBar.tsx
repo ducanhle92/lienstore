@@ -8,6 +8,8 @@ import { btnPrimary, btnSecondary } from "./ui";
 
 export const ADMIN_BAR_ID = "admin-bar";
 export const BAR_TOOLS_ID = "admin-bar-tools";
+/** Tools that come first, left of "Lưu thay đổi" (e.g. "+ Mở đợt mua mới"). */
+export const BAR_LEAD_ID = "admin-bar-lead";
 export const BAR_BULK_ID = "admin-bar-bulk";
 /** Fired once the bar is on the page, so screens that hydrated before it can move their tools in. */
 export const BAR_READY_EVENT = "admin-bar:ready";
@@ -79,7 +81,7 @@ export function AdminBar() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
   const [state, setState] = useState<{ editable: number; changed: number; forms: number }>({ editable: 0, changed: 0, forms: 0 });
-  const [slots, setSlots] = useState({ tools: false, bulk: false });
+  const [slots, setSlots] = useState({ lead: false, tools: false, bulk: false });
   // the URL a save started on: the redirect after the save lands on a new URL, which ends "Đang lưu…"
   const [savingAt, setSavingAt] = useState<string | null>(null);
   const saving = savingAt === `${pathname}?${search}`;
@@ -91,9 +93,10 @@ export function AdminBar() {
     const s = scan();
     const changed = Array.from(s.dirty.values()).reduce((n, v) => n + v, 0);
     setState((p) => (p.editable === s.editable && p.changed === changed && p.forms === s.dirty.size ? p : { editable: s.editable, changed, forms: s.dirty.size }));
+    const lead = !!document.getElementById(BAR_LEAD_ID)?.childElementCount;
     const tools = !!document.getElementById(BAR_TOOLS_ID)?.childElementCount;
     const bulk = !!document.getElementById(BAR_BULK_ID)?.childElementCount;
-    setSlots((p) => (p.tools === tools && p.bulk === bulk ? p : { tools, bulk }));
+    setSlots((p) => (p.lead === lead && p.tools === tools && p.bulk === bulk ? p : { lead, tools, bulk }));
   }, []);
 
   useEffect(() => {
@@ -161,7 +164,7 @@ export function AdminBar() {
     requestAnimationFrame(recount);
   };
 
-  const shown = state.editable > 0 || slots.tools || slots.bulk;
+  const shown = state.editable > 0 || slots.lead || slots.tools || slots.bulk;
   // toasts (FlashToast) sit above the bar instead of on top of its buttons
   useEffect(() => {
     document.documentElement.style.setProperty("--admin-bar-h", shown ? `${height}px` : "0px");
@@ -180,6 +183,8 @@ export function AdminBar() {
         data-dirty={state.changed}
       >
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-2 px-4 py-2.5 xl:max-w-[1400px] 2xl:max-w-[1600px]">
+          <div id={BAR_LEAD_ID} className={slots.lead ? "contents" : "hidden"} />
+          {slots.lead && state.editable > 0 ? <span className="mx-1 h-6 w-px self-center bg-[#e5e7eb]" aria-hidden /> : null}
           {state.editable > 0 ? (
             <>
               <button type="button" onClick={save} disabled={!state.changed || saving} className={cn(btnPrimary, "!px-5 !py-2 !text-[14px] disabled:opacity-50")} data-testid="bar-save">
