@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.92.0] - 2026-09-28
+
 ### Changed
 - **Nguồn hàng khi nhiều đơn cùng muốn một sản phẩm**:
   - Đơn **đã thanh toán / COD được giữ hàng trước** đơn chưa thanh toán (sau đó mới tới đơn đặt trước). Đơn đã thanh toán còn thiếu hàng tự lấy cả cái **đã đóng kiện** đang giữ cho đơn chưa thanh toán (đơn chưa thanh toán mới nhất nhường trước).
