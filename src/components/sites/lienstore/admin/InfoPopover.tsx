@@ -8,6 +8,10 @@ interface Props {
   /** Explanation shown in the popup — usually the exact numbers of the calculation, so admin can check it by hand. */
   children: ReactNode;
   className?: string;
+  /** "end": the popup opens leftwards from the button (for buttons near the right edge). */
+  align?: "center" | "end";
+  /** Wider popup for longer explanations. */
+  wide?: boolean;
 }
 
 /**
@@ -15,7 +19,7 @@ interface Props {
  * button again, or Escape closes it. Used on the price-breakdown rows (Kho hàng › Sản phẩm) so admin can verify every
  * step of "giá vốn tại Nhật → phí ship 3 chặng → giá vốn về VN → giá kỳ vọng" without redoing the maths by hand.
  */
-export function InfoPopover({ children, className }: Props) {
+export function InfoPopover({ children, className, align = "center", wide = false }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -49,10 +53,10 @@ export function InfoPopover({ children, className }: Props) {
         <span
           role="tooltip"
           data-testid="info-popover-content"
-          className="absolute left-1/2 top-full z-30 mt-1.5 w-[280px] -translate-x-1/2 rounded-md border border-lien-blue/30 bg-white p-2.5 text-left text-[11px] leading-[17px] whitespace-normal text-lien-text normal-case shadow-lg"
+          className={cn("absolute top-full z-30 mt-1.5 rounded-md border border-lien-blue/30 bg-white p-2.5 text-left text-[11px] leading-[17px] whitespace-normal text-lien-text normal-case shadow-lg", wide ? "w-[320px]" : "w-[280px]", align === "end" ? "-right-1" : "left-1/2 -translate-x-1/2")}
         >
           {children}
-          <span className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-t border-l border-lien-blue/30 bg-white" />
+          <span className={cn("absolute -top-1.5 h-3 w-3 rotate-45 border-t border-l border-lien-blue/30 bg-white", align === "end" ? "right-2" : "left-1/2 -translate-x-1/2")} />
         </span>
       ) : null}
     </span>

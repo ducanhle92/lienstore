@@ -7,13 +7,14 @@ import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allo
 import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
-import { orderSteps, SHIP_STAGES, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
+import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
+import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
 import { purchaseIndex } from "@/lib/purchase";
-import { deleteOrderFileAction, saveAdminNoteAction } from "@/app/admin/orders/files-actions";
+import { deleteOrderFileAction } from "@/app/admin/orders/files-actions";
 import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
-import { adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { adminInput, btnDanger, btnPrimary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
@@ -274,21 +275,27 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
         </div>
 
         <div className="space-y-6">
-          <Card title="Trạng thái đơn hàng">
+          <Card
+            title="Trạng thái đơn hàng"
+            actions={
+              <InfoPopover align="end" wide>
+                <span className="block text-[13px] leading-5 text-lien-text" data-testid="stage-now">
+                  Hiện tại: <strong className="text-lien-heart">{flow.steps[flow.current].label}</strong>
+                  {transitSub ? <span className="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">{transitSub}</span> : null}
+                </span>
+                {transitSub ? <span className="block text-[11px] text-lien-muted">(chặng chỉ admin thấy — khách thấy “Đang vận chuyển về kho shop VN”)</span> : null}
+                <span className="mt-1 block text-[12px]">{flow.steps[flow.current].hint}</span>
+                <span className="mt-1 block text-lien-muted">{cod ? "Luồng COD: giao hàng trước, “Hoàn tất thanh toán” ở cuối." : "Luồng trả trước: khách chuyển khoản trước, shop mới gửi hàng."}</span>
+                {nextStage && waitingPay && order.shipStage === "ordered" ? <span className="mt-1 block text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc cho COD) ở ô Trạng thái của thanh dưới.</span> : null}
+              </InfoPopover>
+            }
+          >
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact admin />
             </div>
-            <p className="mb-3 text-[13px] leading-5 text-lien-text" data-testid="stage-now">
-              Hiện tại: <strong className="text-lien-heart">{flow.steps[flow.current].label}</strong>
-              {transitSub ? <span className="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title="Chỉ admin thấy — khách thấy “Đang vận chuyển về kho shop VN”">{transitSub}</span> : null}
-              <span className="block text-[12px] text-lien-muted">{flow.steps[flow.current].hint}</span>
-              <span className="mt-1 block text-[11px] text-lien-muted">{cod ? "Luồng COD: giao hàng trước, “Hoàn tất thanh toán” ở cuối." : "Luồng trả trước: khách chuyển khoản trước, shop mới gửi hàng."}</span>
-            </p>
             <form action={setStageAction} className="grid gap-2">
               <input type="hidden" name="id" value={order.id} />
-              {nextStage && waitingPay && order.shipStage === "ordered" ? (
-                <p className="m-0 text-[12px] text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc cho COD) ở thanh dưới.</p>
-              ) : nextStage ? (
+              {nextStage && waitingPay && order.shipStage === "ordered" ? null : nextStage ? (
                 <button type="submit" name="stage" value={nextStage.key} className={btnPrimary} data-testid="next-stage">
                   <Fa name="check" /> Chuyển sang: {nextStage.label}
                 </button>
@@ -348,13 +355,33 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               </select>
             </label>
           </BarTools>
-          <Card title="Vận chuyển đơn này">
-            <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
-            <p className="mt-3 text-[12px] text-lien-muted">
-              Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
-              <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>
-            </p>
-          </Card>
+          <details className="group rounded-lg border border-[#e5e7eb] bg-white shadow-sm" open={first(sp.legs) === "1"} data-testid="legs-card">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 md:px-5">
+              <h2 className="text-[15px] font-semibold leading-6 text-lien-heading">Vận chuyển đơn này</h2>
+              <span className="flex flex-wrap gap-1">
+                {SHIPPING_LEGS.map((l) => {
+                  const cur = (legMap.get(order.id) ?? []).find((x) => x.leg === l.key);
+                  const st = cur?.status ?? "pending";
+                  return (
+                    <span key={l.key} className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", LEG_STATUS_CLS[st])} title={`${l.label}: ${LEG_STATUS_LABEL[st]}${cur?.tracking ? ` · ${cur.tracking}` : ""}`}>
+                      {l.label.slice(0, 1)} {LEG_STATUS_LABEL[st]}
+                    </span>
+                  );
+                })}
+              </span>
+              <span className="ml-auto text-[12px] text-lien-blue">
+                <span className="group-open:hidden">▸ mở</span>
+                <span className="hidden group-open:inline">▾ thu gọn</span>
+              </span>
+            </summary>
+            <div className="border-t border-[#e5e7eb] p-4 md:p-5">
+              <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/?legs=1`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
+              <p className="mt-3 text-[12px] text-lien-muted">
+                Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
+                <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>
+              </p>
+            </div>
+          </details>
           <Card
             title="Khách hàng"
             actions={
@@ -414,17 +441,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 </div>
               ) : null}
             </dl>
-          </Card>
-          <Card title="Ghi chú nội bộ">
-            <form action={saveAdminNoteAction} className="grid gap-3">
-              <input type="hidden" name="orderId" value={order.id} />
-              <textarea name="adminNote" rows={3} defaultValue={order.adminNote} placeholder="Chỉ admin thấy: mã vận đơn, đã mua ở đâu, còn thiếu gì…" className={adminInput} />
-              <div>
-                <button type="submit" className={btnSecondary}>
-                  Lưu ghi chú
-                </button>
-              </div>
-            </form>
           </Card>
 
         </div>

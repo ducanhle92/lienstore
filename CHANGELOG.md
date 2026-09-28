@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang đơn hàng gọn hơn:
+  - Phần giải thích bước hiện tại (“Hiện tại: …”, luồng trả trước / COD, khi nào mở bước “Đã gửi hàng”) nằm sau nút **ⓘ** cạnh tiêu đề “Trạng thái đơn hàng”.
+  - **Vận chuyển đơn này** thu gọn mặc định, chỉ còn một dòng trạng thái 4 chặng (① … ④); bấm để mở, lưu một chặng xong khung vẫn mở.
+  - Bỏ khung **Ghi chú nội bộ** (ghi chú cũ vẫn giữ trong dữ liệu).
+
 ## [1.94.0] - 2026-09-28
 
 ### Added
