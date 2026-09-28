@@ -124,6 +124,8 @@ function hydrate(rows: BatchRow[]): PurchaseBatch[] {
 /** Open batches first (newest on top); `includeDone` adds the ones already at the shop. */
 export interface BatchSearch {
   includeDone?: boolean;
+  /** Only batches already at the VN shop. */
+  onlyDone?: boolean;
   /** Matches code / label / note (case-insensitive). */
   q?: string;
   /** Bought date range (inclusive, ISO date). */
@@ -134,7 +136,8 @@ export function listPurchaseBatches(opts: boolean | BatchSearch = false, limit =
   const o: BatchSearch = typeof opts === "boolean" ? { includeDone: opts } : opts;
   const where: string[] = [];
   const args: unknown[] = [];
-  if (!o.includeDone) where.push("status <> 'at_shop'");
+  if (o.onlyDone) where.push("status = 'at_shop'");
+  else if (!o.includeDone) where.push("status <> 'at_shop'");
   if (o.q) {
     where.push("(LOWER(code) LIKE ? OR LOWER(label) LIKE ? OR LOWER(note) LIKE ?)");
     const like = `%${o.q.toLowerCase()}%`;

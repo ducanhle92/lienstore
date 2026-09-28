@@ -10,6 +10,7 @@ interface Props {
   /** Rows the card renders. */
   total: number;
   sources: Array<{ key: string; name: string }>;
+  statuses: Array<{ key: string; label: string }>;
   bills: Array<{ id: number; code: string }>;
 }
 
@@ -26,13 +27,14 @@ interface Filter {
   src: string;
   date: string;
   bill: string;
+  status: string;
 }
-const EMPTY: Filter = { q: "", src: "", date: "", bill: "" };
+const EMPTY: Filter = { q: "", src: "", date: "", bill: "", status: "" };
 
 function readUrl(search: string): Filter {
   if (!search) return EMPTY;
   const p = new URLSearchParams(search);
-  return { q: p.get("q") ?? "", src: p.get("src") ?? "", date: p.get("date") ?? "", bill: p.get("bill") ?? "" };
+  return { q: p.get("q") ?? "", src: p.get("src") ?? "", date: p.get("date") ?? "", bill: p.get("bill") ?? "", status: p.get("st") ?? "" };
 }
 function writeUrl(f: Filter) {
   const p = new URLSearchParams(window.location.search);
@@ -41,17 +43,18 @@ function writeUrl(f: Filter) {
   put("src", f.src);
   put("date", f.date);
   put("bill", f.bill);
+  put("st", f.status);
   const qs = p.toString();
   window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
 }
-const isEmpty = (f: Filter) => !f.q && !f.src && !f.date && !f.bill;
+const isEmpty = (f: Filter) => !f.q && !f.src && !f.date && !f.bill && !f.status;
 
 /**
  * Client-side filter for one batch card: rows are server-rendered (their inputs stay bound to the save form) and carry
  * data-* attributes; this hides the ones that do not match (product / order text, source, bought date, bill), keeps the
  * filter in the URL (F5-safe) and recomputes the totals row (rows · units · ¥) from what is shown.
  */
-export function BatchFilter({ batchId, total, sources, bills }: Props) {
+export function BatchFilter({ batchId, total, sources, statuses, bills }: Props) {
   const search = useSyncExternalStore(
     () => () => {},
     () => window.location.search,
@@ -82,6 +85,7 @@ export function BatchFilter({ batchId, total, sources, bills }: Props) {
       if (ok && f.src && (d.src ?? "") !== f.src) ok = false;
       if (ok && f.date && !(d.bought ?? "").startsWith(f.date)) ok = false;
       if (ok && f.bill && (d.bill ?? "") !== f.bill) ok = false;
+      if (ok && f.status && (d.status ?? "") !== f.status) ok = false;
       r.classList.toggle("hidden", !ok);
       if (ok) {
         n++;
@@ -133,6 +137,14 @@ export function BatchFilter({ batchId, total, sources, bills }: Props) {
           </option>
         ))}
         <option value="—">chưa có bill</option>
+      </select>
+      <select value={f.status} onChange={(e) => update((cur) => ({ ...cur, status: e.target.value }))} className={cn(adminInput, sel)} aria-label="Trạng thái" data-testid="batch-status">
+        <option value="">Trạng thái: tất cả</option>
+        {statuses.map((x) => (
+          <option key={x.key} value={x.key}>
+            {x.label}
+          </option>
+        ))}
       </select>
       <span className="ml-auto text-[12px] text-lien-muted" data-testid="batch-count">
         Đang hiện <span ref={countRef} className="font-semibold text-lien-heading">{total}/{total} dòng</span>

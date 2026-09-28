@@ -67,10 +67,19 @@ export function FixedSaveBar({ forms, label = "Lưu thay đổi", resetLabel = "
     setDirty({});
   };
   const openAdd = () => {
-    const key = (target ?? "").split("-").pop() ?? "";
-    const d = (document.querySelector<HTMLDetailsElement>(`details[data-add-form="${key}"]`) ?? document.querySelector<HTMLDetailsElement>("details[data-add-form]"));
+    // the block being edited; otherwise the one on screen (a card whose box crosses the viewport); otherwise the first
+    const edited = last && dirty[last] ? (last.split("-").pop() ?? "") : "";
+    const all = Array.from(document.querySelectorAll<HTMLElement>("[data-add-form], [data-add-row]"));
+    const keyOf = (el: HTMLElement) => el.dataset.addForm ?? el.dataset.addRow ?? "";
+    const shown = (el: HTMLElement) => {
+      const box = (el.closest("[data-testid^='batch-']") ?? el.parentElement ?? el).getBoundingClientRect();
+      return Math.max(0, Math.min(box.bottom, window.innerHeight - 64) - Math.max(box.top, 0));
+    };
+    const onScreen = all.map((el) => ({ el, px: shown(el) })).filter((x) => x.px > 0).sort((a, b) => b.px - a.px)[0]?.el;
+    const d = (edited ? all.find((el) => keyOf(el) === edited) : undefined) ?? onScreen ?? all[0];
     if (!d) return;
-    d.open = true;
+    if (d instanceof HTMLDetailsElement) d.open = true;
+    else d.classList.remove("hidden");
     d.scrollIntoView({ block: "center", behavior: "smooth" });
     window.setTimeout(() => d.querySelector<HTMLInputElement>("input:not([type=hidden])")?.focus(), 250);
   };

@@ -13,6 +13,7 @@ import { getDb } from "@/lib/sqlite";
 import { statusForLocation } from "@/lib/warehouses";
 import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, importBillsFromText, moveStockToBatch, removeLotsFromBatch, resetPurchasingData, setLineReceiptByCode, setLotReceiptByCode, setSlipReceiptByCode, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
 import { renameReceipt } from "@/lib/receipts-db";
+import { reallocateOpenOrders } from "@/lib/allocations-db";
 import { deleteStockLot, deleteStockPurchase, setOrderItemsPurchase as setLinesStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 
@@ -322,6 +323,12 @@ export async function bulkBatchRowsAction(formData: FormData): Promise<void> {
         if (!r.ok) note = ` ${r.message}`;
       } else note = ` Lô đã mua không lùi về "${status === "ordered" ? "Đã đặt mua" : "Chưa mua"}" được — bỏ qua ${lotIds.length} lô.`;
     }
+    // every row of the batch at the same status → the batch itself moves there (there is no separate "cả đợt" control)
+    const after = getPurchaseBatch(batchId!);
+    if (after) {
+      const all = [...after.lines.map((l) => l.purchaseStatus), ...after.stock.map((x) => x.status), ...after.lots.map((l) => statusForLocation(l.warehouse, l.inTransit))];
+      if (all.length && all.every((x) => x === status) && after.status !== status) getDb().prepare("UPDATE purchase_batches SET status = ?, updated_at = ? WHERE id = ?").run(status, new Date().toISOString(), batchId);
+    }
     revalidatePath("/admin", "layout");
     go("saved", `Đã cập nhật ${n} dòng.${note}`, batchId);
   }
@@ -513,4 +520,13 @@ export async function renameBillAction(formData: FormData): Promise<void> {
   const r = renameReceipt(id!, text(formData, "code"));
   revalidatePath("/admin", "layout");
   redirect(`${PAGE}&bills=${batchId ?? ""}&${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#receipt-${id}`);
+}
+
+/** "Cập nhật theo đơn hàng": cancelled orders no longer hold units; waiting orders are matched again (oldest first). */
+export async function syncBatchOrdersAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  const r = await reallocateOpenOrders();
+  revalidatePath("/admin", "layout");
+  go("saved", `Đã cập nhật theo đơn hàng: ${r.orders} đơn đang chờ được ghép lại (${r.lines} phần giữ chỗ xếp lại)${r.released ? `; trả ${r.released} phần giữ chỗ của đơn đã huỷ về tồn` : ""}.`, batchId);
 }

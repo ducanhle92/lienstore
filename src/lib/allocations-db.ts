@@ -506,14 +506,16 @@ export async function cleanupOrphanLotRefs(): Promise<{ slips: number; allocatio
  * then the orders are served again oldest first under the current rule (place → expiry → bill). Manual choices and
  * deducted units are kept.
  */
-export async function reallocateOpenOrders(): Promise<{ orders: number; lines: number }> {
+export async function reallocateOpenOrders(): Promise<{ orders: number; lines: number; released: number }> {
   const db = getDb();
   return withTransaction(db, () => {
+    // holds (not yet deducted) of cancelled orders go back to free stock
+    const released = Number(db.prepare("DELETE FROM order_item_allocations WHERE consumed_at IS NULL AND order_item_id IN (SELECT oi.id FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'cancelled')").run().changes);
     const orders = (db.prepare("SELECT id FROM orders WHERE status IN ('pending','processing') AND stock_committed_at IS NULL ORDER BY created_at, id").all() as Array<{ id: string }>).map((r) => r.id);
-    if (!orders.length) return { orders: 0, lines: 0 };
+    if (!orders.length) return { orders: 0, lines: 0, released };
     const ph = orders.map(() => "?").join(",");
     const lines = Number(db.prepare(`DELETE FROM order_item_allocations WHERE manual = 0 AND consumed_at IS NULL AND order_item_id IN (SELECT id FROM order_items WHERE order_id IN (${ph}))`).run(...orders).changes);
     for (const id of orders) allocateOrderSync(db, id, false);
-    return { orders: orders.length, lines };
+    return { orders: orders.length, lines, released };
   });
 }

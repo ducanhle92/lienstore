@@ -62,7 +62,8 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const bto = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.bto)) ? first(sp.bto) : "";
   const billBatch = Number.parseInt(first(sp.bill), 10);
   const billsOpenFor = Number.parseInt(first(sp.bills), 10);
-  const batches = tab === "batches" ? listPurchaseBatches({ includeDone: includeDone || !!(bq || bfrom || bto), q: bq, from: bfrom, to: bto }) : [];
+  const bstatus: "" | "done" | "all" = first(sp.bstatus) === "done" ? "done" : first(sp.bstatus) === "all" ? "all" : "";
+  const batches = tab === "batches" ? listPurchaseBatches({ includeDone: includeDone || bstatus === "all" || !!(bq || bfrom || bto), onlyDone: bstatus === "done", q: bq, from: bfrom, to: bto }) : [];
   const batchHeads = listBatchHeads();
   const openSurplus = listOpenSurplus();
   void openSurplus;
@@ -130,7 +131,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
           <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)} />
         </div>
       ) : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} isOwner={session.role === "owner"} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto, status: bstatus }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} isOwner={session.role === "owner"} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}

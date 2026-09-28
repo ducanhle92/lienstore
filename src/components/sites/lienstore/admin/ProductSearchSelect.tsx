@@ -23,12 +23,14 @@ interface Props {
   placeholder?: string;
   /** Pre-selected product (edit forms). */
   initial?: PickableProduct | null;
+  /** Bind the hidden id input to a form elsewhere on the page (inputs inside a table row). */
+  form?: string;
 }
 
 const strip = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase();
 
 /** Type-ahead single product picker: a text box + result list; the chosen id goes into a hidden input. */
-export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên Việt / tên Nhật hoặc SKU sản phẩm…", initial = null }: Props) {
+export function ProductSearchSelect({ products, name = "productId", onPick, placeholder = "Gõ tên Việt / tên Nhật hoặc SKU sản phẩm…", initial = null, form }: Props) {
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<PickableProduct | null>(initial);
   const matches = useMemo(() => {
@@ -43,7 +45,7 @@ export function ProductSearchSelect({ products, name = "productId", onPick, plac
   };
   return (
     <div className="relative" data-testid="product-search">
-      <input type="hidden" name={name} value={picked?.id ?? ""} />
+      <input type="hidden" name={name} value={picked?.id ?? ""} form={form} />
       {picked ? (
         <div className="flex items-center gap-2 rounded-md border border-lien-blue bg-lien-blue-soft/40 px-2 py-1.5 text-[13px]">
           {picked.thumb ? <Image src={picked.thumb} alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded object-contain" /> : null}
