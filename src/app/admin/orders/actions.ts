@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import type { ChatState } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
-import { addOrderMessage, deleteOrder, setOrderCod, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
+import { listAllocationViews } from "@/lib/allocations-db";
+import { getDb } from "@/lib/sqlite";
+import { addOrderMessage, getOrderById, deleteOrder, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { isShipStage } from "@/lib/shipping";
 import type { OrderStatus } from "@/types/shop";
@@ -89,7 +91,16 @@ export async function reallocateOrderAction(formData: FormData): Promise<void> {
     await reallocateOrder(id);
     revalidatePath("/admin", "layout");
   }
-  redirect(`/admin/orders/${id}/?saved=${encodeURIComponent("Đã phân bổ lại nguồn hàng cho đơn.")}`);
+  // one line per product: where its units now come from (Kho VN ×1 · Cần mua ×1 …)
+  const order = id ? await getOrderById(id) : null;
+  const views = order ? listAllocationViews(getDb(), order.items.map((it) => it.itemId).filter((x): x is number => typeof x === "number")) : [];
+  const summary = (order?.items ?? [])
+    .map((it) => {
+      const parts = views.filter((v) => v.orderItemId === it.itemId).map((v) => `${v.label} ×${v.qty}`);
+      return `${it.name.slice(0, 40)}: ${parts.join(", ") || "theo trạng thái tay"}`;
+    })
+    .join(" · ");
+  redirect(`/admin/orders/${id}/?saved=${encodeURIComponent(`Đã tự động phân bổ — ${summary || "không có dòng"}. Quản lý mua hàng, Tồn kho và Hàng theo đơn đã cập nhật theo.`)}`);
 }
 
 /** Override the source of one line: "buy" or "lot:12" / "stock_purchase:25" / "batch:3". */
@@ -111,7 +122,7 @@ export async function setItemSourceAction(formData: FormData): Promise<void> {
 export async function setOrderCodAction(formData: FormData): Promise<void> {
   if (!(await can("orders"))) redirect("/admin/login/");
   const id = String(formData.get("id") ?? "");
-  const r = await setOrderCod(id, { markRegular: formData.get("markRegular") === "1" });
+  const r = await setOrderCod(id);
   revalidatePath("/admin", "layout");
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
 }
@@ -121,6 +132,15 @@ export async function markTransferReceivedAction(formData: FormData): Promise<vo
   if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");
   const id = String(formData.get("id") ?? "");
   const r = await setOrderTransferReceived(id);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
+}
+
+/** "Hoàn tất thanh toán" of a COD order (money collected). */
+export async function markCodCollectedAction(formData: FormData): Promise<void> {
+  if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");
+  const id = String(formData.get("id") ?? "");
+  const r = await setOrderCodCollected(id);
   revalidatePath("/admin", "layout");
   redirect(`/admin/orders/${id}/?${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#tracking`);
 }

@@ -77,7 +77,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   if (items.length === 0) return { error: "Giỏ hàng của bạn hiện đang trống." };
   if (Object.keys(fields).length > 0) return { error: "Vui lòng kiểm tra lại các trường được đánh dấu.", fields };
 
-  const paymentMethod: PaymentMethod = get("payment_method") === "cod" ? "cod" : "bacs";
+  // the buyer always pays by transfer; only the admin can turn an order into COD (Admin › Đơn hàng)
+  const paymentMethod: PaymentMethod = "bacs";
   const address = [street, ward?.name, province?.name].filter(Boolean).join(", ");
 
   // Optional account creation ("Tạo tài khoản mới?") or link to the logged-in customer.

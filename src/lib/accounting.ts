@@ -1,7 +1,7 @@
 import "server-only";
 import { getAllProducts, getOrderLegs, getOrders } from "./db";
 import { expectedPriceOf } from "./price-display";
-import { IMPORT_LEGS, stageIndex } from "./shipping";
+import { IMPORT_LEGS } from "./shipping";
 import type { CatalogProduct, Order, OrderLeg } from "@/types/shop";
 
 /**
@@ -98,7 +98,7 @@ export function accountingRow(o: Order, products: Map<number, CatalogProduct>, l
       number: o.number,
       createdAt: o.createdAt,
       status: o.status,
-      paid: stageIndex(o.shipStage) >= stageIndex("paid"),
+      paid: !!o.paidAt,
       customer: `${o.customer.lastName} ${o.customer.firstName}`.trim(),
       items: o.items.reduce((n, it) => n + it.quantity, 0),
       revenue,

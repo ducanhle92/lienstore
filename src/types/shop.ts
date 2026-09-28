@@ -394,9 +394,11 @@ export interface Order {
   /** Receiving bank account stamped on the order when it was placed (bank_accounts.id). */
   payAccountId: number | null;
   /** Logistics progress shown to the customer (see SHIP_STAGES). */
-  shipStage: "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
-  /** When each stage was reached (only filled for single-order loads). */
-  stageLog: Array<{ stage: Order["shipStage"]; note: string; at: string }>;
+  shipStage: "ordered" | "sent" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
+  /** When the shop confirmed the money (transfer received, or COD collected); null = not paid yet. */
+  paidAt: string | null;
+  /** When each stage was reached (only filled for single-order loads); "paid" rows are payment events. */
+  stageLog: Array<{ stage: Order["shipStage"] | "paid"; note: string; at: string }>;
   total: number;
   currency: string;
   /** Internal note, admin only. */

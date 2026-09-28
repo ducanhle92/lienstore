@@ -65,7 +65,8 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG, quot
         return !!key && fold(chosen.carrierName).includes(key);
       })
     : undefined;
-  const value = current?.methodId ? `m:${current.methodId}:${current.zoneId ?? "-"}` : chosenMethod ? `m:${chosenMethod.id}:${chosenMethod.zones[0]?.id ?? "-"}` : preset ? `m:${preset.methodId}:${preset.zoneId}` : "";
+  const pickupNow = leg === "vn_domestic" && (current ? !current.methodId && /tới kho|nhận tại kho/i.test(current.label) : order.delivery === "pickup");
+  const value = pickupNow ? "pickup" : current?.methodId ? `m:${current.methodId}:${current.zoneId ?? "-"}` : chosenMethod ? `m:${chosenMethod.id}:${chosenMethod.zones[0]?.id ?? "-"}` : preset ? `m:${preset.methodId}:${preset.zoneId}` : "";
   // VN domestic: every option shows the fee this order would cost (weight steps / per kg), so the admin can compare carriers
   const est = (m: ShippingMethod, z: ShippingMethod["zones"][number]) =>
     leg === "vn_domestic" && weightG && /đ|vnd/i.test(m.currency) ? ` ≈ ${formatAmount(z.freeOver !== null && order.subtotal >= z.freeOver ? 0 : zoneFeeForWeight(z, weightG))}đ` : "";
@@ -76,6 +77,7 @@ export function OrderLegCell({ order, leg, current, methods, back, weightG, quot
       <input type="hidden" name="back" value={back} />
       <select name="choice" defaultValue={value} className={tiny} aria-label="Phương thức">
         <option value="">— Chưa chọn —</option>
+        {leg === "vn_domestic" ? <option value="pickup">Khách tới kho lấy — 0đ</option> : null}
         {options.map((m) =>
           m.zones.length ? (
             <optgroup key={m.id} label={`${m.name}${m.carrierName ? ` · ${m.carrierName}` : ""}`}>

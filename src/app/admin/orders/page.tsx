@@ -24,7 +24,7 @@ const bulkBtn = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md b
 const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản", cod: "COD" };
 const STAGE_CLS: Record<ShipStage, string> = {
   ordered: "bg-amber-100 text-amber-800",
-  paid: "bg-sky-100 text-sky-800",
+  sent: "bg-sky-100 text-sky-800",
   in_transit: "bg-indigo-100 text-indigo-800",
   vn_warehouse: "bg-violet-100 text-violet-800",
   delivering: "bg-lime-100 text-lime-800",

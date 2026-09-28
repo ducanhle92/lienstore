@@ -5,6 +5,16 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Tiến độ đơn hàng theo hình thức thanh toán** (migration 64, cột `orders.paid_at`): thanh toán là một mốc riêng, không còn là một bước vận chuyển.
+  - Trả trước (chuyển khoản): Đã đặt hàng → **Đã thanh toán** → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đã giao hàng thành công.
+  - COD (chỉ admin cho phép): Đã đặt hàng → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đã giao hàng thành công → **Hoàn tất thanh toán** (nút “Hoàn tất thanh toán (đã thu tiền)” khi đã giao). Đơn COD đã giao nhưng chưa thu tiền vẫn “Đang xử lý”.
+  - Bước mới **Đã gửi hàng**; chặng ① “Đã gửi” tự chuyển đơn sang bước này, chặng ① “Đã đến” (kho Kiến Nhật) sang “Đang vận chuyển về kho shop VN”. Admin thấy thêm chặng nhỏ (Kho Kiến Nhật / Đang bay / Kho ĐVVC Hà Nội / Đang về kho shop) và bước “Đang giao hàng”; khách chỉ thấy các bước chính.
+  - Đơn cũ ở bước “Đã xác nhận thanh toán” chuyển thành “Đã đặt hàng” + đã thanh toán (giữ ngày). Tồn kho trừ khi đã thanh toán, khi chọn COD, hoặc khi hàng đã gửi đi.
+- Trang đơn: nút **Tự động phân bổ** (gần khách nhất trước: Kho VN → ĐVVC VN → đang về → đang bay → ĐVVC Nhật → Kho Nhật → phiếu mua → đợt đang gom → cần mua; cùng chỗ thì hạn dùng gần nhất, rồi bill mua sớm hơn); báo lại từng sản phẩm lấy từ đâu. **Lô đã hết hạn không còn được phân bổ tự động** (vẫn chọn tay được).
+- Thanh toán: bỏ ô “Đánh dấu khách quen” khi chọn COD; COD là nút có xác nhận. Trang thanh toán của khách chỉ nhận chuyển khoản (server cũng chặn COD gửi từ form).
+- Chặng ④ Ship nội địa VN có lựa chọn **Khách tới kho lấy — 0đ** (đơn chuyển sang nhận tại kho).
+
 ## [1.85.0] - 2026-09-28
 
 ### Changed

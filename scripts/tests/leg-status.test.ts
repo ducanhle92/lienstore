@@ -31,9 +31,12 @@ describe("leg → purchase status / order stage", () => {
     assert.equal(LEG_ORDER_STAGE.jp_vn.sent, "in_transit");
     assert.equal(LEG_ORDER_STAGE.vn_transfer.arrived, "vn_warehouse");
     assert.equal(LEG_ORDER_STAGE.vn_domestic.arrived, "delivered");
-    assert.equal(LEG_ORDER_STAGE.jp_domestic.sent, null);
+    // ① sent = "Đã gửi hàng", ① arrived at kho Kiến Nhật = "Đang vận chuyển về kho shop VN"
+    assert.equal(LEG_ORDER_STAGE.jp_domestic.sent, "sent");
+    assert.equal(LEG_ORDER_STAGE.jp_domestic.arrived, "in_transit");
   });
   it("stage ranks are monotonic so a leg never lowers the order stage", () => {
+    assert.ok(stageRank("sent") < stageRank("in_transit"));
     assert.ok(stageRank("in_transit") < stageRank("vn_warehouse"));
     assert.ok(stageRank("vn_warehouse") < stageRank("delivering"));
     assert.ok(stageRank("delivering") < stageRank("delivered"));

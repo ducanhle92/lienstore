@@ -1349,6 +1349,21 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_stock_lots_shipment ON stock_lots(shipment_id)`,
     ],
   },
+  {
+    // Payment leaves the logistics chain: orders.paid_at is its own milestone (prepaid = early, COD = at the end);
+    // the old "paid" stage becomes "ordered" + paid_at, and a new "sent" (Đã gửi hàng) stage sits before transit
+    version: 64,
+    name: "order-paid-at",
+    up: [
+      `ALTER TABLE orders ADD COLUMN paid_at TEXT`,
+      `UPDATE orders SET paid_at = COALESCE((SELECT MAX(l.created_at) FROM order_stage_log l WHERE l.order_id = orders.id AND l.stage = 'paid'), updated_at)
+         WHERE payment_method = 'bacs' AND ship_stage IN ('paid','in_transit','vn_warehouse','delivering','delivered')`,
+      `UPDATE orders SET paid_at = COALESCE((SELECT MAX(l.created_at) FROM order_stage_log l WHERE l.order_id = orders.id AND l.stage = 'delivered'), updated_at)
+         WHERE payment_method = 'cod' AND ship_stage = 'delivered'`,
+      `DELETE FROM order_stage_log WHERE stage = 'paid' AND note LIKE 'Thu khi giao%'`,
+      `UPDATE orders SET ship_stage = 'ordered' WHERE ship_stage = 'paid'`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

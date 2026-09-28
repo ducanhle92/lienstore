@@ -339,11 +339,13 @@ const DICT = {
   jpReceipts: ["Hoá đơn mua hàng tại Nhật", "日本での購入レシート"],
   // shipping stages
   stage_ordered: ["Đã đặt hàng", "注文受付"],
-  stage_paid: ["Đã xác nhận thanh toán", "入金確認済み"],
-  stage_in_transit: ["Đang vận chuyển", "輸送中"],
-  stage_vn_warehouse: ["Đã tới kho Việt Nam", "ベトナム倉庫に到着"],
-  stage_delivering: ["Đang giao", "配達中"],
-  stage_delivered: ["Đã nhận hàng", "受取完了"],
+  stage_paid: ["Đã thanh toán", "入金確認済み"],
+  stage_paid_cod: ["Hoàn tất thanh toán", "支払い完了"],
+  stage_sent: ["Đã gửi hàng", "発送済み"],
+  stage_in_transit: ["Đang vận chuyển về kho shop VN", "ベトナム倉庫へ輸送中"],
+  stage_vn_warehouse: ["Đã về kho VN", "ベトナム倉庫に到着"],
+  stage_delivering: ["Đang giao hàng", "配達中"],
+  stage_delivered: ["Đã giao hàng thành công", "配達完了"],
   // shipping table
   shipNotes: ["Lưu ý về vận chuyển", "配送に関する注意"],
   bothEndsYes: ["Lấy hàng tại kho, giao đến địa chỉ", "倉庫集荷・住所配達"],

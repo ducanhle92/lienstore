@@ -229,6 +229,7 @@ interface OrderRow {
   discount: number | null;
   voucher_code: string | null;
   ship_stage: string | null;
+  paid_at: string | null;
   ship_fee_payment: string | null;
   ship_quote_json: string | null;
   pay_code: string | null;
@@ -287,6 +288,7 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     payAccountId: r.pay_account_id ?? null,
     voucherCode: r.voucher_code ?? "",
     shipStage: isShipStage(r.ship_stage) ? r.ship_stage : "ordered",
+    paidAt: r.paid_at ?? null,
     stageLog: [],
     total: r.total,
     currency: r.currency,
@@ -1104,6 +1106,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       discount,
       voucherCode,
       shipStage: "ordered",
+      paidAt: null,
       stageLog: [{ stage: "ordered", note: "", at: now }],
       total,
       currency: "VNĐ",
@@ -1153,7 +1156,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
   if (!row) return null;
   const order = hydrateOrders([row])[0];
   const log = db.prepare("SELECT stage, note, created_at FROM order_stage_log WHERE order_id = ? ORDER BY id").all(id) as unknown as Array<{ stage: string; note: string; created_at: string }>;
-  order.stageLog = log.filter((l) => isShipStage(l.stage)).map((l) => ({ stage: l.stage as ShipStage, note: l.note, at: l.created_at }));
+  order.stageLog = log.filter((l) => isShipStage(l.stage) || l.stage === "paid").map((l) => ({ stage: l.stage as ShipStage | "paid", note: l.note, at: l.created_at }));
   if (order.stageLog.length === 0) order.stageLog = [{ stage: "ordered", note: "", at: order.createdAt }];
   return order;
 }
@@ -1165,8 +1168,8 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
   const r = db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, id);
   if (r.changes === 0) return false;
   db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(id, stage, note, now);
-  // payment confirmed (or any later stage) → the reserved lot units are deducted for real
-  if (SHIP_STAGES.findIndex((s) => s.key === stage) >= SHIP_STAGES.findIndex((s) => s.key === "paid")) commitOrderSync(db, id);
+  // the goods left for this order (Đã gửi hàng or later) → the reserved lot units are deducted for real
+  if (SHIP_STAGES.findIndex((s) => s.key === stage) >= SHIP_STAGES.findIndex((s) => s.key === "sent")) commitOrderSync(db, id);
   // every line of the order has at least reached the purchase status implied by the logistics stage (never lowered)
   const minStatus = STAGE_TO_PURCHASE[stage];
   if (minStatus) {
@@ -1177,10 +1180,27 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
       if (purchaseIndex(cur) < purchaseIndex(minStatus)) upd.run(minStatus, now, l.id);
     }
   }
-  // arriving at the end also completes the order; anything before keeps it "processing"
-  if (stage === "delivered") db.prepare("UPDATE orders SET status = 'completed' WHERE id = ? AND status <> 'cancelled'").run(id);
-  else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(id);
+  // delivered AND paid = done (a COD order waits for "Hoàn tất thanh toán"); anything before keeps it "processing"
+  if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
+  else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
   return true;
+}
+
+/**
+ * The shop has the money of an order: transfer received (prepaid) or COD collected. Stock is deducted (once), the
+ * payment is logged for the customer's timeline, and a delivered order becomes completed. Idempotent.
+ */
+export async function setOrderPaid(id: string, note = ""): Promise<boolean> {
+  const db = getDb();
+  const now = new Date().toISOString();
+  return withTransaction(db, () => {
+    const o = db.prepare("SELECT status, ship_stage, paid_at FROM orders WHERE id = ?").get(id) as { status: string; ship_stage: string | null; paid_at: string | null } | undefined;
+    if (!o || o.status === "cancelled" || o.paid_at) return false;
+    db.prepare("UPDATE orders SET paid_at = ?, updated_at = ?, status = CASE WHEN ship_stage = 'delivered' THEN 'completed' WHEN status = 'pending' THEN 'processing' ELSE status END WHERE id = ?").run(now, now, id);
+    db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'paid', ?, ?)").run(id, note, now);
+    commitOrderSync(db, id);
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1261,35 +1281,39 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
 }
 
 /**
- * Admin, on the order: "Thanh toán khi nhận hàng" — the order becomes COD, the reserved lot units are deducted now,
- * the timeline passes "Đã xác nhận thanh toán" (shown as "Thu khi giao"). Optionally remember the customer as regular.
+ * Admin, on the order: "Thanh toán khi nhận hàng (COD)" — only the admin grants it (the shop's checkout is transfer
+ * only). The reserved lot units are deducted now; the payment step moves to the end of the timeline
+ * ("Hoàn tất thanh toán", ticked when the money is collected).
  */
-export async function setOrderCod(id: string, opts: { markRegular?: boolean } = {}): Promise<{ ok: boolean; message: string }> {
+export async function setOrderCod(id: string): Promise<{ ok: boolean; message: string }> {
   const db = getDb();
-  const o = db.prepare("SELECT status, customer_id, phone, number, ship_stage FROM orders WHERE id = ?").get(id) as { status: string; customer_id: string | null; phone: string; number: number; ship_stage: string | null } | undefined;
+  const o = db.prepare("SELECT status, paid_at FROM orders WHERE id = ?").get(id) as { status: string; paid_at: string | null } | undefined;
   if (!o) return { ok: false, message: "Không tìm thấy đơn." };
   if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ." };
-  let remembered: "account" | "phone" | null = null;
+  if (o.paid_at) return { ok: false, message: "Đơn đã thanh toán — không cần thu khi giao." };
   withTransaction(db, () => {
-    db.prepare("UPDATE orders SET payment_method = 'cod', prepaid_required = 0, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+    db.prepare("UPDATE orders SET payment_method = 'cod', prepaid_required = 0, status = CASE WHEN status = 'pending' THEN 'processing' ELSE status END, updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
     commitOrderSync(db, id);
-    if (opts.markRegular) remembered = markRegularSync(db, o.customer_id, o.phone, `Đơn #${o.number}`);
   });
-  if (SHIP_STAGES.findIndex((s) => s.key === (o.ship_stage ?? "ordered")) < SHIP_STAGES.findIndex((s) => s.key === "paid")) await setOrderStage(id, "paid", "Thu khi giao (COD)");
-  const extra = remembered === "account" ? " Đã đánh dấu tài khoản là khách quen." : remembered === "phone" ? ` Đã ghi nhớ số ${normalizePhone(o.phone)} là khách quen cho các đơn sau.` : "";
-  return { ok: true, message: `Đơn chuyển sang thu khi giao — tồn kho đã trừ theo đơn.${extra}` };
+  return { ok: true, message: "Đơn chuyển sang thanh toán khi nhận hàng (COD) — tồn kho đã trừ theo đơn; bước “Hoàn tất thanh toán” ở cuối tiến độ." };
 }
 
-/** "Đã nhận chuyển khoản": payment confirmed. Stock is deducted once (idempotent) — a COD order switching back is not deducted twice. */
+/** "Đã nhận chuyển khoản": prepaid money received (also a COD order whose customer transferred before delivery). */
 export async function setOrderTransferReceived(id: string): Promise<{ ok: boolean; message: string }> {
   const db = getDb();
-  const o = db.prepare("SELECT status, ship_stage, payment_method FROM orders WHERE id = ?").get(id) as { status: string; ship_stage: string | null; payment_method: string } | undefined;
+  const o = db.prepare("SELECT status, payment_method, paid_at FROM orders WHERE id = ?").get(id) as { status: string; payment_method: string; paid_at: string | null } | undefined;
   if (!o) return { ok: false, message: "Không tìm thấy đơn." };
   if (o.status === "cancelled") return { ok: false, message: "Đơn đã huỷ." };
+  if (o.paid_at) return { ok: false, message: "Đơn đã được ghi nhận thanh toán trước đó." };
   db.prepare("UPDATE orders SET payment_method = 'bacs', updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
-  if (SHIP_STAGES.findIndex((s) => s.key === (o.ship_stage ?? "ordered")) < SHIP_STAGES.findIndex((s) => s.key === "paid")) await setOrderStage(id, "paid", "");
-  else withTransaction(db, () => commitOrderSync(db, id));
+  await setOrderPaid(id, o.payment_method === "cod" ? "Khách chuyển khoản trước khi giao" : "");
   return { ok: true, message: o.payment_method === "cod" ? "Đã ghi nhận chuyển khoản — đơn không còn thu khi giao (tồn kho đã trừ trước đó, không trừ lại)." : "Đã xác nhận thanh toán — tồn kho đã trừ theo đơn." };
+}
+
+/** "Hoàn tất thanh toán" of a COD order: the money came back from the shipper / the customer paid at pickup. */
+export async function setOrderCodCollected(id: string): Promise<{ ok: boolean; message: string }> {
+  const ok = await setOrderPaid(id, "Đã thu tiền (COD)");
+  return ok ? { ok: true, message: "Đã hoàn tất thanh toán của đơn." } : { ok: false, message: "Đơn đã huỷ hoặc đã ghi nhận thanh toán trước đó." };
 }
 
 /** Admin override of what the customer pays for delivery; total is recomputed. */
@@ -1395,8 +1419,9 @@ export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, statu
       if (stage && stageRank(stage) > stageRank(curStage)) {
         db.prepare("UPDATE orders SET ship_stage = ?, updated_at = ? WHERE id = ?").run(stage, now, orderId);
         db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, ?, ?, ?)").run(orderId, stage, `Theo chặng vận chuyển${tracking ? ` · ${tracking}` : ""}`, now);
-        if (stage === "delivered") db.prepare("UPDATE orders SET status = 'completed' WHERE id = ? AND status <> 'cancelled'").run(orderId);
+        if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(orderId);
         else db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status = 'pending'").run(orderId);
+        if (SHIP_STAGES.findIndex((x) => x.key === stage) >= SHIP_STAGES.findIndex((x) => x.key === "sent")) commitOrderSync(db, orderId);
       }
     }
     return true;

@@ -1,8 +1,7 @@
 import "server-only";
 import { loadBankAccounts, loadPayPrefix } from "./bank-config";
-import { getOrderById, setOrderStage } from "./db";
+import { getOrderById, setOrderPaid } from "./db";
 import { extractPayCode } from "./pay-code";
-import { stageIndex } from "./shipping";
 import { getDb, getSetting } from "./sqlite";
 import type { PaymentEvent } from "@/types/shop";
 
@@ -67,12 +66,11 @@ export async function listPaymentEvents(limit = 50): Promise<PaymentEvent[]> {
   return (getDb().prepare(`${SELECT} ORDER BY e.id DESC LIMIT ?`).all(limit) as unknown as Row[]).map(rowToEvent);
 }
 
-/** Mark an order paid (stage "paid") unless it already is; returns whether it changed. */
+/** Mark an order paid (orders.paid_at) unless it already is; returns whether it changed. */
 export async function markOrderPaid(orderId: string, note: string): Promise<boolean> {
   const order = await getOrderById(orderId);
-  if (!order || order.status === "cancelled") return false;
-  if (stageIndex(order.shipStage) >= stageIndex("paid")) return false;
-  return setOrderStage(orderId, "paid", note);
+  if (!order || order.status === "cancelled" || order.paidAt) return false;
+  return setOrderPaid(orderId, note);
 }
 
 export async function processBankTransfer(p: BankTransferPayload, provider = "sepay"): Promise<PaymentEvent> {

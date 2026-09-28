@@ -258,21 +258,67 @@ export function quoteJpLegs(cfg: ShippingQuoteConfig, weightG: number, subtotal:
   return quoteImportLegs(cfg, weightG, subtotal);
 }
 
-/** Where an order is on its way (shown to the customer as a progress bar, set by the admin step by step). */
-export type ShipStage = "ordered" | "paid" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
+/**
+ * Where an order is on its way — logistics only. Payment is a separate milestone (orders.paid_at) placed into the
+ * progress bar by `orderSteps`: before the goods move for a prepaid order, at the very end for COD.
+ * "delivering" is an admin step; the customer keeps seeing "Đã về kho VN" (hint: đang giao) until delivered.
+ */
+export type ShipStage = "ordered" | "sent" | "in_transit" | "vn_warehouse" | "delivering" | "delivered";
 
 export const SHIP_STAGES: Array<{ key: ShipStage; label: string; short: string; hint: string }> = [
   { key: "ordered", label: "Đã đặt hàng", short: "Đặt hàng", hint: "Đơn đã được ghi nhận, shop sẽ xác nhận sớm." },
-  { key: "paid", label: "Đã xác nhận thanh toán", short: "Đã thanh toán", hint: "Shop đã nhận thanh toán và tiến hành mua hàng tại Nhật." },
-  { key: "in_transit", label: "Đang vận chuyển", short: "Vận chuyển", hint: "Hàng đang trên đường từ Nhật về Việt Nam." },
-  { key: "vn_warehouse", label: "Đã tới kho Việt Nam", short: "Kho VN", hint: "Hàng đã về kho Thanh Hóa, chuẩn bị giao." },
-  { key: "delivering", label: "Đang giao", short: "Đang giao", hint: "Đơn vị vận chuyển nội địa đang giao tới bạn." },
-  { key: "delivered", label: "Đã nhận hàng", short: "Đã nhận", hint: "Khách đã nhận hàng. Cảm ơn bạn!" },
+  { key: "sent", label: "Đã gửi hàng", short: "Đã gửi", hint: "Shop đã chuẩn bị hàng tại Nhật và gửi đi." },
+  { key: "in_transit", label: "Đang vận chuyển về kho shop VN", short: "Vận chuyển", hint: "Hàng đang trên đường từ Nhật về kho shop tại Việt Nam." },
+  { key: "vn_warehouse", label: "Đã về kho VN", short: "Kho VN", hint: "Hàng đã về kho shop tại Việt Nam, chuẩn bị giao." },
+  { key: "delivering", label: "Đang giao hàng", short: "Đang giao", hint: "Đơn vị vận chuyển đang giao tới bạn." },
+  { key: "delivered", label: "Đã giao hàng thành công", short: "Đã giao", hint: "Khách đã nhận hàng." },
 ];
 
 export function isShipStage(v: unknown): v is ShipStage {
   return typeof v === "string" && SHIP_STAGES.some((s) => s.key === v);
 }
+
+export type OrderStepKey = ShipStage | "paid";
+export interface OrderStep {
+  key: OrderStepKey;
+  label: string;
+  short: string;
+  hint: string;
+  done: boolean;
+  at: string | null;
+}
+
+/**
+ * The progress bar of one order.
+ * - Trả trước (chuyển khoản): Đã đặt hàng → Đã thanh toán → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đã giao hàng thành công.
+ * - COD (admin chose it): Đã đặt hàng → Đã gửi hàng → Đang vận chuyển về kho shop VN → Đã về kho VN → Đã giao hàng thành công → Hoàn tất thanh toán.
+ * `admin` adds the "Đang giao hàng" step; for the customer it is folded into "Đã về kho VN".
+ */
+export function orderSteps(o: { shipStage: ShipStage; paymentMethod?: string; paidAt?: string | null; stageLog?: Array<{ stage: string; at: string }> }, admin = false): { steps: OrderStep[]; current: number } {
+  const cur = stageIndex(o.shipStage);
+  const cod = o.paymentMethod === "cod";
+  const at = (k: string) => o.stageLog?.filter((l) => l.stage === k).at(-1)?.at ?? null;
+  const logistics = SHIP_STAGES.filter((s) => admin || s.key !== "delivering").map(
+    (s): OrderStep => ({ key: s.key, label: s.label, short: s.short, hint: s.key === "vn_warehouse" && !admin && o.shipStage === "delivering" ? "Hàng đã rời kho shop, đơn vị vận chuyển đang giao tới bạn." : s.hint, done: cur >= stageIndex(s.key), at: at(s.key) }),
+  );
+  const pay: OrderStep = cod
+    ? { key: "paid", label: "Hoàn tất thanh toán", short: "Thanh toán", hint: "Shop đã nhận đủ tiền của đơn.", done: !!o.paidAt, at: o.paidAt ?? null }
+    : { key: "paid", label: "Đã thanh toán", short: "Thanh toán", hint: "Shop đã nhận chuyển khoản và chuẩn bị hàng cho bạn.", done: !!o.paidAt, at: o.paidAt ?? null };
+  const steps = cod ? [...logistics, pay] : [logistics[0], pay, ...logistics.slice(1)];
+  let current = 0;
+  steps.forEach((s, i) => {
+    if (s.done) current = i;
+  });
+  return { steps, current };
+}
+
+/** Admin detail of "Đang vận chuyển về kho shop VN": the leg the goods are on, from the lines' purchase status. */
+export const TRANSIT_SUBSTEPS: Array<{ status: string; label: string }> = [
+  { status: "to_carrier_jp", label: "Kho Kiến Nhật (ĐVVC Nhật)" },
+  { status: "shipped_jp_vn", label: "Đang bay NB → VN" },
+  { status: "at_carrier_vn", label: "Kho ĐVVC Hà Nội" },
+  { status: "to_shop", label: "Đang về kho shop VN" },
+];
 
 export function stageIndex(stage: ShipStage): number {
   return Math.max(0, SHIP_STAGES.findIndex((s) => s.key === stage));

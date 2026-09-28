@@ -27,7 +27,7 @@ export const LEG_PURCHASE: Record<ShippingLeg, { sent: PurchaseStatus | null; ar
 
 /** Customer-facing order stage implied by a leg status (null = the stage does not move). */
 export const LEG_ORDER_STAGE: Record<ShippingLeg, { sent: ShipStage | null; arrived: ShipStage | null }> = {
-  jp_domestic: { sent: null, arrived: null },
+  jp_domestic: { sent: "sent", arrived: "in_transit" },
   jp_vn: { sent: "in_transit", arrived: null },
   vn_transfer: { sent: null, arrived: "vn_warehouse" },
   vn_domestic: { sent: "delivering", arrived: "delivered" },

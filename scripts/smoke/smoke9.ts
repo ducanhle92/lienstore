@@ -11,7 +11,7 @@ function fakeOrder(productId: number, qty: number): { orderId: string; itemId: n
   const src = db.prepare("SELECT * FROM orders ORDER BY created_at DESC LIMIT 1").get() as Record<string, unknown>;
   const oid = `smk9-${Date.now()}-${seq++}`;
   const names = Object.keys(src);
-  const vals = names.map((k) => (k === "id" ? oid : k === "number" ? 950000 + seq : k === "status" ? "pending" : k === "pay_code" ? `S9${Date.now()}${seq}` : k === "customer_id" ? null : k === "payment_method" ? "bacs" : k === "stock_committed_at" ? null : k === "ship_stage" ? "ordered" : src[k]));
+  const vals = names.map((k) => (k === "id" ? oid : k === "number" ? 950000 + seq : k === "status" ? "pending" : k === "pay_code" ? `S9${Date.now()}${seq}` : k === "customer_id" ? null : k === "payment_method" ? "bacs" : k === "stock_committed_at" ? null : k === "paid_at" ? null : k === "ship_stage" ? "ordered" : src[k]));
   db.prepare(`INSERT INTO orders (${names.join(",")}) VALUES (${names.map(() => "?").join(",")})`).run(...(vals as never[]));
   db.prepare("INSERT INTO order_stage_log (order_id, stage, note, created_at) VALUES (?, 'ordered', '', ?)").run(oid, new Date().toISOString());
   const r = db.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note) VALUES (?, ?, 'x', 'x', 1, '', ?, 'not_bought', '')").run(oid, productId, qty);

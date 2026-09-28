@@ -35,8 +35,11 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
   }
   const feeRaw = text(formData, "fee");
   let fee = feeRaw ? Math.max(0, parseAmount(feeRaw)) : null;
+  // ④ "Khách tới kho lấy": no carrier, no fee — the order becomes a pickup order
+  const pickup = leg === "vn_domestic" && choice === "pickup";
+  if (pickup) fee = 0;
   // a carrier quote picked from the API list has no static method: keep its label as typed
-  let label = methodId ? "" : text(formData, "label").slice(0, 120);
+  let label = pickup ? "Khách tự tới kho lấy" : methodId ? "" : text(formData, "label").slice(0, 120);
   if (methodId) {
     const method = (await getShippingMethods(false)).find((x) => x.id === methodId && x.leg === leg);
     if (method) {
@@ -59,7 +62,7 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
     note: text(formData, "note"),
   });
   if (leg === "vn_domestic" && formData.get("applyToCustomer") === "on") {
-    await updateOrderShipping(orderId, { fee: fee ?? 0, label: label || order.shippingLabel, delivery: methodId ? "ship" : order.delivery });
+    await updateOrderShipping(orderId, { fee: fee ?? 0, label: label || order.shippingLabel, delivery: pickup ? "pickup" : methodId ? "ship" : order.delivery });
   }
   // shipment status of the leg (chưa gửi / đã gửi / đã đến) — logged, and the order's lines + stage follow
   const statusRaw = text(formData, "status");

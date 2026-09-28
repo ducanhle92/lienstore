@@ -46,7 +46,7 @@ export async function applyDefaultFlowOnce(): Promise<{ methodId: number; unitFi
     .prepare(
       `SELECT ol.order_id, ol.status FROM order_legs ol JOIN orders o ON o.id = ol.order_id
        WHERE ol.leg = 'jp_domestic' AND ol.method_id <> ? AND ol.tracking = '' AND COALESCE(ol.status, 'pending') = 'pending'
-         AND o.status <> 'cancelled' AND COALESCE(o.ship_stage, 'ordered') IN ('ordered', 'paid')`,
+         AND o.status <> 'cancelled' AND COALESCE(o.ship_stage, 'ordered') IN ('ordered', 'sent')`,
     )
     .all(m.id) as unknown as Array<{ order_id: string }>;
   let ordersMoved = 0;
@@ -106,7 +106,7 @@ export async function applyDefaultFlowV2Once(): Promise<{ methodId: number | nul
       .prepare(
         `SELECT ol.order_id, o.subtotal FROM order_legs ol JOIN orders o ON o.id = ol.order_id
          WHERE ol.leg = 'vn_transfer' AND (ol.method_id IS NULL OR ol.method_id <> ?) AND ol.tracking = '' AND COALESCE(ol.status, 'pending') = 'pending'
-           AND o.status <> 'cancelled' AND COALESCE(o.ship_stage, 'ordered') IN ('ordered', 'paid', 'in_transit')`,
+           AND o.status <> 'cancelled' AND COALESCE(o.ship_stage, 'ordered') IN ('ordered', 'sent', 'in_transit')`,
       )
       .all(m.id) as unknown as Array<{ order_id: string; subtotal: number }>;
     if (method) {

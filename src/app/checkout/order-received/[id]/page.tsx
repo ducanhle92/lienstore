@@ -20,7 +20,6 @@ import { receiptLinksFor } from "@/lib/order-files";
 import QRCode from "qrcode";
 import { accountForOrder, orderQrPayload } from "@/lib/bank-config";
 import { CopyButton } from "@/components/sites/lienstore/shop/cart/CopyButton";
-import { stageIndex } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +43,7 @@ export default async function OrderReceived({ params }: Props) {
   await markOrderMessagesRead(order.id, "customer");
   const [receipts, messages, legMap, theme] = await Promise.all([receiptLinksFor(order.id), getOrderMessages(order.id), getOrderLegs([order.id]), getSiteTheme()]);
   const legs = legMap.get(order.id) ?? [];
-  const paid = stageIndex(order.shipStage) >= stageIndex("paid") && order.status !== "cancelled";
+  const paid = !!order.paidAt && order.status !== "cancelled";
   const bank = await accountForOrder(order);
   const memo = order.payCode;
   const qrSvg = order.paymentMethod === "bacs" && !paid && order.status !== "cancelled" ? await QRCode.toString(orderQrPayload(bank, order.total, memo), { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : "";
@@ -55,7 +54,7 @@ export default async function OrderReceived({ params }: Props) {
       <div id="content" className="overflow-x-clip">
         <PageBand title={`Đơn hàng #${order.number}`} crumbs={[{ label: "Đơn hàng", href: "/my-account/?tab=orders" }, { label: `#${order.number}` }]} />
         <ClearCartOnMount />
-        <OrderStatusWatcher orderId={order.id} stage={order.shipStage} status={order.status} />
+        <OrderStatusWatcher orderId={order.id} stage={`${order.shipStage}${order.paidAt ? "+paid" : ""}`} status={order.status} />
         <div className="mx-auto grid max-w-[1300px] gap-6 px-4 py-6 lg:grid-cols-[360px_1fr] lg:items-start">
           {/* ---- left: what was ordered ------------------------------------------------------------------- */}
           <aside className="space-y-4 lg:sticky lg:top-[88px]">
