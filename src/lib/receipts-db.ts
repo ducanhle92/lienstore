@@ -330,3 +330,14 @@ export function getReceiptByCode(code: string): Receipt | null {
   const r = getDb().prepare(`${RECEIPT_SELECT} WHERE r.code = ?`).get(code.trim()) as ReceiptRow | undefined;
   return r ? hydrate([r])[0] : null;
 }
+
+/** Rename a bill (the shop's own numbering, e.g. BILL_260927_1454 like the photo); codes are unique. */
+export function renameReceipt(id: number, code: string): { ok: boolean; message: string } {
+  const c = code.trim().slice(0, 60);
+  if (!c) return { ok: false, message: "Mã bill không được trống." };
+  const db = getDb();
+  const clash = db.prepare("SELECT id FROM purchase_receipts WHERE code = ? AND id <> ?").get(c, id) as { id: number } | undefined;
+  if (clash) return { ok: false, message: `Mã ${c} đã dùng cho bill khác.` };
+  const r = db.prepare("UPDATE purchase_receipts SET code = ?, updated_at = ? WHERE id = ?").run(c, new Date().toISOString(), id);
+  return Number(r.changes) ? { ok: true, message: `Đã đổi mã bill thành ${c}.` } : { ok: false, message: "Không tìm thấy bill." };
+}

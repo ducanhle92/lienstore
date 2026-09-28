@@ -11,7 +11,8 @@ import { createManualReceipt } from "@/lib/receipts-db";
 import { locationForStatus } from "@/lib/warehouses";
 import { getDb } from "@/lib/sqlite";
 import { statusForLocation } from "@/lib/warehouses";
-import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, importBillsFromText, moveStockToBatch, removeLotsFromBatch, resetPurchasingData, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { addLinesToBatch, addLotsToBatch, addProductToBatch, allocateSurplusToLine, assignReceiptToRows, getPurchaseBatch, holdBatchRows, importBillsFromText, moveStockToBatch, removeLotsFromBatch, resetPurchasingData, setLineReceiptByCode, setLotReceiptByCode, setSlipReceiptByCode, splitBatchStock, updateBatchStock, createPurchaseBatch, deletePurchaseBatch, removeLineFromBatch, removeSurplusFromBatch, setPurchaseBatchStatus, updatePurchaseBatch } from "@/lib/purchase-batches-db";
+import { renameReceipt } from "@/lib/receipts-db";
 import { deleteStockLot, deleteStockPurchase, setOrderItemsPurchase as setLinesStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 
@@ -414,6 +415,10 @@ export async function saveBatchRowsAction(formData: FormData): Promise<void> {
         await updateOrderItemPurchaseFacts(id, { expiry, boughtAt, costJpy });
         changed++;
       }
+      if (g.billCode !== undefined && g.billCode.trim() !== cur.receiptCode) {
+        setLineReceiptByCode(id, g.billCode, batchId!);
+        changed++;
+      }
     } else if (kind === "s") {
       const cur = batch!.stock.find((x) => x.id === id);
       if (!cur) continue;
@@ -436,6 +441,10 @@ export async function saveBatchRowsAction(formData: FormData): Promise<void> {
         if (!r.ok) errors.push(`${label}: ${r.message}`);
         else changed++;
       }
+      if (g.billCode !== undefined && g.billCode.trim() !== cur.receiptCode) {
+        setSlipReceiptByCode(id, g.billCode, batchId!);
+        changed++;
+      }
     } else if (kind === "lot") {
       const cur = batch!.lots.find((x) => x.id === id);
       if (!cur) continue;
@@ -456,6 +465,10 @@ export async function saveBatchRowsAction(formData: FormData): Promise<void> {
         const ok = await updateStockLot(id, patch);
         if (!ok) errors.push(`${label}: không lưu được.`);
         else changed++;
+      }
+      if (g.billCode !== undefined && g.billCode.trim() !== cur.receiptCode) {
+        setLotReceiptByCode(id, g.billCode, batchId!);
+        changed++;
       }
       const curStatus = statusForLocation(cur.warehouse, cur.inTransit);
       if (g.status && isPurchaseStatus(g.status) && g.status !== curStatus) {
@@ -489,4 +502,15 @@ export async function resetPurchasingAction(formData: FormData): Promise<void> {
   for (const p of r.files) await deleteUpload(p).catch(() => false);
   revalidatePath("/admin", "layout");
   go("saved", `Đã xoá: ${r.batches} đợt · ${r.slips} phiếu · ${r.receipts} bill (${r.files.length} ảnh) · ${r.lots} lô · ${r.shipments} chuyến đóng hàng; ${r.lines} dòng đơn trở về “Cần mua”.`);
+}
+
+/** Đổi mã bill (the shop's own number, e.g. BILL_260927_1454 matching the photo). */
+export async function renameBillAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const batchId = intOr(formData, "batchId");
+  const id = intOr(formData, "receiptId");
+  if (!id) go("error", "Yêu cầu không hợp lệ.", batchId);
+  const r = renameReceipt(id!, text(formData, "code"));
+  revalidatePath("/admin", "layout");
+  redirect(`${PAGE}&bills=${batchId ?? ""}&${r.ok ? "saved" : "error"}=${encodeURIComponent(r.message)}#receipt-${id}`);
 }

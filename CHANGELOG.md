@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Mua theo đợt: bảng đợt có cột **Bill** sửa được trên từng dòng (dòng đơn, phiếu, lô): gõ mã bill của cửa hàng (vd `BILL_260927_1454` giống tên ảnh) → mã mới tạo bill trong đợt (ngày lấy từ mã), mã có sẵn gắn vào bill đó, xoá trống bỏ gắn; có gợi ý các mã của đợt; lưu bằng Lưu thay đổi. Bỏ huy hiệu bill dưới tên sản phẩm.
+- Mua theo đợt › Bill: **đổi mã bill** ngay trong khối Bill (mã PM-… tự sinh đổi thành mã riêng; mã phải duy nhất).
+
 ## [1.82.0] - 2026-09-28
 
 ### Changed

@@ -753,3 +753,30 @@ export async function importBillsFromText(batchId: number, text: string): Promis
   }
   return { created: created.length, skipped, sources: newSources };
 }
+
+/** Id of the bill with this code (created in the batch when it does not exist yet); blank code → null. */
+export function receiptIdForCode(code: string, batchId: number | null): number | null {
+  const c = code.trim().slice(0, 60);
+  if (!c) return null;
+  const db = getDb();
+  const ex = db.prepare("SELECT id FROM purchase_receipts WHERE code = ?").get(c) as { id: number } | undefined;
+  if (ex) return ex.id;
+  const batch = batchId ? (db.prepare("SELECT source_key, bought_at FROM purchase_batches WHERE id = ?").get(batchId) as { source_key: string; bought_at: string | null } | undefined) : undefined;
+  const m = c.match(/(\d{2})(\d{2})(\d{2})/);
+  const boughtAt = m ? `20${m[1]}-${m[2]}-${m[3]}` : (batch?.bought_at ?? new Date().toISOString().slice(0, 10));
+  return createManualReceipt({ code: c, sourceKey: batch?.source_key ?? UNKNOWN_SOURCE, boughtAt, batchId })?.id ?? null;
+}
+/** Bill of an order line (typed code). */
+export function setLineReceiptByCode(itemId: number, code: string, batchId: number | null): void {
+  getDb().prepare("UPDATE order_items SET receipt_id = ? WHERE id = ?").run(receiptIdForCode(code, batchId), itemId);
+}
+/** Bill of a slip that is not a lot yet (typed code). */
+export function setSlipReceiptByCode(spId: number, code: string, batchId: number | null): void {
+  getDb().prepare("UPDATE stock_purchases SET receipt_id = ? WHERE id = ?").run(receiptIdForCode(code, batchId), spId);
+}
+/** Bill of a lot (typed code). */
+export function setLotReceiptByCode(lotId: number, code: string, batchId: number | null): void {
+  const id = receiptIdForCode(code, batchId);
+  if (id) assignReceiptToRows(id, { ids: [], sids: [], lotIds: [lotId] });
+  else setLotReceipt(lotId, null);
+}
