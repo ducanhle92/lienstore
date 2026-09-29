@@ -13,6 +13,7 @@ import { BulkBar } from "./BulkBar";
 import { TableSelectAll } from "./TableSelectAll";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 import { SheetTable } from "./SheetTable";
+import { LiveTotals } from "./LiveTotals";
 
 export interface LotsFilter {
   q: string;
@@ -120,8 +121,10 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
       <Card
         title={
           filter.mode === "boxed"
-            ? `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — các kiện đã đóng (${parcels.length} kiện · ${units(boxed)} cái)`
-            : `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — ${MODE_LABEL[filter.mode]} (${shelf.length} dòng bill · ${units(shelf)} cái · ≈ ${kg(weightOf(shelf).g)} hàng${weightOf(shelf).missing ? `, ${weightOf(shelf).missing} cái chưa rõ cân` : ""})`
+            ? `Kiện đã đóng (${parcels.length} kiện · ${units(boxed)} cái)`
+            : filter.mode
+              ? `Tồn kho — ${MODE_LABEL[filter.mode]}`
+              : "Tồn kho"
         }
       >
         <form id={formId} action={moveUnitsAction}>
@@ -163,6 +166,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
             </>
           ) : null}
         </BulkBar>
+        {filter.mode === "boxed" ? null : <LiveTotals target={`[data-sheet="lots-shop-${side}"] table`} />}
         {filter.mode === "boxed" ? null : <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />}
         {parcels.length ? (
           <div className="mt-3 space-y-2" data-testid="boxed-lots">
@@ -280,7 +284,7 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
             const st = expiryState(g.expiry);
             const days = daysToExpiry(g.expiry);
             return (
-              <tr key={r.key} className={cn("align-top hover:bg-[#fafafa]", (g.status === "to_shop" || g.status === "shipped_jp_vn") && "bg-indigo-50/40")} data-lot-scope={scope} data-committed={r.holder?.committed ? r.qty : 0} data-left={r.holder ? 0 : r.qty} data-testid={`group-${r.unitIds[0]}`}>
+              <tr key={r.key} className={cn("align-top hover:bg-[#fafafa]", (g.status === "to_shop" || g.status === "shipped_jp_vn") && "bg-indigo-50/40")} data-qty={r.qty} data-jpy={g.unitCostJpy !== null ? g.unitCostJpy * r.qty : ""} data-g={g.productWeightG ? g.productWeightG * r.qty : ""} data-held={r.holder ? r.qty : 0} data-lot-scope={scope} data-committed={r.holder?.committed ? r.qty : 0} data-left={r.holder ? 0 : r.qty} data-testid={`group-${r.unitIds[0]}`}>
                 {formId ? (
                   <td className={`${tdClass} w-8`}>
                     <input type="checkbox" name="uids" value={r.unitIds.join(",")} form={formId} className="h-4 w-4" aria-label={`Chọn ${g.productName}`} />

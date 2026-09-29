@@ -87,7 +87,7 @@ export default async function AdminInventory({ searchParams }: Props) {
     <>
       {view === "lots" ? <FlowSteps current={side} counts={flowCounts(getDb())} /> : null}
       <PageHeader
-        title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : "Tồn kho VN"}
+        title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Kho Nhật" : "Kho VN"}
         summary={
           view === "products" ? (
           <span className="font-normal text-[13px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho (CSV): chỉ các sản phẩm có hàng ở kho đó, cột 'Kiểm đếm thực tế' để điền rồi Nhập CSV ở thanh dưới" data-testid="stocktake-links">

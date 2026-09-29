@@ -25,6 +25,7 @@ import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import type { PurchaseSource } from "@/types/shop";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
+import { LiveTotals } from "@/components/sites/lienstore/admin/LiveTotals";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,7 @@ function TransitTable({ title, groups, withRun = false, testId }: { title: strin
   return (
     <Card title={title}>
       <div className="overflow-x-auto">
+        {groups.length ? <LiveTotals target={`[data-sheet="transit-${testId}"] table`} /> : null}
         <SheetTable id={`transit-${testId}`}>
         <table className={tableClass} data-testid={testId}>
           <thead>
@@ -207,7 +209,7 @@ function TransitTable({ title, groups, withRun = false, testId }: { title: strin
               </tr>
             ) : null}
             {groups.map((g) => (
-              <tr key={g.key}>
+              <tr key={g.key} data-qty={g.qty} data-jpy={g.unitCostJpy !== null ? g.unitCostJpy * g.qty : ""} data-g={g.productWeightG ? g.productWeightG * g.qty : ""} data-held={g.heldQty}>
                 <td className={tdClass}>
                   <Link href={`/admin/inventory/lots/${g.productId}/`} className="font-semibold text-lien-heading no-underline hover:underline">
                     {g.productName}
@@ -357,6 +359,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
           </>
         ) : null}
         <div className="overflow-x-auto">
+          {s.groups.length ? <LiveTotals target={`[data-sheet="run-${s.id}"] table`} /> : null}
           <SheetTable id={`run-${s.id}`}>
           <table className={tableClass}>
             <thead>
@@ -387,7 +390,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
                 const st = expiryState(g.expiry);
                 const days = daysToExpiry(g.expiry);
                 return (
-                  <tr key={g.key} className="align-top hover:bg-[#fafafa]" data-testid={`shipment-group-${g.unitIds[0]}`}>
+                  <tr key={g.key} className="align-top hover:bg-[#fafafa]" data-qty={g.qty} data-jpy={g.unitCostJpy !== null ? g.unitCostJpy * g.qty : ""} data-g={g.productWeightG ? g.productWeightG * g.qty : ""} data-held={g.heldQty} data-testid={`shipment-group-${g.unitIds[0]}`}>
                     {editable ? (
                       <td className={`${tdClass} w-8`}>
                         <input type="checkbox" name="uids" value={g.unitIds.join(",")} form={outId} className="h-4 w-4" aria-label={`Chọn ${g.productName}`} />
@@ -434,20 +437,6 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
                 );
               })}
             </tbody>
-            {s.groups.length ? (
-              <tfoot>
-                <tr className="bg-[#f9fafb] text-[13px] font-semibold text-lien-heading" data-testid={`ship-totals-${s.id}`}>
-                  {editable ? <td className={tdClass} /> : null}
-                  <td className={tdClass}>Tổng cộng</td>
-                  <td className={tdClass}>{s.units} cái</td>
-                  <td className={tdClass}>{s.groups.length} dòng bill</td>
-                  <td className={tdClass} />
-                  <td className={tdClass}>{s.heldUnits} cái cho đơn khách</td>
-                  <td className={tdClass}>{s.jpy !== null ? `≈ ¥${formatAmount(s.jpy)}` : "—"}</td>
-                  <td className={tdClass} />
-                </tr>
-              </tfoot>
-            ) : null}
           </table>
           </SheetTable>
         </div>
@@ -621,6 +610,7 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
 function CandTable({ rows, pkId, sources, kind, tick, empty }: { rows: PackCandidate[]; pkId: string; pick: Pick; sources: PurchaseSource[]; kind: "orders" | "stock"; tick: boolean; empty: string }) {
   return (
     <div className="overflow-x-auto">
+      {rows.length ? <LiveTotals target={`[data-sheet="${pkId}-${kind}"] table`} /> : null}
       <SheetTable id={`${pkId}-${kind}`}>
       <table className={tableClass}>
         <thead>
@@ -646,7 +636,7 @@ function CandTable({ rows, pkId, sources, kind, tick, empty }: { rows: PackCandi
             </tr>
           ) : null}
           {rows.map((c) => (
-            <tr key={c.key} className="hover:bg-[#fafafa]" data-testid={`cand-${c.unitIds[0]}`}>
+            <tr key={c.key} className="hover:bg-[#fafafa]" data-qty={c.qty} data-jpy={c.unitCostJpy !== null ? c.unitCostJpy * c.qty : ""} data-g={c.productWeightG ? c.productWeightG * c.qty : ""} data-held={c.orders.reduce((n, o) => n + o.qty, 0)} data-testid={`cand-${c.unitIds[0]}`}>
               <td className={`${tdClass} w-8`}>
                 <input type="checkbox" name="keys" value={c.key} form={pkId} defaultChecked={tick} className="h-4 w-4" aria-label={`Chọn ${c.productName}`} />
               </td>

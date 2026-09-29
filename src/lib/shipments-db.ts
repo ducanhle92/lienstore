@@ -227,6 +227,7 @@ export interface PackCandidate {
   productName: string;
   productSku: string | null;
   productThumb: string;
+  productWeightG: number | null;
   /** Units on the shelf in this row. */
   qty: number;
   /** Of which already paid by customers. */
@@ -270,6 +271,7 @@ export function listPackCandidates(db: DatabaseSync, filter: { orderId?: string;
         productName: u.productName,
         productSku: u.productSku,
         productThumb: u.productThumb,
+        productWeightG: u.productWeightG,
         qty: ordered.length,
         heldQty: ordered.filter((x) => x.committed).length,
         orders: u.orderId ? [{ orderId: u.orderId, orderNumber: u.orderNumber ?? 0, customer: u.customerName, qty: ordered.length, committed: ordered.some((x) => x.committed) }] : [],

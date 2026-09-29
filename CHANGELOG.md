@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Kho Nhật / Kho VN / Đóng hàng: dòng **Tổng cộng** sống trên mỗi bảng hàng (tồn kho, hàng trong chuyến, hàng chờ đóng, ⑤ vận chuyển): số dòng · số cái · cái cho đơn · ≈ ¥ · ≈ cân nặng hàng (chưa gồm thùng) — tính theo các dòng đang hiện sau khi lọc ▾; tick dòng thì chỉ tính các dòng đã tick.
+
+### Changed
+- "Tồn kho Nhật" → **Kho Nhật**, "Tồn kho VN" → **Kho VN** (tiêu đề trang và menu ③ / ⑥); bảng hàng tại kho shop đặt tên ngắn **Tồn kho** (thêm "— trên kệ / hàng giữ cho đơn / tồn tự do" khi bấm ô số).
+- Đóng hàng: dòng "Tổng cộng" cố định cuối bảng chuyến thay bằng dòng Tổng cộng sống ở đầu bảng.
+
 ## [2.6.0] - 2026-09-29
 
 ### Changed
