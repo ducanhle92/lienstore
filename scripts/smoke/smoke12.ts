@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { getOrderById, setOrderCod, setOrderLegStatus, setOrderStage, updateOrderStatus, updateProductStock } from "../../src/lib/db";
 import { listAllocationViews } from "../../src/lib/allocations-db";
-import { createShipment, packProduct, setShipmentStatus } from "../../src/lib/shipments-db";
+import { createShipment, packProduct, setShipmentStatus, unpackUnits } from "../../src/lib/shipments-db";
 import { getDb, withTransaction } from "../../src/lib/sqlite";
 import { parseUnitCode, unitCode } from "../../src/lib/units";
 import { adjustUnitsToTotalSync, createUnitsSync, listUnits, resyncAllUnitsSync, touchSync } from "../../src/lib/units-db";
@@ -76,6 +76,14 @@ async function main() {
   const pk = packProduct(sh.id, pid2, 2);
   assert.equal(pk.units, 2, "packed the order's two units first");
   assert.ok(held(d.itemId).every((u) => u.shipmentId === sh.id), "the packed units are the customer's");
+  await setShipmentStatus(sh.id, "packed");
+  // "Đã đóng xong" = locked: the server refuses adding and removing goods until the run is reopened
+  assert.equal(packProduct(sh.id, pid2, 1).ok, false, "locked run refuses new goods");
+  assert.match(packProduct(sh.id, pid2, 1).message, /khoá/i);
+  assert.equal(unpackUnits(held(d.itemId).map((u) => u.id)).ok, false, "locked run refuses unpacking");
+  await setShipmentStatus(sh.id, "packing");
+  assert.equal(unpackUnits([held(d.itemId)[0].id]).ok, true, "reopened: unpack works again");
+  assert.equal(packProduct(sh.id, pid2, 1).units, 1, "reopened: pack works again");
   await setShipmentStatus(sh.id, "packed");
   let o = (await getOrderById(d.orderId))!;
   assert.equal(o.shipStage, "sent", "boxed + packed → Đã gửi hàng");

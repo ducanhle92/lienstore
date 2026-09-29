@@ -33,9 +33,13 @@ export function shipmentIndex(s: ShipmentStatus): number {
 export function shipmentStage(s: ShipmentStatus): ShipmentStage {
   return SHIPMENT_STAGES[shipmentIndex(s)] ?? SHIPMENT_STAGES[0];
 }
-/** Lots can be added / taken out only while the boxes are still at the shop. */
+/** The run is still at the shop (packing or packed): can be deleted, moved back, and is listed under ④. */
 export function shipmentEditable(s: ShipmentStatus): boolean {
   return shipmentIndex(s) <= shipmentIndex("packed");
+}
+/** Goods can be added / taken out only while packing; "Đã đóng xong" is the lock (Khoá) — reopen to change the contents. */
+export function shipmentOpen(s: ShipmentStatus): boolean {
+  return s === "packing";
 }
 /** CH-yymmdd-nn */
 export function shipmentCode(date: string, seq: number): string {

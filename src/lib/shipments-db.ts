@@ -2,7 +2,7 @@ import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { groupUnits, type StockGroup } from "./lots-db";
 import type { PurchaseStatus } from "./purchase";
-import { isShipmentStatus, shipmentCode, shipmentEditable, shipmentIndex, shipmentStage, type ShipmentStatus } from "./shipments";
+import { isShipmentStatus, shipmentCode, shipmentEditable, shipmentIndex, shipmentOpen, shipmentStage, type ShipmentStatus } from "./shipments";
 import { getDb, withTransaction } from "./sqlite";
 import { sortUnits } from "./units";
 import { listUnits, moveUnitsSync, packUnitsSync, touchSync, unpackUnitsSync, type UnitView } from "./units-db";
@@ -151,7 +151,9 @@ export async function setShipmentStatus(id: number, status: ShipmentStatus, acto
 function assertEditable(db: DatabaseSync, shipmentId: number): { ok: true; code: string } | { ok: false; message: string } {
   const sh = db.prepare("SELECT id, code, status FROM shipments WHERE id = ?").get(shipmentId) as { id: number; code: string; status: string } | undefined;
   if (!sh) return { ok: false, message: "Không tìm thấy chuyến." };
-  if (!shipmentEditable(statusOf(sh.status))) return { ok: false, message: `Chuyến ${sh.code} đã xuất cho ĐVVC — không thêm / rút được nữa.` };
+  const st = statusOf(sh.status);
+  if (!shipmentEditable(st)) return { ok: false, message: `Chuyến ${sh.code} đã xuất cho ĐVVC — không thêm / rút được nữa.` };
+  if (!shipmentOpen(st)) return { ok: false, message: `Chuyến ${sh.code} đã khoá (đã đóng xong) — bấm Mở khoá để thêm / rút hàng.` };
   return { ok: true, code: sh.code };
 }
 
@@ -190,8 +192,8 @@ export function unpackUnits(unitIds: number[], actor = ""): { ok: boolean; messa
   const db = getDb();
   if (!unitIds.length) return { ok: false, message: "Chưa chọn cái nào." };
   const rows = db.prepare(`SELECT u.id, s.code, s.status FROM stock_units u JOIN shipments s ON s.id = u.shipment_id WHERE u.id IN (${unitIds.map(() => "?").join(",")})`).all(...unitIds) as Array<{ id: number; code: string; status: string }>;
-  const ok = rows.filter((r) => shipmentEditable(statusOf(r.status))).map((r) => r.id);
-  if (!ok.length) return { ok: false, message: rows.length ? `Chuyến ${rows[0].code} đã xuất cho ĐVVC — không rút được.` : "Các cái này không nằm trong chuyến nào." };
+  const ok = rows.filter((r) => shipmentOpen(statusOf(r.status))).map((r) => r.id);
+  if (!ok.length) return { ok: false, message: rows.length ? (shipmentEditable(statusOf(rows[0].status)) ? `Chuyến ${rows[0].code} đã khoá (đã đóng xong) — bấm Mở khoá để rút hàng.` : `Chuyến ${rows[0].code} đã xuất cho ĐVVC — không rút được.`) : "Các cái này không nằm trong chuyến nào." };
   withTransaction(db, () => {
     unpackUnitsSync(db, ok, { actor });
     touchSync(db, { unitIds: ok });

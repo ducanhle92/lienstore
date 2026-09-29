@@ -14,7 +14,7 @@ import { listPurchaseSources } from "@/lib/db";
 import { formatAmount, formatDate } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex } from "@/lib/shipments";
+import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentOpen } from "@/lib/shipments";
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { listStockGroups } from "@/lib/lots-db";
@@ -289,7 +289,11 @@ function ShipmentTimeline({ s }: { s: Shipment }) {
 
 function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources }) {
   const editable = shipmentEditable(s.status);
+  // locked = "Đã đóng xong": contents frozen until Mở khoá (back to Đang đóng)
+  const open = shipmentOpen(s.status);
+  const locked = editable && !open;
   const infoId = `si-${s.id}`;
+  const btnHead = "!rounded-md !border !px-2.5 !py-1 !text-[12px] font-semibold";
   const pkId = `pk-${s.id}`;
   const outId = `out-${s.id}`;
   return (
@@ -297,9 +301,17 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
       <Card
         actions={
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
-            <h2 className="text-[15px] font-semibold leading-6 text-lien-heading">
-              {s.code}
-              {s.label ? ` · ${s.label}` : ""}
+            <h2 className="flex items-center gap-2 text-[15px] font-semibold leading-6 text-lien-heading">
+              <span>
+                {s.code}
+                {s.label ? ` · ${s.label}` : ""}
+              </span>
+              <OpenDetailsButton target={`info-${s.id}`} label="✎ Sửa" className={cn(btnSecondary, btnHead, "!border-lien-blue !text-lien-blue")} />
+              {locked ? (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" data-testid={`locked-${s.id}`}>
+                  <Fa name="lock" /> Đã khoá
+                </span>
+              ) : null}
             </h2>
             <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
               Dự kiến gửi
@@ -310,12 +322,21 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               {editable ? (
                 <form action={deleteShipmentAction}>
                   <input type="hidden" name="shipmentId" value={s.id} />
-                  <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.units} cái trở lại kệ Kho Nhật.`} className="text-[12px] text-lien-heart hover:underline">
-                    Xoá chuyến
+                  <ConfirmSubmit message={`Xoá chuyến ${s.code}? ${s.units} cái trở lại kệ Kho Nhật.`} className={cn(btnSecondary, btnHead, "!border-lien-heart !text-lien-heart")}>
+                    <Fa name="trash" /> Xoá chuyến
                   </ConfirmSubmit>
                 </form>
               ) : null}
-              <BatchToggle id={s.id} ns="ship" labels={["Thu gọn", "Mở chuyến"]} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} />
+              {editable ? (
+                <form action={setShipmentStatusAction}>
+                  <input type="hidden" name="shipmentId" value={s.id} />
+                  <input type="hidden" name="status" value={locked ? "packing" : "packed"} />
+                  <button type="submit" className={cn(btnSecondary, btnHead, locked ? "!border-amber-500 !bg-amber-50 !text-amber-800" : "!border-green-600 !text-green-700")} title={locked ? "Mở khoá: chuyến về Đang đóng, thêm / rút hàng được" : "Khoá: chuyến sang Đã đóng xong, không thêm / rút hàng nữa"} data-testid={`lock-${s.id}`}>
+                    <Fa name={locked ? "unlock" : "lock"} /> {locked ? "Mở khoá" : "Khoá"}
+                  </button>
+                </form>
+              ) : null}
+              <BatchToggle id={s.id} ns="ship" labels={["Thu gọn", "Mở chuyến"]} className={cn(btnSecondary, btnHead)} />
             </span>
           </div>
         }
@@ -323,7 +344,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
         <BatchBody id={s.id} ns="ship">
         <ShipmentTimeline s={s} />
 
-        {editable ? (
+        {open ? (
           <>
             <form id={outId} action={unpackUnitsAction}>
               <input type="hidden" name="shipmentId" value={s.id} />
@@ -431,7 +452,12 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
           </SheetTable>
         </div>
 
-        {editable && pick ? (
+        {locked ? (
+          <p className="m-0 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid={`locked-note-${s.id}`}>
+            <Fa name="lock" /> Chuyến đã đóng xong và khoá — bấm <b>Mở khoá</b> ở đầu chuyến để thêm hoặc rút hàng.
+          </p>
+        ) : null}
+        {open && pick ? (
           <div className="mt-4 rounded-md border-2 border-lien-heart bg-white" data-testid={`pick-${s.id}`}>
             <form id={pkId} action={packCandidatesAction}>
               <input type="hidden" name="shipmentId" value={s.id} />
@@ -476,7 +502,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
           </div>
         ) : null}
 
-        <details className="mt-3">
+        <details id={`info-${s.id}`} className="mt-3">
           <summary className="cursor-pointer text-[12px] text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú)</summary>
           <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_160px_1fr_auto] lg:items-end">
             <input type="hidden" name="shipmentId" value={s.id} />
@@ -519,9 +545,6 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
 function PackControls({ s, pick, pkId }: { s: Shipment; pick: Pick; pkId: string }) {
   return (
     <>
-      <span className="self-center text-[13px] font-semibold text-lien-heading">
-        <Fa name="cube" /> Thêm hàng vào {s.code}
-      </span>
       <button type="submit" form={pkId} className={cn(btnPrimary, "!py-1 !text-[13px] disabled:opacity-50")} data-testid={`pack-${s.id}`}>
         + Thêm vào chuyến
       </button>
@@ -549,6 +572,13 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
   const btn = cn(btnSecondary, "!px-2.5 !py-1 !text-[13px]");
   return (
     <>
+      <form method="get" className="flex items-center gap-1" data-testid={tid("q")}>
+        {keep("q")}
+        <input name="q" type="search" defaultValue={pick.q} placeholder="tên, SKU, mã H…, #đơn" className={cn(adminInput, "!mb-0 !w-[180px] !py-1 !text-[13px]")} aria-label="Tìm hàng để đóng" />
+        <button type="submit" className={btn} data-testid={tid("go")}>
+          Lọc
+        </button>
+      </form>
       <form method="get" className="flex items-center gap-1" data-testid={tid("order")}>
         {keep("order")}
         <select name="order" defaultValue={pick.order} className={cn(adminInput, "!mb-0 !w-[190px] !py-1 !text-[13px]")} aria-label="Theo đơn">
@@ -577,13 +607,6 @@ function PickFilters({ s, pick, pickSources, testIds = false }: { s: Shipment; p
         </select>
         <button type="submit" className={btn}>
           Xem
-        </button>
-      </form>
-      <form method="get" className="flex items-center gap-1" data-testid={tid("q")}>
-        {keep("q")}
-        <input name="q" type="search" defaultValue={pick.q} placeholder="tên, SKU, mã H…, #đơn" className={cn(adminInput, "!mb-0 !w-[180px] !py-1 !text-[13px]")} aria-label="Tìm hàng để đóng" />
-        <button type="submit" className={btn} data-testid={tid("go")}>
-          Lọc
         </button>
       </form>
       {pick.active ? (
