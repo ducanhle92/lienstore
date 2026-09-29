@@ -250,9 +250,11 @@ export async function brandHintOf(p: Pick<CatalogProduct, "description" | "name"
 }
 
 /** Kho hàng › Sản phẩm: give every product without a SKU one, following BRAND-CAT-YYMM-NNNN (see lib/sku.ts). */
-export async function generateSkusAction(): Promise<void> {
+export async function generateSkusAction(formData?: FormData): Promise<void> {
   if (!(await can("products"))) redirect("/admin/login/");
-  const products = await getAllProducts(true);
+  // ticked rows of the product list (bulk form) — without a form every product without a SKU
+  const picked = new Set((formData?.getAll("ids") ?? []).map(String).filter(Boolean));
+  const products = (await getAllProducts(true)).filter((p) => !picked.size || picked.has(String(p.id)));
   let n = 0;
   for (const p of products) {
     if (p.sku && p.sku.trim()) continue;
@@ -260,6 +262,7 @@ export async function generateSkusAction(): Promise<void> {
     if (await updateProductSku(p.id, sku)) n++;
   }
   revalidatePath("/admin", "layout");
+  if (!n && picked.size) redirect(`/admin/products/?error=${encodeURIComponent("Các sản phẩm đã tick đều đã có SKU — sửa từng mã trong trang sản phẩm nếu muốn đổi.")}`);
   redirect(`/admin/products/?saved=${encodeURIComponent(`sku:${n}`)}`);
 }
 

@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { deleteProductAction, generateSkusAction, importProductsCsvAction } from "@/app/admin/products/actions";
 import { groupProductsAction } from "@/app/admin/products/groups/actions";
-import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
-import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
+import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
+import { CsvImportButton } from "@/components/sites/lienstore/admin/CsvImportButton";
+import { StatTile, StatTiles } from "@/components/sites/lienstore/admin/StatTiles";
 import { filterProducts, PRICE_BUCKETS } from "@/lib/product-filter";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { getDb } from "@/lib/sqlite";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { cn } from "@/lib/utils";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCategories, getImportQuoteConfig, getJpyRate, getPricingConfig, listProductGroups, listPurchaseSources } from "@/lib/db";
@@ -55,40 +57,34 @@ export default async function AdminProducts({ searchParams }: Props) {
   const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
   const missingPrice = items.filter((p) => p.price <= 0).length;
+  const published = all.filter((p) => p.status === "publish").length;
+  const noSku = all.filter((p) => !p.sku).length;
+  const barBtn = "!py-1 !text-[13px]";
 
   return (
     <>
       <FlowSteps current="products" counts={flowCounts(getDb())} />
-      <PageHeader
-        title="Sản phẩm"
-        subtitle={`${items.length} / ${all.length} sản phẩm · ${withCost.length} có giá vốn${missingPrice ? ` · ${missingPrice} chưa có giá bán` : ""} · vốn tồn kho và lãi/lỗ xem ở tab Kế toán`}
-        actions={
-          <>
-            {all.filter((p) => !p.sku).length ? (
-              <form action={generateSkusAction}>
-                <button type="submit" className={btnSecondary} title="SKU = THƯƠNG-HIỆU – DANH-MỤC – THÁNG NHẬP (YYMM) – MÃ SP. VD: LION-TM-2609-0173">
-                  <Fa name="tags" /> Tạo SKU cho {all.filter((p) => !p.sku).length} sp chưa có
-                </button>
-              </form>
-            ) : null}
-            <a href={`/admin/products/export/${csvQs ? `?${csvQs}` : ""}`} className={btnSecondary} title="Mọi trường của sản phẩm (giá bán, giá vốn ¥ / VNĐ, tỉ giá, link…) cho các dòng đang lọc — sửa trong Excel rồi nhập lại">
-              <Fa name="download" /> Xuất CSV ({items.length})
-            </a>
-            <form action={importProductsCsvAction} className="flex items-center gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-2 py-1">
-              <FilePicker name="csv" accept=".csv,text/csv" label="Chọn CSV" className="!gap-1 [&_span]:hidden" />
-              <button type="submit" className={btnSecondary} title="Cập nhật sản phẩm theo cột ID từ file CSV đã xuất ở đây">
-                <Fa name="upload" /> Nhập CSV
-              </button>
-            </form>
-            <Link href="/admin/products/groups/" className={btnSecondary} title="Danh sách các nhóm biến thể đã tạo">
-              <Fa name="th-large" /> Nhóm biến thể ({groups.length})
-            </Link>
-            <Link href="/admin/products/new/" className={btnPrimary}>
-              + Thêm sản phẩm
-            </Link>
-          </>
-        }
-      />
+      <PageHeader title="Sản phẩm" />
+      <StatTiles testId="product-stats">
+        <StatTile label="Sản phẩm" value={items.length === all.length ? String(all.length) : `${items.length} / ${all.length}`} accent="blue" title="Đang hiện / tổng số sản phẩm" />
+        <StatTile label="Đang bán · nháp" value={`${published} · ${all.length - published}`} accent="blue" />
+        <StatTile label="Có giá vốn" value={`${withCost.length} / ${items.length}`} accent={withCost.length === items.length ? "green" : "amber"} />
+        <StatTile label="Chưa có giá bán" value={String(missingPrice)} accent={missingPrice ? "red" : "green"} />
+        <StatTile label="Chưa có SKU" value={String(noSku)} accent={noSku ? "amber" : "green"} title="Tick sản phẩm rồi bấm Tạo SKU ở thanh dưới" />
+        <StatTile label="Vốn tồn kho · lãi / lỗ" value="Xem Kế toán →" accent="gray" href="/admin/accounting/" title="Vốn tồn kho và lãi / lỗ theo đơn ở tab Kế toán" />
+      </StatTiles>
+      <BarTools>
+        <a href={`/admin/products/export/${csvQs ? `?${csvQs}` : ""}`} className={cn(btnSecondary, barBtn)} title="Mọi trường của sản phẩm (giá bán, giá vốn ¥ / VNĐ, tỉ giá, link…) cho các dòng đang lọc — sửa trong Excel rồi nhập lại">
+          <Fa name="download" /> Xuất CSV ({items.length})
+        </a>
+        <CsvImportButton action={importProductsCsvAction} className={barBtn} title="Chọn file CSV đã xuất ở đây (sửa trong Excel) rồi bấm OK — cập nhật sản phẩm theo cột ID" />
+        <Link href="/admin/products/groups/" className={cn(btnSecondary, barBtn)} title="Danh sách các nhóm biến thể đã tạo">
+          <Fa name="th-large" /> Nhóm biến thể ({groups.length})
+        </Link>
+        <Link href="/admin/products/new/" className={cn(btnPrimary, barBtn)}>
+          + Thêm sản phẩm
+        </Link>
+      </BarTools>
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       {saved.startsWith("csv:") ? (
         (() => {
@@ -160,6 +156,9 @@ export default async function AdminProducts({ searchParams }: Props) {
         {/* bulk: tick rows (checkboxes carry form="bulk-group") → one family */}
         <form id="bulk-group" action={groupProductsAction} data-testid="bulk-group" />
         <BulkBar scope="bulk-group">
+          <button type="submit" form="bulk-group" formAction={generateSkusAction} className={`${btnSecondary} !py-1.5 !text-[13px] disabled:opacity-50`} title="Tạo SKU cho các sản phẩm đã tick chưa có mã (mã đã có giữ nguyên). SKU = THƯƠNG-HIỆU – DANH-MỤC – THÁNG NHẬP (YYMM) – MÃ SP. VD: LION-TM-2609-0173" data-testid="bulk-sku">
+            <Fa name="tags" /> Tạo SKU
+          </button>
           <select name="groupId" form="bulk-group" className={`${adminInput} !mb-0 !w-[220px] !py-1.5 !text-[13px]`} aria-label="Nhóm">
             <option value="">Tạo nhóm mới</option>
             {groups.map((g) => (
