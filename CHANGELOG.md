@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.103.0] - 2026-09-29
+
 ### Changed
 - **④ Đóng hàng JP › khung chuyến**: chuyến “Đã đóng xong” là chuyến **đã khoá** — không thêm / rút hàng được (máy chủ cũng từ chối), khung thêm hàng và nút rút ẩn đi, đầu chuyến ghi “Đã khoá”. Nút **Khoá / Mở khoá** nằm giữa Xoá chuyến và Thu gọn (Mở khoá = về Đang đóng). Các nút đầu chuyến có viền và màu; thêm nút **✎ Sửa** cạnh tên chuyến để mở form thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú).
 - Khung thêm hàng: bỏ nhãn “Thêm hàng vào CH-…” (đã nằm trong chuyến); ô tìm kiếm đứng trước “Theo đơn → Xem” và “Theo đợt mua → Xem”.
