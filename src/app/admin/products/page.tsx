@@ -184,6 +184,9 @@ export default async function AdminProducts({ searchParams }: Props) {
                 <th className={thClass}>ID</th>
                 <th className={thClass}>SKU</th>
                 <th className={thClass}>Tên</th>
+                <th className={thClass} title="Số cái đang tự do (chưa ai đặt) từ Nhật tới kho VN; dòng dưới: sẵn tại kho VN (khách thấy 'Có sẵn')">
+                  Tồn
+                </th>
                 <th className={thClass}>Danh mục</th>
                 <th className={thClass} title="Giá khách đang thấy trên web">Giá thực tế trên website</th>
                 <th className={thClass}>Giá vốn (¥)</th>
@@ -231,6 +234,16 @@ export default async function AdminProducts({ searchParams }: Props) {
                         {Object.values(p.variantAttrs).length ? ` · ${Object.values(p.variantAttrs).join(" · ")}` : ""}
                       </Link>
                     ) : null}
+                  </td>
+                  <td className={`${tdClass} whitespace-nowrap text-center`} data-s={p.stock ?? -1} data-testid={`stock-${p.id}`}>
+                    {p.stock === null ? (
+                      <span className="text-lien-muted" title="Chưa theo dõi tồn (hàng order)">—</span>
+                    ) : (
+                      <>
+                        <b className={p.stock > 0 ? "text-lien-heading" : "text-lien-muted"}>{p.stock}</b>
+                        {p.stockVn ? <span className="block text-[11px] text-green-700">VN {p.stockVn}</span> : null}
+                      </>
+                    )}
                   </td>
                   <td className={`${tdClass} max-w-[220px] text-[13px]`}>{p.categories.map((c) => catName[c] ?? c).join(", ")}</td>
                   <td className={`${tdClass} whitespace-nowrap`}>

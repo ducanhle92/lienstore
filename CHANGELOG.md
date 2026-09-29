@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Sản phẩm: cột **Tồn** ngay sau Tên (số cái tự do từ Nhật tới kho VN; dòng nhỏ "VN n" = sẵn tại kho VN, khách thấy "Có sẵn"); lọc / sắp xếp được.
+- Chi tiết sản phẩm: bốn ô số dưới tiêu đề — **Tồn kho (trong tay)** (bấm xem từng mã), **Tự do · sẵn tại kho VN**, **Đang bán** (số cái · số đơn đang xử lý, bấm sang Đơn hàng), **Đã bán** (số cái · số đơn đã giao).
+
 ## [2.10.1] - 2026-09-29
 
 ### Changed
