@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Tồn kho Nhật: mỗi kiện đã đóng (chờ xuất ĐVVC) ghi **cân nặng ước lượng** của hàng bên trong (cân nặng sản phẩm × số cái, chưa gồm thùng, lót) ngay trước nhãn trạng thái để báo đơn vị vận chuyển; báo số cái chưa có cân nặng sản phẩm. Thêm ô **Cân nặng (trên kệ)**.
+
+### Changed
+- Tồn kho: các ô số phía trên là bộ lọc — bấm **Kho Nhật (shop)** (thêm ô tổng, thay nút tab cũ), **Trên kệ**, **Đã đóng kiện**, **Giữ cho đơn**, **Tồn tự do** thì bảng dưới đổi theo (ô đang chọn có viền đậm); ở Kho VN ô **Đơn đủ hàng để giao** dẫn sang ⑦ Giao hàng VN. Bỏ hàng lọc cũ (tìm, nguồn mua, HSD, Tất cả / Chỉ hàng theo đơn / Chỉ tồn tự do, Lọc) — lọc cột bằng ▾ trên đầu bảng.
+- Tồn kho: tiêu đề bảng "Kho Nhật (shop) — … (n dòng bill · n cái)" và nút **Tự chọn theo đơn** nằm chung một dòng đầu bảng; bỏ dòng mô tả "Mặc định hàng order · … · lợi nhuận dự kiến" dưới tiêu đề trang.
+
 ## [2.0.0] - 2026-09-29
 
 ### Changed

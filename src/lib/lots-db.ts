@@ -28,6 +28,7 @@ export interface StockGroup {
   productName: string;
   productSku: string | null;
   productThumb: string;
+  productWeightG: number | null;
   groupCode: string;
   status: PurchaseStatus;
   receiptId: number | null;
@@ -85,6 +86,7 @@ export function groupUnits(units: UnitView[]): StockGroup[] {
       productName: u.productName,
       productSku: u.productSku,
       productThumb: u.productThumb,
+      productWeightG: u.productWeightG,
       groupCode: u.groupCode,
       status: u.status,
       receiptId: u.receiptId,

@@ -19,7 +19,8 @@ export interface LotsFilter {
   q: string;
   src: string;
   exp: "" | "soon" | "expired";
-  mode: "" | "orders" | "free";
+  /** "" = everything at the shop; shelf = not boxed; boxed = parcels only; orders / free = held / free units only. */
+  mode: "" | "orders" | "free" | "shelf" | "boxed";
 }
 
 interface Props {
@@ -90,73 +91,50 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
   const atShop = groups.filter((g) => g.status === shopStatus);
   const totals = groupTotals(atShop, side);
   const shown = applyLotsFilter(atShop, filter);
-  const shelf = shown.filter((g) => !(side === "jp" && g.shipmentId));
-  const boxed = side === "jp" ? shown.filter((g) => g.shipmentId) : [];
+  const shelf = filter.mode === "boxed" ? [] : shown.filter((g) => !(side === "jp" && g.shipmentId));
+  const boxed = side === "jp" && filter.mode !== "shelf" ? shown.filter((g) => g.shipmentId) : [];
+  const tileHref = (mode: LotsFilter["mode"]) => `/admin/inventory/?side=${side}${mode ? `&mode=${mode}` : ""}`;
   const boxedAll = side === "jp" ? atShop.filter((g) => g.shipmentId) : [];
   // parcels = packing runs whose boxes are still on the shop floor (one run = one parcel id CH-…)
   const parcels = [...new Map(boxed.map((g) => [g.shipmentId!, { id: g.shipmentId!, code: g.shipmentCode ?? `#${g.shipmentId}`, groups: [] as StockGroup[] }])).values()];
   for (const g of boxed) parcels.find((x) => x.id === g.shipmentId)?.groups.push(g);
   const accent = side === "jp" ? "blue" : "red";
   const units = (xs: StockGroup[]) => xs.reduce((n, g) => n + g.qty, 0);
-  const srcOptions = Array.from(new Set(groups.map((g) => g.sourceKey))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
   const formId = `lots-${side}`;
   return (
     <div className="space-y-4" data-testid={`lots-board-${side}`}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Tile label="Dòng bill" value={String(totals.groups)} accent={accent} />
-        <Tile label={side === "jp" ? "Trên kệ Kho Nhật" : "Tại kho shop VN"} value={`${totals.atShop - units(boxedAll)} cái`} accent={accent} />
+      {/* the figures are the filter: click a tile → the table below shows just that part */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" data-testid={`lots-tiles-${side}`}>
+        <Tile label={`${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} · ${totals.groups} dòng bill`} value={`${totals.atShop} cái`} accent={accent} href={tileHref("")} active={filter.mode === ""} title="Tất cả hàng đang ở kho shop" />
+        <Tile label={side === "jp" ? "Trên kệ Kho Nhật" : "Tại kho shop VN"} value={`${totals.atShop - units(boxedAll)} cái`} accent={accent} href={side === "jp" ? tileHref("shelf") : undefined} active={filter.mode === "shelf"} title={side === "jp" ? "Chỉ hàng còn trên kệ, chưa đóng kiện" : undefined} />
         {side === "jp" ? (
-          <Tile label="Đã đóng kiện, chờ xuất" value={`${new Set(boxedAll.map((g) => g.shipmentId)).size} kiện · ${units(boxedAll)} cái`} accent="gray" />
+          <Tile label="Đã đóng kiện, chờ xuất" value={`${new Set(boxedAll.map((g) => g.shipmentId)).size} kiện · ${units(boxedAll)} cái`} accent="gray" href={tileHref("boxed")} active={filter.mode === "boxed"} title="Chỉ các kiện đã đóng, chờ xuất ĐVVC" />
         ) : (
-          <Tile label="Đơn đủ hàng để giao" value={`${readyOrders.length} đơn`} accent="gray" />
+          <Tile label="Đơn đủ hàng để giao" value={`${readyOrders.length} đơn`} accent="gray" href="/admin/inventory/delivery/" title="Sang ⑦ Giao hàng VN" />
         )}
-        <Tile label="Giữ cho đơn" value={`${totals.held} cái`} accent="amber" />
-        <Tile label="Tồn tự do" value={`${totals.free} cái`} accent="green" />
+        <Tile label="Giữ cho đơn" value={`${totals.held} cái`} accent="amber" href={tileHref("orders")} active={filter.mode === "orders"} title="Chỉ dòng có hàng giữ cho đơn khách" />
+        <Tile label="Tồn tự do" value={`${totals.free} cái`} accent="green" href={tileHref("free")} active={filter.mode === "free"} title="Chỉ dòng còn hàng tự do (chưa ai đặt)" />
         <Tile label="Vốn (tồn tự do)" value={formatPrice(totals.costVnd)} accent="gray" />
+        {side === "jp" ? <Tile label="Cân nặng (trên kệ)" value={kg(weightOf(atShop.filter((g) => !g.shipmentId)).g)} accent="gray" title="Tổng cân nặng hàng trên kệ theo cân nặng sản phẩm (chưa gồm thùng, lót)" /> : null}
       </div>
 
-      <form method="get" className="flex flex-wrap items-center gap-2 text-[13px]">
-        <input type="hidden" name="side" value={side} />
-        <input name="q" defaultValue={filter.q} placeholder="Sản phẩm / SKU / mã H… / mã bill / #đơn" className={cn(adminInput, "!mb-0 !w-[260px] !py-1")} aria-label="Tìm" />
-        <select name="src" defaultValue={filter.src} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Nguồn mua">
-          <option value="">Mọi nguồn mua</option>
-          {srcOptions.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <select name="exp" defaultValue={filter.exp} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Hạn dùng">
-          <option value="">Mọi HSD</option>
-          <option value="soon">HSD ≤ 90 ngày</option>
-          <option value="expired">Đã hết hạn</option>
-        </select>
-        <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]">
-          {(
-            [
-              ["", "Tất cả"],
-              ["orders", "Chỉ hàng theo đơn"],
-              ["free", "Chỉ tồn tự do"],
-            ] as const
-          ).map(([v, label]) => (
-            <label key={v} className={cn("cursor-pointer px-2.5 py-1", filter.mode === v ? (side === "jp" ? "bg-lien-blue text-white" : "bg-lien-heart text-white") : "bg-white text-lien-text")}>
-              <input type="radio" name="mode" value={v} defaultChecked={filter.mode === v} className="sr-only" /> {label}
-            </label>
-          ))}
-        </span>
-        <button type="submit" className={cn(btnSecondary, "!py-1")}>
-          Lọc
-        </button>
-        <span className="ml-auto text-[12px] text-lien-muted">Sắp xếp theo hạn dùng gần nhất trước (FEFO)</span>
-      </form>
-
-      <Card title={`${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — tại kho shop (${shelf.length} dòng bill · ${units(shelf)} cái)`}>
+      <Card
+        title={
+          filter.mode === "boxed"
+            ? `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — các kiện đã đóng (${parcels.length} kiện · ${units(boxed)} cái)`
+            : `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — ${MODE_LABEL[filter.mode]} (${shelf.length} dòng bill · ${units(shelf)} cái)`
+        }
+        actions={
+          filter.mode === "boxed" ? null : (
+            <span className="flex flex-wrap items-center gap-2 text-[13px]" data-testid={`${side}-bulk-bar`}>
+              <LotPicker formId={formId} scope={`shop-${side}`} />
+            </span>
+          )
+        }
+      >
         <form id={formId} action={moveUnitsAction}>
           <input type="hidden" name="back" value={backUrl} />
         </form>
-        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-2 text-[13px]" data-testid={`${side}-bulk-bar`}>
-          <LotPicker formId={formId} scope={`shop-${side}`} />
-        </div>
         <BulkBar scope={formId}>
           <select name="status" form={formId} defaultValue={side === "jp" ? "to_carrier_jp" : "shipped_to_customer"} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
             {(side === "jp" ? MOVE_STAGES : PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchaseIndex("bought"))).map((s) => (
@@ -193,7 +171,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
             </>
           ) : null}
         </BulkBar>
-        <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />
+        {filter.mode === "boxed" ? null : <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />}
         {parcels.length ? (
           <div className="mt-3 space-y-2" data-testid="boxed-lots">
             <p className="m-0 text-[13px] font-semibold text-lien-heading">
@@ -203,6 +181,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
               const run = shipments.find((x) => x.id === pc.id);
               const held = pc.groups.reduce((n, g) => n + g.heldQty, 0);
               const jpy = pc.groups.reduce((n, g) => n + (g.unitCostJpy ?? 0) * g.qty, 0);
+              const w = weightOf(pc.groups);
               return (
                 <details key={pc.id} className="rounded-md border border-amber-300 bg-amber-50/40 px-3 py-2" data-testid={`parcel-${pc.id}`}>
                   <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 text-[13px]">
@@ -212,6 +191,9 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
                     <span className="text-lien-text">
                       {units(pc.groups)} cái · {pc.groups.length} dòng bill{held ? ` · ${held} cái cho đơn khách` : ""}
                       {jpy ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
+                    </span>
+                    <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-[12px] text-sky-900" title={`Cân nặng ước lượng để báo ĐVVC: cộng cân nặng sản phẩm × số cái, chưa gồm thùng, lót, băng keo${w.missing ? ` — ${w.missing} cái chưa có cân nặng sản phẩm nên còn thiếu` : ""}`} data-testid={`parcel-weight-${pc.id}`}>
+                      <Fa name="balance-scale" /> ≈ {kg(w.g)} hàng{w.missing ? <span className="text-amber-700"> · {w.missing} cái chưa rõ cân</span> : null}
                     </span>
                     {run?.status ? <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", run.status === "packed" ? "bg-amber-100 text-amber-800" : "bg-gray-200 text-gray-700")}>{run.status === "packed" ? "Đã đóng xong" : "Đang đóng"}</span> : null}
                     <Link href={`/admin/inventory/shipments/#shipment-${pc.id}`} className="ml-auto text-[12px] text-lien-blue hover:underline">
@@ -237,12 +219,35 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
   );
 }
 
-function Tile({ label, value, accent }: { label: string; value: string; accent: "blue" | "red" | "amber" | "green" | "gray" }) {
+const MODE_LABEL: Record<LotsFilter["mode"], string> = { "": "tại kho shop", shelf: "trên kệ, chưa đóng kiện", boxed: "các kiện đã đóng", orders: "hàng giữ cho đơn", free: "tồn tự do" };
+/** Net weight of the goods (product weight × pieces); `missing` = pieces whose product has no weight yet. */
+function weightOf(groups: StockGroup[]): { g: number; missing: number } {
+  let g = 0;
+  let missing = 0;
+  for (const x of groups) {
+    if (x.productWeightG && x.productWeightG > 0) g += x.productWeightG * x.qty;
+    else missing += x.qty;
+  }
+  return { g, missing };
+}
+const kg = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg` : `${Math.round(g)} g`);
+
+function Tile({ label, value, accent, href, active = false, title }: { label: string; value: string; accent: "blue" | "red" | "amber" | "green" | "gray"; href?: string; active?: boolean; title?: string }) {
   const cls = { blue: "border-sky-200 bg-sky-50 text-sky-900", red: "border-red-200 bg-red-50 text-red-900", amber: "border-amber-200 bg-amber-50 text-amber-900", green: "border-green-200 bg-green-50 text-green-900", gray: "border-[#e5e7eb] bg-white text-lien-heading" }[accent];
-  return (
-    <div className={cn("rounded-md border px-3 py-2", cls)}>
+  const box = cn("block rounded-md border px-3 py-2 no-underline", cls, href && "hover:brightness-95", active && "ring-2 ring-lien-heading/60 ring-offset-1");
+  const body = (
+    <>
       <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
       <div className="font-oswald text-[16px] leading-5">{value}</div>
+    </>
+  );
+  return href ? (
+    <Link href={href} className={box} title={title} aria-current={active ? "page" : undefined}>
+      {body}
+    </Link>
+  ) : (
+    <div className={box} title={title}>
+      {body}
     </div>
   );
 }

@@ -86,6 +86,7 @@ const GLYPHS = {
   "calendar": "",
   "filter": "",
   "lock": "",
+  "balance-scale": "",
   "unlock": "",
 } as const;
 

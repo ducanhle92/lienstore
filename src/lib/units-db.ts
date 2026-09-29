@@ -548,6 +548,8 @@ export interface UnitView {
   productName: string;
   productSku: string | null;
   productThumb: string;
+  /** products.weight_g (net weight of one piece, null when unknown). */
+  productWeightG: number | null;
   groupId: number | null;
   groupCode: string;
   receiptId: number | null;
@@ -578,12 +580,12 @@ export interface UnitView {
   updatedAt: string;
 }
 
-const VIEW_SELECT = `SELECT u.*, p.name AS p_name, p.sku AS p_sku, p.thumb AS p_thumb, p.group_id AS g_id, g.code AS g_code, r.code AS r_code, b.code AS b_code, s.code AS s_code, s.status AS s_status,
+const VIEW_SELECT = `SELECT u.*, p.name AS p_name, p.sku AS p_sku, p.thumb AS p_thumb, p.weight_g AS p_weight_g, p.group_id AS g_id, g.code AS g_code, r.code AS r_code, b.code AS b_code, s.code AS s_code, s.status AS s_status,
   oi.order_id AS o_id, o.number AS o_number, o.first_name AS o_first, o.last_name AS o_last, o.status AS o_status
   FROM stock_units u JOIN products p ON p.id = u.product_id LEFT JOIN product_groups g ON g.id = p.group_id LEFT JOIN purchase_receipts r ON r.id = u.receipt_id
   LEFT JOIN purchase_batches b ON b.id = u.batch_id LEFT JOIN shipments s ON s.id = u.shipment_id LEFT JOIN order_items oi ON oi.id = u.order_item_id LEFT JOIN orders o ON o.id = oi.order_id`;
 
-type ViewRow = UnitRow & { p_name: string; p_sku: string | null; p_thumb: string | null; g_id: number | null; g_code: string | null; r_code: string | null; b_code: string | null; s_code: string | null; s_status: string | null; o_id: string | null; o_number: number | null; o_first: string | null; o_last: string | null; o_status: string | null };
+type ViewRow = UnitRow & { p_name: string; p_sku: string | null; p_thumb: string | null; p_weight_g: number | null; g_id: number | null; g_code: string | null; r_code: string | null; b_code: string | null; s_code: string | null; s_status: string | null; o_id: string | null; o_number: number | null; o_first: string | null; o_last: string | null; o_status: string | null };
 const ORIGINS: UnitOrigin[] = ["bill", "order", "count", "manual", "return", "legacy"];
 const toView = (r: ViewRow): UnitView => ({
   id: r.id,
@@ -592,6 +594,7 @@ const toView = (r: ViewRow): UnitView => ({
   productName: r.p_name,
   productSku: r.p_sku,
   productThumb: r.p_thumb ?? "",
+  productWeightG: r.p_weight_g ?? null,
   groupId: r.g_id ?? null,
   groupCode: r.g_code ?? "",
   receiptId: r.receipt_id,

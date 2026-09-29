@@ -65,7 +65,7 @@ export default async function AdminInventory({ searchParams }: Props) {
   // ?side=orders (old "Hàng theo đơn") now lives on the orders page
   if (first(sp.side) === "orders") redirect("/admin/orders/?view=stock");
   const side: "jp" | "vn" = first(sp.side) === "jp" ? "jp" : "vn";
-  const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: first(sp.mode) === "orders" ? "orders" : first(sp.mode) === "free" ? "free" : "" };
+  const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: (["orders", "free", "shelf", "boxed"] as const).find((m) => m === first(sp.mode)) ?? "" };
   // every unit in hand (Kho Nhật → Kho VN) as bill lines × place × packing run
   const allGroups = view === "lots" ? listStockGroups(getDb(), { statuses: ["bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] }) : [];
   const flyingUnits = allGroups.filter((g) => g.status === "shipped_jp_vn").reduce((n, g) => n + g.qty, 0);
@@ -74,8 +74,6 @@ export default async function AdminInventory({ searchParams }: Props) {
 
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
   const lotsBack = `/admin/inventory/?side=${lotSide}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
-  const jpUnits = allGroups.filter((g) => g.status === "bought").reduce((n, g) => n + g.qty, 0);
-  const vnUnits = allGroups.filter((g) => g.status === "at_shop").reduce((n, g) => n + g.qty, 0);
   const sourceName = (k: string) => purchaseSourceName(k, sources);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
@@ -89,7 +87,6 @@ export default async function AdminInventory({ searchParams }: Props) {
       {view === "lots" ? <FlowSteps current={side} counts={flowCounts(getDb())} /> : null}
       <PageHeader
         title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : "Tồn kho VN"}
-        subtitle={`Mặc định hàng order · ${summary.inStockProducts} sản phẩm có tồn kho (${summary.units} đơn vị) · ${summary.stockIncomingUnits} đơn vị đang về kho · vốn tồn ${formatPrice(summary.stockValue)} · lợi nhuận dự kiến ${formatPrice(summary.stockProfit)}`}
         actions={
           <>
             <a href={csvHref} className={btnSecondary} title="Đúng các dòng và thứ tự đang hiển thị — dùng để in kiểm kho">
@@ -135,11 +132,6 @@ export default async function AdminInventory({ searchParams }: Props) {
 
       {/* view switch: by lot (two coloured sides) or by product (stocktake / CSV) */}
       <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="inventory-tabs">
-        {view === "lots" ? (
-          <span className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold", side === "jp" ? "border-sky-600 bg-sky-600 text-white" : "border-lien-heart bg-lien-heart text-white")}>
-            <Fa name={side === "jp" ? "globe" : "archive"} /> {side === "jp" ? `Kho Nhật (${jpUnits} cái)` : `Kho Việt Nam (${vnUnits} cái)`}
-          </span>
-        ) : null}
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
         <Link href="/admin/inventory/?view=products" className={cn("ml-auto rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "products" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
           Theo sản phẩm · kiểm kê · CSV
