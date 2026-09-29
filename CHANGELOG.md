@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Kế toán › Theo đơn**: ba cột Ship khách trả · Nhập 3 chặng · Giao VN trả hãng gộp thành một cột **Vận chuyển (shop chịu)** = nhập 3 chặng + giao VN trả hãng − phần ship khách trả shop; di chuột vào số để xem từng phần, dưới số ghi “khách trả shipper” hoặc “khách trả …”. Lãi / lỗ = doanh thu sau voucher − giá vốn − cột này (không đổi giá trị). CSV giữ cả cột gộp lẫn ba phần.
+
 ## [1.102.0] - 2026-09-28
 
 ### Changed

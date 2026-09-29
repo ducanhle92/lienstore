@@ -37,6 +37,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
   const to = isDay(first(sp.to)) ? first(sp.to) : today;
   const [{ rows, totals, byMonth }, inv] = await Promise.all([getAccounting(from, to), getInventory()]);
   const money = (n: number) => formatPrice(n);
+  const signedCost = (n: number) => (n < 0 ? <span className="text-green-700">−{money(Math.abs(n))}</span> : money(n));
   const signed = (n: number) => (
     <span className={n >= 0 ? "text-green-700" : "text-red-600"}>
       {n < 0 ? "−" : ""}
@@ -188,11 +189,12 @@ export default async function AdminAccounting({ searchParams }: Props) {
                 <th className={`${thClass} text-right`} title="Tổng tiền hàng theo giá đã bán, chưa trừ voucher">Tiền hàng</th>
                 <th className={`${thClass} text-right`} title="Mã giảm giá khách nhập khi thanh toán">Voucher</th>
                 <th className={`${thClass} text-right`} title="Tiền hàng − voucher">Doanh thu (sau voucher)</th>
-                <th className={`${thClass} text-right`}>Ship khách trả</th>
+
                 <th className={`${thClass} text-right`}>Giá vốn</th>
-                <th className={`${thClass} text-right`}>Nhập 3 chặng</th>
-                <th className={`${thClass} text-right`}>Giao VN trả hãng</th>
-                <th className={`${thClass} text-right`} title="Doanh thu sau voucher + ship khách trả − giá vốn − nhập 3 chặng − giao VN trả hãng">Lãi / lỗ</th>
+                <th className={`${thClass} text-right`} title="Phí shop chịu: nhập hàng 3 chặng + giao nội địa VN trả hãng − phần ship khách đã trả shop. Di chuột vào số để xem từng phần.">
+                  Vận chuyển (shop chịu)
+                </th>
+                <th className={`${thClass} text-right`} title="Doanh thu sau voucher − giá vốn − vận chuyển (shop chịu)">Lãi / lỗ</th>
               </tr>
             </thead>
             <tbody>
@@ -213,19 +215,20 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.goods)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap text-amber-700`}>{r.voucher ? `−${money(r.voucher)}` : "—"}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.revenue)}</td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{r.shipOnDelivery ? <span className="text-lien-muted">trả shipper</span> : money(r.shipCollected)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>
                     {money(r.cogs)}
                     {r.missingCost ? <span className="block text-[11px] text-amber-700">{r.missingCost} dòng thiếu giá vốn</span> : null}
                   </td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.importFees)}</td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(r.vnCarrierFee)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`} title={`Nhập 3 chặng ${money(r.importFees)} + giao VN trả hãng ${money(r.vnCarrierFee)} − khách trả shop ${money(r.shipCollected)}`}>
+                    {signedCost(r.importFees + r.vnCarrierFee - r.shipCollected)}
+                    {r.shipOnDelivery ? <span className="block text-[11px] text-lien-muted">khách trả shipper</span> : r.shipCollected ? <span className="block text-[11px] text-lien-muted">khách trả {money(r.shipCollected)}</span> : null}
+                  </td>
                   <td className={`${tdClass} text-right whitespace-nowrap font-semibold`}>{signed(r.profit)}</td>
                 </tr>
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className={`${tdClass} text-center text-lien-muted`}>
+                  <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
                     Không có đơn trong khoảng đã chọn.
                   </td>
                 </tr>
@@ -240,10 +243,10 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.goods)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap text-amber-700`}>{totals.voucher ? `−${money(totals.voucher)}` : "—"}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.revenue)}</td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.shipCollected)}</td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.cogs)}</td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.importFees)}</td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{money(totals.vnCarrierFee)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`} title={`Nhập 3 chặng ${money(totals.importFees)} + giao VN trả hãng ${money(totals.vnCarrierFee)} − khách trả shop ${money(totals.shipCollected)}`}>
+                    {signedCost(totals.importFees + totals.vnCarrierFee - totals.shipCollected)}
+                  </td>
                   <td className={`${tdClass} text-right whitespace-nowrap`}>{signed(totals.profit)}</td>
                 </tr>
               </tfoot>
