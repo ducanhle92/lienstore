@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-29
+
 ### Changed
 - Quản lý mua hàng: dòng số liệu dưới tiêu đề và ba tab (Mua theo đợt / Mua theo đặt hàng / Hàng lưu kho) thành các ô số kiểu Tồn kho — **Đợt mua đang mở**, **Cần mua (theo đơn)**, **Hàng lưu kho (chưa có khách)** bấm để đổi phần hiển thị bên dưới (ô đang xem có viền đậm); **Đã mua, đang về** (chi tiết tại Nhật / NB→VN / ĐVVC VN khi rê chuột) → Tồn kho Nhật, **Sẵn tại kho shop VN** → Tồn kho VN, **Đơn đang xử lý** → Đơn hàng › Theo kho hàng. Số đợt đang mở hiện cạnh tiêu đề.
 - Quản lý mua hàng: nút thu gọn đợt chỉ còn **Ẩn / Hiện**.
