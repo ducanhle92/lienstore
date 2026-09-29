@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-29
+
 ### Changed
 - Sản phẩm: dòng số liệu dưới tiêu đề thành các ô thống kê nhỏ (Sản phẩm, Đang bán · nháp, Có giá vốn, Chưa có giá bán, Chưa có SKU, Vốn tồn kho · lãi / lỗ → Kế toán) kiểu bảng Tồn kho.
 - Sản phẩm: các nút Xuất CSV, Nhập CSV, Nhóm biến thể, + Thêm sản phẩm chuyển xuống thanh dưới. **Nhập CSV** gộp với chọn file: bấm Nhập CSV → chọn file → bấm **OK — nhập <file>** (× để bỏ file).
