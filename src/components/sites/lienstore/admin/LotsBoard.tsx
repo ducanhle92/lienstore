@@ -10,7 +10,6 @@ import { purchaseSourceName } from "@/lib/purchase-sources";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { BulkBar } from "./BulkBar";
-import { LotPicker } from "./LotPicker";
 import { TableSelectAll } from "./TableSelectAll";
 import { adminInput, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
 import { SheetTable } from "./SheetTable";
@@ -123,13 +122,6 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
           filter.mode === "boxed"
             ? `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — các kiện đã đóng (${parcels.length} kiện · ${units(boxed)} cái)`
             : `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — ${MODE_LABEL[filter.mode]} (${shelf.length} dòng bill · ${units(shelf)} cái · ≈ ${kg(weightOf(shelf).g)} hàng${weightOf(shelf).missing ? `, ${weightOf(shelf).missing} cái chưa rõ cân` : ""})`
-        }
-        actions={
-          filter.mode === "boxed" ? null : (
-            <span className="flex flex-wrap items-center gap-2 text-[13px]" data-testid={`${side}-bulk-bar`}>
-              <LotPicker formId={formId} scope={`shop-${side}`} />
-            </span>
-          )
         }
       >
         <form id={formId} action={moveUnitsAction}>

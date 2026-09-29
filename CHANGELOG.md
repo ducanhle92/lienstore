@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Tồn kho Nhật / VN: bỏ dòng "Kiểm kê theo kho: Nhật (n) · ĐVVC …" cạnh tiêu đề (đó là phiếu kiểm kê theo sản phẩm của màn Theo sản phẩm · kiểm kê, số đếm theo sản phẩm nên khác số cái trên bảng — chỉ còn hiện ở màn đó, `/admin/inventory/?view=products`). Nút **Nhập CSV** ghi rõ nhận phiếu kiểm kê theo sản phẩm (cột ID + Kiểm đếm thực tế).
+- Tồn kho: bỏ nút **Tự chọn theo đơn** ở đầu bảng Kho Nhật (shop) / Kho Việt Nam (shop) — tick tay hoặc dùng ⑦ Giao hàng VN.
+
 ## [2.5.0] - 2026-09-29
 
 ### Changed

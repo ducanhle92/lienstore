@@ -89,6 +89,7 @@ export default async function AdminInventory({ searchParams }: Props) {
       <PageHeader
         title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : "Tồn kho VN"}
         summary={
+          view === "products" ? (
           <span className="font-normal text-[13px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho (CSV): chỉ các sản phẩm có hàng ở kho đó, cột 'Kiểm đếm thực tế' để điền rồi Nhập CSV ở thanh dưới" data-testid="stocktake-links">
             Kiểm kê theo kho:{" "}
             {WAREHOUSES.map((w, i) => (
@@ -100,11 +101,12 @@ export default async function AdminInventory({ searchParams }: Props) {
               </span>
             ))}
           </span>
+          ) : null
         }
       />
       <BarTools end>
         <TableCsvButton target="[data-csv-table]" filename={view === "lots" ? `ton-kho-${lotSide}${lotFilter.mode ? `-${lotFilter.mode}` : ""}.csv` : "ton-kho-san-pham.csv"} className="!py-1 !text-[13px]" title="Xuất đúng bảng đang xem: các dòng còn lại sau khi lọc (ô số / ▾ cột), theo thứ tự trên màn" />
-        <CsvImportButton action={importStocktakeCsvAction} label="Nhập CSV" className="!py-1 !text-[13px]" title="Nhập phiếu kiểm kê (CSV 'Kiểm kê theo kho' cạnh tiêu đề, cột 'Kiểm đếm thực tế' đã điền) — dòng để trống bỏ qua" />
+        <CsvImportButton action={importStocktakeCsvAction} label="Nhập CSV" className="!py-1 !text-[13px]" title="Nhập phiếu kiểm kê theo sản phẩm (CSV có cột ID và 'Kiểm đếm thực tế' — tải ở màn Theo sản phẩm · kiểm kê: /admin/inventory/?view=products) — dòng để trống bỏ qua" />
       </BarTools>
       {saved.startsWith("kiemke:")
         ? (() => {
