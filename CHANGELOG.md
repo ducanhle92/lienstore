@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [1.104.0] - 2026-09-29
+
 ### Changed
 - Menu: nhóm **Kho hàng** đổi tên **Vận hành** và lên đầu; nhóm **Tổng quan** đổi tên **Cài đặt web** và xuống ngay dưới Vận hành.
 - Mọi ô ngày trong admin (ngày mua, dự kiến gửi, ngày gửi, ngày phiếu, khoảng ngày tìm đợt, lọc ngày mua trong bảng đợt) là ô **chọn ngày trên lịch** thay vì gõ tay `2026-09-27`. Riêng **HSD** vẫn gõ tay vì ghi theo tháng / năm trên bao bì (vd `03/2027`).
