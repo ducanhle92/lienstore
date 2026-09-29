@@ -152,10 +152,10 @@ export default async function AdminOrders({ searchParams }: Props) {
             </>
           ) : null}
           <StatChips caption="Tổng theo bộ lọc" className="mb-3" testId="orders-totals">
-            <StatChip icon="shopping-cart" value={pnl.size} label="đơn (trừ đã huỷ)" />
+            <StatChip icon="shopping-cart" value={pnl.size} label="đơn" title="Đơn trong bộ lọc, trừ đơn đã huỷ" />
             <StatChip icon="money" value={formatPrice(sum.revenue)} label="doanh thu" tone="green" title="Tiền hàng sau voucher + ship khách trả shop" />
             <StatChip icon="tags" value={formatPrice(sum.cogs)} label="giá vốn" />
-            <StatChip icon="truck" value={formatPrice(sum.ship)} label="vận chuyển (shop chịu)" />
+            <StatChip icon="truck" value={formatPrice(sum.ship)} label="vận chuyển" title="Phí vận chuyển shop chịu: nhập 3 chặng + giao VN trả hãng − ship khách trả shop" />
             <StatChip icon="gift" value={formatPrice(sum.voucher)} label="voucher" tone="amber" hidden={!sum.voucher} />
             <StatChip icon="tag" value={formatPrice(sum.promo)} label="giảm giá SP" tone="amber" hidden={!sum.promo} />
             <StatChip icon="line-chart" value={signed(sum.profit)} label="lãi / lỗ" tone={sum.profit >= 0 ? "green" : "red"} />
