@@ -136,7 +136,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
                   <label className={adminLabel} htmlFor="ns-date">
                     Ngày dự kiến gửi
                   </label>
-                  <input id="ns-date" name="plannedAt" placeholder="2026-10-02" className={adminInput} />
+                  <input type="date" id="ns-date" name="plannedAt" className={adminInput} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={adminLabel} htmlFor="ns-note">
@@ -516,7 +516,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               <label className={adminLabel} htmlFor={`ud-${s.id}`}>
                 Ngày gửi
               </label>
-              <input id={`ud-${s.id}`} name="shippedAt" defaultValue={s.shippedAt ?? ""} placeholder="2026-10-02" className={cn(adminInput, "!py-1.5 !text-[13px]")} />
+              <input type="date" id={`ud-${s.id}`} name="shippedAt" defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
             </div>
             <div>
               <label className={adminLabel} htmlFor={`ut-${s.id}`}>

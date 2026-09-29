@@ -116,7 +116,7 @@ export function OrdersByOrderPanel({ lines, allocations, sources, batches, filte
               </option>
             ))}
           </select>
-          <input name="receiptDate" form="bulk-need" defaultValue={todayIso()} className={cn(adminInput, "!mb-0 !w-[110px] !py-1")} aria-label="Ngày mua" />
+          <input type="date" name="receiptDate" form="bulk-need" defaultValue={todayIso()} className={cn(adminInput, "!mb-0 !w-[110px] !py-1")} aria-label="Ngày mua" />
           <input name="receiptRef" form="bulk-need" placeholder="mã đơn nguồn" className={cn(adminInput, "!mb-0 !w-[150px] !py-1")} aria-label="Mã đơn nguồn" />
           <button type="submit" form="bulk-need" className={cn(btnPrimary, "!py-1 disabled:opacity-50")} title="Gom các dòng đã tick thành một phiếu mua (mã PM-…)">
             Tạo phiếu mua

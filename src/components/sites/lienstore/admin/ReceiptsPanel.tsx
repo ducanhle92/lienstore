@@ -3,7 +3,6 @@ import Link from "next/link";
 import { confirmReceiptAction, deleteReceiptAction, deleteReceiptFileAction, parseBillAction, updateReceiptAction, uploadReceiptFilesAction } from "@/app/admin/purchases/receipt-actions";
 import { BILL_PHOTO_PROMPT } from "@/lib/bill-prompt";
 import { formatAmount, formatDate } from "@/lib/format";
-import { todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex, type PurchaseStatus } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
 import { RECEIPT_STATUS_LABEL, type ReceiptStatus } from "@/lib/receipts";
@@ -213,7 +212,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                   </label>
                   <label className="text-[12px] text-lien-muted">
                     Ngày mua
-                    <input name="boughtAt" defaultValue={r.boughtAt} className={adminInput} />
+                    <input type="date" name="boughtAt" defaultValue={r.boughtAt} className={adminInput} />
                   </label>
                   <label className="text-[12px] text-lien-muted">
                     Mã đơn nguồn
@@ -221,7 +220,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                   </label>
                   <label className="text-[12px] text-lien-muted">
                     Ngày gửi ĐVVC
-                    <input name="shippedAt" defaultValue={r.shippedAt ?? ""} placeholder="2026-09-20" className={adminInput} title="Điền khi lô này rời tay bạn tới kho Kiến Express — các dòng liên quan chuyển sang 'Tới ĐVVC Nhật'" />
+                    <input type="date" name="shippedAt" defaultValue={r.shippedAt ?? ""} className={adminInput} title="Điền khi lô này rời tay bạn tới kho Kiến Express — các dòng liên quan chuyển sang 'Tới ĐVVC Nhật'" />
                   </label>
                   <label className="text-[12px] text-lien-muted">
                     Mã vận đơn
@@ -267,7 +266,7 @@ export function ReceiptsPanel({ receipts, sources, products, draftId, fromTab = 
                 <label className={adminLabel} htmlFor="bill-date">
                   Ngày mua <span className="font-normal text-lien-muted">(trống = lấy từ bill / hôm nay)</span>
                 </label>
-                <input id="bill-date" name="boughtAt" placeholder={todayIso()} className={adminInput} />
+                <input type="date" id="bill-date" name="boughtAt" className={adminInput} />
               </div>
             </div>
             <div>

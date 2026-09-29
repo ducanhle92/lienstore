@@ -26,20 +26,8 @@ interface NavGroup extends NavLeaf {
 
 const NAV: NavGroup[] = [
   {
-    href: "/admin/",
-    label: "Tổng quan",
-    icon: "tachometer",
-    children: [
-      { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
-      { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
-      { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
-      { href: "/admin/posts/", label: "Góc chia sẻ", icon: "newspaper-o", module: "posts" },
-      { href: "/admin/fanpage/", label: "Đăng bài fanpage", icon: "facebook", module: "fanpage" },
-    ],
-  },
-  {
     href: "/admin/products/",
-    label: "Kho hàng",
+    label: "Vận hành",
     icon: "cubes",
     children: [
       // the flow, in the order the goods travel: ⓪ the catalogue the customer orders from, then ① … ⑦
@@ -63,6 +51,18 @@ const NAV: NavGroup[] = [
           { href: "/admin/products/groups/", label: "Nhóm biến thể", icon: "th-large", module: "products" },
         ],
       },
+    ],
+  },
+  {
+    href: "/admin/",
+    label: "Cài đặt web",
+    icon: "cog",
+    children: [
+      { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
+      { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
+      { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
+      { href: "/admin/posts/", label: "Góc chia sẻ", icon: "newspaper-o", module: "posts" },
+      { href: "/admin/fanpage/", label: "Đăng bài fanpage", icon: "facebook", module: "fanpage" },
     ],
   },
   {

@@ -296,7 +296,7 @@ export function BatchTree({ batchId, sources, statuses, orders, bills }: Props) 
             </option>
           ))}
         </select>
-        <input value={f.date} onChange={(e) => update((cur) => ({ ...cur, date: e.target.value.trim() }))} placeholder="Ngày mua 2026-09-27" className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày mua" title="Gõ ngày (2026-09-27) hoặc tháng (2026-09)" data-testid="batch-date" />
+        <input type="date" value={f.date} onChange={(e) => update((cur) => ({ ...cur, date: e.target.value.trim() }))} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày mua" title="Gõ ngày (2026-09-27) hoặc tháng (2026-09)" data-testid="batch-date" />
         <select value={f.bill} onChange={pick("bill")} className={cn(adminInput, sel)} aria-label="Bill" data-testid="batch-bill">
           <option value="">Bill: tất cả</option>
           {bills.map((b) => (

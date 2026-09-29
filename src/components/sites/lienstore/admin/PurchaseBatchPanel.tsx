@@ -58,9 +58,9 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
           <input type="hidden" name="tab" value="batches" />
           <input name="bq" defaultValue={search.q} placeholder="Tìm đợt: tên / mã DG-…" className={cn(adminInput, "!mb-0 !w-[220px] !py-1")} aria-label="Tìm đợt mua" />
           <span className="text-lien-muted">ngày mua từ</span>
-          <input name="bfrom" defaultValue={search.from} placeholder="2026-09-01" className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Từ ngày" />
+          <input type="date" name="bfrom" defaultValue={search.from} className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Từ ngày" />
           <span className="text-lien-muted">đến</span>
-          <input name="bto" defaultValue={search.to} placeholder="2026-09-30" className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Đến ngày" />
+          <input type="date" name="bto" defaultValue={search.to} className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Đến ngày" />
           <select name="bstatus" defaultValue={search.status} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Trạng thái đợt">
             <option value="">Đợt đang mở</option>
             <option value="done">Đợt đã về kho VN</option>
@@ -109,7 +109,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
                     <label className={adminLabel} htmlFor="nb-date">
                       Ngày mua
                     </label>
-                    <input id="nb-date" name="boughtAt" defaultValue={todayIso()} placeholder="2026-09-27" className={adminInput} />
+                    <input type="date" id="nb-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
                   </div>
                 </div>
                 <div>
@@ -294,7 +294,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                     <label className={adminLabel} htmlFor={`ub-${b.id}`}>
                       Ngày mua
                     </label>
-                    <input id={`ub-${b.id}`} name="boughtAt" defaultValue={b.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, "!py-1.5 !text-[13px]")} />
+                    <input type="date" id={`ub-${b.id}`} name="boughtAt" defaultValue={b.boughtAt ?? ""} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
                   </div>
                   <div>
                     <label className={adminLabel} htmlFor={`ut-${b.id}`}>
@@ -443,7 +443,7 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                   </select>
                 </td>
                 <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
-                  <input name="boughtAt" form={addId} defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+                  <input type="date" name="boughtAt" form={addId} defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
                 </td>
                 <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
                   <div className="grid w-[150px] gap-1">
@@ -534,7 +534,7 @@ function BillsBlock({ b, sources, done, open }: { b: PurchaseBatch; sources: Pur
                     </option>
                   ))}
                 </select>
-                <input name="boughtAt" defaultValue={b.boughtAt ?? todayIso()} placeholder="ngày mua" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Ngày mua" />
+                <input type="date" name="boughtAt" defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Ngày mua" />
               </div>
               <input name="orderRef" placeholder="mã đơn nguồn (trống = tự đọc)" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Mã đơn nguồn" />
               <button type="submit" className={cn(btnPrimary, "justify-self-start !py-1 !text-[13px]")}>
@@ -567,7 +567,7 @@ function BillsBlock({ b, sources, done, open }: { b: PurchaseBatch; sources: Pur
                     </option>
                   ))}
                 </select>
-                <input name="boughtAt" defaultValue={b.boughtAt ?? todayIso()} placeholder="ngày mua" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Ngày mua" />
+                <input type="date" name="boughtAt" defaultValue={b.boughtAt ?? todayIso()} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Ngày mua" />
               </div>
               <input name="orderRef" placeholder="mã đơn / số bill (tuỳ chọn)" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Mã đơn nguồn" />
               <button type="submit" className={cn(btnSecondary, "justify-self-start !py-1 !text-[13px]")}>
@@ -778,7 +778,7 @@ function BillLineRow({ units, idx, b, saveId, sources, channelOf }: { units: Uni
         )}
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Ngày mua">
-        <input name={`${g}boughtAt`} form={saveId} defaultValue={u.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+        <input type="date" name={`${g}boughtAt`} form={saveId} defaultValue={u.boughtAt ?? ""} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
       </td>
       <td className={cn(tdClass, TD, LBL)} data-label="Mua ở">
         <div className="grid w-[150px] gap-1">

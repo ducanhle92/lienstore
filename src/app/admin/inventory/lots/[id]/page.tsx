@@ -212,7 +212,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                           <input name={`${p}store`} form={saveId} defaultValue={g.store} placeholder="cửa hàng…" className={cn(adminInput, cell, "mt-1 !w-[150px] !text-[12px]")} aria-label="Cửa hàng" />
                         </td>
                         <td className={tdClass}>
-                          <input name={`${p}boughtAt`} form={saveId} defaultValue={g.boughtAt ?? ""} placeholder="2026-09-27" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
+                          <input type="date" name={`${p}boughtAt`} form={saveId} defaultValue={g.boughtAt ?? ""} className={cn(adminInput, cell, "!w-[112px]")} aria-label="Ngày mua" />
                         </td>
                         <td className={tdClass}>
                           <input name={`${p}expiry`} form={saveId} defaultValue={g.expiry ?? ""} placeholder="03/2027" className={cn(adminInput, cell, "!w-[112px]")} aria-label="Hạn dùng" />
@@ -370,7 +370,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 <label className={adminLabel} htmlFor="au-date">
                   Ngày mua
                 </label>
-                <input id="au-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
+                <input type="date" id="au-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
               </div>
             </div>
             <div>

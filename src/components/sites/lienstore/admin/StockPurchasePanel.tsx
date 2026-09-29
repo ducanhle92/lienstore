@@ -182,7 +182,7 @@ export function StockPurchasePanel({ groups, products, sources, batches = [] }: 
                 <label className={adminLabel} htmlFor="sc-date">
                   Ngày mua
                 </label>
-                <input id="sc-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
+                <input type="date" id="sc-date" name="boughtAt" defaultValue={todayIso()} className={adminInput} />
               </div>
               <div>
                 <label className={adminLabel} htmlFor="sc-jpy">
