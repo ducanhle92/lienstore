@@ -1356,7 +1356,8 @@ export async function updateOrderShipping(id: string, patch: { fee: number; labe
 }
 
 export interface OrderItemsEdit {
-  lines: Array<{ itemId: number; quantity: number; price: number; remove: boolean }>;
+  /** `price` null = keep the line's current price (the admin form no longer shows prices). */
+  lines: Array<{ itemId: number; quantity: number; price: number | null; remove: boolean }>;
   add: Array<{ productId: number; quantity: number; price: number | null }>;
 }
 
@@ -1390,7 +1391,7 @@ export async function updateOrderItems(orderId: string, edit: OrderItemsEdit, ac
         continue;
       }
       const qty = Math.max(1, Math.floor(l.quantity));
-      const price = Math.max(0, Math.round(l.price));
+      const price = l.price === null ? cur.price : Math.max(0, Math.round(l.price));
       if (qty === cur.quantity && price === cur.price) continue;
       if (qty < cur.quantity) releaseItemUnitsSync(db, cur.id, qty, { actor });
       db.prepare("UPDATE order_items SET quantity = ?, price = ? WHERE id = ?").run(qty, price, cur.id);

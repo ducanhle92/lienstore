@@ -11,9 +11,9 @@ import { adminInput, btnPrimary, tableClass, tdClass, thClass } from "./ui";
 export function NewOrderPanel({ products }: { products: PickableProduct[] }) {
   const label = "text-[12px] font-semibold text-[#374151]";
   return (
-    <details id="new-order" className="mb-5 rounded-md border-2 border-lien-blue bg-white" data-savebar="off" data-testid="new-order">
+    <details id="new-order" className="mb-5 hidden rounded-md border-2 border-lien-blue bg-white open:block" data-savebar="off" data-testid="new-order">
       <summary className="cursor-pointer px-4 py-2.5 text-[14px] font-semibold text-lien-heading">
-        <Fa name="plus" /> Tạo đơn mới <span className="text-[12px] font-normal text-lien-muted">— đơn khách đặt qua điện thoại / Zalo / Facebook</span>
+        <Fa name="plus" /> Tạo đơn mới <span className="text-[12px] font-normal text-lien-muted">— đơn khách đặt qua điện thoại / Zalo / Facebook · bấm để đóng</span>
       </summary>
       <form action={createOrderAdminAction} className="grid gap-4 border-t border-[#e5e7eb] px-4 py-4 text-[13px] md:grid-cols-[1fr_1fr]">
         <fieldset className="m-0 grid gap-2 border-0 p-0">

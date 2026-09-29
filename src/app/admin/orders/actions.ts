@@ -72,7 +72,7 @@ export async function updateOrderItemsAction(formData: FormData): Promise<void> 
     const m = k.match(/^q_(\d+)$/);
     if (!m) continue;
     const itemId = Number(m[1]);
-    lines.push({ itemId, quantity: num(k) ?? 0, price: num(`p_${itemId}`) ?? 0, remove: formData.get(`rm_${itemId}`) === "on" });
+    lines.push({ itemId, quantity: num(k) ?? 0, price: num(`p_${itemId}`), remove: formData.get(`rm_${itemId}`) === "on" });
   }
   const add: OrderItemsEdit["add"] = [];
   for (let n = 1; n <= 5; n++) {

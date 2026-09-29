@@ -54,11 +54,11 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    href: "/admin/",
+    href: "/admin/dashboard/",
     label: "Cài đặt web",
     icon: "cog",
     children: [
-      { href: "/admin/", label: "Tổng quan", icon: "tachometer", exact: true },
+      { href: "/admin/dashboard/", label: "Tổng quan", icon: "tachometer", exact: true },
       { href: "/admin/theme/", label: "Giao diện & Logo", icon: "cog", module: "theme" },
       { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
       { href: "/admin/posts/", label: "Góc chia sẻ", icon: "newspaper-o", module: "posts" },

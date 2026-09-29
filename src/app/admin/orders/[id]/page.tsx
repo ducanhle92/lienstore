@@ -13,6 +13,7 @@ import { purchaseIndex } from "@/lib/purchase";
 import { deleteOrderFileAction } from "@/app/admin/orders/files-actions";
 import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
+import { OpenDetailsButton } from "@/components/sites/lienstore/admin/AddRowButton";
 import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { adminInput, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -87,7 +88,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
     <>
       <PageHeader
         title={`Đơn hàng #${order.number}`}
-        subtitle={`Đặt lúc ${formatDateTime(order.createdAt)} · cập nhật ${formatDateTime(order.updatedAt)}`}
+        summary={
+          <span className="font-normal text-lien-muted" data-testid="order-times">
+            Đặt lúc {formatDateTime(order.createdAt)} · cập nhật {formatDateTime(order.updatedAt)}
+          </span>
+        }
         back={{ href: "/admin/orders/", label: "Đơn hàng" }}
         actions={<StatusBadge status={order.status} />}
       />
@@ -123,7 +128,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                           <thead>
                             <tr>
                               <th className={thClass}>Sản phẩm</th>
-                              <th className={cn(thClass, "w-[130px]")}>Đơn giá (đ)</th>
                               <th className={cn(thClass, "w-[80px]")}>SL</th>
                               <th className={cn(thClass, "w-[60px]")}>Xoá</th>
                             </tr>
@@ -136,9 +140,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                                   <td className={cn(tdClass, "text-[13px] font-semibold text-lien-heading")}>
                                     {it.name}
                                     <span className="block text-[11px] font-normal text-lien-muted">#{it.productId}</span>
-                                  </td>
-                                  <td className={tdClass}>
-                                    <input name={`p_${it.itemId}`} defaultValue={it.price} inputMode="numeric" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label={`Đơn giá ${it.name}`} />
                                   </td>
                                   <td className={tdClass}>
                                     <input name={`q_${it.itemId}`} defaultValue={it.quantity} inputMode="numeric" className={cn(adminInput, "!mb-0 !py-1 !text-center !text-[13px]")} aria-label={`Số lượng ${it.name}`} />
@@ -154,9 +155,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                                   <ProductSearchSelect products={pickable} name={`add_${n}_pid`} placeholder={n === 1 ? "+ Thêm sản phẩm: gõ tên / SKU…" : "+ thêm sản phẩm khác…"} />
                                 </td>
                                 <td className={tdClass}>
-                                  <input name={`add_${n}_price`} inputMode="numeric" placeholder="giá web" className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} aria-label="Đơn giá sản phẩm thêm" />
-                                </td>
-                                <td className={tdClass}>
                                   <input name={`add_${n}_qty`} inputMode="numeric" placeholder="1" className={cn(adminInput, "!mb-0 !py-1 !text-center !text-[13px]")} aria-label="Số lượng sản phẩm thêm" />
                                 </td>
                                 <td className={tdClass} />
@@ -165,7 +163,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                           </tbody>
                         </table>
                         <p className="m-0 text-[11px] leading-4 text-lien-muted">
-                          Tạm tính và Tổng tính lại (giảm giá không vượt tạm tính, phí ship đã tính giữ nguyên); hàng của dòng bớt / xoá trở về tồn, dòng thêm được giữ hàng tự động.
+                          Giá bán theo giá web lúc thêm. Tạm tính và Tổng tính lại (giảm giá không vượt tạm tính, phí ship đã tính giữ nguyên); hàng của dòng bớt / xoá trở về tồn, dòng thêm được giữ hàng tự động.
                           {order.paidAt ? " Đơn đã thanh toán — nhớ báo khách phần chênh lệch." : ""}
                         </p>
                         <button type="submit" className={cn(btnPrimary, "justify-self-start !py-1.5 !text-[13px]")} data-testid="save-items">
@@ -317,6 +315,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
           <Card
             title="Trạng thái đơn hàng"
             actions={
+              <span className="flex items-center gap-2">
+                <OpenDetailsButton target="order-state-edit" label="✎ Sửa" className={cn(btnSecondary, "!rounded-md !border-lien-blue !px-2.5 !py-1 !text-[12px] font-semibold !text-lien-blue")} />
               <InfoPopover align="end" wide>
                 <span className="block text-[13px] leading-5 text-lien-text" data-testid="stage-now">
                   Hiện tại: <strong className="text-lien-heart">{flow.steps[flow.current].label}</strong>
@@ -325,8 +325,9 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 {transitSub ? <span className="block text-[11px] text-lien-muted">(chặng chỉ admin thấy — khách thấy “Đang vận chuyển về kho shop VN”)</span> : null}
                 <span className="mt-1 block text-[12px]">{flow.steps[flow.current].hint}</span>
                 <span className="mt-1 block text-lien-muted">{cod ? "Luồng COD: giao hàng trước, “Hoàn tất thanh toán” ở cuối." : "Luồng trả trước: khách chuyển khoản trước, shop mới gửi hàng."}</span>
-                {nextStage && waitingPay && order.shipStage === "ordered" ? <span className="mt-1 block text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc cho COD) ở ô Trạng thái của thanh dưới.</span> : null}
+                {nextStage && waitingPay && order.shipStage === "ordered" ? <span className="mt-1 block text-lien-muted">Bước “Đã gửi hàng” mở sau khi ghi nhận chuyển khoản (hoặc cho COD) — bấm ✎ Sửa.</span> : null}
               </InfoPopover>
+              </span>
             }
           >
             <div id="tracking" className="mb-4">
@@ -344,12 +345,45 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 <p className="m-0 rounded-md bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">Đã giao hàng — chờ hoàn tất thanh toán.</p>
               )}
             </form>
+            <p className="m-0 mt-3 text-[12px] text-lien-muted" data-testid="payment-box">
+              <Fa name="money" />{" "}
+              <b className="text-lien-heading">
+                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
+              </b>
+            </p>
+            {/* ✎ Sửa: any state — progress step, payment, cancel / restore — applied at once */}
+            <details id="order-state-edit" className="mt-3 hidden rounded-md border border-lien-blue bg-lien-blue-soft/30 open:block [&[open]>summary]:hidden" data-savebar="off" data-testid="order-state-edit">
+              <summary className="hidden">Sửa trạng thái</summary>
+              <form action={setOrderStateAction} className="flex flex-wrap items-end gap-2 px-3 py-2.5">
+                <input type="hidden" name="id" value={order.id} />
+                <label className="grid flex-1 gap-1 text-[12px] font-semibold text-lien-heading">
+                  Đổi trạng thái
+                  <select name="state" defaultValue={order.status === "cancelled" ? "status:cancelled" : `stage:${order.shipStage}`} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]")} data-testid="order-state-select">
+                    <optgroup label="Tiến độ đơn">
+                      {SHIP_STAGES.map((st) => (
+                        <option key={st.key} value={`stage:${st.key}`}>
+                          {st.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {order.status !== "cancelled" && !paidAt ? (
+                      <optgroup label="Thanh toán">
+                        {stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:transfer">Đã nhận chuyển khoản</option> : null}
+                        {!cod && stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:cod">Cho thanh toán khi nhận hàng (COD)</option> : null}
+                        {cod && order.shipStage === "delivered" ? <option value="pay:cod_done">Hoàn tất thanh toán (đã thu tiền COD)</option> : null}
+                      </optgroup>
+                    ) : null}
+                    <optgroup label="Đơn">{order.status === "cancelled" ? <option value="status:pending">Khôi phục đơn (Chờ xử lý)</option> : <option value="status:cancelled">Huỷ đơn</option>}</optgroup>
+                    {order.status === "cancelled" ? <option value="status:cancelled" hidden>Đã huỷ</option> : null}
+                  </select>
+                </label>
+                <button type="submit" className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid="order-state-apply">
+                  <Fa name="check" /> Áp dụng
+                </button>
+              </form>
+            </details>
           </Card>
-          {/* bottom bar: "Xóa đơn hàng" next to Huỷ; on the right one "Trạng thái" select — progress steps, payment
-              steps and cancel — saved with "Lưu thay đổi" */}
-          <form id="order-state" action={setOrderStateAction}>
-            <input type="hidden" name="id" value={order.id} />
-          </form>
+          {/* bottom bar: "Xóa đơn hàng" next to Huỷ (the state lives in the card above) */}
           <BarTools>
             {isOwner ? (
               <form action={deleteOrderAction} data-testid="delete-order-form">
@@ -366,33 +400,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 </ConfirmSubmit>
               </form>
             ) : null}
-            <span className="ml-auto text-[12px] text-lien-muted" data-testid="payment-box">
-              <Fa name="money" />{" "}
-              <b className="text-lien-heading">
-                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
-              </b>
-            </span>
-            <label className="flex items-center gap-1.5 text-[13px] font-semibold text-lien-heading">
-              Trạng thái
-              <select name="state" form="order-state" defaultValue={order.status === "cancelled" ? "status:cancelled" : `stage:${order.shipStage}`} className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px]")} data-testid="bar-order-state">
-                <optgroup label="Tiến độ đơn">
-                  {SHIP_STAGES.map((st) => (
-                    <option key={st.key} value={`stage:${st.key}`}>
-                      {st.label}
-                    </option>
-                  ))}
-                </optgroup>
-                {order.status !== "cancelled" && !paidAt ? (
-                  <optgroup label="Thanh toán">
-                    {stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:transfer">Đã nhận chuyển khoản</option> : null}
-                    {!cod && stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:cod">Cho thanh toán khi nhận hàng (COD)</option> : null}
-                    {cod && order.shipStage === "delivered" ? <option value="pay:cod_done">Hoàn tất thanh toán (đã thu tiền COD)</option> : null}
-                  </optgroup>
-                ) : null}
-                <optgroup label="Đơn">{order.status === "cancelled" ? <option value="status:pending">Khôi phục đơn (Chờ xử lý)</option> : <option value="status:cancelled">Huỷ đơn</option>}</optgroup>
-                {order.status === "cancelled" ? <option value="status:cancelled" hidden>Đã huỷ</option> : null}
-              </select>
-            </label>
           </BarTools>
           <details className="group rounded-lg border border-[#e5e7eb] bg-white shadow-sm" open={first(sp.legs) === "1"} data-testid="legs-card">
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 md:px-5">
