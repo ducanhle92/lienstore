@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-29
+
 ### Changed
 - Quản lý mua hàng › Mua theo đợt: dòng sản phẩm (cha) tô nền xanh nhạt để phân biệt với dòng bill (con) và **mặc định thu gọn** — bấm ▸ ở sản phẩm mới mở các dòng bill, bấm tiếp mới ra từng mã.
 - Quản lý mua hàng › Mua theo đợt: dòng **Tổng cộng** chuyển lên đầu bảng (trên dòng tiêu đề cột); bỏ hai hàng lọc trong đợt (tìm, Loại, Đơn, Kênh, Mua ở, ngày, Bill, Trạng thái) và dòng "Đang hiện …" — lọc cột bằng ▾ trên đầu bảng.
