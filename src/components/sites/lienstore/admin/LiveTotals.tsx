@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
+import { StatChip, StatChips } from "./StatChip";
 
 interface Props {
   /** CSS selector of the table whose `tbody tr[data-qty]` rows are summed. */
@@ -13,16 +13,24 @@ interface Props {
 const kg = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg` : `${Math.round(g)} g`);
 
 /**
- * "Tổng cộng" line of a stock table that follows what is on screen: the rows left after the ▾ filters, or — as soon as
+ * "Tổng cộng" chips of a stock table that follow what is on screen: the rows left after the ▾ filters, or — as soon as
  * some are ticked — just the ticked rows. Rows carry data-qty, data-jpy (¥ of the row), data-g (net grams of the row,
- * empty when the product has no weight) and data-held (pieces held for orders).
+ * empty when the product has no weight) and data-held (pieces held for orders). Figures are written straight into the
+ * chips (no React state) so the line follows ticks and filters instantly.
  */
 export function LiveTotals({ target, className }: Props) {
-  const ref = useRef<HTMLSpanElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const table = document.querySelector<HTMLTableElement>(target);
-    const el = ref.current;
-    if (!table || !el) return;
+    const root = box.current;
+    if (!table || !root) return;
+    const set = (k: string, v: string, show = true) => {
+      const chip = root.querySelector<HTMLElement>(`[data-k="${k}"]`);
+      if (!chip) return;
+      chip.classList.toggle("hidden", !show);
+      const b = chip.querySelector("b");
+      if (b) b.textContent = v;
+    };
     const compute = () => {
       const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>("tbody tr[data-qty]")).filter((r) => !r.classList.contains("hidden") && r.offsetParent !== null);
       const ticked = rows.filter((r) => r.querySelector<HTMLInputElement>("td input[type=checkbox]")?.checked);
@@ -44,8 +52,16 @@ export function LiveTotals({ target, className }: Props) {
         else gMissing += q;
         held += Number(r.dataset.held || 0);
       }
-      el.textContent = `${ticked.length ? `đã tick ${ticked.length} dòng` : `${use.length} dòng đang hiện`}: ${qty} cái${held ? ` · ${held} cái cho đơn` : ""}${jpyKnown ? ` · ≈ ¥${Math.round(jpy).toLocaleString("ja-JP")}` : ""} · ≈ ${kg(g)} hàng${gMissing ? ` (${gMissing} cái chưa rõ cân)` : ""}`;
-      el.dataset.mode = ticked.length ? "ticked" : "shown";
+      const scope = root.querySelector<HTMLElement>("[data-k='scope']");
+      if (scope) {
+        scope.textContent = ticked.length ? `đã tick ${ticked.length} dòng` : `${use.length} dòng đang hiện`;
+        scope.dataset.mode = ticked.length ? "ticked" : "shown";
+      }
+      set("qty", String(qty));
+      set("held", String(held), held > 0);
+      set("jpy", `≈ ¥${Math.round(jpy).toLocaleString("ja-JP")}`, jpyKnown);
+      set("g", `≈ ${kg(g)}`);
+      set("gmiss", String(gMissing), gMissing > 0);
     };
     const later = () => window.requestAnimationFrame(compute);
     compute();
@@ -61,8 +77,15 @@ export function LiveTotals({ target, className }: Props) {
     };
   }, [target]);
   return (
-    <p className={cn("m-0 mb-2 flex flex-wrap items-center gap-x-1.5 rounded-md border border-[#e5e7eb] bg-[#f9fafb] px-3 py-1.5 text-[13px] text-lien-heading", className)} data-testid="live-totals" title="Tính theo các dòng đang hiện (sau khi lọc ▾); tick dòng thì chỉ tính các dòng đã tick. Cân nặng = cân nặng sản phẩm × số cái, chưa gồm thùng, lót.">
-      <Fa name="balance-scale" /> <b>Tổng cộng</b> <span ref={ref} />
-    </p>
+    <div ref={box} className={cn("mb-2", className)} data-testid="live-totals" title="Tính theo các dòng đang hiện (sau khi lọc ▾); tick dòng thì chỉ tính các dòng đã tick. Cân nặng = cân nặng sản phẩm × số cái, chưa gồm thùng, lót.">
+      <StatChips caption="Tổng cộng">
+        <span className="text-[12px] text-lien-muted" data-k="scope" />
+        <StatChip icon="cube" value="0" label="cái" tone="gray" dataKey="qty" />
+        <StatChip icon="shopping-cart" value="0" label="cái cho đơn" tone="amber" hidden dataKey="held" />
+        <StatChip icon="money" value="—" label="tiền hàng" tone="green" hidden dataKey="jpy" />
+        <StatChip icon="balance-scale" value="—" label="hàng (chưa gồm thùng)" tone="blue" dataKey="g" />
+        <StatChip value="0" label="cái chưa rõ cân" tone="red" hidden dataKey="gmiss" />
+      </StatChips>
+    </div>
   );
 }

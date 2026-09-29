@@ -23,6 +23,7 @@ import { BulkOpButton } from "./BulkOpButton";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, tableClass, tdClass, thClass } from "./ui";
+import { StatChip } from "./StatChip";
 import { SheetTable } from "./SheetTable";
 
 interface Props {
@@ -238,6 +239,10 @@ function BatchCard({ batch: b, products, sources, billsOpen, view }: { view: "tr
   const held = b.units.filter((u) => u.itemId).length;
   const needUnits = b.needs.reduce((n, l) => n + l.need, 0);
   const jpy = b.units.reduce((n, u) => n + (u.unitCostJpy ?? 0), 0);
+  // net weight of the bought goods (product weight per piece; pieces without a weight counted apart)
+  const grams = b.units.reduce((n, u) => n + (u.productWeightG && u.productWeightG > 0 ? u.productWeightG : 0), 0);
+  const noWeight = b.units.filter((u) => !(u.productWeightG && u.productWeightG > 0)).length;
+  const kgText = grams >= 1000 ? `${(grams / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg` : `${Math.round(grams)} g`;
   let idx = 0;
   const rows: ReactNode[] = [];
   for (const pid of productIds) {
@@ -256,15 +261,13 @@ function BatchCard({ batch: b, products, sources, billsOpen, view }: { view: "tr
         title={`${b.code}${b.label ? ` · ${b.label}` : ""}`}
         actions={
           <span className="flex items-center gap-3">
-            <span className="text-[12px] text-lien-muted" data-testid={`batch-head-${b.id}`}>
-              <b className="text-lien-heading">{b.units.length}</b> cái đã mua · giữ cho đơn <b className="text-lien-heading">{held}</b> · lưu kho <b className="text-lien-heading">{b.units.length - held}</b>
-              {needUnits ? (
-                <>
-                  {" "}
-                  · cần mua <b className="text-lien-heart">{needUnits}</b>
-                </>
-              ) : null}
-              {jpy ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
+            <span className="flex flex-wrap items-center gap-1.5" data-testid={`batch-head-${b.id}`}>
+              <StatChip icon="cube" value={b.units.length} label="cái đã mua" />
+              <StatChip icon="shopping-cart" value={held} label="cho đơn" tone="amber" hidden={!held} />
+              <StatChip icon="archive" value={b.units.length - held} label="lưu kho" tone="gray" hidden={!(b.units.length - held)} />
+              <StatChip icon="cart-plus" value={needUnits} label="cần mua" tone="red" hidden={!needUnits} />
+              <StatChip icon="money" value={`≈ ¥${formatAmount(jpy)}`} label="tiền hàng" tone="green" hidden={!jpy} />
+              <StatChip icon="balance-scale" value={`≈ ${kgText}`} label={noWeight ? `hàng · ${noWeight} cái chưa rõ cân` : "hàng"} tone="blue" hidden={!b.units.length} title="Cân nặng sản phẩm × số cái, chưa gồm thùng, lót" />
             </span>
             {b.units.some((u) => u.status === "bought" && !u.shipmentId) ? (
               <Link href={`/admin/inventory/shipments/?batch=${b.id}`} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title="Mở ④ Đóng hàng JP, lọc sẵn hàng của đợt này (gồm hàng theo đơn), tick sẵn — bỏ tick cái không đóng" data-testid={`pack-batch-${b.id}`}>

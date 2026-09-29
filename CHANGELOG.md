@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Các dòng số liệu tổng thành **các nhãn (chip) có biểu tượng**, mỗi con số một nhãn (số cái, cái cho đơn, tiền hàng ¥, cân nặng, …), kiểu nhãn cân nặng của kiện:
+  - Kho Nhật / Kho VN / Đóng hàng: dòng Tổng cộng sống (theo dòng đang hiện hoặc đã tick).
+  - Quản lý mua hàng: đầu mỗi đợt (cái đã mua · cho đơn · lưu kho · cần mua · tiền hàng) và thêm nhãn **cân nặng** của đợt.
+  - Đơn hàng › Lãi / lỗ: "Tổng theo bộ lọc" (đơn, doanh thu, giá vốn, vận chuyển shop chịu, voucher, giảm giá SP, lãi / lỗ) chuyển từ cuối bảng lên **đầu bảng**.
+
 ## [2.9.0] - 2026-09-29
 
 ### Added

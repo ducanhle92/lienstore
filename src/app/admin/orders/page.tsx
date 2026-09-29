@@ -22,6 +22,7 @@ import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { getDb } from "@/lib/sqlite";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
+import { StatChip, StatChips } from "@/components/sites/lienstore/admin/StatChip";
 
 export const dynamic = "force-dynamic";
 
@@ -150,6 +151,16 @@ export default async function AdminOrders({ searchParams }: Props) {
               </BulkBar>
             </>
           ) : null}
+          <StatChips caption="Tổng theo bộ lọc" className="mb-3" testId="orders-totals">
+            <StatChip icon="shopping-cart" value={pnl.size} label="đơn (trừ đã huỷ)" />
+            <StatChip icon="money" value={formatPrice(sum.revenue)} label="doanh thu" tone="green" title="Tiền hàng sau voucher + ship khách trả shop" />
+            <StatChip icon="tags" value={formatPrice(sum.cogs)} label="giá vốn" />
+            <StatChip icon="truck" value={formatPrice(sum.ship)} label="vận chuyển (shop chịu)" />
+            <StatChip icon="gift" value={formatPrice(sum.voucher)} label="voucher" tone="amber" hidden={!sum.voucher} />
+            <StatChip icon="tag" value={formatPrice(sum.promo)} label="giảm giá SP" tone="amber" hidden={!sum.promo} />
+            <StatChip icon="line-chart" value={signed(sum.profit)} label="lãi / lỗ" tone={sum.profit >= 0 ? "green" : "red"} />
+            <StatChip value={sum.missing} label="dòng chưa có giá vốn" tone="red" hidden={!sum.missing} />
+          </StatChips>
           <ResizableTable id="orders">
             <SheetTable id="orders">
             <table className={tableClass}>
@@ -234,22 +245,6 @@ export default async function AdminOrders({ searchParams }: Props) {
                   );
                 })}
               </tbody>
-              <tfoot>
-                <tr className="bg-[#f9fafb] text-[13px] font-semibold" data-testid="orders-totals">
-                  <td className={tdClass} colSpan={isOwner ? 6 : 5}>
-                    Tổng theo bộ lọc ({pnl.size} đơn, trừ đã huỷ)
-                    <span className="ml-2 font-normal text-lien-muted">
-                      doanh thu {formatPrice(sum.revenue)} · giá vốn {formatPrice(sum.cogs)} · vận chuyển {formatPrice(sum.ship)}
-                      {sum.voucher ? ` · voucher ${formatPrice(sum.voucher)}` : ""}
-                      {sum.promo ? ` · giảm giá SP ${formatPrice(sum.promo)}` : ""}
-                      {sum.missing ? ` · * ${sum.missing} dòng chưa có giá vốn` : ""}
-                    </span>
-                  </td>
-                  <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(total)}</td>
-                  <td className={`${tdClass} whitespace-nowrap`}>{signed(sum.profit)}</td>
-                  <td className={tdClass} colSpan={2} />
-                </tr>
-              </tfoot>
             </table>
             </SheetTable>
           </ResizableTable>
