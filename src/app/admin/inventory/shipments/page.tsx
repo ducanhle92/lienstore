@@ -25,6 +25,7 @@ import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import type { PurchaseSource } from "@/types/shop";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
+import { InfoPopover } from "@/components/sites/lienstore/admin/InfoPopover";
 import { LiveTotals } from "@/components/sites/lienstore/admin/LiveTotals";
 
 export const dynamic = "force-dynamic";
@@ -310,8 +311,9 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               </span>
               <OpenDetailsButton target={`info-${s.id}`} label="✎ Sửa" className={cn(btnSecondary, btnHead, "!border-lien-blue !text-lien-blue")} />
               {locked ? (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" data-testid={`locked-${s.id}`}>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" data-testid={`locked-${s.id}`}>
                   <Fa name="lock" /> Đã khoá
+                  <InfoPopover>Chuyến đã đóng xong và khoá: không thêm / rút hàng được. Bấm <b>Mở khoá</b> ở bên phải để chuyến về “Đang đóng” rồi sửa hàng.</InfoPopover>
                 </span>
               ) : null}
             </h2>
@@ -441,11 +443,6 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
           </SheetTable>
         </div>
 
-        {locked ? (
-          <p className="m-0 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid={`locked-note-${s.id}`}>
-            <Fa name="lock" /> Chuyến đã đóng xong và khoá — bấm <b>Mở khoá</b> ở đầu chuyến để thêm hoặc rút hàng.
-          </p>
-        ) : null}
         {open && pick ? (
           <div className="mt-4 rounded-md border-2 border-lien-heart bg-white" data-testid={`pick-${s.id}`}>
             <form id={pkId} action={packCandidatesAction}>
@@ -491,8 +488,8 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
           </div>
         ) : null}
 
-        <details id={`info-${s.id}`} className="mt-3">
-          <summary className="cursor-pointer text-[12px] text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú)</summary>
+        <details id={`info-${s.id}`} className="mt-3 hidden rounded-md border border-lien-blue px-3 pb-3 open:block" data-testid={`info-${s.id}`}>
+          <summary className="cursor-pointer pt-2 text-[12px] font-semibold text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú) — bấm để đóng</summary>
           <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_160px_1fr_auto] lg:items-end">
             <input type="hidden" name="shipmentId" value={s.id} />
             <div>

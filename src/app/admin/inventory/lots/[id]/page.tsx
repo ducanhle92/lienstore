@@ -64,6 +64,11 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
         title={product.name}
         subtitle={`Tồn web ${product.stock ?? "—"} · ${inHand.length} cái trong tay (${inHand.filter((u) => u.status === "bought").length} Kho Nhật · ${inHand.filter((u) => u.status !== "bought" && u.status !== "at_shop").length} đang về · ${inHand.filter((u) => u.status === "at_shop").length} Kho VN) · giữ cho đơn ${held}${live.length > inHand.length ? ` · ${live.length - inHand.length} dự định / đã đặt mua` : ""}`}
         back={{ href: "/admin/inventory/", label: "Tồn kho" }}
+        backActions={
+          <a href={`/product/${product.slug}/`} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-lien-blue hover:underline" data-testid="view-on-web">
+            Xem trên cửa hàng ↗
+          </a>
+        }
         actions={
           <Link href={`/admin/products/${product.id}/`} className="text-[14px] text-lien-blue hover:underline">
             Sửa sản phẩm →

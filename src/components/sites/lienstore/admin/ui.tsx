@@ -68,11 +68,19 @@ export function Card({ children, className, title, actions }: { children: ReactN
   );
 }
 
-export function PageHeader({ title, subtitle, summary, actions, back }: { title: string; subtitle?: string; /** Short figures shown right of the title, on the same line. */ summary?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
+export function PageHeader({ title, subtitle, summary, actions, back, backActions }: { title: string; subtitle?: string; /** Short figures shown right of the title, on the same line. */ summary?: ReactNode; actions?: ReactNode; back?: { href: string; label: string }; /** Links on the back-link row, right edge (e.g. "Xem trên web ↗"). */ backActions?: ReactNode }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3 md:mb-6 md:gap-4">
+      {back && backActions ? (
+        <div className="flex w-full items-center justify-between gap-3" data-testid="page-back-row">
+          <Link href={back.href} className="text-[13px] text-lien-blue hover:underline">
+            ← {back.label}
+          </Link>
+          <div className="flex flex-wrap items-center gap-3">{backActions}</div>
+        </div>
+      ) : null}
       <div className="min-w-0">
-        {back ? (
+        {back && !backActions ? (
           <Link href={back.href} className="mb-1 inline-block text-[13px] text-lien-blue hover:underline">
             ← {back.label}
           </Link>

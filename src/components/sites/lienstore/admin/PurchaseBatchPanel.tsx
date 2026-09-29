@@ -22,7 +22,7 @@ import { BatchBody, BatchToggle } from "./BatchCollapse";
 import { BulkOpButton } from "./BulkOpButton";
 import { ConfirmSubmit } from "./ConfirmSubmit";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
-import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, tableClass, tdClass, thClass } from "./ui";
 import { SheetTable } from "./SheetTable";
 
 interface Props {
@@ -128,7 +128,14 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
           </div>
         </details>
       </div>
-      {searching && batches.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đợt nào khớp tìm kiếm.</p> : null}
+      {searching && batches.length === 0 ? (
+        <>
+          <Flash kind="warning">{search.q ? `Không có sản phẩm / đợt nào trong các đợt mua hàng khớp “${search.q}”.` : "Không có đợt mua nào khớp điều kiện tìm."}</Flash>
+          <p className="m-0 text-[13px] text-lien-muted" data-testid="batch-search-empty">
+            {search.q ? `Không có sản phẩm / đợt nào khớp “${search.q}”` : "Không có đợt nào khớp tìm kiếm"} — <Link href={BACK} className="text-lien-blue hover:underline">xoá tìm</Link>.
+          </p>
+        </>
+      ) : null}
       {batches.length ? (
         <BarTools>
           <AddRowButton label="+ Thêm sản phẩm" className={btnSecondary} />

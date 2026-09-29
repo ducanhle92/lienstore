@@ -5,6 +5,11 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đóng hàng: chú thích "Chuyến đã đóng xong và khoá — bấm Mở khoá…" chuyển thành ⓘ ngay cạnh nhãn **Đã khoá** ở đầu chuyến (bỏ khung vàng cuối chuyến); khối "Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú)" không hiện sẵn nữa — chỉ mở bằng **✎ Sửa** cạnh tên chuyến (bấm tiêu đề khối để đóng).
+- Quản lý mua hàng: tìm đợt không có kết quả thì hiện thông báo nổi "Không có sản phẩm / đợt nào trong các đợt mua hàng khớp “…”" (kèm dòng chữ + link xoá tìm).
+- Trang hàng của một sản phẩm (Tồn kho › sản phẩm): link **Xem trên cửa hàng ↗** ở ngoài cùng phải, cùng dòng với "← Tồn kho" (mở tab mới); "Sửa sản phẩm →" vẫn sang admin.
+
 ## [2.7.0] - 2026-09-29
 
 ### Added
