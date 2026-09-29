@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.10.1] - 2026-09-29
+
 ### Changed
 - Đơn hàng › Tổng theo bộ lọc: nhãn ngắn gọn "n đơn" và "… vận chuyển" (giải thích khi rê chuột).
 
