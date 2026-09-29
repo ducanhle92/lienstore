@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Trang hàng của một sản phẩm (Kho Nhật / Kho VN › bấm sản phẩm): mỗi dòng bill có ô **Sản phẩm (đổi nếu nhập nhầm)** — gõ tên / SKU chọn sản phẩm đúng rồi **Lưu thay đổi** ở thanh dưới. Cả dòng (mọi mã H…) chuyển sang sản phẩm mới, các trường khác (SL, trạng thái, mua ở, ngày mua, HSD, ¥/cái, bill) vẫn sửa cùng lúc; hàng đang giữ cho đơn của sản phẩm cũ được thả ra (đơn đó về "Cần mua"), đơn của sản phẩm mới tự nhận hàng, đợt mua / chuyến đóng hàng / tồn web cập nhật theo; xong chuyển sang trang sản phẩm mới. Hàng đã giao cho khách thì không đổi được.
+
+### Changed
+- Thanh Lưu thay đổi: ô chọn sản phẩm (ẩn) trong bảng sửa cũng được tính là thay đổi chưa lưu.
+
 ## [2.8.0] - 2026-09-29
 
 ### Changed

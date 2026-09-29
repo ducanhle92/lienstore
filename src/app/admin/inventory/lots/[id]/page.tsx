@@ -8,7 +8,8 @@ import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHead
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { requireAdmin } from "@/lib/auth";
-import { getProductById, listPurchaseSources } from "@/lib/db";
+import { getAllProducts, getProductById, listPurchaseSources } from "@/lib/db";
+import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { formatAmount, formatDate } from "@/lib/format";
 import { groupUnits } from "@/lib/lots-db";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
@@ -58,6 +59,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
   const bills = new Map((receiptIds.length ? (db.prepare(`SELECT id, code, files FROM purchase_receipts WHERE id IN (${receiptIds.map(() => "?").join(",")})`).all(...receiptIds) as Array<{ id: number; code: string; files: string | null }>) : []).map((r) => [r.id, { code: r.code, files: parseReceiptFiles(r.files) }]));
   const saveId = "units-save";
   const removeId = "units-remove";
+  // "Sản phẩm" per bill line: pick another product when the line was entered under the wrong one
+  const pickable: PickableProduct[] = (await getAllProducts(true)).map((x) => ({ id: x.id, name: x.name, nameJa: x.nameJa, sku: x.sku, thumb: x.thumb, costJpy: null, stock: x.stock }));
+  const me: PickableProduct = { id: product.id, name: product.name, nameJa: product.nameJa, sku: product.sku, thumb: product.thumb, costJpy: null, stock: product.stock };
   return (
     <>
       <PageHeader
@@ -115,6 +119,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                       <TableSelectAll name="uids" />
                     </th>
                     <th className={thClass}>Dòng bill · mã</th>
+                    <th className={thClass}>
+                      Sản phẩm <span className="font-normal normal-case text-lien-muted">(đổi nếu nhập nhầm)</span>
+                    </th>
                     <th className={thClass}>SL</th>
                     <th className={thClass}>Trạng thái</th>
                     <th className={thClass}>Mua ở · cửa hàng</th>
@@ -127,7 +134,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 <tbody>
                   {groups.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className={`${tdClass} text-center text-lien-muted`}>
+                      <td colSpan={10} className={`${tdClass} text-center text-lien-muted`}>
                         Chưa có hàng — nhập ở khung bên phải, hoặc thêm vào đợt ở Quản lý mua hàng.
                       </td>
                     </tr>
@@ -186,6 +193,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                               ))}
                             </ul>
                           </details>
+                        </td>
+                        <td className={cn(tdClass, "min-w-[320px]")} data-testid={`pick-${g.unitIds[0]}`}>
+                          <ProductSearchSelect products={pickable} name={`${p}pid`} form={saveId} initial={me} track placeholder="Gõ tên / SKU sản phẩm đúng…" />
                         </td>
                         <td className={tdClass}>
                           <input name={`${p}qty`} form={saveId} inputMode="numeric" defaultValue={g.qty} className={cn(adminInput, cell, "!w-14 !text-center font-semibold")} aria-label="Số lượng" title="Tăng = thêm cái cùng bill / giá / HSD; giảm = bỏ các cái chưa giữ cho đơn" />

@@ -32,6 +32,8 @@ const isActionForm = (f: HTMLFormElement) => f.getAttribute("method")?.toLowerCa
 
 /** Compared with what the server rendered (defaultValue / defaultChecked / defaultSelected), so a save that re-renders clears it. */
 function isDirty(el: Control): boolean {
+  // a hidden input that opted in (data-track, e.g. the product picker's id) compares with the value it was rendered with
+  if (el instanceof HTMLInputElement && el.type === "hidden") return el.dataset.track !== undefined && el.value !== (el.dataset.default ?? "");
   if (el instanceof HTMLSelectElement) {
     const opts = Array.from(el.options);
     if (!opts.some((o) => o.defaultSelected)) return el.multiple ? opts.some((o) => o.selected) : el.selectedIndex > 0;
@@ -64,7 +66,7 @@ function scan(): Scan {
   const dirty = new Map<HTMLFormElement, number>();
   for (const el of document.querySelectorAll<Control>("main input[name], main select[name], main textarea[name]")) {
     if (bulk?.contains(el) || el.disabled) continue;
-    if (el instanceof HTMLInputElement && (SKIP_TYPES.has(el.type) || el.readOnly)) continue;
+    if (el instanceof HTMLInputElement && ((SKIP_TYPES.has(el.type) && !(el.type === "hidden" && el.dataset.track !== undefined)) || el.readOnly)) continue;
     const form = el.form;
     if (!form || !isActionForm(form) || scopes.has(form.id)) continue;
     if (form.closest("[data-savebar='off']") || el.closest("[data-savebar='off']") || isRowPick(el)) continue;

@@ -186,7 +186,7 @@ export async function saveBatchRowsAction(formData: FormData): Promise<void> {
   const db = getDb();
   const r = withTransaction(db, () => {
     const res = applyUnitRowEdits(db, readUnitRowFields(formData), batch!.units, { batchId: batchId!, actor: who });
-    touchSync(db, { unitIds: res.touched, productIds: batch!.units.map((u) => u.productId), batchIds: [batchId!] });
+    touchSync(db, { unitIds: res.touched, productIds: [...batch!.units.map((u) => u.productId), ...res.productIds], batchIds: [batchId!] });
     return res;
   });
   revalidatePath("/admin", "layout");

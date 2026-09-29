@@ -60,12 +60,16 @@ export async function saveProductUnitsAction(formData: FormData): Promise<void> 
   const units = listUnits(db, { productId, withDelivered: true });
   const r = withTransaction(db, () => {
     const res = applyUnitRowEdits(db, readUnitRowFields(formData), units, { batchId: null, actor: who });
-    touchSync(db, { unitIds: res.touched, productIds: [productId] });
+    touchSync(db, { unitIds: res.touched, productIds: [productId, ...res.productIds] });
     return res;
   });
   revalidatePath("/admin", "layout");
-  if (r.errors.length) back(productId, r.changed ? "saved" : "error", `${r.changed ? `Đã lưu ${r.changed} thay đổi. ` : ""}Lỗi: ${r.errors.join(" · ")}`);
-  back(productId, "saved", r.changed ? `Đã lưu ${r.changed} thay đổi.` : "Không có gì thay đổi.");
+  // a line moved to another product: land on that product so the admin sees it arrived
+  const moved = r.productIds.filter((p) => p !== productId);
+  const landing = moved.length === 1 ? moved[0] : productId;
+  const note = moved.length ? ` Hàng đã chuyển sang sản phẩm #${moved.join(", #")}; đơn hàng, đợt mua và chuyến đóng hàng đã cập nhật theo.` : "";
+  if (r.errors.length) back(landing, r.changed ? "saved" : "error", `${r.changed ? `Đã lưu ${r.changed} thay đổi.${note} ` : ""}Lỗi: ${r.errors.join(" · ")}`);
+  back(landing, "saved", r.changed ? `Đã lưu ${r.changed} thay đổi.${note}` : "Không có gì thay đổi.");
 }
 
 /** Ticked units written off (thất lạc / hỏng / loại bỏ) or restored. */

@@ -1,7 +1,7 @@
 import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { parseExpiry } from "./lots";
-import { isPurchaseStatus, type PurchaseStatus } from "./purchase";
+import { isPurchaseStatus, purchaseIndex, type PurchaseStatus } from "./purchase";
 import { receiptIdForCode } from "./purchase-batches-db";
 import { createUnitsSync, deleteUnitsSync, editUnitsSync, moveUnitsSync, type UnitPatch, type UnitView } from "./units-db";
 
@@ -25,12 +25,14 @@ export function readUnitRowFields(formData: FormData): Map<string, Record<string
 
 const dateOrNull = (raw: string): string | null | undefined => (raw ? (parseExpiry(raw) ?? undefined) : null);
 
-export function applyUnitRowEdits(db: DatabaseSync, fields: Map<string, Record<string, string>>, units: UnitView[], opts: { batchId: number | null; actor: string }): { changed: number; errors: string[]; touched: number[] } {
+export function applyUnitRowEdits(db: DatabaseSync, fields: Map<string, Record<string, string>>, units: UnitView[], opts: { batchId: number | null; actor: string }): { changed: number; errors: string[]; touched: number[]; /** Old + new product of every line that changed product. */ productIds: number[] } {
   const byId = new Map(units.map((u) => [u.id, u]));
   const errors: string[] = [];
   const touched: number[] = [];
   let changed = 0;
   const explicit = new Set<number>();
+  // products whose queues must be re-derived after a line moved from one product to another
+  const productIds = new Set<number>();
   for (const [key, f] of fields) {
     if (!key.startsWith("u_")) continue;
     const id = Number(key.slice(2));
@@ -48,6 +50,21 @@ export function applyUnitRowEdits(db: DatabaseSync, fields: Map<string, Record<s
     const u = byId.get(ids[0])!;
     const label = `${u.productName.slice(0, 30)} (${u.code})`;
     const patch: UnitPatch = {};
+    // entered under the wrong product: the line becomes the other product (its order holds drop — another item now)
+    if (f.pid !== undefined && f.pid !== "") {
+      const pid = Number.parseInt(f.pid, 10);
+      if (!Number.isInteger(pid) || pid <= 0) errors.push(`${label}: sản phẩm không hợp lệ.`);
+      else if (pid !== u.productId) {
+        const exists = db.prepare("SELECT 1 FROM products WHERE id = ?").get(pid);
+        if (!exists) errors.push(`${label}: không tìm thấy sản phẩm #${pid}.`);
+        else if (ids.some((x) => purchaseIndex(byId.get(x)!.status) >= purchaseIndex("shipped_to_customer"))) errors.push(`${label}: hàng đã giao cho khách — không đổi sản phẩm được.`);
+        else {
+          patch.productId = pid;
+          productIds.add(u.productId);
+          productIds.add(pid);
+        }
+      }
+    }
     if (f.sourceKey && f.sourceKey !== u.sourceKey) patch.sourceKey = f.sourceKey;
     if (f.store !== undefined && f.store !== u.store) patch.store = f.store;
     if (f.expiry !== undefined) {
@@ -84,7 +101,7 @@ export function applyUnitRowEdits(db: DatabaseSync, fields: Map<string, Record<s
     if (Number.isInteger(qty) && qty >= 0 && qty !== ids.length) {
       if (qty > ids.length) {
         const made = createUnitsSync(db, {
-          productId: u.productId,
+          productId: patch.productId ?? u.productId,
           qty: qty - ids.length,
           status: u.status,
           receiptId: patch.receiptId === undefined ? u.receiptId : patch.receiptId,
@@ -107,5 +124,5 @@ export function applyUnitRowEdits(db: DatabaseSync, fields: Map<string, Record<s
       changed++;
     }
   }
-  return { changed, errors, touched };
+  return { changed, errors, touched, productIds: [...productIds] };
 }
