@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Tồn kho: bảng "Kho Nhật (shop) — … (n dòng bill · n cái · ≈ x kg hàng)" ghi cân nặng ước lượng của các dòng đang hiện (cân nặng sản phẩm × số cái, chưa gồm thùng), như dòng kiện đã đóng.
+- Nút **Xuất CSV** dùng chung cho bảng đang xem (`TableCsvButton`): xuất đúng các dòng còn lại sau khi lọc ô số / ▾ cột, theo thứ tự trên màn, kể cả giá trị ô chọn / ô nhập.
+
+### Changed
+- Tồn kho: các nút đầu trang (Xuất CSV bảng này, CSV cần mua, Chọn CSV, Nhập CSV kiểm kê) và nút "Theo sản phẩm · kiểm kê · CSV" bỏ khỏi đầu trang; thanh dưới có **Xuất CSV** (bảng đang xem) và **Nhập CSV** (một chạm: bấm → chọn file → OK) ở ngoài cùng phải. Bỏ "CSV cần mua" (vẫn có ở Quản lý mua hàng).
+- Tồn kho: "Kiểm kê theo kho: Nhật (n) · ĐVVC Nhật (n) · ĐVVC VN (n) · VN (n)" nằm bên phải tiêu đề trang; các link này tải phiếu kiểm kê CSV từng kho để điền và Nhập CSV.
+
 ## [2.3.0] - 2026-09-29
 
 ### Changed

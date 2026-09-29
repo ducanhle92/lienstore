@@ -122,7 +122,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
         title={
           filter.mode === "boxed"
             ? `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — các kiện đã đóng (${parcels.length} kiện · ${units(boxed)} cái)`
-            : `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — ${MODE_LABEL[filter.mode]} (${shelf.length} dòng bill · ${units(shelf)} cái)`
+            : `${side === "jp" ? "Kho Nhật (shop)" : "Kho Việt Nam (shop)"} — ${MODE_LABEL[filter.mode]} (${shelf.length} dòng bill · ${units(shelf)} cái · ≈ ${kg(weightOf(shelf).g)} hàng${weightOf(shelf).missing ? `, ${weightOf(shelf).missing} cái chưa rõ cân` : ""})`
         }
         actions={
           filter.mode === "boxed" ? null : (
@@ -256,7 +256,7 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
   return (
     <div className="overflow-x-auto">
       <SheetTable id={`lots-${scope}`}>
-      <table className={tableClass}>
+      <table className={tableClass} data-csv-table>
         <thead>
           <tr>
             {formId ? (

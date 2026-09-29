@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { bulkMinStockAction, importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
-import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";
+import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
+import { CsvImportButton } from "@/components/sites/lienstore/admin/CsvImportButton";
+import { TableCsvButton } from "@/components/sites/lienstore/admin/TableCsvButton";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
@@ -78,7 +80,6 @@ export default async function AdminInventory({ searchParams }: Props) {
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const filtered = applyInventoryView(lines, v);
   const back = inventoryHref(v);
-  const csvHref = inventoryHref(v, {}, "/admin/inventory/export/").replace("/export/?", "/export/?mode=view&").replace(/\/export\/$/, "/export/?mode=view");
   const countPstatus = (s: Exclude<Pstatus, "">) => lines.filter((l) => matchesPstatus(l, s)).length;
   const whCsvHref = (w: (typeof WAREHOUSES)[number]) => inventoryHref({ ...v, pstatus: `in_stock_${w}` }, {}, "/admin/inventory/export/").replace("/export/?", "/export/?mode=view&");
 
@@ -87,31 +88,24 @@ export default async function AdminInventory({ searchParams }: Props) {
       {view === "lots" ? <FlowSteps current={side} counts={flowCounts(getDb())} /> : null}
       <PageHeader
         title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Tồn kho Nhật" : "Tồn kho VN"}
-        actions={
-          <>
-            <a href={csvHref} className={btnSecondary} title="Đúng các dòng và thứ tự đang hiển thị — dùng để in kiểm kho">
-              <Fa name="download" /> Xuất CSV bảng này ({filtered.length})
-            </a>
-            <Link href="/admin/inventory/export/" className={btnSecondary}>
-              <Fa name="download" /> CSV cần mua
-            </Link>
-            <span className="inline-flex items-center gap-1 rounded-md border border-[#e5e7eb] bg-white px-2 py-1 text-[12px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho: chỉ các sản phẩm có hàng ở kho đó, cột 'Kho kiểm kê' đã điền — nhập lại sẽ cập nhật tồn của đúng kho đó">
-              Kiểm kê theo kho:
-              {WAREHOUSES.map((w) => (
-                <a key={w} href={whCsvHref(w)} className="font-semibold text-lien-blue hover:underline">
+        summary={
+          <span className="font-normal text-[13px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho (CSV): chỉ các sản phẩm có hàng ở kho đó, cột 'Kiểm đếm thực tế' để điền rồi Nhập CSV ở thanh dưới" data-testid="stocktake-links">
+            Kiểm kê theo kho:{" "}
+            {WAREHOUSES.map((w, i) => (
+              <span key={w}>
+                {i ? " · " : ""}
+                <a href={whCsvHref(w)} className="font-semibold text-lien-blue hover:underline">
                   {WAREHOUSE_SHORT[w]} ({summary.unitsByWarehouse[w]})
                 </a>
-              ))}
-            </span>
-            <form action={importStocktakeCsvAction} className="flex items-center gap-2 rounded-md border border-dashed border-[#d1d5db] bg-white px-2 py-1" title="File CSV xuất từ 'Xuất CSV bảng này' với cột 'Kiểm đếm thực tế' đã điền — dòng để trống bị bỏ qua">
-              <FilePicker name="csv" accept=".csv,text/csv" label="Chọn CSV" className="!gap-1 [&_span]:hidden" />
-              <button type="submit" className={btnSecondary}>
-                <Fa name="upload" /> Nhập CSV kiểm kê
-              </button>
-            </form>
-          </>
+              </span>
+            ))}
+          </span>
         }
       />
+      <BarTools end>
+        <TableCsvButton target="[data-csv-table]" filename={view === "lots" ? `ton-kho-${lotSide}${lotFilter.mode ? `-${lotFilter.mode}` : ""}.csv` : "ton-kho-san-pham.csv"} className="!py-1 !text-[13px]" title="Xuất đúng bảng đang xem: các dòng còn lại sau khi lọc (ô số / ▾ cột), theo thứ tự trên màn" />
+        <CsvImportButton action={importStocktakeCsvAction} label="Nhập CSV" className="!py-1 !text-[13px]" title="Nhập phiếu kiểm kê (CSV 'Kiểm kê theo kho' cạnh tiêu đề, cột 'Kiểm đếm thực tế' đã điền) — dòng để trống bỏ qua" />
+      </BarTools>
       {saved.startsWith("kiemke:")
         ? (() => {
             const [, updated, skipped, nerr, ...rest] = saved.split(":");
@@ -133,9 +127,6 @@ export default async function AdminInventory({ searchParams }: Props) {
       {/* view switch: by lot (two coloured sides) or by product (stocktake / CSV) */}
       <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="inventory-tabs">
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
-        <Link href="/admin/inventory/?view=products" className={cn("ml-auto rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", view === "products" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Theo sản phẩm · kiểm kê · CSV
-        </Link>
       </div>
       {view === "lots" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
@@ -210,7 +201,7 @@ export default async function AdminInventory({ searchParams }: Props) {
 
         <ResizableTable id="inventory">
           <SheetTable id="inventory">
-          <table className={tableClass}>
+          <table className={tableClass} data-csv-table>
             <thead>
               <tr>
                 <th className={cn(thClass, "w-8")}>
