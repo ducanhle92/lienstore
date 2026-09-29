@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Đơn hàng (Lãi / lỗ): nút **+ Tạo đơn mới** trên thanh dưới mở khối tạo đơn ngay trên màn — khách (tên, điện thoại, email, địa chỉ, ghi chú), giao tận nơi với phí ship nhập tay hoặc khách tự lấy, chuyển khoản / COD, voucher, tới 5 sản phẩm (gõ tên / SKU) kèm số lượng. Đơn tạo ra giữ hàng như đơn web (có sẵn ở Kho VN thì lấy ngay, không thì thành hàng order cần chuyển khoản trước), phí ship nhập tay ghi vào chặng Giao VN và sửa được trong đơn; xong chuyển tới trang đơn.
+
+### Changed
+- Đơn hàng → Theo kho hàng: bỏ link **ghép lại** ở từng đơn và nút **Ghép lại tất cả đơn đang chờ** trên thanh dưới; thay bằng một nút **Ghép đơn ↔ Tồn** chỉ hiện trên thanh khi đã tick đơn (ghép lại nguồn hàng cho các đơn đã tick).
+
 ## [1.104.0] - 2026-09-29
 
 ### Changed

@@ -4,12 +4,12 @@ import type { AllocationView } from "@/lib/allocations-db";
 import type { PurchaseLine } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { reallocateAllAction, reallocateOneAction, reallocateSelectedAction } from "@/app/admin/inventory/orders-actions";
+import { reallocateSelectedAction } from "@/app/admin/inventory/orders-actions";
 import { TableSelectAll } from "./TableSelectAll";
-import { BarTools, BulkBar } from "./BulkBar";
+import { BulkBar } from "./BulkBar";
 import { ColumnFilter, SheetInfo } from "./SheetFilter";
-import { ConfirmSubmit } from "./ConfirmSubmit";
-import { btnPrimary, btnSecondary, Card, tableClass, tdClass, thClass } from "./ui";
+import { Fa } from "@/components/sites/lienstore/shared/icons";
+import { btnPrimary, Card, tableClass, tdClass, thClass } from "./ui";
 
 interface Props {
   lines: PurchaseLine[];
@@ -78,18 +78,11 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder }: Props) {
         </div>
       </div>
       <Card>
-        <BarTools>
-          <form action={reallocateAllAction} data-testid="reallocate-all">
-            <ConfirmSubmit message="Ghép lại nguồn hàng cho mọi đơn đang chờ (chưa trừ tồn)? Phần giữ chỗ tự động được xếp lại: đơn cũ trước, hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm. Phần đã trừ tồn và nguồn chọn tay giữ nguyên." confirmLabel="Ghép lại" className={cn(btnPrimary, "!py-1 !text-[13px]")}>
-              Ghép lại tất cả đơn đang chờ
-            </ConfirmSubmit>
-          </form>
-        </BarTools>
         <SheetInfo sheet={SHEET} unit="đơn" />
         <form id="orders-sync" action={reallocateSelectedAction} />
         <BulkBar scope="orders-sync">
-          <button type="submit" form="orders-sync" className={cn(btnSecondary, "!py-1 disabled:opacity-50")} data-testid="reallocate-selected">
-            Ghép lại các đơn đã tick
+          <button type="submit" form="orders-sync" className={cn(btnPrimary, "!py-1 !text-[13px]")} title="Xếp lại nguồn hàng cho các đơn đã tick theo quy tắc: hàng ở VN trước, rồi hạn dùng gần, rồi bill mua sớm; phần đã trừ tồn và nguồn chọn tay giữ nguyên" data-testid="reallocate-selected">
+            <Fa name="refresh" /> Ghép đơn ↔ Tồn
           </button>
         </BulkBar>
         {shown.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Không có đơn nào đang xử lý.</p> : null}
@@ -164,14 +157,6 @@ export function OrdersStockPanel({ lines, allocations, stageByOrder }: Props) {
                             <Link href={`/admin/orders/${g.orderId}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                               #{g.number}
                             </Link>
-                            {!g.committed ? (
-                              <form action={reallocateOneAction} className="mt-1">
-                                <input type="hidden" name="orderId" value={g.orderId} />
-                                <button type="submit" className="text-[11px] text-lien-blue hover:underline" title="Xếp lại nguồn hàng cho đơn này theo quy tắc hiện tại">
-                                  ghép lại
-                                </button>
-                              </form>
-                            ) : null}
                           </td>
                         ) : null}
                         {first ? (

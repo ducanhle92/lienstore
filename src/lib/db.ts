@@ -872,6 +872,8 @@ export interface CreateOrderInput {
   voucherCode?: string;
   /** Who pays the domestic delivery fee: with the order (default) or to the courier on delivery. */
   shipFeePayment?: ShipFeePayment;
+  /** Admin-typed order (Tạo đơn mới): home delivery with a fee typed by hand instead of a carrier quote (edited later per leg). */
+  adminShip?: { fee: number; label?: string };
   /**
    * Delivery address in the 2-level model + the carrier/service the customer picked (home delivery). `clientFee` is what
    * the browser showed; the server re-quotes and never charges more than that without telling the customer.
@@ -967,7 +969,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let shippingLabel = "Nhận tại kho";
     let fromPrice = false;
     let shipSupport = 0;
-    if (delivery === "ship") {
+    if (delivery === "ship" && input.adminShip && !live) {
+      shippingFee = Math.max(0, Math.round(input.adminShip.fee || 0));
+      shippingLabel = input.adminShip.label?.trim() || "Giao tận nơi";
+    } else if (delivery === "ship") {
       if (!live || !input.shipTo) throw new Error("Vui lòng chọn một phương án vận chuyển.");
       const q = live.quote;
       fromPrice = !usableForCheckoutTotal(q);
@@ -1067,6 +1072,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     const insLeg = db.prepare("INSERT OR REPLACE INTO order_legs (order_id, leg, method_id, zone_id, label, fee, tracking, note, updated_at) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)");
     for (const l of importLegs) insLeg.run(id, l.leg, l.methodId, l.zoneId, l.label, l.fee, `${mode === "per_order" ? "Báo giá khi đặt" : "Mặc định theo luồng nhập hàng (đã gồm trong giá bán; chia theo lô)"}: ${l.feeRaw.toLocaleString("vi-VN")}${l.currency}`, now);
     if (delivery === "pickup") insLeg.run(id, "vn_domestic", null, null, "Khách tự tới kho lấy", 0, "", now);
+    else if (!live && input.adminShip) insLeg.run(id, "vn_domestic", null, null, vnLabel, vnFee, "Admin tạo đơn — phí nhập tay, sửa ở Vận chuyển đơn này", now);
     else if (live) {
       const q = live.quote;
       const par = live.bundle && !("error" in live.bundle) ? live.bundle.parcel : null;

@@ -7,7 +7,7 @@ import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
-import { addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
+import { createOrder, findCustomerByEmail, addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
 import { isShipStage, SHIP_STAGES } from "@/lib/shipping";
@@ -255,4 +255,54 @@ ${notice}` : notice;
   revalidatePath("/my-account");
   revalidatePath(`/checkout/order-received/${orderId}`);
   return fileError ? { error: fileError } : null;
+}
+
+/** "Tạo đơn mới" on the orders list: an order typed by the admin (phone / Zalo / Facebook sales). Goods are priced from
+ * the catalogue and held like a web order; the VN delivery fee is typed by hand (no carrier quote) and editable per leg. */
+export async function createOrderAdminAction(formData: FormData): Promise<void> {
+  if (!(await can("orders"))) redirect("/admin/login/");
+  const back = "/admin/orders/";
+  const fail = (msg: string): never => redirect(`${back}?error=${encodeURIComponent(msg)}`);
+  const v = (k: string) => String(formData.get(k) ?? "").trim();
+  const num = (k: string) => {
+    const digits = v(k).replace(/[^\d]/g, "");
+    return digits ? Number.parseInt(digits, 10) : null;
+  };
+  const name = v("name");
+  const phone = v("phone");
+  const email = v("email");
+  if (!name) fail("Nhập họ tên khách.");
+  if (phone.replace(/\D/g, "").length < 8) fail("Số điện thoại không hợp lệ.");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail("Email không hợp lệ.");
+  const items: Array<{ productId: number; quantity: number }> = [];
+  for (let n = 1; n <= 5; n++) {
+    const pid = num(`add_${n}_pid`);
+    if (pid) items.push({ productId: pid, quantity: Math.max(1, num(`add_${n}_qty`) ?? 1) });
+  }
+  if (!items.length) fail("Chọn ít nhất một sản phẩm.");
+  const delivery = v("delivery") === "pickup" ? "pickup" : "ship";
+  if (delivery === "ship" && !v("address")) fail("Nhập địa chỉ giao hàng (hoặc chọn Khách tự lấy tại kho).");
+  const paymentMethod = v("pay") === "cod" ? "cod" : "bacs";
+  const customer = email ? await findCustomerByEmail(email) : null;
+  let id = "";
+  let number = 0;
+  try {
+    const order = await createOrder({
+      customer: { firstName: name.slice(0, 120), lastName: "", address: v("address").slice(0, 400), phone: phone.slice(0, 30), email: email.slice(0, 160), note: v("note").slice(0, 1000) },
+      items: items.map((it) => ({ productId: it.productId, slug: "", name: "", price: 0, image: "", quantity: it.quantity })),
+      paymentMethod,
+      customerId: customer?.id,
+      delivery,
+      voucherCode: v("voucher") || undefined,
+      shipFeePayment: delivery === "ship" && v("ship_fee_payment") === "on_delivery" ? "on_delivery" : "prepaid",
+      adminShip: delivery === "ship" ? { fee: num("ship_fee") ?? 0, label: v("ship_label") } : undefined,
+      shipTo: null,
+    });
+    id = order.id;
+    number = order.number;
+  } catch (e) {
+    fail(e instanceof Error ? e.message : "Không tạo được đơn.");
+  }
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/orders/${id}/?saved=${encodeURIComponent(`Đã tạo đơn #${number}.`)}`);
 }
