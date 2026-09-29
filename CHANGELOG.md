@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-29
+
 ### Changed
 - Chi tiết đơn: ô **Trạng thái đơn hàng** có nút **✎ Sửa** mở khung đổi trạng thái (tiến độ đơn · thanh toán: đã nhận chuyển khoản / cho COD / hoàn tất COD · huỷ / khôi phục đơn) với nút **Áp dụng**; dòng thanh toán (Chuyển khoản · chưa nhận / Đã nhận CK …) hiện trong ô này. Thanh dưới chỉ còn Lưu thay đổi · Huỷ · Xóa đơn hàng (bỏ ô Trạng thái ở thanh).
 - Chi tiết đơn: "Đặt lúc … · cập nhật …" nằm cùng dòng, bên phải "Đơn hàng #…", chữ xám nhạt.
