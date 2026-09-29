@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-09-29
+
 ### Changed
 - Các dòng số liệu tổng thành **các nhãn (chip) có biểu tượng**, mỗi con số một nhãn (số cái, cái cho đơn, tiền hàng ¥, cân nặng, …), kiểu nhãn cân nặng của kiện:
   - Kho Nhật / Kho VN / Đóng hàng: dòng Tổng cộng sống (theo dòng đang hiện hoặc đã tick).
