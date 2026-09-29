@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-29
+
 ### Added
 - Tồn kho Nhật: mỗi kiện đã đóng (chờ xuất ĐVVC) ghi **cân nặng ước lượng** của hàng bên trong (cân nặng sản phẩm × số cái, chưa gồm thùng, lót) ngay trước nhãn trạng thái để báo đơn vị vận chuyển; báo số cái chưa có cân nặng sản phẩm. Thêm ô **Cân nặng (trên kệ)**.
 
