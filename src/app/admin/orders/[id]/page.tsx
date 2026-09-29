@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, setStageAction, updateOrderCustomerAction, updateOrderItemsAction } from "@/app/admin/orders/actions";
+import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, updateOrderCustomerAction, updateOrderItemsAction } from "@/app/admin/orders/actions";
 import { isRegularBy } from "@/lib/regular-customers";
 import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allocations-db";
 import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
+import type { OrderMessage } from "@/types/shop";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
@@ -73,6 +74,10 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   // prepaid orders wait for the money before the goods move; COD orders move freely and are paid at the end
   const waitingPay = !cod && !paidAt && order.status !== "cancelled";
   const c = order.customer;
+  // the note typed at checkout is the customer's first message of the thread (order time), so the chat holds everything
+  const chat: OrderMessage[] = c.note.trim()
+    ? [{ id: 0, orderId: order.id, sender: "customer", senderName: `${c.lastName} ${c.firstName}`.trim() || "Khách hàng", body: c.note.trim(), readByCustomer: true, readByAdmin: true, createdAt: order.createdAt }, ...messages]
+    : messages;
   const customerKey =
     overview.find((x) => (order.customerId && x.customerId === order.customerId) || (x.email && x.email.toLowerCase() === c.email.trim().toLowerCase()))?.key ??
     `g:${c.email.trim().toLowerCase() || c.phone.replace(/\D/g, "")}`;
@@ -333,24 +338,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             <div id="tracking" className="mb-4">
               <OrderTracker order={order} compact admin />
             </div>
-            <form action={setStageAction} className="grid gap-2">
-              <input type="hidden" name="id" value={order.id} />
-              {nextStage && waitingPay && order.shipStage === "ordered" ? null : nextStage ? (
-                <button type="submit" name="stage" value={nextStage.key} className={btnPrimary} data-testid="next-stage">
-                  <Fa name="check" /> Chuyển sang: {nextStage.label}
-                </button>
-              ) : paidAt ? (
-                <p className="m-0 rounded-md bg-green-50 px-3 py-2 text-[13px] font-semibold text-green-800">Đơn đã hoàn tất: đã giao và đã thanh toán.</p>
-              ) : (
-                <p className="m-0 rounded-md bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">Đã giao hàng — chờ hoàn tất thanh toán.</p>
-              )}
-            </form>
-            <p className="m-0 mt-3 text-[12px] text-lien-muted" data-testid="payment-box">
-              <Fa name="money" />{" "}
-              <b className="text-lien-heading">
-                {cod ? `COD · ${paidAt ? `đã thu ${formatDateTime(paidAt)}` : "chưa thu"}` : paidAt ? `Đã nhận CK ${formatDateTime(paidAt)}` : "Chuyển khoản · chưa nhận"}
-              </b>
-            </p>
             {/* ✎ Sửa: any state — progress step, payment, cancel / restore — applied at once */}
             <details id="order-state-edit" className="mt-3 hidden rounded-md border border-lien-blue bg-lien-blue-soft/30 open:block [&[open]>summary]:hidden" data-savebar="off" data-testid="order-state-edit">
               <summary className="hidden">Sửa trạng thái</summary>
@@ -368,7 +355,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     </optgroup>
                     {order.status !== "cancelled" && !paidAt ? (
                       <optgroup label="Thanh toán">
-                        {stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:transfer">Đã nhận chuyển khoản</option> : null}
+                        {stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:transfer">Đã thanh toán (nhận chuyển khoản)</option> : null}
                         {!cod && stageIndex(order.shipStage) < stageIndex("delivered") ? <option value="pay:cod">Cho thanh toán khi nhận hàng (COD)</option> : null}
                         {cod && order.shipStage === "delivered" ? <option value="pay:cod_done">Hoàn tất thanh toán (đã thu tiền COD)</option> : null}
                       </optgroup>
@@ -514,37 +501,22 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   </span>
                 </dd>
               </div>
-              {c.note ? (
-                <div>
-                  <dt className="text-[12px] font-semibold uppercase text-[#6b7280]">Ghi chú của khách</dt>
-                  <dd className="whitespace-pre-wrap">{c.note}</dd>
-                </div>
-              ) : null}
             </dl>
           </Card>
           <div id="bill">
           <Card
-            title={`Trao đổi với khách${messages.length ? ` (${messages.length})` : ""}`}
+            title={`Chat${chat.length ? ` (${chat.length})` : ""}`}
             actions={files.length ? <span className="text-[13px] text-lien-muted">Bill: {files.length} file{totalJpy ? ` · ¥${totalJpy.toLocaleString("ja-JP")}` : ""}</span> : null}
           >
             <OrderChat
               orderId={order.id}
-              messages={messages}
+              messages={chat}
               me="admin"
               action={adminSendMessageAction}
               shopName={shop}
               attach
               files={files.map((f) => ({ id: f.id, fileName: f.fileName, url: publicReceiptUrl(f.path), mime: f.mime, size: formatBytes(f.size), amountJpy: f.amountJpy ?? null, note: f.note ?? "", createdAt: f.createdAt }))}
               fileDeleteAction={deleteOrderFileAction}
-              quickReplies={[
-                `Cảm ơn anh/chị đã mua hàng của ${shop}! Đơn #${order.number} đã được xác nhận thanh toán và đang được xử lý để gửi tới anh/chị. Bên em sẽ nhắn ngay khi hàng lên đường ạ.`,
-                `Đơn #${order.number} của anh/chị đã thanh toán xong, bên em đang đặt mua tại Nhật. Dự kiến 7–14 ngày hàng về tới kho Việt Nam; có tiến độ mới em báo liền nhé.`,
-                `${shop} đã nhận đơn #${order.number}, sẽ xác nhận và đặt mua tại Nhật trong hôm nay.`,
-                "Đã mua hàng tại Nhật, bill đính kèm trong đơn. Hàng về kho Nhật trong 2–4 ngày.",
-                "Kiện hàng đã lên đường về Việt Nam, dự kiến 5–7 ngày nữa tới kho.",
-                `Hàng đã về kho Thanh Hóa, ${shop} giao cho đơn vị vận chuyển hôm nay. Anh/chị để ý điện thoại giúp em nhé.`,
-                `Đơn #${order.number} đã giao thành công. Cảm ơn anh/chị đã ủng hộ ${shop}, có gì cần hỗ trợ cứ nhắn em ạ!`,
-              ]}
             />
             {files.length ? (
               <p className="m-0 mt-3 text-[12px] leading-5 text-lien-muted">

@@ -1198,6 +1198,8 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
     // delivered AND paid = done (a COD order waits for "Hoàn tất thanh toán"); anything before keeps it "processing"
     if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
     else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
+    // moved back to the start and still unpaid → "Chờ xử lý" again
+    else db.prepare("UPDATE orders SET status = 'pending' WHERE id = ? AND status IN ('processing','completed') AND paid_at IS NULL").run(id);
     touchSync(db, { unitIds, orderIds: [id] });
     return true;
   });

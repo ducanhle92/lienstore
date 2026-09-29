@@ -70,7 +70,7 @@ export default async function AdminOrders({ searchParams }: Props) {
   const view: "pnl" | "stock" = first(sp.view) === "stock" ? "stock" : "pnl";
   const stockLines = view === "stock" ? await getPurchaseLines(false) : [];
   // "Tạo đơn mới": the product picker of the new-order panel (published products only — createOrder skips drafts)
-  const pickable: PickableProduct[] = view === "pnl" ? (await getAllProducts(false)).map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock })) : [];
+  const pickable: PickableProduct[] = (await getAllProducts(false)).map((p) => ({ id: p.id, name: p.name, nameJa: p.nameJa, sku: p.sku, thumb: p.thumb, costJpy: null, stock: p.stock }));
   const stockAllocs = stockLines.length ? listAllocationViews(getDb(), stockLines.map((l) => l.itemId)) : [];
   const stageByOrder = new Map<string, string>();
   for (const o of all) stageByOrder.set(o.id, o.shipStage);
@@ -105,14 +105,10 @@ export default async function AdminOrders({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
       {view === "stock" ? <OrdersStockPanel lines={stockLines} allocations={stockAllocs} stageByOrder={stageByOrder} /> : null}
-      {view === "pnl" ? (
-        <>
-          <BarTools>
-            <OpenDetailsButton target="new-order" label="+ Tạo đơn mới" className={cn(btnPrimary, "!py-1 !text-[13px]")} />
-          </BarTools>
-          <NewOrderPanel products={pickable} />
-        </>
-      ) : null}
+      <BarTools>
+        <OpenDetailsButton target="new-order" label="+ Tạo đơn mới" className={cn(btnPrimary, "!py-1 !text-[13px]")} />
+      </BarTools>
+      <NewOrderPanel products={pickable} />
       <Card className={cn("mb-5", view === "stock" && "hidden")}>
         <form method="get" className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_auto] md:items-end">
           <label className="text-[12px] font-semibold text-[#374151]">

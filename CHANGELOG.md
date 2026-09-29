@@ -5,6 +5,11 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đơn hàng: nút **+ Tạo đơn mới** ở thanh dưới có cả trên màn Theo kho hàng.
+- Chi tiết đơn › Trạng thái đơn hàng: bỏ nút "Chuyển sang: …" và dòng "COD · chưa thu / Chuyển khoản · chưa nhận" — mốc thời gian đã thể hiện bước thanh toán (Đã thanh toán với đơn chuyển khoản, Hoàn tất thanh toán với COD); mọi thay đổi, kể cả lùi bước, chọn trong **✎ Sửa → Đổi trạng thái → Áp dụng**. Lựa chọn "Đã nhận chuyển khoản" đổi tên "Đã thanh toán (nhận chuyển khoản)" cho khớp mốc.
+- Chi tiết đơn: khối "Trao đổi với khách" đổi tên **Chat**; bỏ ô "Chèn mẫu tin nhắn…"; ghi chú khách gõ lúc đặt hàng hiện thành tin nhắn đầu tiên của khách trong Chat (kèm giờ đặt) và không còn nằm riêng trong ô Khách hàng.
+
 ## [2.4.0] - 2026-09-29
 
 ### Added
