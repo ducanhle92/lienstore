@@ -24,7 +24,7 @@ const subscribe = (cb: () => void) => {
 const useCollapsed = (id: number, ns: string) => useSyncExternalStore(subscribe, () => read(id, ns), () => false);
 
 /** "Ẩn đợt" / "Hiện đợt" in the header of a purchase trip: only the header (totals, Sửa, trạng thái) stays; remembered per browser. */
-export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn đợt", "Hiện đợt"] }: { id: number; className?: string; ns?: string; labels?: [string, string] }) {
+export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn", "Hiện"] }: { id: number; className?: string; ns?: string; labels?: [string, string] }) {
   const collapsed = useCollapsed(id, ns);
   const toggle = () => {
     try {

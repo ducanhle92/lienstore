@@ -17,6 +17,7 @@ import type { PurchaseSource } from "@/types/shop";
 import { ResizableTable } from "@/components/sites/lienstore/admin/ResizableTable";
 import { adminInput, btnPrimary, btnSecondary, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { BarTools } from "@/components/sites/lienstore/admin/BulkBar";
+import { StatTile, StatTiles } from "@/components/sites/lienstore/admin/StatTiles";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getPurchaseLines, listPurchaseSources } from "@/lib/db";
@@ -101,6 +102,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
       <FlowSteps current="buy" counts={flowCounts(getDb())} />
       <PageHeader
         title="Quản lý mua hàng"
+        summary={<span className="text-green-700">{batchHeads.length} đợt đang mở</span>}
         actions={
           tab === "batches" ? (
             <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Cách hiển thị đợt" data-testid="batch-view">
@@ -114,7 +116,6 @@ export default async function AdminPurchases({ searchParams }: Props) {
           ) : undefined
         }
       />
-      <p className="-mt-3 mb-5 text-[13px] leading-5 text-lien-muted md:text-[14px]">{`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}</p>
       <BarTools end>
         <Link href="/admin/inventory/export/" className={btnSecondary} data-testid="bar-csv">
           <Fa name="download" /> CSV cần mua
@@ -123,18 +124,15 @@ export default async function AdminPurchases({ searchParams }: Props) {
       {first(sp.saved) ? <Flash>{first(sp.saved)}</Flash> : null}
       {first(sp.error) ? <Flash kind="error">{first(sp.error)}</Flash> : null}
 
-      <div className="mb-5 flex flex-wrap gap-2" data-testid="purchase-tabs">
-        <Link href="/admin/purchases/?tab=batches" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "batches" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")} data-testid="tab-batches">
-          Mua theo đợt ({batchHeads.length} đợt đang mở)
-        </Link>
-        <Link href="/admin/purchases/?tab=orders" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "orders" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Mua theo đặt hàng ({needCount} dòng cần mua)
-        </Link>
-        <Link href="/admin/purchases/?tab=stock" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", tab === "stock" ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:bg-[#f3f4f6]")}>
-          Hàng lưu kho ({stockUnits} cái chưa có khách)
-        </Link>
-
-      </div>
+      {/* the figures are the tabs: the three views (đợt / theo đơn / lưu kho) plus where the bought goods are */}
+      <StatTiles testId="purchase-stats">
+        <StatTile label="Đợt mua đang mở" value={`${batchHeads.length} đợt`} accent="blue" href="/admin/purchases/?tab=batches" active={tab === "batches"} title="Mua theo đợt: mỗi đợt = một lần đi mua / một bill" testId="tile-batches" />
+        <StatTile label="Cần mua (theo đơn)" value={`${needCount} dòng · ${counts.not_bought} đv`} accent={needCount ? "red" : "green"} href="/admin/purchases/?tab=orders" active={tab === "orders"} title="Dòng trong đơn khách chưa có hàng — mua theo đặt hàng" testId="tile-orders" />
+        <StatTile label="Hàng lưu kho (chưa có khách)" value={`${stockUnits} cái`} accent="amber" href="/admin/purchases/?tab=stock" active={tab === "stock"} title="Hàng mua để lưu kho, chưa gắn đơn nào" testId="tile-stock" />
+        <StatTile label="Đã mua, đang về" value={`${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} đv`} accent="gray" href="/admin/inventory/?side=jp" title={`Tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop} — bấm sang Tồn kho Nhật`} />
+        <StatTile label="Sẵn tại kho shop VN" value={`${counts.at_shop} đv`} accent="green" href="/admin/inventory/?side=vn" title="Hàng của đơn đã ở kho shop VN — bấm sang Tồn kho VN" />
+        <StatTile label="Đơn đang xử lý" value={`${all.length} dòng · ${all.reduce((n, l) => n + l.quantity, 0)} đv`} accent="gray" href="/admin/orders/?view=stock" title="Mọi dòng sản phẩm trong các đơn đang xử lý — bấm sang Đơn hàng › Theo kho hàng" />
+      </StatTiles>
 
       {tab === "stock" ? <StockPurchasePanel groups={stockGroups} products={pickable} sources={sources} batches={batchHeads} /> : null}
       {tab === "batches" && receiptsOpen ? (

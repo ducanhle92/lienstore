@@ -12,8 +12,8 @@ const ACCENT: Record<TileAccent, string> = {
 };
 
 /** Compact figure tile (label over value), the smaller cousin of the Tồn kho board tiles — for page-top summaries. */
-export function StatTile({ label, value, accent = "gray", href, title }: { label: string; value: ReactNode; accent?: TileAccent; href?: string; title?: string }) {
-  const cls = cn("rounded-md border px-2.5 py-1.5", ACCENT[accent], href && "no-underline hover:brightness-95");
+export function StatTile({ label, value, accent = "gray", href, title, active = false, testId }: { label: string; value: ReactNode; accent?: TileAccent; href?: string; title?: string; /** The view currently shown (ringed). */ active?: boolean; testId?: string }) {
+  const cls = cn("block rounded-md border px-2.5 py-1.5", ACCENT[accent], href && "no-underline hover:brightness-95", active && "ring-2 ring-lien-heading/60 ring-offset-1");
   const body = (
     <>
       <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
@@ -21,11 +21,11 @@ export function StatTile({ label, value, accent = "gray", href, title }: { label
     </>
   );
   return href ? (
-    <Link href={href} className={cls} title={title}>
+    <Link href={href} className={cls} title={title} aria-current={active ? "page" : undefined} data-testid={testId}>
       {body}
     </Link>
   ) : (
-    <div className={cls} title={title}>
+    <div className={cls} title={title} data-testid={testId}>
       {body}
     </div>
   );
