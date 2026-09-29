@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-29
+
 ### Added
 - Tồn kho: bảng "Kho Nhật (shop) — … (n dòng bill · n cái · ≈ x kg hàng)" ghi cân nặng ước lượng của các dòng đang hiện (cân nặng sản phẩm × số cái, chưa gồm thùng), như dòng kiện đã đóng.
 - Nút **Xuất CSV** dùng chung cho bảng đang xem (`TableCsvButton`): xuất đúng các dòng còn lại sau khi lọc ô số / ▾ cột, theo thứ tự trên màn, kể cả giá trị ô chọn / ô nhập.
