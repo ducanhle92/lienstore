@@ -10,6 +10,8 @@ export const ADMIN_BAR_ID = "admin-bar";
 export const BAR_TOOLS_ID = "admin-bar-tools";
 /** Tools that come first, left of "Lưu thay đổi" (e.g. "+ Mở đợt mua mới"). */
 export const BAR_LEAD_ID = "admin-bar-lead";
+/** Tools pinned to the right edge of the bar (exports, links out). */
+export const BAR_END_ID = "admin-bar-end";
 export const BAR_BULK_ID = "admin-bar-bulk";
 /** Fired once the bar is on the page, so screens that hydrated before it can move their tools in. */
 export const BAR_READY_EVENT = "admin-bar:ready";
@@ -81,7 +83,7 @@ export function AdminBar() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
   const [state, setState] = useState<{ editable: number; changed: number; forms: number }>({ editable: 0, changed: 0, forms: 0 });
-  const [slots, setSlots] = useState({ lead: false, tools: false, bulk: false });
+  const [slots, setSlots] = useState({ lead: false, tools: false, bulk: false, end: false });
   // the URL a save started on: the redirect after the save lands on a new URL, which ends "Đang lưu…"
   const [savingAt, setSavingAt] = useState<string | null>(null);
   const saving = savingAt === `${pathname}?${search}`;
@@ -96,7 +98,8 @@ export function AdminBar() {
     const lead = !!document.getElementById(BAR_LEAD_ID)?.childElementCount;
     const tools = !!document.getElementById(BAR_TOOLS_ID)?.childElementCount;
     const bulk = !!document.getElementById(BAR_BULK_ID)?.childElementCount;
-    setSlots((p) => (p.lead === lead && p.tools === tools && p.bulk === bulk ? p : { lead, tools, bulk }));
+    const end = !!document.getElementById(BAR_END_ID)?.childElementCount;
+    setSlots((p) => (p.lead === lead && p.tools === tools && p.bulk === bulk && p.end === end ? p : { lead, tools, bulk, end }));
   }, []);
 
   useEffect(() => {
@@ -201,6 +204,7 @@ export function AdminBar() {
           {/* display:contents — the screen's tools wrap along with Lưu / Huỷ instead of as one block */}
           <div id={BAR_TOOLS_ID} className={slots.tools ? "contents" : "hidden"} />
           <div id={BAR_BULK_ID} className={cn("flex flex-wrap items-center gap-2", !slots.bulk && "hidden")} />
+          <div id={BAR_END_ID} className={cn("ml-auto flex flex-wrap items-center gap-2", !slots.end && "hidden")} />
         </div>
       </div>
     </>

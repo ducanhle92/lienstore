@@ -36,6 +36,8 @@ interface Props {
   search: { q: string; from: string; to: string; status: "" | "done" | "all" };
   /** Batch whose Bill block starts open (after creating a bill / attaching a photo). */
   openBillsFor?: number | null;
+  /** Page-header switch: list by product (tree) or every unit code (flat). */
+  view?: "tree" | "flat";
 }
 
 const cell = "!mb-0 !py-1 !text-[13px]";
@@ -46,7 +48,7 @@ const BACK = "/admin/purchases/?tab=batches";
  * bottom of the screen while the card is in view. Bills (phiếu mua, PM-…) are the paper trail: each row says which bill
  * it came from; photos attach on the bill inside the card.
  */
-export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null }: Props) {
+export function PurchaseBatchPanel({ batches, openLines, products, sources, includeDone, search, openBillsFor = null, view = "tree" }: Props) {
   void includeDone;
   const searching = !!(search.q || search.from || search.to || search.status);
   void openLines;
@@ -77,7 +79,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
         </form>
       </div>
 
-      <BarTools lead>
+      <BarTools>
         <OpenDetailsButton target="new-batch" label="+ Mở đợt mua mới" className={btnPrimary} />
       </BarTools>
       <div className="grid gap-3 md:grid-cols-2">
@@ -149,7 +151,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
           </Card>
         ) : null}
         {batches.map((b) => (
-          <BatchCard key={b.id} batch={b} products={products} sources={sources} billsOpen={openBillsFor === b.id} />
+          <BatchCard key={b.id} batch={b} products={products} sources={sources} billsOpen={openBillsFor === b.id} view={view} />
         ))}
       </div>
     </div>
@@ -191,7 +193,7 @@ interface Ctx {
   channelOf: (key: string) => string;
 }
 
-function BatchCard({ batch: b, products, sources, billsOpen }: { batch: PurchaseBatch; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
+function BatchCard({ batch: b, products, sources, billsOpen, view }: { view: "tree" | "flat"; batch: PurchaseBatch; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
   const st = PURCHASE_STAGES[purchaseIndex(b.status)];
   const stage = BATCH_STAGES.find((s) => s.key === b.status) ?? BATCH_STAGES[0];
   const left = b.units.some((u) => purchaseIndex(u.status) > purchaseIndex("bought"));
@@ -229,9 +231,6 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
   const held = b.units.filter((u) => u.itemId).length;
   const needUnits = b.needs.reduce((n, l) => n + l.need, 0);
   const jpy = b.units.reduce((n, u) => n + (u.unitCostJpy ?? 0), 0);
-  const filterSources = Array.from(new Set([...b.units.map((u) => u.sourceKey), ...b.needs.map((l) => l.sourceKey)].filter(Boolean))).map((k) => ({ key: k, name: purchaseSourceName(k, sources) }));
-  const filterStatuses = Array.from(new Set([...b.units.map((u) => u.status), ...(b.needs.length ? (["not_bought"] as PurchaseStatus[]) : [])])).sort((x, y) => purchaseIndex(x) - purchaseIndex(y)).map((k) => ({ key: k, label: PURCHASE_STAGES[purchaseIndex(k)].short }));
-  const filterOrders = Array.from(new Map([...b.units.filter((u) => u.orderNumber).map((u) => [u.orderNumber!, { number: u.orderNumber!, customer: u.customerName }] as const), ...b.needs.map((l) => [l.orderNumber, { number: l.orderNumber, customer: l.customerName }] as const)]).values()).sort((x, y) => y.number - x.number);
   let idx = 0;
   const rows: ReactNode[] = [];
   for (const pid of productIds) {
@@ -377,11 +376,26 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
           </ConfirmSubmit>
         </BulkBar>
 
-        <BatchTree batchId={b.id} sources={filterSources} statuses={filterStatuses} orders={filterOrders} bills={b.receipts.map((r) => ({ id: r.id, code: r.code }))} />
+        <BatchTree batchId={b.id} view={view} />
         <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>
           <SheetTable id={`batch-${b.id}`}>
           <table className={cn(tableClass, "max-lg:block")}>
             <thead className="max-lg:hidden">
+              {rows.length ? (
+                <tr className="bg-[#f9fafb] text-[13px] font-semibold text-lien-heading" data-testid={`totals-${b.id}`} data-sheet-ignore>
+                    <td className={cn(tdClass, STICKY_L)} />
+                    <td className={cn(tdClass, STICKY_N)}>
+                      Tổng cộng <span className="font-normal text-lien-muted">(theo dòng đang hiện)</span>
+                    </td>
+                    <td className={tdClass}>
+                      <span data-total="units">{b.units.length + needUnits}</span>
+                    </td>
+                    <td className={tdClass}>
+                      <span data-total="jpy">{jpy ? `¥${formatAmount(jpy)}` : "—"}</span>
+                    </td>
+                    <td className={tdClass} colSpan={5} />
+                  </tr>
+              ) : null}
               <tr>
                 <th className={cn(thClass, "sticky left-0 z-10 w-8 bg-[#f9fafb]")}>
                   <input type="checkbox" data-tick="all" className="h-4 w-4" aria-label="Chọn tất cả dòng đang hiện" title="Chọn tất cả cái đang hiện" />
@@ -475,23 +489,6 @@ function BatchCard({ batch: b, products, sources, billsOpen }: { batch: Purchase
                 </td>
               </tr>
             </tbody>
-            {rows.length ? (
-              <tfoot className="max-lg:hidden">
-                <tr className="bg-[#f9fafb] text-[13px] font-semibold text-lien-heading" data-testid={`totals-${b.id}`}>
-                  <td className={cn(tdClass, STICKY_L)} />
-                  <td className={cn(tdClass, STICKY_N)}>
-                    Tổng cộng <span className="font-normal text-lien-muted">(theo dòng đang hiện)</span>
-                  </td>
-                  <td className={tdClass}>
-                    <span data-total="units">{b.units.length + needUnits}</span>
-                  </td>
-                  <td className={tdClass}>
-                    <span data-total="jpy">{jpy ? `¥${formatAmount(jpy)}` : "—"}</span>
-                  </td>
-                  <td className={tdClass} colSpan={5} />
-                </tr>
-              </tfoot>
-            ) : null}
           </table>
           </SheetTable>
         </div>
@@ -667,7 +664,7 @@ function ProductRow({ pid, n, units, idx, b, searchOf, sources }: { pid: number;
   };
   const minJpy = units.map((u) => u.unitCostJpy).filter((x): x is number => x !== null).sort((a, z) => a - z)[0];
   return (
-    <tr className="group border-t-2 border-[#e5e7eb] bg-[#f8fafc] align-top max-lg:block max-lg:rounded-md max-lg:border max-lg:p-3" data-lvl="p" data-sheet-start data-p={pid} data-open="1" data-idx={idx} data-name={n.name} data-qty={units.length + need} data-statusidx={purchaseIndex(slow)} data-expiry={units.map((u) => u.expiry ?? "").filter(Boolean).sort()[0] ?? ""} data-bought={units.map((u) => u.boughtAt ?? "").filter(Boolean).sort()[0] ?? ""} data-unit={units.find((u) => u.unitCostJpy)?.unitCostJpy ?? ""} data-srcname={units[0] ? units[0].sourceKey : ""} data-bill={[...bills][0] ?? ""} data-testid={`bprod-${b.id}-${pid}`}>
+    <tr className="group border-t-2 border-[#e5e7eb] bg-sky-50 align-top hover:bg-sky-100 max-lg:block max-lg:rounded-md max-lg:border max-lg:p-3" data-lvl="p" data-sheet-start data-p={pid} data-open="0" data-idx={idx} data-name={n.name} data-qty={units.length + need} data-statusidx={purchaseIndex(slow)} data-expiry={units.map((u) => u.expiry ?? "").filter(Boolean).sort()[0] ?? ""} data-bought={units.map((u) => u.boughtAt ?? "").filter(Boolean).sort()[0] ?? ""} data-unit={units.find((u) => u.unitCostJpy)?.unitCostJpy ?? ""} data-srcname={units[0] ? units[0].sourceKey : ""} data-bill={[...bills][0] ?? ""} data-testid={`bprod-${b.id}-${pid}`}>
       <td className={cn(tdClass, TD, STICKY_L, "w-8 max-lg:float-right")}>
         <input type="checkbox" data-tick={`p:${pid}`} className="h-4 w-4" aria-label={`Chọn mọi cái của ${n.name}`} title="Chọn mọi cái của sản phẩm (đang hiện)" />
       </td>

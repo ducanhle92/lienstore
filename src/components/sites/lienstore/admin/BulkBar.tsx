@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ADMIN_BAR_ID, BAR_BULK_ID, BAR_LEAD_ID, BAR_READY_EVENT, BAR_TOOLS_ID, barState } from "./AdminBar";
+import { ADMIN_BAR_ID, BAR_BULK_ID, BAR_END_ID, BAR_LEAD_ID, BAR_READY_EVENT, BAR_TOOLS_ID, barState } from "./AdminBar";
 
 const onBarReady = (cb: () => void) => {
   window.addEventListener(BAR_READY_EVENT, cb);
@@ -68,9 +68,9 @@ export function BulkBar({ scope, label, children }: { scope: string; label?: str
 
 /**
  * Screen tools that live in the fixed bottom bar for as long as the screen is open (filters, "+ Thêm vào chuyến"…);
- * `lead` puts them first, left of "Lưu thay đổi".
+ * `lead` puts them first, left of "Lưu thay đổi"; `end` pins them to the right edge.
  */
-export function BarTools({ children, lead = false }: { children: ReactNode; lead?: boolean }) {
-  const slot = useSlot(lead ? BAR_LEAD_ID : BAR_TOOLS_ID);
+export function BarTools({ children, lead = false, end = false }: { children: ReactNode; lead?: boolean; end?: boolean }) {
+  const slot = useSlot(lead ? BAR_LEAD_ID : end ? BAR_END_ID : BAR_TOOLS_ID);
   return slot ? createPortal(<div className="contents">{children}</div>, slot) : null;
 }

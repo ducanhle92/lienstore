@@ -50,6 +50,8 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const needIds = itemIdsNeedingPurchase(getDb());
   // three tabs; the old "receipts" tab maps to Mua theo đặt hàng with the bill section open
   const tab = first(sp.tab) === "stock" ? "stock" : first(sp.tab) === "orders" ? "orders" : "batches";
+  // Mua theo đợt: every batch table lists by product (tree) or every unit code (flat) — read client-side by BatchTree
+  const batchView: "tree" | "flat" = first(sp.bv) === "flat" ? "flat" : "tree";
   const receiptsOpen = first(sp.receipts) === "1" || first(sp.tab) === "receipts" || !!first(sp.draft);
   // date range on the order's creation time (shop day, inclusive) + purchase source
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
@@ -99,9 +101,21 @@ export default async function AdminPurchases({ searchParams }: Props) {
       <FlowSteps current="buy" counts={flowCounts(getDb())} />
       <PageHeader
         title="Quản lý mua hàng"
-        subtitle={`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}
+        actions={
+          tab === "batches" ? (
+            <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Cách hiển thị đợt" data-testid="batch-view">
+              <Link href="/admin/purchases/?tab=batches" role="tab" aria-selected={batchView === "tree"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", batchView === "tree" ? "bg-lien-blue text-white" : "bg-white text-lien-heading hover:bg-[#f3f4f6]")}>
+                Theo sản phẩm
+              </Link>
+              <Link href="/admin/purchases/?tab=batches&bv=flat" role="tab" aria-selected={batchView === "flat"} className={cn("border-l border-[#d1d5db] px-3 py-1.5 text-[13px] font-semibold no-underline", batchView === "flat" ? "bg-lien-blue text-white" : "bg-white text-lien-heading hover:bg-[#f3f4f6]")}>
+                Từng mã
+              </Link>
+            </span>
+          ) : undefined
+        }
       />
-      <BarTools lead>
+      <p className="-mt-3 mb-5 text-[13px] leading-5 text-lien-muted md:text-[14px]">{`${all.length} dòng trong các đơn đang xử lý · ${all.reduce((n, l) => n + l.quantity, 0)} đơn vị · chưa mua ${counts.not_bought} · đã mua, đang trên đường về ${IN_TRANSIT_STATUSES.reduce((n, k) => n + counts[k], 0)} (tại Nhật ${counts.bought + counts.to_carrier_jp} · NB→VN ${counts.shipped_jp_vn} · kho ĐVVC VN ${counts.at_carrier_vn + counts.to_shop}) · sẵn tại kho shop ${counts.at_shop}`}</p>
+      <BarTools end>
         <Link href="/admin/inventory/export/" className={btnSecondary} data-testid="bar-csv">
           <Fa name="download" /> CSV cần mua
         </Link>
@@ -128,7 +142,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
           <ReceiptsPanel receipts={receipts} sources={sources} products={pickable} draftId={Number.isInteger(draftId) ? draftId : null} fromTab={tab} batches={batchHeads} defaultBatchId={Number.isInteger(billBatch) ? billBatch : (batchHeads[0]?.id ?? null)} />
         </div>
       ) : null}
-      {tab === "batches" ? <PurchaseBatchPanel batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto, status: bstatus }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} /> : null}
+      {tab === "batches" ? <PurchaseBatchPanel view={batchView} batches={batches} openLines={all.filter((l) => l.purchaseStatus === "not_bought" && !l.batchId)} products={pickable} sources={sources} includeDone={includeDone} search={{ q: bq, from: bfrom, to: bto, status: bstatus }} openBillsFor={Number.isInteger(billsOpenFor) ? billsOpenFor : null} /> : null}
 
       {tab === "orders" ? <OrdersByOrderPanel lines={all} allocations={allocViews} sources={sources} batches={batchHeads} filter={{ q: first(sp.q), only: first(sp.only) === "need" ? "need" : first(sp.only) === "ready" ? "ready" : "" }} back={self} /> : null}
       {/* every tab can enter a purchase bill; on Mua theo đợt the bill can be booked straight into a batch */}

@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { cn } from "@/lib/utils";
-import { adminInput, btnSecondary } from "./ui";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 /**
  * Client side of one batch table (Quản lý mua hàng › đợt): the rows are server-rendered in tree order
@@ -18,10 +15,8 @@ import { adminInput, btnSecondary } from "./ui";
  */
 interface Props {
   batchId: number;
-  sources: Array<{ key: string; name: string }>;
-  statuses: Array<{ key: string; label: string }>;
-  orders: Array<{ number: number; customer: string }>;
-  bills: Array<{ id: number; code: string }>;
+  /** Page-header switch (?bv=): by product (tree) or every unit code (flat). */
+  view: "tree" | "flat";
 }
 
 const fold = (s: string) =>
@@ -52,7 +47,6 @@ const KEYS: Array<[keyof Filter, string]> = [
   ["status", "st"],
   ["kind", "kind"],
   ["order", "ord"],
-  ["view", "bv"],
 ];
 
 function readUrl(search: string): Filter {
@@ -73,22 +67,18 @@ function writeUrl(f: Filter) {
   const qs = p.toString();
   window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
 }
-const isEmpty = (f: Filter) => KEYS.every(([k]) => (k === "view" ? true : !f[k]));
 
-export function BatchTree({ batchId, sources, statuses, orders, bills }: Props) {
-  const search = useSyncExternalStore(
-    () => () => {},
-    () => window.location.search,
-    () => "",
-  );
+const subscribe = (cb: () => void) => {
+  window.addEventListener("popstate", cb);
+  return () => window.removeEventListener("popstate", cb);
+};
+
+export function BatchTree({ batchId, view }: Props) {
+  const search = useSyncExternalStore(subscribe, () => window.location.search, () => "");
   const initial = useMemo(() => readUrl(search), [search]);
   const [edited, setF] = useState<Filter | null>(null);
-  const f = edited ?? initial;
-  const update = (fn: (cur: Filter) => Filter): void => setF((cur) => fn(cur ?? initial));
-  const [qEdited, setQInput] = useState<string | null>(null);
-  const qInput = qEdited ?? initial.q;
-  const countRef = useRef<HTMLSpanElement>(null);
-  const debounce = useRef<number | null>(null);
+  // the view (tree / flat) is the page-header switch (?bv=), never the local copy
+  const f: Filter = { ...(edited ?? initial), view };
   const [sort, setSort] = useState<{ attr: string; dir: 1 | -1 } | null>(null);
 
   // apply filter + view + open state
@@ -145,8 +135,6 @@ export function BatchTree({ batchId, sources, statuses, orders, bills }: Props) 
         if (el) el.textContent = String(rows.filter((x) => x.dataset.lvl === "u" && x.dataset.match === "1" && (d.lvl === "g" ? x.dataset.g === d.g : x.dataset.p === d.p)).length);
       }
     }
-    const text = `${units} cái${lines ? ` · ${lines} dòng` : ""}${jpy ? ` · ≈¥${jpy.toLocaleString("ja-JP")}` : ""}`;
-    if (countRef.current) countRef.current.textContent = text;
     const set = (k: string, v: string) => {
       const el = root.querySelector<HTMLElement>(`[data-total="${k}"]`);
       if (el) el.textContent = v;
@@ -238,91 +226,5 @@ export function BatchTree({ batchId, sources, statuses, orders, bills }: Props) 
     for (const b of document.querySelectorAll<HTMLElement>(`#btable-${batchId} thead [data-sort]`)) b.dataset.dir = sort && sort.attr === b.dataset.sort ? (sort.dir === 1 ? "asc" : "desc") : "";
   }, [sort, batchId]);
 
-  const onQ = (v: string) => {
-    setQInput(v);
-    if (debounce.current) window.clearTimeout(debounce.current);
-    debounce.current = window.setTimeout(() => update((cur) => ({ ...cur, q: v })), 200);
-  };
-  const clear = () => {
-    setQInput("");
-    setF({ ...EMPTY, view: f.view });
-  };
-  const sel = "!mb-0 !w-auto !py-1 !text-[13px]";
-  const pick = (k: keyof Filter) => (e: { target: { value: string } }) => update((cur) => ({ ...cur, [k]: e.target.value }));
-  return (
-    <div className="mb-2 grid gap-2 rounded-md border border-[#e5e7eb] bg-white px-3 py-2 text-[13px]" data-testid={`batch-filter-${batchId}`}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="group" aria-label="Cách hiển thị">
-          {(
-            [
-              ["tree", "Theo sản phẩm"],
-              ["flat", "Từng mã"],
-            ] as const
-          ).map(([v, label]) => (
-            <button key={v} type="button" onClick={() => update((cur) => ({ ...cur, view: v }))} className={cn("px-2.5 py-1 text-[12px] font-semibold", f.view === v ? "bg-lien-blue text-white" : "bg-white text-lien-heading hover:bg-[#f3f4f6]")} aria-pressed={f.view === v} data-testid={`view-${v}`}>
-              {label}
-            </button>
-          ))}
-        </span>
-        <input value={qInput} onChange={(e) => onQ(e.target.value)} placeholder="Tìm sản phẩm / SKU / mã H… / #đơn / khách…" className={cn(adminInput, "!mb-0 !w-[260px] !py-1 !text-[13px]")} aria-label="Tìm trong đợt" data-testid="batch-q" />
-        <select value={f.kind} onChange={pick("kind")} className={cn(adminInput, sel)} aria-label="Loại hàng" data-testid="batch-kind" title="Hàng theo đơn = đang giữ cho đơn khách; Lưu kho = chưa có khách; Cần mua = đơn trong đợt chưa có hàng">
-          <option value="">Loại: tất cả</option>
-          <option value="line">Hàng theo đơn</option>
-          <option value="stock">Lưu kho (chưa có khách)</option>
-          <option value="need">Cần mua</option>
-        </select>
-        {orders.length ? (
-          <select value={f.order} onChange={pick("order")} className={cn(adminInput, sel)} aria-label="Đơn hàng" data-testid="batch-order">
-            <option value="">Đơn: tất cả</option>
-            {orders.map((o) => (
-              <option key={o.number} value={String(o.number)}>
-                #{o.number}
-                {o.customer ? ` · ${o.customer}` : ""}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <select value={f.ch} onChange={pick("ch")} className={cn(adminInput, sel)} aria-label="Kênh mua" data-testid="batch-channel">
-          <option value="">Kênh: tất cả</option>
-          <option value="online">Đặt mua online</option>
-          <option value="store">Mua tại cửa hàng</option>
-          <option value="other">Khác</option>
-        </select>
-        <select value={f.src} onChange={pick("src")} className={cn(adminInput, sel)} aria-label="Mua ở" data-testid="batch-src">
-          <option value="">Mua ở: tất cả</option>
-          {sources.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <input type="date" value={f.date} onChange={(e) => update((cur) => ({ ...cur, date: e.target.value.trim() }))} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày mua" title="Gõ ngày (2026-09-27) hoặc tháng (2026-09)" data-testid="batch-date" />
-        <select value={f.bill} onChange={pick("bill")} className={cn(adminInput, sel)} aria-label="Bill" data-testid="batch-bill">
-          <option value="">Bill: tất cả</option>
-          {bills.map((b) => (
-            <option key={b.id} value={b.code}>
-              {b.code}
-            </option>
-          ))}
-          <option value="—">chưa có bill</option>
-        </select>
-        <select value={f.status} onChange={pick("status")} className={cn(adminInput, sel)} aria-label="Trạng thái" data-testid="batch-status">
-          <option value="">Trạng thái: tất cả</option>
-          {statuses.map((x) => (
-            <option key={x.key} value={x.key}>
-              {x.label}
-            </option>
-          ))}
-        </select>
-        <span className="ml-auto text-[12px] text-lien-muted" data-testid="batch-count">
-          Đang hiện <span ref={countRef} className="font-semibold text-lien-heading" />
-        </span>
-        {!isEmpty(f) ? (
-          <button type="button" onClick={clear} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")}>
-            <Fa name="times" /> Xoá lọc
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
+  return null;
 }
