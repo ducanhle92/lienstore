@@ -9,9 +9,6 @@ import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 import { cn } from "@/lib/utils";
 import { useCart } from "./CartProvider";
 import type { CatalogProduct } from "@/types/shop";
-import { UPSELL_ITEM } from "./carousel-classes";
-import { ProductCarousel } from "./ProductCarousel";
-import { ShopProductCard } from "./ShopProductCard";
 
 /**
  * Slide-in mini cart (sesofoods style): opens from the right after "Thêm vào giỏ" or the header cart icon.
@@ -118,11 +115,10 @@ export function CartDrawer() {
               ))}
             </ul>
           )}
-
-          {drawerOpen ? <Suggestions ids={items.map((i) => i.productId)} /> : null}
         </div>
 
         <footer className="border-t border-lien-line px-5 py-4">
+          {drawerOpen && items.length ? <Suggestions ids={items.map((i) => i.productId)} onPick={closeDrawer} /> : null}
           <div className="flex items-baseline justify-between">
             <span className="text-[16px] font-bold text-lien-heading">{t("subtotal")} :</span>
             <span className="text-[18px] font-bold text-lien-heading">{formatAmount(subtotal)}đ</span>
@@ -142,8 +138,8 @@ export function CartDrawer() {
   );
 }
 
-/** "Thường được mua cùng với" — the standard product cards (hover cart button, Liên hệ state…) in a drag / swipe strip, three per view. */
-function Suggestions({ ids }: { ids: number[] }) {
+/** "Thường được mua cùng với" — a compact strip of small thumbnails + names right above the subtotal (no price, no variants). */
+function Suggestions({ ids, onPick }: { ids: number[]; onPick: () => void }) {
   const key = ids.join(",");
   const [list, setList] = useState<CatalogProduct[]>([]);
 
@@ -164,17 +160,18 @@ function Suggestions({ ids }: { ids: number[] }) {
 
   if (list.length === 0) return null;
   return (
-    <section className="mx-5 my-4 rounded-md border-2 border-dashed border-lien-blue/40 bg-lien-blue-soft/40" aria-label="Thường được mua cùng với" data-testid="cart-upsell">
-      <h3 className="m-0 flex items-center justify-center gap-2 border-b border-dashed border-lien-blue/30 px-4 py-2.5 text-center text-[13px] font-bold text-lien-heading">
-        <span className="rounded-full bg-lien-blue px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Gợi ý</span>
+    <section className="mb-3 rounded-md border border-dashed border-lien-blue/40 bg-lien-blue-soft/40" aria-label="Thường được mua cùng với" data-testid="cart-upsell">
+      <h3 className="m-0 flex items-center gap-2 border-b border-dashed border-lien-blue/30 px-3 py-1.5 text-[12px] font-bold text-lien-heading">
+        <span className="rounded-full bg-lien-blue px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Gợi ý</span>
         Thường được mua cùng với
       </h3>
-      <div className="bg-white px-2 py-3">
-        <ProductCarousel ariaLabel="Sản phẩm gợi ý">
-          {list.map((p) => (
-            <ShopProductCard key={p.id} product={p} className={UPSELL_ITEM} />
-          ))}
-        </ProductCarousel>
+      <div className="flex gap-2 overflow-x-auto bg-white px-2 py-2 [scrollbar-width:thin]">
+        {list.map((p) => (
+          <Link key={p.id} href={`/product/${p.slug}/`} onClick={onPick} className="w-[68px] shrink-0 text-center no-underline" title={p.name} data-testid={`upsell-${p.id}`}>
+            <Image src={p.thumb} alt="" width={56} height={56} className="mx-auto h-14 w-14 rounded border border-lien-line object-contain" />
+            <span className="mt-1 line-clamp-2 text-[11px] leading-4 text-lien-heading">{p.name}</span>
+          </Link>
+        ))}
       </div>
     </section>
   );
