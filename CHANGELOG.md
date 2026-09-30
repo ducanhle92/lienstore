@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.11.1] - 2026-09-30
+
 ### Changed
 - Cửa hàng › giỏ hàng (ngăn kéo): khối "Thường được mua cùng với" gọn lại một nửa — chỉ ảnh nhỏ + tên (không giá, không biến thể), cuộn ngang, nằm ngay trên Tạm tính.
 
