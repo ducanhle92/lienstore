@@ -217,6 +217,10 @@ export function planKienSync(run: { status: ShipmentStatus }, data: KienTracking
 /** Stale-result guard: a reply is applied only to the code the run still carries. */
 export const kienResultIsStale = (fetchedFor: string, currentTracking: string | null | undefined): boolean => normalizeKienCode(fetchedFor) !== normalizeKienCode(currentTracking);
 
-/** Default scheduler settings (overridable per shop in settings `kien_sync_minutes`). */
-export const KIEN_SYNC_DEFAULT_MINUTES = 60;
+/**
+ * Default scheduler settings (overridable per shop in settings `kien_sync_minutes`). 10 minutes: Kiến's states change
+ * hours apart, the shop has a handful of runs in flight at once (≤ ~6 requests / hour each) and the public endpoint is
+ * cheap, so 10 minutes keeps the screen within one coffee break of the truth without hammering the carrier.
+ */
+export const KIEN_SYNC_DEFAULT_MINUTES = 10;
 export const KIEN_SYNC_CONCURRENCY = 2;

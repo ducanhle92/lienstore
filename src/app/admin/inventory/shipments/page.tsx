@@ -22,7 +22,7 @@ import { getDb } from "@/lib/sqlite";
 import { listStockGroups } from "@/lib/lots-db";
 import { listUnits } from "@/lib/units-db";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
-import { cn } from "@/lib/utils";
+import { cn, foldSearch } from "@/lib/utils";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import type { PurchaseSource } from "@/types/shop";
@@ -37,13 +37,8 @@ interface Props {
 }
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "", none: "" } as const;
-/** ⑤ Vận chuyển: where goods with the carrier are — each place is a tab (units there + the runs at that stage). */
-const TRANSIT_AT = [
-  { key: "jp_carrier", label: "Kho ĐVVC Nhật", icon: "building", status: "to_carrier_jp", run: "handed" },
-  { key: "flying", label: "Đang vận chuyển JP→VN", icon: "plane", status: "shipped_jp_vn", run: "flying" },
-  { key: "vn_carrier", label: "Kho ĐVVC VN", icon: "building", status: "at_carrier_vn", run: "arrived" },
-  { key: "to_shop", label: "Đang về kho shop", icon: "truck", status: "to_shop", run: null },
-] as const;
+/** ⑤ Vận chuyển › "Đang về kho shop": the carrier VN → shop leg (ship nội địa bên nhận trả) — its cost sheet, to be extended. */
+const TRANSIT_AT = [{ key: "to_shop", label: "Đang về kho shop · chi phí về kho shop VN", icon: "truck", status: "to_shop", run: null }] as const;
 
 /**
  * Kho hàng › Đóng hàng: packing runs from Kho Nhật (shop) to the carrier. Search a product, type how many go into the
@@ -52,7 +47,14 @@ const TRANSIT_AT = [
 export default async function ShipmentsPage({ searchParams }: Props) {
   await requireAdmin("inventory");
   const sp = await searchParams;
-  const includeDone = first(sp.done) === "1";
+  // ⑤ filters: ?q= (run code / name / KEA / PU / product / bill / order), ?from= ?to= (Ngày gửi), ?st= (carrier step | done | any)
+  const q = first(sp.q).trim();
+  const qf = foldSearch(q);
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
+  const st = first(sp.st);
+  const filtering = !!(q || from || to || st);
+  const includeDone = first(sp.done) === "1" || st === "done" || st === "any" || (!!q && !st);
   // ④ Đóng hàng = runs still at the shop (packing / packed); ⑤ Vận chuyển = runs with the carrier (handed → arrived, + done on demand)
   const transit = first(sp.stage) === "transit";
   const [allShipments, sources] = await Promise.all([Promise.resolve(listShipments(transit && includeDone)), listPurchaseSources()]);
@@ -97,10 +99,20 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const error = first(sp.error);
   // ⑤: every unit with the carrier, by place; ?at=<place> narrows the page to one place
   const transitGroups = transit ? listStockGroups(db, { statuses: ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"] }) : [];
-  const at = TRANSIT_AT.find((x) => x.key === first(sp.at)) ?? null;
+  const at = first(sp.at) === "to_shop" ? TRANSIT_AT[0] : null;
   const atGroups = at ? transitGroups.filter((g) => g.status === at.status) : transitGroups.filter((g) => !g.shipmentId);
-  const runsShown = at ? shipments.filter((x) => x.status === at.run) : shipments;
   const unitsIn = (status: string) => transitGroups.filter((g) => g.status === status).reduce((n, g) => n + g.qty, 0);
+  const runText = (x: Shipment) =>
+    foldSearch([x.code, x.label, x.tracking, x.trackingDomestic, x.note, ...x.groups.flatMap((g) => [g.productName, g.productSku ?? "", g.groupCode, ...g.codes, ...g.holders.flatMap((h) => [`#${h.orderNumber}`, h.customer])])].join(" "));
+  const runsShown = transit
+    ? shipments.filter((x) => {
+        if (st && st !== "any" && x.status !== st) return false;
+        if (!st && x.status === "done" && !includeDone) return false;
+        if (from && (!x.shippedAt || x.shippedAt < from)) return false;
+        if (to && (!x.shippedAt || x.shippedAt > to)) return false;
+        return !qf || runText(x).includes(qf);
+      })
+    : shipments;
   return (
     <>
       <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
@@ -112,16 +124,44 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       {error ? <Flash kind="error">{error}</Flash> : null}
 
       {transit ? (
-        <nav className="mb-4 flex flex-wrap gap-2" aria-label="Hàng đang ở đâu" data-testid="transit-tabs">
-          <Link href="/admin/inventory/shipments/?stage=transit" className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", !at ? "border-lien-blue bg-lien-blue text-white" : "border-[#d1d5db] bg-white text-lien-text hover:border-lien-blue")}>
-            Tất cả chuyến ({shipments.filter((x) => x.status !== "done").length})
-          </Link>
-          {TRANSIT_AT.map((x) => (
-            <Link key={x.key} href={`/admin/inventory/shipments/?stage=transit&at=${x.key}`} className={cn("rounded-md border px-3 py-1.5 text-[13px] font-semibold no-underline", at?.key === x.key ? "border-sky-700 bg-sky-700 text-white" : "border-sky-200 bg-sky-50 text-sky-900 hover:border-sky-500")} data-testid={`transit-tab-${x.key}`}>
-              <Fa name={x.icon} /> {x.label} ({unitsIn(x.status)} cái)
+        <form method="get" action="/admin/inventory/shipments/" className="mb-4 flex flex-wrap items-end gap-x-3 gap-y-2 rounded-md border border-[#e5e5e5] bg-white px-3 py-2" data-savebar="off" data-testid="transit-filter">
+          <input type="hidden" name="stage" value="transit" />
+          <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-[12px] text-lien-muted">
+            Tìm kiện đã gửi ĐVVC
+            <input name="q" defaultValue={q} placeholder="Mã chuyến, tên, KEA…, PU…, sản phẩm, mã bill, số đơn, khách" className={cn(adminInput, "!mb-0 !py-1.5 !text-[13px]")} data-testid="transit-q" />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-lien-muted">
+            Gửi từ ngày
+            <input type="date" name="from" defaultValue={from} className={cn(adminInput, "!mb-0 !w-[150px] !py-1.5 !text-[13px]")} data-testid="transit-from" />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-lien-muted">
+            đến ngày
+            <input type="date" name="to" defaultValue={to} className={cn(adminInput, "!mb-0 !w-[150px] !py-1.5 !text-[13px]")} data-testid="transit-to" />
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-lien-muted">
+            Bước
+            <select name="st" defaultValue={st} className={cn(adminInput, "!mb-0 !w-[210px] !py-1.5 !text-[13px]")} data-testid="transit-st">
+              <option value="">Đang đi (chưa về kho VN)</option>
+              {SHIPMENT_STAGES.filter((x) => !shipmentEditable(x.key)).map((x) => (
+                <option key={x.key} value={x.key}>
+                  {x.label}
+                </option>
+              ))}
+              <option value="any">Tất cả (kể cả đã về kho VN)</option>
+            </select>
+          </label>
+          <button type="submit" className={cn(btnPrimary, "!py-1.5")} data-testid="transit-filter-go">
+            <Fa name="search" /> Lọc
+          </button>
+          {filtering ? (
+            <Link href="/admin/inventory/shipments/?stage=transit" className={cn(btnSecondary, "!py-1.5 no-underline")} data-testid="transit-filter-clear">
+              ✕ Xoá lọc
             </Link>
-          ))}
-        </nav>
+          ) : null}
+          <Link href={`/admin/inventory/shipments/?stage=transit&at=to_shop`} className={cn(btnSecondary, "ml-auto !py-1.5 no-underline", at && "!border-sky-700 !bg-sky-700 !text-white")} title="Chặng kho ĐVVC Hà Nội → kho shop VN: ship nội địa bên nhận trả — bảng chi phí để nhập bill / số tiền đã chuyển (sẽ bổ sung)" data-testid="transit-tab-to_shop">
+            <Fa name="truck" /> Đang về kho shop ({unitsIn("to_shop")} cái) · chi phí
+          </Link>
+        </form>
       ) : null}
 
       <div className={cn("mb-4 grid gap-3 md:grid-cols-2", transit && "hidden")}>
@@ -166,17 +206,17 @@ export default async function ShipmentsPage({ searchParams }: Props) {
         {at ? <TransitTable title={`${at.label} — ${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill`} groups={atGroups} withRun testId={`at-${at.key}`} /> : null}
         {runsShown.length === 0 && !at ? (
           <Card>
-            <p className="m-0 text-[13px] text-lien-muted">{transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ④ Đóng hàng JP chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
+            <p className="m-0 text-[13px] text-lien-muted">{transit && filtering ? "Không có chuyến nào khớp bộ lọc." : transit ? "Chưa có chuyến nào đang vận chuyển. Chuyến ở ④ Đóng hàng JP chuyển sang đây khi bấm “Đã chuyển cho ĐVVC”." : "Chưa có chuyến đang đóng. Bấm “+ Chuyến hàng mới”."}</p>
           </Card>
         ) : null}
         {runsShown.map((s) => (
           <ShipmentCard key={s.id} s={s} sources={sources} carrierView={transit} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
-        {transit ? (
+        {transit && !filtering ? (
           <p className="m-0 text-[12px] text-lien-muted">
-            <Link href={`/admin/inventory/shipments/?stage=transit${includeDone ? "" : "&done=1"}`} className="text-lien-blue hover:underline">
-              {includeDone ? "Ẩn chuyến đã về kho VN" : "Xem cả chuyến đã về kho VN"}
+            <Link href="/admin/inventory/shipments/?stage=transit&st=any" className="text-lien-blue hover:underline">
+              Xem cả chuyến đã về kho VN
             </Link>
           </p>
         ) : null}
@@ -378,7 +418,6 @@ function CarrierTimeline({ s }: { s: Shipment }) {
                     {done ? <span className={cn("absolute inset-[3px] rounded-full", current ? "bg-lien-heart" : "bg-lien-heart/70")} /> : null}
                   </span>
                   <span className={cn("text-[11px] leading-4 sm:text-[12px]", current ? "font-bold text-lien-heart" : done ? "font-semibold text-lien-heading" : "text-lien-muted group-hover:text-lien-blue")}>{st.label}</span>
-                  <code className="text-[10px] text-lien-muted">{st.api}</code>
                   {at ? <span className="text-[10px] font-semibold text-sky-800" title="Thời điểm Kiến ghi nhận (giờ VN)" data-testid={`kien-at-${s.id}-${st.api}`}>{formatDateTime(at)}</span> : null}
                 </button>
               </form>
@@ -394,8 +433,7 @@ function CarrierTimeline({ s }: { s: Shipment }) {
               <li key={`${e.code}-${e.at}`} className={cn("flex flex-wrap items-center gap-2", !e.known && "text-amber-800")}>
                 <span className="font-mono text-[11px] text-lien-muted">{formatDateTime(e.at)}</span>
                 <span className="font-semibold">{e.label}</span>
-                <code className="text-[10px] text-lien-muted">{e.code}</code>
-                {!e.known ? <span className="text-[10px]">trạng thái lạ</span> : null}
+                {!e.known ? <span className="text-[10px]">trạng thái lạ ({e.code})</span> : null}
               </li>
             ))}
           </ol>

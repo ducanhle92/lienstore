@@ -90,7 +90,7 @@ function storeKienResult(db: DatabaseSync, shipmentId: number, data: KienTrackin
   ).run(status, label, statusAt, now, now, data.code, data.kienId, data.kienOrderId, shipmentId);
 }
 
-/** Minutes between background syncs (setting `kien_sync_minutes`; 0 = off; default 60). */
+/** Minutes between background syncs (setting `kien_sync_minutes`; 0 = off; default 10). */
 export function kienSyncMinutes(db: DatabaseSync = getDb()): number {
   const v = Number.parseInt(getSetting(db, "kien_sync_minutes") ?? "", 10);
   return Number.isInteger(v) && v >= 0 ? v : KIEN_SYNC_DEFAULT_MINUTES;

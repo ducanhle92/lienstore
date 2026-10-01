@@ -47,7 +47,7 @@ export async function register() {
   };
   setTimeout(fanpageTick, 25_000);
   setInterval(fanpageTick, 60_000);
-  // Kiến Express tracking: every `kien_sync_minutes` (default 60, 0 = off) refresh every run with a KEA code that Kiến
+  // Kiến Express tracking: every `kien_sync_minutes` (default 10, 0 = off) refresh every run with a KEA code that Kiến
   // has not reported delivered (see lib/kien-sync.ts — forward-only, never completes a run)
   let kienRunning = false;
   const kienTick = async () => {
