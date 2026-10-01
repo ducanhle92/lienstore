@@ -38,6 +38,11 @@ export default async function RootLayout({
   const [lang, theme] = await Promise.all([getLang(), getSiteTheme()]);
   return (
     <html lang={lang} className="h-full antialiased">
+      <head>
+        {/* the body font, fetched before the stylesheet asks for it (one variable file per script, see globals.css) */}
+        <link rel="preload" href="/sites/lienstore/shared/fonts/Roboto-var-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/sites/lienstore/shared/fonts/Roboto-var-vietnamese.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         {/* palette from the admin, overriding the --lien-* defaults in globals.css */}
         <style id="lien-theme" dangerouslySetInnerHTML={{ __html: themeCss(theme) }} />

@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Font chữ gọn hơn: Roboto dùng **một file biến thiên** (mọi độ đậm 100–900) cho mỗi bộ ký tự latin / tiếng Việt thay cho 12 file tĩnh; bỏ bộ latin-ext (bị tải thừa vì Ă Đ Ơ Ư nằm trong cả hai dải); Google Sans và Oswald 400/500 (không dùng) gỡ khỏi CSS; **FontAwesome cắt còn đúng 80 icon đang dùng** (77 KB → vài KB, script `scripts/fonts/subset-fontawesome.py`, test `npm run test:icons` báo khi thêm icon mới chưa chạy lại). Lần vào đầu tiên tải ~60 KB font thay vì 421 KB; hai file Roboto được preload.
+
 ## [2.18.3] - 2026-10-01
 
 ### Changed
