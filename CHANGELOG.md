@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-10-01
+
 ### Added
 - **Hồ sơ khách hàng** (migration 67): mọi người mua đều có một hồ sơ trong Khách hàng với mã KH cố định, nhận diện theo **số điện thoại** (chuẩn hoá) — tài khoản web giữ nguyên, khách chưa đăng ký có hồ sơ "chưa có tài khoản" tự tạo từ đơn (web hay admin tạo). Đơn cũ được gắn vào hồ sơ khi cập nhật; đơn mới tự dồn về đúng hồ sơ; khách đăng ký web sau với cùng SĐT thì hồ sơ cũ trở thành tài khoản (giữ lịch sử).
 - **Hạng khách Bạc · Vàng · Kim cương**: tính tự động trên đơn đã giao thành công (toàn thời gian; mặc định Bạc ≥ 2 đơn hoặc ≥ 2 triệu, Vàng ≥ 5 triệu, Kim cương ≥ 15 triệu), chủ cửa hàng đổi ngưỡng ở Khách hàng › **Ngưỡng hạng** (xếp lại ngay); tính lại khi đơn giao xong và mỗi đêm; đặt hạng tay được trong hồ sơ. Hạng hiện ở danh sách khách (ô số bấm lọc), hồ sơ khách, ô Khách hàng của đơn và gợi ý khi tạo đơn.
