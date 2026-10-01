@@ -27,6 +27,9 @@ function stack(): HTMLElement {
  * Admin flash messages as floating toasts (bottom-right) so they take no room above the tables. Success fades out on
  * its own; errors and warnings stay until closed. Several messages stack in order.
  */
+/** Query keys the admin pages use to carry a notice through a redirect. */
+const FLASH_PARAMS = ["saved", "error", "deleted", "updated", "staged", "noted", "files", "fileDeleted", "fileError", "notice", "ok"];
+
 export function FlashToast({ kind, children }: Props) {
   // the portal target exists only in the browser; on hydration the server snapshot (null) is used first
   const host = useSyncExternalStore(
@@ -35,6 +38,14 @@ export function FlashToast({ kind, children }: Props) {
     () => null,
   );
   const [open, setOpen] = useState(true);
+  // the message rode in on the URL (?saved= / ?error= …): drop those params once shown, so a reload or a bookmarked
+  // link does not raise a stale notice (the next action redirects with fresh ones)
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    let touched = false;
+    for (const k of FLASH_PARAMS) if (u.searchParams.has(k)) { u.searchParams.delete(k); touched = true; }
+    if (touched) window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}${u.hash}`);
+  }, []);
   useEffect(() => {
     if (kind !== "success") return;
     const t = window.setTimeout(() => setOpen(false), AUTO_HIDE_MS);

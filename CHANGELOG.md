@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Admin: thông báo (đã lưu / lỗi) chỉ hiện một lần — các tham số `?saved=` / `?error=` được gỡ khỏi địa chỉ ngay sau khi hiện, nên tải lại trang hay quay lại không còn thấy thông báo lỗi cũ.
+
 ## [2.13.1] - 2026-10-01
 
 ### Fixed
