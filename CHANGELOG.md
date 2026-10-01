@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-10-01
+
 ### Added
 - **Chính sách điểm thưởng (hậu mãi)** — màn mới Sales › **Chính sách hậu mãi** (migration 68): danh sách người mua với hạng, ngày mua đầu tiên, đơn đã giao, đã chi (tính hạng), điểm đã tích / đã dùng / hiện có và quy ra tiền; ± điểm bằng tay (tặng / trừ, có lý do). Chủ cửa hàng đặt chính sách: giá trị 1 điểm (mặc định 1.000đ), tỉ lệ tích theo hạng (mặc định chưa xếp 0% · Bạc 1% · Vàng 2% · Kim cương 3% giá trị hàng), đơn tối thiểu.
 - Tích điểm tự động khi đơn chuyển **Đã giao hàng thành công** (theo hạng của khách lúc đó); đơn huỷ thì thu hồi điểm đã tích và hoàn điểm đã dùng. Lịch sử điểm trong hồ sơ khách (khối "Điểm thưởng").
