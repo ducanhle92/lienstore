@@ -51,7 +51,7 @@ export const GOODS_WHERE: Array<{ key: GoodsWhere; label: string; warehouse: War
   { key: "jp_home", label: "Chưa gửi (đang ở Nhật)", warehouse: null, cls: "bg-gray-200 text-gray-700" },
   { key: "jp_to_carrier", label: "Đang tới kho ĐVVC Nhật", warehouse: null, cls: "bg-orange-100 text-orange-800" },
   { key: "jp_carrier", label: "Kho ĐVVC Nhật", warehouse: "jp", cls: "bg-amber-100 text-amber-800" },
-  { key: "transit", label: "Đang bay NB → VN", warehouse: null, cls: "bg-sky-100 text-sky-800" },
+  { key: "transit", label: "Đang vận chuyển JP → VN", warehouse: null, cls: "bg-sky-100 text-sky-800" },
   { key: "vn_carrier", label: "Kho ĐVVC Việt Nam (Hà Nội)", warehouse: "carrier", cls: "bg-cyan-100 text-cyan-800" },
   { key: "to_shop", label: "Đang về kho shop", warehouse: null, cls: "bg-indigo-100 text-indigo-800" },
   { key: "shop", label: "Kho Việt Nam (shop)", warehouse: "vn", cls: "bg-green-100 text-green-800" },

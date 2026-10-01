@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { getAdminSession, requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isShipmentStatus, shipmentEditable, type ShipmentStatus } from "@/lib/shipments";
-import { createShipment, deleteShipment, packCandidates, packProduct, setShipmentStatus, unpackUnits, updateShipment } from "@/lib/shipments-db";
+import { createShipment, deleteShipment, getShipment, packCandidates, packProduct, setShipmentStatus, unpackUnits, updateShipment } from "@/lib/shipments-db";
+import { normalizeKienCode } from "@/lib/carriers/kien-express";
+import { syncShipmentKien } from "@/lib/kien-sync";
 
 const PAGE = "/admin/inventory/shipments/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -37,10 +39,29 @@ export async function updateShipmentAction(formData: FormData): Promise<void> {
   const shippedAt = dateOrNull(text(formData, "shippedAt"));
   if (shippedAt === undefined) go("error", "Ngày gửi không hợp lệ (VD 2026-10-02).", id);
   const opt = (k: string) => (formData.has(k) ? text(formData, k) : undefined);
+  const transit = text(formData, "transit") === "1";
+  const before = getShipment(id!);
   updateShipment(id!, { label: opt("label"), plannedAt: plannedAt ?? null, shippedAt: shippedAt ?? null, tracking: opt("tracking"), trackingDomestic: opt("trackingDomestic"), note: opt("note") });
   revalidatePath("/admin", "layout");
+  // a KEA code that was just entered / changed is checked with Kiến once right away (the hourly job keeps it fresh)
+  const code = opt("tracking") === undefined ? "" : normalizeKienCode(opt("tracking"));
+  if (code && code !== (before?.carrierCode ?? "")) {
+    const r = await syncShipmentKien(id!, { actor: await actor() });
+    revalidatePath("/admin", "layout");
+    go(r.ok ? "saved" : "error", r.ok ? `Đã lưu thông tin chuyến. ${r.message}` : `Đã lưu thông tin chuyến, nhưng chưa đối chiếu được với Kiến: ${r.message}`, id, transit);
+  }
   // back to the view the form was on (⑤ Vận chuyển JP-VN keeps its own list)
-  go("saved", "Đã lưu thông tin chuyến.", id, text(formData, "transit") === "1");
+  go("saved", "Đã lưu thông tin chuyến.", id, transit);
+}
+
+/** "Đồng bộ từ Kiến": fetch the run's KEA code from Kiến Express and store the state / history (lib/kien-sync.ts). */
+export async function syncKienAction(formData: FormData): Promise<void> {
+  await requireAdmin("inventory");
+  const id = intOr(formData, "shipmentId");
+  if (!id) go("error", "Yêu cầu không hợp lệ.");
+  const r = await syncShipmentKien(id!, { actor: await actor() });
+  revalidatePath("/admin", "layout");
+  go(r.ok ? "saved" : "error", r.message, id, text(formData, "transit") === "1");
 }
 
 export async function setShipmentStatusAction(formData: FormData): Promise<void> {

@@ -5,6 +5,16 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- ⑤ Vận chuyển JP-VN — **đối chiếu trạng thái với Kiến Express theo mã KEA…** của từng chuyến: gọi API tra cứu của Kiến (chỉ từ máy chủ, host cố định, không nhận URL từ người dùng), lưu trạng thái mới nhất + thời điểm, lịch sử 5 bước (sắp theo thời gian, không ghi trùng), id của Kiến, lần đồng bộ thành công / lần thử / lỗi gần nhất. Trên chuyến hiện mã KEA, trạng thái Kiến + giờ (giờ VN), “đồng bộ lúc…”, nút **Đồng bộ từ Kiến** (có trạng thái đang chạy), link **Xem trên Kiến**, giờ Kiến ghi nhận dưới từng bước và mục “Lịch sử Kiến ghi nhận”.
+- Quy tắc trạng thái: Kiến báo *Kho JP / Đang vận chuyển / Kho HN* và đi trước bước shop đang chọn → chuyến tự tiến tới bước đó (chỉ tiến, không lùi; Kiến đi sau thì chỉ cảnh báo). *Đã giao hàng xong* chỉ hiển thị — không cộng tồn, không kết thúc chuyến / đơn; hàng vào ⑥ khi shop nhận tay như trước. Trạng thái lạ được ghi lại và đánh dấu, không đoán.
+- Tự động đồng bộ một lần ngay khi lưu / đổi mã KEA; job nền mỗi 60 phút (cài đặt `kien_sync_minutes`, 0 = tắt) chỉ quét chuyến có mã KEA và Kiến chưa báo giao, tối đa 2 yêu cầu song song; kết quả về muộn sau khi mã đã đổi bị bỏ qua; lỗi API giữ nguyên dữ liệu cũ (timeout 10 s, thử lại 2 lần, tôn trọng Retry-After).
+- Test đơn vị `npm run test:kien` (25 ca: mapping 5 trạng thái, lịch sử lộn xộ / rỗng / lạ, chống trùng, hai mã KEA chung một PU, mã trả về sai, 404 / 5xx / timeout, kết quả cũ bị bỏ, đã giao không kết thúc chuyến).
+
+### Changed
+- ⑤ Vận chuyển JP-VN: bỏ ô **Dự kiến gửi** trên đầu chuyến (chuyến đã sang ĐVVC; ④ Đóng hàng vẫn giữ).
+- Nhãn “Đang bay NB→VN” đổi thành **“Đang vận chuyển JP→VN”** (tab ⑤, trạng thái chuyến, vị trí hàng, nhãn đơn).
+
 ## [2.16.3] - 2026-10-01
 
 ### Fixed

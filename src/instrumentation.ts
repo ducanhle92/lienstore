@@ -47,6 +47,24 @@ export async function register() {
   };
   setTimeout(fanpageTick, 25_000);
   setInterval(fanpageTick, 60_000);
+  // Kiến Express tracking: every `kien_sync_minutes` (default 60, 0 = off) refresh every run with a KEA code that Kiến
+  // has not reported delivered (see lib/kien-sync.ts — forward-only, never completes a run)
+  let kienRunning = false;
+  const kienTick = async () => {
+    if (kienRunning) return;
+    kienRunning = true;
+    try {
+      const { runKienSyncJob } = await import("./lib/kien-sync");
+      const r = await runKienSyncJob();
+      if (r) console.info(`[kien] synced ${r.synced} · advanced ${r.advanced} · failed ${r.failed} · skipped ${r.skipped}`);
+    } catch (e) {
+      console.warn(`[kien] sync job failed: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      kienRunning = false;
+    }
+  };
+  setTimeout(kienTick, 40_000);
+  setInterval(kienTick, 60_000);
   // one-time: re-price default import legs written with the whole-parcel tariff (see lib/leg-fix-job.ts)
   setTimeout(async () => {
     try {

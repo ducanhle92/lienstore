@@ -41,7 +41,7 @@ export interface AllocationView {
   manual: boolean;
   /** Deducted for a paid / COD order. */
   consumedAt: string | null;
-  /** Short badge text ("Có sẵn · Kho VN", "Đang bay NB→VN", "Đã đặt mua", "Cần mua"). */
+  /** Short badge text ("Có sẵn · Kho VN", "Đang vận chuyển JP→VN", "Đã đặt mua", "Cần mua"). */
   label: string;
   /** Second line ("bill BILL_… · HSD 03/2027 · đợt DG-…"). */
   detail: string;
@@ -57,7 +57,7 @@ const PLACE_LABEL: Partial<Record<PurchaseStatus, string>> = {
   ordered: "Đã đặt mua · chưa nhận",
   bought: "Có sẵn · Kho Nhật (shop)",
   to_carrier_jp: "Có sẵn · Kho ĐVVC Nhật",
-  shipped_jp_vn: "Có sẵn · Đang bay NB→VN",
+  shipped_jp_vn: "Có sẵn · Đang vận chuyển JP→VN",
   at_carrier_vn: "Sắp về kho shop · Kho ĐVVC VN",
   to_shop: "Đang về kho shop VN",
   at_shop: "Có sẵn · Kho VN",

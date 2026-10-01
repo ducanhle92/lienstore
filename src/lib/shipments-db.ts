@@ -28,6 +28,18 @@ export interface Shipment {
   /** Last state the carrier API reported (waiting / warehouse_jp / shipping / warehouse_hn / delivered) and when. */
   carrierStatus: string;
   carrierCheckedAt: string | null;
+  /** Kiến Express sync (lib/kien-sync.ts): the KEA code the state belongs to, its label, the event time, ids, bookkeeping. */
+  carrierCode: string;
+  carrierLabel: string;
+  carrierStatusAt: string | null;
+  /** Last successful fetch / last attempt (success or not) / what went wrong last time ("" = fine). */
+  carrierSyncedAt: string | null;
+  carrierAttemptAt: string | null;
+  carrierError: string;
+  carrierKienId: string;
+  carrierKienOrderId: string;
+  /** Kiến history for the current KEA code, oldest first. */
+  events: TrackingEvent[];
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +48,13 @@ export interface Shipment {
   /** Units already held for customers (paid or not). */
   heldUnits: number;
   jpy: number | null;
+}
+
+export interface TrackingEvent {
+  code: string;
+  label: string;
+  at: string;
+  known: boolean;
 }
 
 interface Row {
@@ -49,6 +68,14 @@ interface Row {
   tracking_domestic?: string | null;
   carrier_status?: string | null;
   carrier_checked_at?: string | null;
+  carrier_code?: string | null;
+  carrier_label?: string | null;
+  carrier_status_at?: string | null;
+  carrier_synced_at?: string | null;
+  carrier_attempt_at?: string | null;
+  carrier_error?: string | null;
+  carrier_kien_id?: string | null;
+  carrier_kien_order_id?: string | null;
   note: string;
   created_at: string;
   updated_at: string;
@@ -60,8 +87,10 @@ function hydrate(rows: Row[]): Shipment[] {
   if (!rows.length) return [];
   const db = getDb();
   const units = listUnits(db, { shipmentIds: rows.map((r) => r.id), withDelivered: true });
+  const events = listTrackingEventsSync(db, rows.map((r) => r.id));
   return rows.map((r) => {
     const mine = units.filter((u) => u.shipmentId === r.id);
+    const code = (r.tracking ?? "").trim().toUpperCase();
     let jpy: number | null = null;
     for (const u of mine) if (u.unitCostJpy !== null) jpy = (jpy ?? 0) + u.unitCostJpy;
     return {
@@ -75,6 +104,15 @@ function hydrate(rows: Row[]): Shipment[] {
       trackingDomestic: r.tracking_domestic ?? "",
       carrierStatus: r.carrier_status ?? "",
       carrierCheckedAt: r.carrier_checked_at ?? null,
+      carrierCode: r.carrier_code ?? "",
+      carrierLabel: r.carrier_label ?? "",
+      carrierStatusAt: r.carrier_status_at ?? null,
+      carrierSyncedAt: r.carrier_synced_at ?? null,
+      carrierAttemptAt: r.carrier_attempt_at ?? null,
+      carrierError: r.carrier_error ?? "",
+      carrierKienId: r.carrier_kien_id ?? "",
+      carrierKienOrderId: r.carrier_kien_order_id ?? "",
+      events: (events.get(r.id) ?? []).filter((e) => e.forCode === code).map((e) => ({ code: e.code, label: e.label, at: e.at, known: e.known })),
       note: r.note ?? "",
       createdAt: r.created_at,
       updatedAt: r.updated_at,
@@ -84,6 +122,24 @@ function hydrate(rows: Row[]): Shipment[] {
       jpy,
     };
   });
+}
+
+/** Kiến history rows per run (all codes; hydrate keeps the ones of the run's current KEA code), oldest first. */
+export function listTrackingEventsSync(db: DatabaseSync, shipmentIds: number[]): Map<number, Array<TrackingEvent & { forCode: string }>> {
+  const out = new Map<number, Array<TrackingEvent & { forCode: string }>>();
+  if (!shipmentIds.length) return out;
+  let rows: Array<{ shipment_id: number; code: string; status_code: string; status_label: string; at: string; known: number }> = [];
+  try {
+    rows = db.prepare(`SELECT shipment_id, code, status_code, status_label, at, known FROM shipment_tracking_events WHERE shipment_id IN (${shipmentIds.map(() => "?").join(",")}) ORDER BY at, id`).all(...shipmentIds) as typeof rows;
+  } catch {
+    return out; // table arrives with migration 71
+  }
+  for (const r of rows) {
+    const list = out.get(r.shipment_id) ?? [];
+    list.push({ forCode: r.code, code: r.status_code, label: r.status_label, at: r.at, known: r.known !== 0 });
+    out.set(r.shipment_id, list);
+  }
+  return out;
 }
 
 export function listShipments(includeDone = false, limit = 60): Shipment[] {

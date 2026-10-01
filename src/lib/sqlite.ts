@@ -1501,6 +1501,34 @@ export const MIGRATIONS: Migration[] = [
       if (moved) console.info(`[db] customer profiles: ${moved} order(s) moved to the profile of their own name`);
     },
   },
+  {
+    // Kiến Express tracking sync: the carrier state per run (for the KEA code it belongs to), when it was fetched, the
+    // last error, Kiến's own ids, and every history event (idempotent on shipment + code + status + time).
+    version: 71,
+    name: "shipment-carrier-sync",
+    up: [
+      `ALTER TABLE shipments ADD COLUMN carrier_code TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_label TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_status_at TEXT`,
+      `ALTER TABLE shipments ADD COLUMN carrier_synced_at TEXT`,
+      `ALTER TABLE shipments ADD COLUMN carrier_attempt_at TEXT`,
+      `ALTER TABLE shipments ADD COLUMN carrier_error TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_kien_id TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_kien_order_id TEXT NOT NULL DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS shipment_tracking_events (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        shipment_id  INTEGER NOT NULL,
+        code         TEXT NOT NULL,
+        status_code  TEXT NOT NULL,
+        status_label TEXT NOT NULL DEFAULT '',
+        at           TEXT NOT NULL,
+        known        INTEGER NOT NULL DEFAULT 1,
+        created_at   TEXT NOT NULL,
+        UNIQUE(shipment_id, code, status_code, at)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_tracking_events_shipment ON shipment_tracking_events(shipment_id, at)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

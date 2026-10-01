@@ -19,7 +19,7 @@ export const SHIPMENT_STAGES: ShipmentStage[] = [
   { key: "packing", label: "Đang đóng hàng", short: "Đang đóng", cls: "bg-gray-200 text-gray-700", location: null },
   { key: "packed", label: "Đã đóng xong — chờ xuất cho ĐVVC", short: "Đã đóng xong", cls: "bg-amber-100 text-amber-800", location: null },
   { key: "handed", label: "Đã chuyển cho ĐVVC (kho Kiến Nhật)", short: "Đã giao ĐVVC", cls: "bg-sky-100 text-sky-800", location: { warehouse: "jp_carrier", inTransit: false } },
-  { key: "flying", label: "Đang bay NB→VN", short: "NB→VN", cls: "bg-indigo-100 text-indigo-800", location: { warehouse: "jp_carrier", inTransit: true } },
+  { key: "flying", label: "Đang vận chuyển JP→VN", short: "JP→VN", cls: "bg-indigo-100 text-indigo-800", location: { warehouse: "jp_carrier", inTransit: true } },
   { key: "arrived", label: "Đã về kho ĐVVC VN (Hà Nội)", short: "Kho ĐVVC VN", cls: "bg-purple-100 text-purple-800", location: { warehouse: "carrier", inTransit: false } },
   { key: "done", label: "Đã về kho shop VN", short: "Về kho VN", cls: "bg-green-100 text-green-800", location: { warehouse: "vn", inTransit: false } },
 ];
@@ -37,7 +37,7 @@ export interface CarrierStep {
 export const CARRIER_STEPS: CarrierStep[] = [
   { api: "waiting", label: "Nhận yêu cầu", hint: "Đã tạo yêu cầu gửi; Kiến chưa xác nhận nhận hàng vào kho Nhật", run: "packed" },
   { api: "warehouse_jp", label: "Kho JP đang xử lý", hint: "Kiện đã vào kho Kiến Express Nhật (mã nội địa PU…)", run: "handed" },
-  { api: "shipping", label: "Đang vận chuyển", hint: "Đang bay Nhật → Hà Nội (mã quốc tế KEA…)", run: "flying" },
+  { api: "shipping", label: "Đang vận chuyển", hint: "Đang vận chuyển Nhật → Hà Nội (mã quốc tế KEA…)", run: "flying" },
   { api: "warehouse_hn", label: "Kho HN đang xử lý", hint: "Kiện đã về kho Kiến Express Hà Nội", run: "arrived" },
   { api: "delivered", label: "Đã giao hàng xong", hint: "Kiến báo đã giao; đối chiếu bước nhận ở kho shop VN", run: "done" },
 ];

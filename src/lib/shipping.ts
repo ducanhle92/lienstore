@@ -315,7 +315,7 @@ export function orderSteps(o: { shipStage: ShipStage; paymentMethod?: string; pa
 /** Admin detail of "Đang vận chuyển về kho shop VN": the leg the goods are on, from the lines' purchase status. */
 export const TRANSIT_SUBSTEPS: Array<{ status: string; label: string }> = [
   { status: "to_carrier_jp", label: "Kho Kiến Nhật (ĐVVC Nhật)" },
-  { status: "shipped_jp_vn", label: "Đang bay NB → VN" },
+  { status: "shipped_jp_vn", label: "Đang vận chuyển JP → VN" },
   { status: "at_carrier_vn", label: "Kho ĐVVC Hà Nội" },
   { status: "to_shop", label: "Đang về kho shop VN" },
 ];

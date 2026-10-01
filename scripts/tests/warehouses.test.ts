@@ -154,7 +154,7 @@ describe("lot locations ↔ purchase status", () => {
       const loc = locationForStatus(s)!;
       assert.equal(statusForLocation(loc.warehouse, loc.inTransit), s);
     }
-    assert.equal(describeLocation("jp_carrier", true), "Đang bay NB→VN");
+    assert.equal(describeLocation("jp_carrier", true), "Đang vận chuyển JP→VN");
     assert.equal(parseWarehouse("Kho ĐVVC Nhật"), "jp_carrier");
   });
 });

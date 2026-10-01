@@ -70,7 +70,7 @@ export function statusForLocation(warehouse: Warehouse, inTransit: boolean): Pur
 /** "Kho ĐVVC Nhật · đang bay" — location label with the transit flag. */
 export function describeLocation(warehouse: Warehouse, inTransit: boolean): string {
   if (!inTransit) return WAREHOUSE_LABEL[warehouse];
-  return warehouse === "jp_carrier" ? "Đang bay NB→VN" : warehouse === "carrier" ? "Đang về kho shop VN" : WAREHOUSE_LABEL[warehouse];
+  return warehouse === "jp_carrier" ? "Đang vận chuyển JP→VN" : warehouse === "carrier" ? "Đang về kho shop VN" : WAREHOUSE_LABEL[warehouse];
 }
 
 /** Where goods bought for stock physically are while on the way: the shop's Japan side, in the air/sea, or at the carrier's Vietnam warehouse. */

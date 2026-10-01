@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, syncKienAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { PendingSubmit } from "@/components/sites/lienstore/admin/PendingSubmit";
+import { kienStepIndex, kienTrackingPageUrl, normalizeKienCode } from "@/lib/carriers/kien-express";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { TickGate } from "@/components/sites/lienstore/admin/TickGate";
@@ -38,7 +40,7 @@ const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-a
 /** ⑤ Vận chuyển: where goods with the carrier are — each place is a tab (units there + the runs at that stage). */
 const TRANSIT_AT = [
   { key: "jp_carrier", label: "Kho ĐVVC Nhật", icon: "building", status: "to_carrier_jp", run: "handed" },
-  { key: "flying", label: "Đang bay NB→VN", icon: "plane", status: "shipped_jp_vn", run: "flying" },
+  { key: "flying", label: "Đang vận chuyển JP→VN", icon: "plane", status: "shipped_jp_vn", run: "flying" },
   { key: "vn_carrier", label: "Kho ĐVVC VN", icon: "building", status: "at_carrier_vn", run: "arrived" },
   { key: "to_shop", label: "Đang về kho shop", icon: "truck", status: "to_shop", run: null },
 ] as const;
@@ -104,7 +106,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       <FlowSteps current={transit ? "transit" : "pack"} counts={flowCounts(db)} />
       <PageHeader
         title={transit ? "Vận chuyển JP-VN" : "Đóng hàng JP"}
-        subtitle={transit ? `Chuyến đã giao ĐVVC: kho Kiến Nhật → bay NB→VN → kho ĐVVC Hà Nội → về kho shop VN · ${shipments.filter((s) => s.status !== "done").length} chuyến đang đi` : `Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.length} chuyến đang đóng · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
+        subtitle={transit ? `Chuyến đã giao ĐVVC: kho Kiến Nhật → vận chuyển JP→VN → kho ĐVVC Hà Nội → về kho shop VN · ${shipments.filter((s) => s.status !== "done").length} chuyến đang đi` : `Đóng hàng từ Kho Nhật (shop) gửi ĐVVC · ${shipments.length} chuyến đang đóng · ở Kho Nhật còn ${shelfUnits} đv (${shelfProducts} sản phẩm) chưa đóng`}
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
@@ -290,23 +292,74 @@ function ShipmentTimeline({ s }: { s: Shipment }) {
   );
 }
 
-/** ⑤ Vận chuyển JP-VN: the carrier's own five states (API codes shown) — clicking a dot moves the run to the matching status. */
+/**
+ * ⑤ Vận chuyển JP-VN: the carrier's own five states. The dots show the run's step (click = move the run); beside them
+ * Kiến's reply for the run's KEA code — latest state + its time, last sync, "Đồng bộ từ Kiến", "Xem trên Kiến" — and
+ * under the strip the full history with times. Kiến "delivered" is display-only: the goods enter ⑥ when received by hand.
+ */
 function CarrierTimeline({ s }: { s: Shipment }) {
   const cur = carrierStepIndex(s.status);
   const n = CARRIER_STEPS.length;
   const pct = cur <= 0 ? 0 : (cur / (n - 1)) * 100;
+  const code = normalizeKienCode(s.tracking);
+  // the stored state belongs to the code the run carries now (a changed code shows "chưa đồng bộ" until synced)
+  const synced = !!code && s.carrierCode === code && !!s.carrierSyncedAt;
+  const apiIdx = synced ? kienStepIndex(s.carrierStatus) : -1;
+  const unknown = synced && !!s.carrierStatus && apiIdx < 0;
+  const behind = synced && apiIdx >= 0 && apiIdx < cur && s.carrierStatus !== "delivered";
+  const eventAt = (api: string) => s.events.filter((e) => e.code === api).map((e) => e.at).sort()[0] ?? null;
+  const btn = "!rounded-md !border !px-2.5 !py-1 !text-[12px] font-semibold";
   return (
     <div className="mb-3 rounded-md border border-sky-200 bg-sky-50/40 px-3 py-3" data-testid={`carrier-timeline-${s.id}`}>
       <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px] text-lien-muted">
         <Fa name="truck" /> Trạng thái bên Kiến Express
-        {s.carrierStatus ? (
-          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title={s.carrierCheckedAt ? `API báo lúc ${formatDateTime(s.carrierCheckedAt)}` : ""}>
-            API: {s.carrierStatus}
+        {code ? (
+          <code className="rounded-md border border-sky-200 bg-white px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-900" data-testid={`kien-code-${s.id}`}>
+            {code}
+          </code>
+        ) : null}
+        {synced && s.carrierStatus ? (
+          <span
+            className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", s.carrierStatus === "delivered" ? "bg-green-100 text-green-800" : unknown ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800")}
+            title={`Mã trạng thái API: ${s.carrierStatus}`}
+            data-testid={`kien-status-${s.id}`}
+          >
+            {s.carrierLabel || s.carrierStatus}
+            {s.carrierStatusAt ? ` · ${formatDateTime(s.carrierStatusAt)}` : ""}
           </span>
+        ) : code ? (
+          <span className="text-[11px]" data-testid={`kien-status-${s.id}`}>chưa đồng bộ với Kiến</span>
         ) : (
-          <span className="text-[11px]">— đối chiếu API tự động sẽ chạy khi có mã quốc tế (KEA…)</span>
+          <span className="text-[11px]">— nhập mã quốc tế KEA… ở đầu chuyến để đối chiếu với Kiến</span>
         )}
-        {cur < 0 ? <span className="ml-auto text-[11px]">chưa gửi cho ĐVVC</span> : null}
+        {synced && s.carrierSyncedAt ? (
+          <span className="text-[11px]" data-testid={`kien-synced-${s.id}`}>đồng bộ lúc {formatDateTime(s.carrierSyncedAt)}</span>
+        ) : null}
+        {s.carrierError ? (
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800" title={s.carrierAttemptAt ? `Lần thử gần nhất ${formatDateTime(s.carrierAttemptAt)}` : undefined} data-testid={`kien-error-${s.id}`}>
+            ⚠ {s.carrierError}
+          </span>
+        ) : null}
+        {unknown ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">trạng thái lạ — chưa biết ứng với bước nào</span> : null}
+        {behind ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Kiến đang ở bước trước bước shop đã chọn — giữ nguyên, không tự lùi</span> : null}
+        {synced && s.carrierStatus === "delivered" ? <span className="text-[11px]">Kiến báo đã giao — nhận hàng ở ⑥ Tồn kho khi hàng về tới shop</span> : null}
+        <span className="ml-auto flex items-center gap-2">
+          {cur < 0 ? <span className="text-[11px]">chưa gửi cho ĐVVC</span> : null}
+          {code ? (
+            <>
+              <form action={syncKienAction}>
+                <input type="hidden" name="shipmentId" value={s.id} />
+                <input type="hidden" name="transit" value="1" />
+                <PendingSubmit className={cn(btnSecondary, btn, "!border-lien-blue !text-lien-blue")} pendingLabel="Đang đồng bộ…" title="Gọi API Kiến Express lấy trạng thái mới nhất của mã này" testId={`kien-sync-${s.id}`}>
+                  <Fa name="refresh" /> Đồng bộ từ Kiến
+                </PendingSubmit>
+              </form>
+              <a href={kienTrackingPageUrl(code)} target="_blank" rel="noopener noreferrer" className={cn(btnSecondary, btn, "no-underline")} data-testid={`kien-link-${s.id}`}>
+                <Fa name="external-link" /> Xem trên Kiến
+              </a>
+            </>
+          ) : null}
+        </span>
       </div>
       <ol className="relative m-0 grid list-none p-0" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
         <span aria-hidden="true" className="absolute top-[9px] h-[3px] rounded bg-[#e5e5e5]" style={{ left: `calc(100% / ${n * 2})`, right: `calc(100% / ${n * 2})` }} />
@@ -314,6 +367,7 @@ function CarrierTimeline({ s }: { s: Shipment }) {
         {CARRIER_STEPS.map((st, i) => {
           const done = i <= cur;
           const current = i === cur;
+          const at = eventAt(st.api);
           return (
             <li key={st.api} className="relative flex flex-col items-center text-center">
               <form action={setShipmentStatusAction}>
@@ -325,12 +379,28 @@ function CarrierTimeline({ s }: { s: Shipment }) {
                   </span>
                   <span className={cn("text-[11px] leading-4 sm:text-[12px]", current ? "font-bold text-lien-heart" : done ? "font-semibold text-lien-heading" : "text-lien-muted group-hover:text-lien-blue")}>{st.label}</span>
                   <code className="text-[10px] text-lien-muted">{st.api}</code>
+                  {at ? <span className="text-[10px] font-semibold text-sky-800" title="Thời điểm Kiến ghi nhận (giờ VN)" data-testid={`kien-at-${s.id}-${st.api}`}>{formatDateTime(at)}</span> : null}
                 </button>
               </form>
             </li>
           );
         })}
       </ol>
+      {s.events.length ? (
+        <details className="mt-3 text-[12px]">
+          <summary className="cursor-pointer text-lien-muted">Lịch sử Kiến ghi nhận ({s.events.length} mốc)</summary>
+          <ol className="mt-1 list-none space-y-0.5 p-0" data-testid={`kien-history-${s.id}`}>
+            {[...s.events].reverse().map((e) => (
+              <li key={`${e.code}-${e.at}`} className={cn("flex flex-wrap items-center gap-2", !e.known && "text-amber-800")}>
+                <span className="font-mono text-[11px] text-lien-muted">{formatDateTime(e.at)}</span>
+                <span className="font-semibold">{e.label}</span>
+                <code className="text-[10px] text-lien-muted">{e.code}</code>
+                {!e.known ? <span className="text-[10px]">trạng thái lạ</span> : null}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -361,10 +431,12 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
                 </span>
               ) : null}
             </h2>
-            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
-              Dự kiến gửi
-              <input type="date" name="plannedAt" form={infoId} defaultValue={s.plannedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày dự kiến gửi" data-testid={`planned-${s.id}`} />
-            </label>
+            {carrierView ? null : (
+              <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
+                Dự kiến gửi
+                <input type="date" name="plannedAt" form={infoId} defaultValue={s.plannedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày dự kiến gửi" data-testid={`planned-${s.id}`} />
+              </label>
+            )}
             <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
               Ngày gửi
               <input type="date" name="shippedAt" form={infoId} defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày gửi" data-testid={`shipped-${s.id}`} />
