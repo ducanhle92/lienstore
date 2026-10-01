@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-10-01
+
 ### Changed
 - ⑤ Vận chuyển JP-VN: job đồng bộ Kiến Express chạy **mỗi 10 phút** (trước 60; cài đặt `kien_sync_minutes`, 0 = tắt) — bấm tay vẫn giữ.
 - ⑤: thanh tab “Tất cả chuyến / Kho ĐVVC Nhật / Đang vận chuyển / Kho ĐVVC VN” thay bằng **ô tìm kiện đã gửi ĐVVC** (mã chuyến, tên, KEA…, PU…, sản phẩm, mã bill, số đơn, khách — không phân biệt dấu) + lọc **Gửi từ ngày / đến ngày** + chọn **Bước** (kể cả chuyến đã về kho VN). Nút **Đang về kho shop · chi phí** giữ lại làm bảng chi phí chặng kho ĐVVC HN → kho shop VN (ship nội địa bên nhận trả; sẽ bổ sung nhập bill / số tiền).
