@@ -293,7 +293,10 @@ export async function createOrderAdminAction(formData: FormData): Promise<void> 
     if (!street) fail("Nhập số nhà, đường giao hàng.");
     if (!isCarrierCode(carrier) || !serviceCode) fail("Chọn một phương án vận chuyển (GHN / Viettel Post / J&T…) cho địa chỉ này.");
   }
-  const paymentMethod = v("pay") === "cod" ? "cod" : "bacs";
+  // COD is the admin's call (the storefront refuses it for made-to-order goods): create as transfer, then switch like
+  // the "Cho thanh toán khi nhận hàng" button does (stock committed, no prepaid requirement)
+  const wantCod = v("pay") === "cod";
+  const paymentMethod = "bacs";
   const customer = email ? await findCustomerByEmail(email) : null;
   let id = "";
   let number = 0;
@@ -311,6 +314,10 @@ export async function createOrderAdminAction(formData: FormData): Promise<void> 
     });
     id = order.id;
     number = order.number;
+    if (wantCod) {
+      const r = await setOrderCod(id);
+      if (!r.ok) throw new Error(r.message);
+    }
   } catch (e) {
     fail(e instanceof Error ? e.message : "Không tạo được đơn.");
   }

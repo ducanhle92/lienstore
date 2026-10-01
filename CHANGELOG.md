@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Đơn hàng › Tạo đơn mới: chọn **COD** với hàng order bị báo "cần thanh toán trước 100% bằng chuyển khoản" và không tạo được đơn (quy tắc của trang web cho khách). Giờ admin quyết định COD được cho mọi đơn: đơn tạo xong tự chuyển sang COD như nút "Cho thanh toán khi nhận hàng" (trừ tồn ngay, bước Hoàn tất thanh toán ở cuối).
+
 ## [2.13.0] - 2026-10-01
 
 ### Changed

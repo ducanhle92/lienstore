@@ -41,7 +41,7 @@ export function NewOrderPanel({ products }: { products: PickableProduct[] }) {
             Thanh toán
             <select name="pay" defaultValue="bacs" className={cn(adminInput, "mt-1")}>
               <option value="bacs">Chuyển khoản</option>
-              <option value="cod">COD (khách quen — trừ tồn ngay)</option>
+              <option value="cod">COD — thu khi giao (admin quyết định, kể cả hàng order; trừ tồn ngay)</option>
             </select>
           </label>
           <label className={label}>
