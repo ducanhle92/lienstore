@@ -108,9 +108,16 @@ export function listPurchaseBatches(opts: boolean | BatchSearch = false, limit =
   if (o.onlyDone) where.push("status = 'at_shop'");
   else if (!o.includeDone) where.push("status <> 'at_shop'");
   if (o.q) {
-    where.push("(LOWER(code) LIKE ? OR LOWER(label) LIKE ? OR LOWER(note) LIKE ?)");
+    // the trip itself (code / name / note) or a product in it: bought units or order lines still to buy
     const like = `%${o.q.toLowerCase()}%`;
-    args.push(like, like, like);
+    const pid = /^#?(\d+)$/.exec(o.q.trim())?.[1] ?? null;
+    const prod = "(LOWER(p.name) LIKE ? OR LOWER(COALESCE(p.sku, '')) LIKE ? OR LOWER(COALESCE(p.name_ja, '')) LIKE ? OR p.id = ?)";
+    where.push(
+      `(LOWER(code) LIKE ? OR LOWER(label) LIKE ? OR LOWER(note) LIKE ?
+        OR id IN (SELECT u.batch_id FROM stock_units u JOIN products p ON p.id = u.product_id WHERE u.batch_id IS NOT NULL AND u.removed IS NULL AND ${prod})
+        OR id IN (SELECT oi.batch_id FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.batch_id IS NOT NULL AND ${prod}))`,
+    );
+    args.push(like, like, like, like, like, like, pid ?? -1, like, like, like, pid ?? -1);
   }
   if (o.from) {
     where.push("COALESCE(bought_at, substr(created_at, 1, 10)) >= ?");

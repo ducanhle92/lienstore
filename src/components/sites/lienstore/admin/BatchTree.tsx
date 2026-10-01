@@ -17,6 +17,8 @@ interface Props {
   batchId: number;
   /** Page-header switch (?bv=): by product (tree) or every unit code (flat). */
   view: "tree" | "flat";
+  /** The page's trip search: when it names a product, only its rows are listed in every trip (bill lines open). */
+  q?: string;
 }
 
 const fold = (s: string) =>
@@ -73,12 +75,12 @@ const subscribe = (cb: () => void) => {
   return () => window.removeEventListener("popstate", cb);
 };
 
-export function BatchTree({ batchId, view }: Props) {
+export function BatchTree({ batchId, view, q = "" }: Props) {
   const search = useSyncExternalStore(subscribe, () => window.location.search, () => "");
   const initial = useMemo(() => readUrl(search), [search]);
   const [edited, setF] = useState<Filter | null>(null);
   // the view (tree / flat) is the page-header switch (?bv=), never the local copy
-  const f: Filter = { ...(edited ?? initial), view };
+  const f: Filter = { ...(edited ?? initial), view, q: (edited ?? initial).q || q };
   const [sort, setSort] = useState<{ attr: string; dir: 1 | -1 } | null>(null);
 
   // apply filter + view + open state
@@ -119,12 +121,12 @@ export function BatchTree({ batchId, view }: Props) {
       let show: boolean;
       if (d.lvl === "p") show = !flat && (pShown.get(d.p ?? "") ?? 0) > 0;
       else if (d.lvl === "g") show = !flat && (gShown.get(d.g ?? "") ?? 0) > 0;
-      else if (d.lvl === "n") show = d.match === "1" && (flat || rows.find((x) => x.dataset.lvl === "p" && x.dataset.p === d.p)?.dataset.open !== "0");
+      else if (d.lvl === "n") show = d.match === "1" && (flat || !!q || rows.find((x) => x.dataset.lvl === "p" && x.dataset.p === d.p)?.dataset.open !== "0");
       else {
         const g = rows.find((x) => x.dataset.lvl === "g" && x.dataset.g === d.g);
         show = d.match === "1" && (flat || (g?.dataset.open === "1" && rows.find((x) => x.dataset.lvl === "p" && x.dataset.p === d.p)?.dataset.open !== "0"));
       }
-      if (d.lvl === "g" && !flat) {
+      if (d.lvl === "g" && !flat && !q) {
         const p = rows.find((x) => x.dataset.lvl === "p" && x.dataset.p === d.p);
         if (p?.dataset.open === "0") show = false;
       }

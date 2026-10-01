@@ -59,7 +59,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
       <div className="flex flex-wrap items-center gap-2" data-testid="batch-topbar">
         <form method="get" className="flex flex-wrap items-center gap-2 text-[13px]">
           <input type="hidden" name="tab" value="batches" />
-          <input name="bq" defaultValue={search.q} placeholder="Tìm đợt: tên / mã DG-…" className={cn(adminInput, "!mb-0 !w-[220px] !py-1")} aria-label="Tìm đợt mua" />
+          <input name="bq" defaultValue={search.q} placeholder="Tìm đợt / sản phẩm: tên, SKU, #id, mã DG-…" className={cn(adminInput, "!mb-0 !w-[220px] !py-1")} aria-label="Tìm đợt mua" />
           <span className="text-lien-muted">ngày mua từ</span>
           <input type="date" name="bfrom" defaultValue={search.from} className={cn(adminInput, "!mb-0 !w-[112px] !py-1")} aria-label="Từ ngày" />
           <span className="text-lien-muted">đến</span>
@@ -159,7 +159,7 @@ export function PurchaseBatchPanel({ batches, openLines, products, sources, incl
           </Card>
         ) : null}
         {batches.map((b) => (
-          <BatchCard key={b.id} batch={b} products={products} sources={sources} billsOpen={openBillsFor === b.id} view={view} />
+          <BatchCard key={b.id} batch={b} products={products} sources={sources} billsOpen={openBillsFor === b.id} view={view} q={search.q} />
         ))}
       </div>
     </div>
@@ -201,7 +201,7 @@ interface Ctx {
   channelOf: (key: string) => string;
 }
 
-function BatchCard({ batch: b, products, sources, billsOpen, view }: { view: "tree" | "flat"; batch: PurchaseBatch; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
+function BatchCard({ batch: b, products, sources, billsOpen, view, q }: { view: "tree" | "flat"; q: string; batch: PurchaseBatch; products: PickableProduct[]; sources: PurchaseSource[]; billsOpen: boolean }) {
   const st = PURCHASE_STAGES[purchaseIndex(b.status)];
   const stage = BATCH_STAGES.find((s) => s.key === b.status) ?? BATCH_STAGES[0];
   const left = b.units.some((u) => purchaseIndex(u.status) > purchaseIndex("bought"));
@@ -386,7 +386,7 @@ function BatchCard({ batch: b, products, sources, billsOpen, view }: { view: "tr
           </ConfirmSubmit>
         </BulkBar>
 
-        <BatchTree batchId={b.id} view={view} />
+        <BatchTree batchId={b.id} view={view} q={q} />
         <div className="overflow-x-auto" id={tableId} data-select-scope={bulkId}>
           <SheetTable id={`batch-${b.id}`}>
           <table className={cn(tableClass, "max-lg:block")}>

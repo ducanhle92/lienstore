@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đơn hàng › Tổng theo bộ lọc: bình thường tính theo các đơn đang hiện (sau lọc ▾, trừ đã huỷ); tick đơn thì chỉ tính các đơn đã tick ("đã tick n đơn"), bỏ tick là về tổng.
+- Quản lý mua hàng › ô Tìm đợt: gõ tên / SKU / #id sản phẩm thì hiện các đợt có sản phẩm đó và trong mỗi đợt chỉ còn các dòng của sản phẩm đó (dòng bill mở sẵn); vẫn tìm được theo tên / mã đợt như cũ.
+
 ## [2.11.1] - 2026-09-30
 
 ### Changed

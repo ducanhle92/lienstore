@@ -22,7 +22,7 @@ import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { getDb } from "@/lib/sqlite";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
-import { StatChip, StatChips } from "@/components/sites/lienstore/admin/StatChip";
+import { OrdersTotals } from "@/components/sites/lienstore/admin/OrdersTotals";
 
 export const dynamic = "force-dynamic";
 
@@ -151,16 +151,7 @@ export default async function AdminOrders({ searchParams }: Props) {
               </BulkBar>
             </>
           ) : null}
-          <StatChips caption="Tổng theo bộ lọc" className="mb-3" testId="orders-totals">
-            <StatChip icon="shopping-cart" value={pnl.size} label="đơn" title="Đơn trong bộ lọc, trừ đơn đã huỷ" />
-            <StatChip icon="money" value={formatPrice(sum.revenue)} label="doanh thu" tone="green" title="Tiền hàng sau voucher + ship khách trả shop" />
-            <StatChip icon="tags" value={formatPrice(sum.cogs)} label="giá vốn" />
-            <StatChip icon="truck" value={formatPrice(sum.ship)} label="vận chuyển" title="Phí vận chuyển shop chịu: nhập 3 chặng + giao VN trả hãng − ship khách trả shop" />
-            <StatChip icon="gift" value={formatPrice(sum.voucher)} label="voucher" tone="amber" hidden={!sum.voucher} />
-            <StatChip icon="tag" value={formatPrice(sum.promo)} label="giảm giá SP" tone="amber" hidden={!sum.promo} />
-            <StatChip icon="line-chart" value={signed(sum.profit)} label="lãi / lỗ" tone={sum.profit >= 0 ? "green" : "red"} />
-            <StatChip value={sum.missing} label="dòng chưa có giá vốn" tone="red" hidden={!sum.missing} />
-          </StatChips>
+          <OrdersTotals target="[data-sheet='orders'] table" initial={{ orders: pnl.size, revenue: sum.revenue, cogs: sum.cogs, ship: sum.ship, voucher: sum.voucher, promo: sum.promo, profit: sum.profit, missing: sum.missing }} />
           <ResizableTable id="orders">
             <SheetTable id="orders">
             <table className={tableClass}>
@@ -185,8 +176,11 @@ export default async function AdminOrders({ searchParams }: Props) {
               <tbody>
                 {items.map((o) => {
                   const s = SHIP_STAGES[stageIndex(o.shipStage)];
+                  const pr = pnl.get(o.id);
+                  // per-row figures for the live "Tổng theo bộ lọc" (cancelled orders have no P&L row → not counted)
+                  const fig = pr ? { "data-rev": pr.revenue + pr.shipCollected, "data-cogs": pr.cogs, "data-ship": pr.importFees + pr.vnCarrierFee, "data-voucher": pr.voucher, "data-promo": pr.promoDiscount, "data-profit": pr.profit, "data-missing": pr.missingCost } : {};
                   return (
-                    <tr key={o.id} className="hover:bg-[#fafafa]">
+                    <tr key={o.id} className="hover:bg-[#fafafa]" {...fig}>
                       {isOwner ? (
                         <td className={tdClass}>
                           <input type="checkbox" name="ids" value={o.id} form={BULK_FORM_ID} data-number={o.number} aria-label={`Chọn đơn #${o.number}`} className="h-4 w-4" />
