@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.16.3] - 2026-10-01
+
 ### Fixed
 - ⑤ Vận chuyển JP-VN: lưu ngày gửi / mã PU… / KEA… trên thanh đầu chuyến bị nhảy về ④ Đóng hàng — giờ ở lại ⑤ và hiện "Đã lưu thông tin chuyến".
 
