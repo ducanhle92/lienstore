@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- Hồ sơ khách: một số điện thoại dùng cho nhiều người (đặt hộ bạn bè, người nhà) bị gộp thành một hồ sơ — ví dụ đơn "Chị Phượng (bạn c Lâm)" nằm dưới "C Lâm". Giờ hồ sơ nhận diện theo **số điện thoại + tên** (tên so khớp bỏ dấu, bỏ ký tự thừa): cùng SĐT mà tên khác → hồ sơ riêng; cùng tên viết khác dấu / khoảng trắng → vẫn một hồ sơ. Migration 70 tách lại các đơn cũ (điểm thưởng đi theo đơn); tài khoản web đăng ký sau chỉ nhận hồ sơ cùng tên; thêm khách tay cùng SĐT khác tên được phép.
+
 ## [2.16.0] - 2026-10-01
 
 ### Added

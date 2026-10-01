@@ -5,7 +5,7 @@ import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { backfillGroupCodes, convertLegacyStock } from "./units-migrate";
-import { backfillCustomersSync } from "./customers-db";
+import { backfillCustomersSync, relinkOrdersByNameSync } from "./customers-db";
 
 /**
  * SQLite connection + schema migrations for LienStore.
@@ -1489,6 +1489,17 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE shipments ADD COLUMN carrier_status TEXT NOT NULL DEFAULT ''`,
       `ALTER TABLE shipments ADD COLUMN carrier_checked_at TEXT`,
     ],
+  },
+  {
+    // One phone, several people: an order whose name differs from its profile's name gets (or makes) the profile of
+    // that name — "Chị Phượng (bạn c Lâm)" is no longer filed under "C Lâm" just because the phone matches.
+    version: 70,
+    name: "customer-profiles-by-name",
+    up: [],
+    run: (db) => {
+      const moved = relinkOrdersByNameSync(db);
+      if (moved) console.info(`[db] customer profiles: ${moved} order(s) moved to the profile of their own name`);
+    },
   },
 ];
 

@@ -113,11 +113,26 @@ export function recomputeAllTiersSync(db: DatabaseSync): number {
 // ---------------------------------------------------------------------------------------------------------------------
 // one profile per buyer
 
-/** The customer owning this phone number: a web account first, then the oldest profile. */
-export function findCustomerByPhoneSync(db: DatabaseSync, phone: string | null | undefined): { id: string; kind: string } | undefined {
+/** Name as an identity helper: lower-case, no accents, no punctuation, single spaces ("Chị Phượng (bạn c Lâm)" ≠ "C Lâm"). */
+export const foldName = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * The customer owning this phone number. One phone is often used for several people (a buyer ordering for friends,
+ * a family), so when a name is given the profile must carry the same name: same phone + other name = another
+ * profile. Without a name (or when the matching profile has none yet) the web account comes first, then the oldest.
+ */
+export function findCustomerByPhoneSync(db: DatabaseSync, phone: string | null | undefined, name?: string): { id: string; kind: string } | undefined {
   const key = normalizePhone(phone);
   if (!key) return undefined;
-  return db.prepare("SELECT id, kind FROM customers WHERE phone_key = ? ORDER BY CASE kind WHEN 'account' THEN 0 ELSE 1 END, created_at LIMIT 1").get(key) as { id: string; kind: string } | undefined;
+  const rows = db.prepare("SELECT id, kind, first_name, last_name FROM customers WHERE phone_key = ? ORDER BY CASE kind WHEN 'account' THEN 0 ELSE 1 END, created_at").all(key) as Array<{ id: string; kind: string; first_name: string; last_name: string }>;
+  if (!rows.length) return undefined;
+  if (name === undefined) return rows[0];
+  const want = foldName(name);
+  if (!want) return rows[0];
+  const same = rows.find((r) => foldName(`${r.last_name} ${r.first_name}`) === want);
+  if (same) return same;
+  const blank = rows.find((r) => !foldName(`${r.last_name} ${r.first_name}`));
+  return blank;
 }
 
 export interface OrderContact {
@@ -135,7 +150,7 @@ export interface OrderContact {
 export function ensureCustomerForOrderSync(db: DatabaseSync, c: OrderContact, now = new Date().toISOString()): string | null {
   const key = normalizePhone(c.phone);
   const email = c.email.trim().toLowerCase();
-  const byPhone = findCustomerByPhoneSync(db, c.phone);
+  const byPhone = findCustomerByPhoneSync(db, c.phone, `${c.lastName} ${c.firstName}`);
   if (byPhone) return byPhone.id;
   if (email) {
     const byEmail = db.prepare("SELECT id FROM customers WHERE LOWER(email) = ?").get(email) as { id: string } | undefined;
@@ -156,6 +171,33 @@ export function ensureCustomerForOrderSync(db: DatabaseSync, c: OrderContact, no
      VALUES (?, ?, '', '', ?, ?, ?, ?, 'customer', '[]', 0, NULL, ?, 'guest', ?, ?, ?)`,
   ).run(id, mail, c.firstName.trim().slice(0, 120), c.lastName.trim().slice(0, 120), c.phone.trim().slice(0, 30), c.address.trim().slice(0, 400), nextNo, key, now, now);
   return id;
+}
+
+/**
+ * Migration step: orders linked to a profile of another name (one phone shared by several people) move to the profile
+ * of their own name — created when missing — together with their points.
+ */
+export function relinkOrdersByNameSync(db: DatabaseSync): number {
+  const rows = db
+    .prepare(
+      `SELECT o.id, o.customer_id, o.first_name, o.last_name, o.phone, o.email, o.address, o.created_at, c.first_name AS c_first, c.last_name AS c_last
+         FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.customer_id IS NOT NULL ORDER BY o.created_at`,
+    )
+    .all() as Array<{ id: string; customer_id: string; first_name: string; last_name: string; phone: string; email: string; address: string; created_at: string; c_first: string; c_last: string }>;
+  let moved = 0;
+  const link = db.prepare("UPDATE orders SET customer_id = ? WHERE id = ?");
+  const movePts = db.prepare("UPDATE loyalty_points SET customer_id = ? WHERE order_id = ?");
+  for (const o of rows) {
+    const orderName = foldName(`${o.last_name} ${o.first_name}`);
+    if (!orderName || orderName === foldName(`${o.c_last} ${o.c_first}`)) continue;
+    const target = ensureCustomerForOrderSync(db, { firstName: o.first_name, lastName: o.last_name, phone: o.phone, email: "", address: o.address }, o.created_at);
+    if (!target || target === o.customer_id) continue;
+    link.run(target, o.id);
+    movePts.run(target, o.id);
+    moved++;
+  }
+  if (moved) recomputeAllTiersSync(db);
+  return moved;
 }
 
 /** Migration step: phone keys for every profile, a profile for every order that has none, tiers for all. */
@@ -279,8 +321,10 @@ export function upsertCustomerProfileSync(db: DatabaseSync, input: { id?: string
   const email = input.email.trim().toLowerCase();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Email không hợp lệ." };
   if (key) {
-    const other = db.prepare("SELECT id, customer_no FROM customers WHERE phone_key = ? AND id <> ? ORDER BY created_at LIMIT 1").get(key, input.id ?? "") as { id: string; customer_no: number | null } | undefined;
-    if (other) return { ok: false, message: `Số điện thoại này đã thuộc khách #${other.customer_no ?? other.id}.` };
+    // several people may share a phone; the same name on the same phone would be a duplicate profile
+    const others = db.prepare("SELECT id, customer_no, first_name, last_name FROM customers WHERE phone_key = ? AND id <> ? ORDER BY created_at").all(key, input.id ?? "") as Array<{ id: string; customer_no: number | null; first_name: string; last_name: string }>;
+    const dup = others.find((o) => foldName(`${o.last_name} ${o.first_name}`) === foldName(name));
+    if (dup) return { ok: false, message: `Khách #${dup.customer_no ?? dup.id} đã có cùng tên và số điện thoại này.` };
   }
   if (email) {
     const other = db.prepare("SELECT customer_no FROM customers WHERE LOWER(email) = ? AND id <> ?").get(email, input.id ?? "") as { customer_no: number | null } | undefined;

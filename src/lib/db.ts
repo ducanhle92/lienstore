@@ -58,6 +58,7 @@ import { locationForStatus, statusForLocation } from "./warehouses";
 import { syncProductStock } from "./stock-sync";
 import { isRegularBy, normalizePhone } from "./regular-customers";
 import { adjustPointsSync, earnPointsSync, ledgerSync, loadLoyaltyRules, type LoyaltyRules, loyaltySummariesSync, loyaltySummarySync, pointsBalanceSync, redeemPointsSync, reversePointsSync, saveLoyaltyRules, setOrderLoyaltyExcludedSync } from "./loyalty-db";
+import { foldName } from "./customers-db";
 import { customerPickListSync, ensureCustomerForOrderSync, getCustomerDirectoryRowSync, listCustomerDirectorySync, loadTierRules, recomputeAllTiersSync, recomputeTierSync, saveTierRules, type TierRules, upsertCustomerProfileSync } from "./customers-db";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
@@ -1110,9 +1111,12 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     // The account's saved contact details follow the latest checkout, so "Địa chỉ" in my-account matches the order;
     // an ID-only account also adopts the email typed at checkout when no other account owns it.
     if (customerId) {
-      const cust = db.prepare("SELECT email FROM customers WHERE id = ?").get(customerId) as { email: string } | undefined;
+      const cust = db.prepare("SELECT email, kind, first_name, last_name FROM customers WHERE id = ?").get(customerId) as { email: string; kind: string | null; first_name: string; last_name: string } | undefined;
       if (cust) {
-        db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, phone_key = CASE WHEN phone_key = '' THEN ? ELSE phone_key END, address = ?, updated_at = ? WHERE id = ?").run(c.firstName, c.lastName, c.phone, normalizePhone(c.phone), c.address, now, customerId);
+        // a guest profile keeps the name it was created with (only the spelling of the same name varies per order);
+        // a web account follows the latest checkout like before
+        const keepName = cust.kind === "guest" && `${cust.last_name} ${cust.first_name}`.trim() !== "";
+        db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, phone_key = CASE WHEN phone_key = '' THEN ? ELSE phone_key END, address = ?, updated_at = ? WHERE id = ?").run(keepName ? cust.first_name : c.firstName, keepName ? cust.last_name : c.lastName, c.phone, normalizePhone(c.phone), c.address, now, customerId);
         rememberAddress(db, customerId, `${c.lastName} ${c.firstName}`.trim(), c.phone, c.address);
         const typed = c.email.trim().toLowerCase();
         if (typed && cust.email.endsWith(`@${NO_EMAIL_DOMAIN}`)) {
@@ -2221,7 +2225,12 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
   };
   // a web account whose phone already has a guest profile (orders typed by the admin / guest checkouts): the guest
   // profile becomes this account, so the history stays on one card
-  const guest = db.prepare("SELECT id FROM customers WHERE phone_key = ? AND kind = 'guest' AND phone_key <> '' ORDER BY created_at LIMIT 1").get(normalizePhone(customer.phone)) as { id: string } | undefined;
+  const guest = normalizePhone(customer.phone)
+    ? ((db.prepare("SELECT id, first_name, last_name FROM customers WHERE phone_key = ? AND kind = 'guest' ORDER BY created_at").all(normalizePhone(customer.phone)) as Array<{ id: string; first_name: string; last_name: string }>).find((g) => {
+        const gn = foldName(`${g.last_name} ${g.first_name}`);
+        return !gn || gn === foldName(`${customer.lastName} ${customer.firstName}`);
+      }) ?? undefined)
+    : undefined;
   if (guest) {
     db.prepare(`UPDATE customers SET email = ?, password_hash = ?, salt = ?, first_name = CASE WHEN ? <> '' THEN ? ELSE first_name END, last_name = CASE WHEN ? <> '' THEN ? ELSE last_name END, address = CASE WHEN ? <> '' THEN ? ELSE address END, role = ?, permissions = ?, active = ?, username = ?, kind = 'account', updated_at = ? WHERE id = ?`).run(
       customer.email, customer.passwordHash, customer.salt, customer.firstName, customer.firstName, customer.lastName, customer.lastName, customer.address, customer.address, customer.role, JSON.stringify(customer.permissions), customer.active ? 1 : 0, customer.username || null, now, guest.id,
