@@ -1455,6 +1455,29 @@ export const MIGRATIONS: Migration[] = [
       console.info(`[db] customer profiles: ${r.created} guest profile(s) created, ${r.linked} order(s) linked`);
     },
   },
+  {
+    // Chính sách điểm thưởng: a ledger of points per customer; an order remembers the points spent on it and whether
+    // the admin took it out of the programme (already discounted by hand).
+    version: 68,
+    name: "loyalty-points",
+    up: [
+      `CREATE TABLE IF NOT EXISTS loyalty_points (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id TEXT NOT NULL,
+        order_id    TEXT,
+        kind        TEXT NOT NULL,
+        points      INTEGER NOT NULL,
+        note        TEXT NOT NULL DEFAULT '',
+        actor       TEXT NOT NULL DEFAULT '',
+        created_at  TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_loyalty_points_customer ON loyalty_points(customer_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_loyalty_points_order ON loyalty_points(order_id)`,
+      `ALTER TABLE orders ADD COLUMN loyalty_points_used INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN loyalty_discount INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE orders ADD COLUMN loyalty_excluded INTEGER NOT NULL DEFAULT 0`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

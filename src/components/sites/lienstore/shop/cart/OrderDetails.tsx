@@ -58,7 +58,7 @@ export function OrderDetailsTable({ order, className }: { order: Order; classNam
         {order.discount > 0 ? (
           <tr>
             <th className={cn(shopTdClass, "font-bold")} scope="row">
-              Giảm giá{order.voucherCode ? ` (${order.voucherCode})` : ""}:
+              Giảm giá{order.voucherCode ? ` (${order.voucherCode})` : ""}{order.loyaltyDiscount > 0 ? ` (điểm thưởng ${order.loyaltyPointsUsed} điểm)` : ""}:
             </th>
             <td className={cn(shopTdClass, "text-lien-success")}>
               −<Price value={order.discount} currency={order.currency} />

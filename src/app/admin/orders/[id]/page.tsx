@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import type { OrderMessage } from "@/types/shop";
 import { TIER_CLASS, TIER_LABEL, isTier } from "@/lib/customer-tiers";
+import { redeemPointsAction, setOrderLoyaltyExcludedAction } from "@/app/admin/loyalty/actions";
+import { getLoyaltyRules, getPointsBalance } from "@/lib/db";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
@@ -51,6 +53,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   const heldElsewhere = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, [...new Set(heldByOthers(getDb(), it.productId, it.itemId as number).map((u) => u.orderNumber))]] as const) : []);
   const sourceOptions = new Map(order ? order.items.filter((it) => it.itemId).map((it) => [it.itemId as number, listSourceOptions(getDb(), it.productId, it.itemId as number)] as const) : []);
   const regularCustomer = order?.customerId ? await getCustomerById(order.customerId) : null;
+  // Chính sách điểm thưởng: what the buyer has, what this order could still take
+  const [pointsBalance, loyaltyRules] = await Promise.all([order?.customerId ? getPointsBalance(order.customerId) : Promise.resolve(0), getLoyaltyRules()]);
   const regularSets = await listRegularSets();
   const isRegular = !!order && isRegularBy({ accountRegular: regularCustomer?.isRegular, phone: order.customer.phone, regularPhones: regularSets.phones });
   const TONE: Record<string, string> = { green: "bg-green-100 text-green-800", sky: "bg-sky-100 text-sky-800", amber: "bg-amber-100 text-amber-800", gray: "bg-gray-200 text-gray-700" };
@@ -291,7 +295,12 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 {order.discount > 0 ? (
                   <tr>
                     <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
-                      Giảm giá {order.voucherCode ? <span className="font-normal text-lien-muted">({order.voucherCode})</span> : null}
+                      Giảm giá{" "}
+                      {order.voucherCode || order.loyaltyDiscount ? (
+                        <span className="font-normal text-lien-muted">
+                          ({[order.voucherCode ? `voucher ${order.voucherCode}` : "", order.loyaltyDiscount ? `điểm thưởng ${order.loyaltyPointsUsed} điểm = ${formatPrice(order.loyaltyDiscount)}` : ""].filter(Boolean).join(" + ")})
+                        </span>
+                      ) : null}
                     </td>
                     <td className={`${tdClass} text-right text-lien-success`}>−{formatPrice(order.discount, order.currency)}</td>
                   </tr>
@@ -514,6 +523,46 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 </dd>
               </div>
             </dl>
+            {order.customerId ? (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[13px]" data-testid="order-points">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Fa name="gift" className="text-amber-700" />
+                  <b className="text-lien-heading">Điểm thưởng:</b>
+                  <span data-testid="points-balance">
+                    <b>{pointsBalance.toLocaleString("vi-VN")}</b> điểm ≈ {formatPrice(pointsBalance * loyaltyRules.pointValue)}
+                    {order.loyaltyPointsUsed && order.status !== "cancelled" ? <span className="text-lien-muted"> (chưa kể {order.loyaltyPointsUsed} điểm đang dùng trên đơn này)</span> : null}
+                  </span>
+                  {order.loyaltyPointsUsed ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">đã dùng {order.loyaltyPointsUsed} điểm = −{formatPrice(order.loyaltyDiscount)}</span> : null}
+                  <Link href={`/admin/customers/${encodeURIComponent(customerKey)}/`} className="text-[12px] text-lien-blue hover:underline">
+                    lịch sử điểm →
+                  </Link>
+                </div>
+                {order.status !== "cancelled" && order.shipStage !== "delivered" ? (
+                  <form action={redeemPointsAction} className="mt-2 flex flex-wrap items-center gap-2" data-testid="redeem-form">
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <label className="text-[12px] font-semibold text-lien-heading">
+                      Dùng điểm
+                      <input name="points" inputMode="numeric" defaultValue={order.loyaltyPointsUsed || Math.min(pointsBalance + order.loyaltyPointsUsed, Math.floor(Math.max(0, order.subtotal - (order.discount - order.loyaltyDiscount)) / loyaltyRules.pointValue))} className={cn(adminInput, "!mb-0 ml-1 !inline-block !w-24 !py-1 !text-[13px]")} aria-label="Số điểm dùng" data-testid="redeem-points" />
+                    </label>
+                    <span className="text-[12px] text-lien-muted">× {formatPrice(loyaltyRules.pointValue)} / điểm → trừ thẳng vào Tổng</span>
+                    <button type="submit" className={cn(btnPrimary, "!py-1 !text-[13px]")} data-testid="redeem-apply" title="Trừ số điểm này vào tiền đơn (nhập 0 để bỏ)">
+                      <Fa name="check" /> Trừ vào đơn
+                    </button>
+                  </form>
+                ) : null}
+                <form action={setOrderLoyaltyExcludedAction} className="mt-2 flex items-center gap-2 text-[12px]" data-testid="exclude-form">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <input type="hidden" name="excluded" value={order.loyaltyExcluded ? "0" : "1"} />
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 text-lien-heading" title="Đơn đã giảm giá trực tiếp cho khách: không tích điểm và không tính vào hạng (tránh trùng ưu đãi)">
+                    <input type="checkbox" checked={order.loyaltyExcluded} readOnly className="h-4 w-4" />
+                    Loại khỏi hậu mãi (đã giảm trực tiếp)
+                  </label>
+                  <button type="submit" className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} data-testid="exclude-apply">
+                    {order.loyaltyExcluded ? "Tính lại" : "Loại"}
+                  </button>
+                </form>
+              </div>
+            ) : null}
           </Card>
           <div id="bill">
           <Card

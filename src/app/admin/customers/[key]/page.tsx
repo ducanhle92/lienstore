@@ -6,7 +6,9 @@ import { ADMIN_STATUS_LABELS, adminInput, btnPrimary, btnSecondary, Card, Flash,
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { TIER_CLASS, TIER_LABEL } from "@/lib/customer-tiers";
-import { countOrderFiles, getCustomerDirectoryRow, getOrdersForCustomerKey } from "@/lib/db";
+import { countOrderFiles, getCustomerDirectoryRow, getLoyaltyRules, getOrdersForCustomerKey, getPointsLedger } from "@/lib/db";
+import { ledgerKindLabel } from "@/lib/loyalty-db";
+import { adjustPointsAction } from "@/app/admin/loyalty/actions";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
@@ -32,7 +34,8 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
   }
   const c = await getCustomerDirectoryRow(key.slice(2));
   if (!c) notFound();
-  const [orders, fileCounts] = await Promise.all([getOrdersForCustomerKey(key), countOrderFiles()]);
+  const [orders, fileCounts, ledger, loyaltyRules] = await Promise.all([getOrdersForCustomerKey(key), countOrderFiles(), getPointsLedger(c.id), getLoyaltyRules()]);
+  const pointsBalance = ledger.reduce((n, e) => n + e.points, 0);
   const sp = await searchParams;
   const flag = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v) ?? ""; };
   const isRegular = c.isRegular;
@@ -204,6 +207,40 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
                 </div>
               ) : null}
             </dl>
+          </Card>
+          <Card
+            title="Điểm thưởng"
+            actions={
+              <span className="text-[13px]" data-testid="profile-points">
+                <b className="text-lien-heading">{pointsBalance.toLocaleString("vi-VN")}</b> điểm ≈ {formatPrice(pointsBalance * loyaltyRules.pointValue)}
+              </span>
+            }
+          >
+            <form action={adjustPointsAction} className="mb-3 flex flex-wrap items-center gap-2 text-[13px]" data-testid="adjust-form">
+              <input type="hidden" name="customerId" value={c.id} />
+              <input type="hidden" name="back" value={`/admin/customers/${encodeURIComponent(key)}/`} />
+              <input name="points" inputMode="numeric" placeholder="+50 tặng · -20 trừ" className={cn(adminInput, "!mb-0 !w-36 !py-1")} aria-label="Số điểm" />
+              <input name="note" placeholder="lý do" className={cn(adminInput, "!mb-0 !w-40 !py-1")} aria-label="Lý do" />
+              <button type="submit" className={cn(btnSecondary, "!py-1 !text-[13px]")}>
+                ± điểm
+              </button>
+            </form>
+            {ledger.length === 0 ? <p className="m-0 text-[13px] text-lien-muted">Chưa có điểm — tích khi đơn giao thành công (Sales › Chính sách hậu mãi).</p> : null}
+            <ul className="m-0 list-none space-y-1 p-0 text-[12px]" data-testid="points-ledger">
+              {ledger.slice(0, 30).map((e) => (
+                <li key={e.id} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className={cn("w-14 shrink-0 text-right font-mono font-semibold", e.points >= 0 ? "text-green-700" : "text-red-600")}>{e.points > 0 ? `+${e.points}` : e.points}</span>
+                  <span className="text-lien-heading">{ledgerKindLabel(e.kind)}</span>
+                  {e.orderNumber ? (
+                    <Link href={`/admin/orders/${e.orderId}/`} className="text-lien-blue hover:underline">
+                      #{e.orderNumber}
+                    </Link>
+                  ) : null}
+                  <span className="text-lien-muted">{e.note}</span>
+                  <span className="ml-auto text-lien-muted">{formatDateTime(e.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
           </Card>
           <Card title="Đã mua">
             {itemsBought.size === 0 ? <p className="m-0 text-lien-muted">—</p> : null}

@@ -57,6 +57,7 @@ import { groupCodeFromName, normalizeGroupCode, STAGE_UNIT_STATUS } from "./unit
 import { locationForStatus, statusForLocation } from "./warehouses";
 import { syncProductStock } from "./stock-sync";
 import { isRegularBy, normalizePhone } from "./regular-customers";
+import { adjustPointsSync, earnPointsSync, ledgerSync, loadLoyaltyRules, type LoyaltyRules, loyaltySummariesSync, loyaltySummarySync, pointsBalanceSync, redeemPointsSync, reversePointsSync, saveLoyaltyRules, setOrderLoyaltyExcludedSync } from "./loyalty-db";
 import { customerPickListSync, ensureCustomerForOrderSync, getCustomerDirectoryRowSync, listCustomerDirectorySync, loadTierRules, recomputeAllTiersSync, recomputeTierSync, saveTierRules, type TierRules, upsertCustomerProfileSync } from "./customers-db";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
@@ -235,6 +236,9 @@ interface OrderRow {
   paid_at: string | null;
   ship_fee_payment: string | null;
   ship_quote_json: string | null;
+  loyalty_points_used?: number | null;
+  loyalty_discount?: number | null;
+  loyalty_excluded?: number | null;
   pay_code: string | null;
   pay_account_id: number | null;
   created_at: string;
@@ -285,6 +289,9 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
     prepaidRequired: (r.prepaid_required ?? 0) === 1,
     stockCommittedAt: r.stock_committed_at ?? null,
     discount: r.discount ?? 0,
+    loyaltyPointsUsed: r.loyalty_points_used ?? 0,
+    loyaltyDiscount: r.loyalty_discount ?? 0,
+    loyaltyExcluded: (r.loyalty_excluded ?? 0) === 1,
     shipFeePayment: r.ship_fee_payment === "on_delivery" ? "on_delivery" : "prepaid",
     shipQuote: r.ship_quote_json ?? null,
     payCode: r.pay_code ?? "",
@@ -1133,6 +1140,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       shippingLabel,
       delivery,
       prepaidRequired,
+      loyaltyPointsUsed: 0,
+      loyaltyDiscount: 0,
+      loyaltyExcluded: false,
       // paying on delivery (regular customers) committed the stock above
       stockCommittedAt: input.paymentMethod === "cod" ? now : null,
       discount,
@@ -1210,7 +1220,12 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
     if (stage === "delivered") {
       db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
       const cid = (db.prepare("SELECT customer_id FROM orders WHERE id = ?").get(id) as { customer_id: string | null } | undefined)?.customer_id;
-      if (cid) recomputeTierSync(db, cid);
+      if (cid) {
+        // points by the tier the buyer had when the goods arrived; the delivery itself may then lift the tier
+        const tierNow = recomputeTierSync(db, cid);
+        earnPointsSync(db, id, tierNow);
+        recomputeTierSync(db, cid);
+      }
     }
     else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
     // moved back to the start and still unpaid → "Chờ xử lý" again
@@ -1308,6 +1323,10 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   withTransaction(db, () => {
     db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, now, id);
     if (status === "cancelled" && cur.status !== "cancelled") {
+      // points: earned ones come back to the shop, spent ones go back to the customer; the tier follows
+      reversePointsSync(db, id, "Đơn đã huỷ", { refundRedeemed: true });
+      const cid = (db.prepare("SELECT customer_id FROM orders WHERE id = ?").get(id) as { customer_id: string | null } | undefined)?.customer_id;
+      if (cid) recomputeTierSync(db, cid);
       // the order's units go back to stock (paid ones too — the goods are still ours) and serve waiting orders
       db.prepare("UPDATE orders SET stock_committed_at = NULL WHERE id = ?").run(id);
       const r = releaseUnitsSync(db, id);
@@ -2052,6 +2071,48 @@ export async function setTierRules(rules: TierRules): Promise<number> {
 }
 export async function recomputeAllTiers(): Promise<number> {
   return recomputeAllTiersSync(getDb());
+}
+
+// ---------- Chính sách điểm thưởng ----------
+export async function getLoyaltyRules(): Promise<LoyaltyRules> {
+  return loadLoyaltyRules(getDb());
+}
+export async function setLoyaltyRules(rules: LoyaltyRules): Promise<void> {
+  saveLoyaltyRules(getDb(), rules);
+}
+export async function getLoyaltySummaries() {
+  return loyaltySummariesSync(getDb());
+}
+export async function getLoyaltySummary(customerId: string) {
+  return loyaltySummarySync(getDb(), customerId);
+}
+export async function getPointsBalance(customerId: string): Promise<number> {
+  return pointsBalanceSync(getDb(), customerId);
+}
+export async function getPointsLedger(customerId: string) {
+  return ledgerSync(getDb(), customerId);
+}
+export async function adjustPoints(customerId: string, points: number, note: string, actor: string): Promise<void> {
+  const db = getDb();
+  withTransaction(db, () => adjustPointsSync(db, customerId, points, note, actor));
+}
+/** "Dùng điểm" on an order (0 = undo). */
+export async function redeemPoints(orderId: string, points: number, actor: string) {
+  const db = getDb();
+  return withTransaction(db, () => redeemPointsSync(db, orderId, points, actor));
+}
+/** Tick / untick "loại khỏi hậu mãi" on an order; the buyer's tier follows. */
+export async function setOrderLoyaltyExcluded(orderId: string, excluded: boolean): Promise<boolean> {
+  const db = getDb();
+  return withTransaction(db, () => {
+    const cid = setOrderLoyaltyExcludedSync(db, orderId, excluded);
+    if (cid === null) return false;
+    if (cid) {
+      const tier = recomputeTierSync(db, cid);
+      if (!excluded) earnPointsSync(db, orderId, tier);
+    }
+    return true;
+  });
 }
 
 export async function getOrdersForCustomerKey(key: string): Promise<Order[]> {

@@ -60,22 +60,27 @@ export interface CustomerStats {
   spentDelivered: number;
   lastOrderAt: string | null;
 }
-const STATS_SQL = `SELECT customer_id,
+// orders.loyalty_excluded arrives with migration 68; the tier backfill of migration 67 runs before it exists
+const statsSql = (db: DatabaseSync) => {
+  const hasExcl = (db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>).some((c) => c.name === "loyalty_excluded");
+  const counted = hasExcl ? "status <> 'cancelled' AND ship_stage = 'delivered' AND COALESCE(loyalty_excluded, 0) = 0" : "status <> 'cancelled' AND ship_stage = 'delivered'";
+  return `SELECT customer_id,
     COUNT(*) AS orders,
-    SUM(CASE WHEN status <> 'cancelled' AND ship_stage = 'delivered' THEN 1 ELSE 0 END) AS delivered,
+    SUM(CASE WHEN ${counted} THEN 1 ELSE 0 END) AS delivered,
     SUM(CASE WHEN status <> 'cancelled' THEN total ELSE 0 END) AS spent,
-    SUM(CASE WHEN status <> 'cancelled' AND ship_stage = 'delivered' THEN total ELSE 0 END) AS spent_delivered,
+    SUM(CASE WHEN ${counted} THEN total ELSE 0 END) AS spent_delivered,
     MAX(created_at) AS last_at
   FROM orders WHERE customer_id IS NOT NULL`;
+};
 type StatsRow = { customer_id: string; orders: number; delivered: number | null; spent: number | null; spent_delivered: number | null; last_at: string | null };
 const toStats = (r: StatsRow | undefined): CustomerStats => ({ orders: r?.orders ?? 0, delivered: r?.delivered ?? 0, spent: r?.spent ?? 0, spentDelivered: r?.spent_delivered ?? 0, lastOrderAt: r?.last_at ?? null });
 
 export function customerStatsSync(db: DatabaseSync, customerId: string): CustomerStats {
-  return toStats(db.prepare(`${STATS_SQL} AND customer_id = ? GROUP BY customer_id`).get(customerId) as StatsRow | undefined);
+  return toStats(db.prepare(`${statsSql(db)} AND customer_id = ? GROUP BY customer_id`).get(customerId) as StatsRow | undefined);
 }
 export function allCustomerStatsSync(db: DatabaseSync): Map<string, CustomerStats> {
   const out = new Map<string, CustomerStats>();
-  for (const r of db.prepare(`${STATS_SQL} GROUP BY customer_id`).all() as StatsRow[]) out.set(r.customer_id, toStats(r));
+  for (const r of db.prepare(`${statsSql(db)} GROUP BY customer_id`).all() as StatsRow[]) out.set(r.customer_id, toStats(r));
   return out;
 }
 

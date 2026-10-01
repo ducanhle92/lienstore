@@ -5,6 +5,11 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Chính sách điểm thưởng (hậu mãi)** — màn mới Sales › **Chính sách hậu mãi** (migration 68): danh sách người mua với hạng, ngày mua đầu tiên, đơn đã giao, đã chi (tính hạng), điểm đã tích / đã dùng / hiện có và quy ra tiền; ± điểm bằng tay (tặng / trừ, có lý do). Chủ cửa hàng đặt chính sách: giá trị 1 điểm (mặc định 1.000đ), tỉ lệ tích theo hạng (mặc định chưa xếp 0% · Bạc 1% · Vàng 2% · Kim cương 3% giá trị hàng), đơn tối thiểu.
+- Tích điểm tự động khi đơn chuyển **Đã giao hàng thành công** (theo hạng của khách lúc đó); đơn huỷ thì thu hồi điểm đã tích và hoàn điểm đã dùng. Lịch sử điểm trong hồ sơ khách (khối "Điểm thưởng").
+- Chi tiết đơn › ô Khách hàng: khối **Điểm thưởng** — số điểm hiện có ≈ tiền, link lịch sử điểm, ô **Dùng điểm → Trừ vào đơn** (số điểm gợi ý sẵn = tối đa dùng được; nhập 0 để bỏ): tiền giảm cộng vào Giảm giá, Tổng tính lại, khách thấy "điểm thưởng n điểm" trong dòng giảm giá; tick **Loại khỏi hậu mãi (đã giảm trực tiếp)** để đơn không tích điểm, không tính hạng (tránh trùng ưu đãi).
+
 ## [2.14.0] - 2026-10-01
 
 ### Added

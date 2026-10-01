@@ -362,8 +362,13 @@ export interface Order {
   prepaidRequired: boolean;
   /** When the reserved lot units were really deducted (payment confirmed / COD granted); null = still only reserved. */
   stockCommittedAt: string | null;
-  /** Voucher discount taken off the subtotal (0 when none). */
+  /** Discount taken off the subtotal: voucher + points (0 when none). */
   discount: number;
+  /** Chính sách điểm thưởng: points spent on this order and the money they were worth (part of `discount`). */
+  loyaltyPointsUsed: number;
+  loyaltyDiscount: number;
+  /** Admin took the order out of the programme (already discounted by hand): no points, not counted for the tier. */
+  loyaltyExcluded: boolean;
   voucherCode: string;
   /** "prepaid": the fee is part of `total`; "on_delivery": paid to the courier, not included in `total`. */
   shipFeePayment: ShipFeePayment;
