@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { setCustomerRegularAction } from "@/app/admin/customers/actions";
-import { ADMIN_STATUS_LABELS, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
+import { notFound, redirect } from "next/navigation";
+import { saveCustomerProfileAction, setCustomerRegularAction } from "@/app/admin/customers/actions";
+import { ADMIN_STATUS_LABELS, adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
-import { countOrderFiles, getCustomerById, getCustomerOverview, getOrdersForCustomerKey } from "@/lib/db";
+import { TIER_CLASS, TIER_LABEL } from "@/lib/customer-tiers";
+import { countOrderFiles, getCustomerDirectoryRow, getOrdersForCustomerKey } from "@/lib/db";
+import { cn } from "@/lib/utils";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
 
@@ -21,13 +23,20 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
   await requireAdmin("customers");
   const { key: raw } = await params;
   const key = decodeURIComponent(raw);
-  const [overview, orders, fileCounts] = await Promise.all([getCustomerOverview(), getOrdersForCustomerKey(key), countOrderFiles()]);
+  // every buyer has a profile now; an old "g:<email|phone>" link lands on the profile its orders belong to
+  if (!key.startsWith("c:")) {
+    const legacy = await getOrdersForCustomerKey(key);
+    const cid = legacy.find((o) => o.customerId)?.customerId;
+    if (cid) redirect(`/admin/customers/${encodeURIComponent(`c:${cid}`)}/`);
+    notFound();
+  }
+  const c = await getCustomerDirectoryRow(key.slice(2));
+  if (!c) notFound();
+  const [orders, fileCounts] = await Promise.all([getOrdersForCustomerKey(key), countOrderFiles()]);
   const sp = await searchParams;
   const flag = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v) ?? ""; };
-  const c = overview.find((x) => x.key === key);
-  if (!c) notFound();
-  const account = c.customerId ? await getCustomerById(c.customerId) : null;
-  const isRegular = !!account?.isRegular;
+  const isRegular = c.isRegular;
+  const tier = c.tierEffective;
 
   const spent = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
   const itemsBought = new Map<string, { name: string; slug: string; image: string; qty: number; total: number }>();
@@ -45,13 +54,21 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
     <>
       <PageHeader
         title={c.name || c.email || c.phone || "Khách hàng"}
-        subtitle={`${orders.length} đơn · đã chi ${formatPrice(spent)}${c.registered ? " · có tài khoản" : " · khách vãng lai"}${isRegular ? " · khách quen" : ""}`}
+        summary={
+          <span className="flex flex-wrap items-center gap-2 font-normal">
+            {c.customerNo ? <span className="font-mono text-[13px] text-lien-muted">#{c.customerNo}</span> : null}
+            <span className={cn("rounded-full px-2 py-0.5 text-[12px] font-semibold", TIER_CLASS[tier])} data-testid="customer-tier">
+              {TIER_LABEL[tier]}
+              {c.tierManual ? " ✎" : ""}
+            </span>
+          </span>
+        }
+        subtitle={`${orders.length} đơn · ${c.stats.delivered} đã giao · đã chi ${formatPrice(spent)}${c.kind === "account" ? " · có tài khoản web" : " · chưa có tài khoản (hồ sơ theo SĐT)"}${isRegular ? " · khách quen" : ""}`}
         back={{ href: "/admin/customers/", label: "Khách hàng" }}
         actions={
-          c.customerId ? (
+          c.id ? (
             <form action={setCustomerRegularAction} className="flex items-center gap-2" data-testid="regular-form">
-              <input type="hidden" name="customerId" value={c.customerId} />
-              <input type="hidden" name="key" value={c.key} />
+              <input type="hidden" name="customerId" value={c.id} />
               <input type="hidden" name="regular" value={isRegular ? "0" : "1"} />
               <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]" title="Khách quen được chọn thanh toán khi nhận hàng; admin đổi đơn sang thu khi giao thì tồn kho trừ ngay">
                 <input type="checkbox" checked={isRegular} readOnly className="h-4 w-4" />
@@ -61,9 +78,7 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
                 {isRegular ? "Bỏ đánh dấu" : "Đánh dấu"}
               </button>
             </form>
-          ) : (
-            <span className="text-[12px] text-lien-muted">Khách vãng lai — cần tài khoản để đánh dấu khách quen</span>
-          )
+          ) : null
         }
       />
       {flag("saved") ? <Flash>{flag("saved")}</Flash> : null}
@@ -118,7 +133,53 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
         </div>
 
         <div className="space-y-6">
-          <Card title="Thông tin">
+          <Card
+            title="Thông tin"
+            actions={
+              <details className="relative" data-testid="edit-profile">
+                <summary className={cn(btnSecondary, "inline-flex cursor-pointer list-none !px-2 !py-0.5 !text-[12px]")} title="Sửa hồ sơ khách (tên, SĐT, email, địa chỉ, ghi chú, hạng)">
+                  <Fa name="pencil" /> Sửa
+                </summary>
+                <div className="absolute right-0 z-30 mt-1 w-[min(92vw,380px)] rounded-md border border-[#e5e7eb] bg-white p-3 shadow-lg">
+                  <form action={saveCustomerProfileAction} className="grid gap-2 text-[13px]">
+                    <input type="hidden" name="customerId" value={c.id} />
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Họ tên
+                      <input name="name" defaultValue={c.name} required maxLength={120} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                    </label>
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Điện thoại
+                      <input name="phone" defaultValue={c.phone} inputMode="tel" maxLength={30} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                    </label>
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Email
+                      <input name="email" type="email" defaultValue={c.email} maxLength={160} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                    </label>
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Địa chỉ
+                      <textarea name="address" defaultValue={c.address} rows={2} maxLength={400} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                    </label>
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Hạng
+                      <select name="tierManual" defaultValue={c.tierManual} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} data-testid="tier-select">
+                        <option value="">Tự động ({TIER_LABEL[c.tier]})</option>
+                        <option value="silver">Bạc (đặt tay)</option>
+                        <option value="gold">Vàng (đặt tay)</option>
+                        <option value="diamond">Kim cương (đặt tay)</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-0.5 font-semibold text-lien-heading">
+                      Ghi chú về khách
+                      <textarea name="note" defaultValue={c.note} rows={2} maxLength={1000} className={cn(adminInput, "!py-1.5 !text-[13px] font-normal")} />
+                    </label>
+                    <button type="submit" className={cn(btnPrimary, "justify-self-start !py-1.5 !text-[13px]")} data-testid="save-profile">
+                      <Fa name="check" /> Lưu
+                    </button>
+                  </form>
+                </div>
+              </details>
+            }
+          >
             <dl className="grid gap-2 text-[14px] leading-5">
               <div>
                 <dt className="text-[12px] font-semibold uppercase text-[#6b7280]">Điện thoại</dt>
@@ -134,8 +195,14 @@ export default async function AdminCustomerDetail({ params, searchParams }: Prop
               </div>
               <div>
                 <dt className="text-[12px] font-semibold uppercase text-[#6b7280]">Loại</dt>
-                <dd>{c.registered ? `Tài khoản (tạo ${c.createdAt ? formatDateTime(c.createdAt) : ""})` : "Khách vãng lai (gộp theo email/điện thoại)"}</dd>
+                <dd>{c.kind === "account" ? `Tài khoản web (tạo ${formatDateTime(c.createdAt)})` : `Hồ sơ theo số điện thoại (tạo ${formatDateTime(c.createdAt)})`}</dd>
               </div>
+              {c.note ? (
+                <div>
+                  <dt className="text-[12px] font-semibold uppercase text-[#6b7280]">Ghi chú</dt>
+                  <dd className="whitespace-pre-wrap">{c.note}</dd>
+                </div>
+              ) : null}
             </dl>
           </Card>
           <Card title="Đã mua">

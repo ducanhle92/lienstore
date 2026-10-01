@@ -8,7 +8,7 @@ import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
 import { isCarrierCode } from "@/lib/carriers";
-import { createOrder, findCustomerByEmail, addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
+import { createOrder, findCustomerByEmail, getCustomerById, addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
 import { isShipStage, SHIP_STAGES } from "@/lib/shipping";
@@ -297,7 +297,9 @@ export async function createOrderAdminAction(formData: FormData): Promise<void> 
   // the "Cho thanh toán khi nhận hàng" button does (stock committed, no prepaid requirement)
   const wantCod = v("pay") === "cod";
   const paymentMethod = "bacs";
-  const customer = email ? await findCustomerByEmail(email) : null;
+  // the picked profile, else the account owning the typed e-mail; otherwise createOrder finds / makes the profile by phone
+  const pickedId = v("customer_id");
+  const customer = (pickedId ? await getCustomerById(pickedId) : null) ?? (email ? await findCustomerByEmail(email) : null);
   let id = "";
   let number = 0;
   try {

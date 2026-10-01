@@ -304,6 +304,13 @@ export interface Customer {
   isRegular: boolean;
   /** Profile picture URL (uploaded by the customer); empty = initial letter. */
   avatar: string;
+  /** "account" = registered on the web; "guest" = profile made from an order (no login). */
+  kind: "account" | "guest";
+  /** Automatic tier from delivered orders ("" | silver | gold | diamond) and the admin's override. */
+  tier: string;
+  tierManual: string;
+  /** Admin note about the customer. */
+  note: string;
   createdAt: string;
   updatedAt: string;
 }

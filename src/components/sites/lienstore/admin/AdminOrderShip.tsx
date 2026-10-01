@@ -5,6 +5,7 @@ import type { ShippingQuote } from "@/lib/carriers/types";
 import { cn } from "@/lib/utils";
 import { isCompleteAddress, type QuoteLine, type ShipAddress, ShipAddressFields, ShippingQuotePanel } from "@/components/sites/lienstore/shop/ShippingQuotePanel";
 import { adminInput } from "./ui";
+import { CUSTOMER_PICK_EVENT } from "./CustomerSearchSelect";
 
 const EMPTY: ShipAddress = { provinceCode: "", wardCode: "", street: "" };
 
@@ -45,11 +46,21 @@ export function AdminOrderShip() {
       }, 250);
     };
     sync();
+    // a customer picked above → their last delivery address (codes when the order was quoted), ready to re-quote
+    const onPick = (e: Event) => {
+      const a = (e as CustomEvent<{ provinceCode: string; wardCode: string; street: string; text: string } | null>).detail;
+      if (!a) return;
+      setDelivery("ship");
+      setSel(null);
+      setAddr(a.provinceCode && a.wardCode ? { provinceCode: a.provinceCode, wardCode: a.wardCode, street: a.street } : { provinceCode: "", wardCode: "", street: a.street || a.text });
+    };
+    form.addEventListener(CUSTOMER_PICK_EVENT, onPick);
     form.addEventListener("input", sync);
     form.addEventListener("change", sync);
     form.addEventListener("click", sync);
     return () => {
       window.clearTimeout(timer);
+      form.removeEventListener(CUSTOMER_PICK_EVENT, onPick);
       form.removeEventListener("input", sync);
       form.removeEventListener("change", sync);
       form.removeEventListener("click", sync);

@@ -5,6 +5,7 @@ import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { backfillGroupCodes, convertLegacyStock } from "./units-migrate";
+import { backfillCustomersSync } from "./customers-db";
 
 /**
  * SQLite connection + schema migrations for LienStore.
@@ -1434,6 +1435,25 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE products ADD COLUMN stock_vn INTEGER`,
       `UPDATE products SET stock_vn = (SELECT COUNT(*) FROM stock_units u WHERE u.product_id = products.id AND u.order_item_id IS NULL AND u.removed IS NULL AND u.status = 'at_shop') WHERE stock IS NOT NULL`,
     ],
+  },
+  {
+    // One profile per buyer: web accounts stay kind "account"; buyers who never registered get a "guest" profile keyed
+    // by their phone number, every past order is linked to its profile, and tiers (Bạc / Vàng / Kim cương) are derived.
+    version: 67,
+    name: "customer-profiles",
+    up: [
+      `ALTER TABLE customers ADD COLUMN kind TEXT NOT NULL DEFAULT 'account'`,
+      `ALTER TABLE customers ADD COLUMN phone_key TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE customers ADD COLUMN tier TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE customers ADD COLUMN tier_manual TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE customers ADD COLUMN tier_since TEXT`,
+      `ALTER TABLE customers ADD COLUMN note TEXT NOT NULL DEFAULT ''`,
+      `CREATE INDEX IF NOT EXISTS idx_customers_phone_key ON customers(phone_key)`,
+    ],
+    run: (db) => {
+      const r = backfillCustomersSync(db);
+      console.info(`[db] customer profiles: ${r.created} guest profile(s) created, ${r.linked} order(s) linked`);
+    },
   },
 ];
 

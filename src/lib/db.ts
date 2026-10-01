@@ -57,6 +57,7 @@ import { groupCodeFromName, normalizeGroupCode, STAGE_UNIT_STATUS } from "./unit
 import { locationForStatus, statusForLocation } from "./warehouses";
 import { syncProductStock } from "./stock-sync";
 import { isRegularBy, normalizePhone } from "./regular-customers";
+import { customerPickListSync, ensureCustomerForOrderSync, getCustomerDirectoryRowSync, listCustomerDirectorySync, loadTierRules, recomputeAllTiersSync, recomputeTierSync, saveTierRules, type TierRules, upsertCustomerProfileSync } from "./customers-db";
 import { loadDefaultBankAccount, loadPayPrefix } from "./bank-config";
 import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, sortVariants } from "./variants";
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
@@ -314,6 +315,10 @@ interface CustomerRow {
   customer_no: number | null;
   avatar: string | null;
   is_regular: number | null;
+  kind?: string | null;
+  tier?: string | null;
+  tier_manual?: string | null;
+  note?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -334,6 +339,10 @@ const rowToCustomer = (r: CustomerRow): Customer => ({
   active: (r.active ?? 1) === 1,
   avatar: r.avatar ?? "",
   isRegular: (r.is_regular ?? 0) === 1,
+  kind: r.kind === "guest" ? "guest" : "account",
+  tier: r.tier ?? "",
+  tierManual: r.tier_manual ?? "",
+  note: r.note ?? "",
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -938,8 +947,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     let prepaidRequired = false;
     let weightG = 0;
     let special = false;
+    // every buyer has a profile: the logged-in account, else the profile owning this phone / e-mail, else a new guest one
+    const customerId = input.customerId ?? ensureCustomerForOrderSync(db, { firstName: input.customer.firstName, lastName: input.customer.lastName, phone: input.customer.phone, email: input.customer.email, address: input.customer.address }, now) ?? undefined;
     // "Khách quen" may pay on delivery even for made-to-order lines
-    const regular = isRegularCustomerSync(db, input.customerId, input.customer.phone);
+    const regular = isRegularCustomerSync(db, customerId, input.customer.phone);
     for (const it of input.items) {
       const row = db.prepare("SELECT id, slug, name, price, regular_price, thumb, stock, stock_vn, weight_g, dims_cm, dims_confidence, tags FROM products WHERE id = ? AND status = 'publish'").get(it.productId) as
         | { id: number; slug: string; name: string; price: number; regular_price: number | null; thumb: string; stock: number | null; stock_vn: number | null; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null; tags: string | null }
@@ -1028,7 +1039,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       subtotal, total, currency, created_at, updated_at, shipping_fee, shipping_label, delivery, prepaid_required, discount, voucher_code, ship_fee_payment, ship_quote_json, pay_code, pay_account_id) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VNĐ', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       id,
       number,
-      input.customerId ?? null,
+      customerId ?? null,
       input.paymentMethod,
       c.firstName,
       c.lastName,
@@ -1091,22 +1102,22 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     }
     // The account's saved contact details follow the latest checkout, so "Địa chỉ" in my-account matches the order;
     // an ID-only account also adopts the email typed at checkout when no other account owns it.
-    if (input.customerId) {
-      const cust = db.prepare("SELECT email FROM customers WHERE id = ?").get(input.customerId) as { email: string } | undefined;
+    if (customerId) {
+      const cust = db.prepare("SELECT email FROM customers WHERE id = ?").get(customerId) as { email: string } | undefined;
       if (cust) {
-        db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, address = ?, updated_at = ? WHERE id = ?").run(c.firstName, c.lastName, c.phone, c.address, now, input.customerId);
-        rememberAddress(db, input.customerId, `${c.lastName} ${c.firstName}`.trim(), c.phone, c.address);
+        db.prepare("UPDATE customers SET first_name = ?, last_name = ?, phone = ?, phone_key = CASE WHEN phone_key = '' THEN ? ELSE phone_key END, address = ?, updated_at = ? WHERE id = ?").run(c.firstName, c.lastName, c.phone, normalizePhone(c.phone), c.address, now, customerId);
+        rememberAddress(db, customerId, `${c.lastName} ${c.firstName}`.trim(), c.phone, c.address);
         const typed = c.email.trim().toLowerCase();
         if (typed && cust.email.endsWith(`@${NO_EMAIL_DOMAIN}`)) {
-          const taken = db.prepare("SELECT 1 FROM customers WHERE lower(email) = ? AND id != ?").get(typed, input.customerId);
-          if (!taken) db.prepare("UPDATE customers SET email = ?, updated_at = ? WHERE id = ?").run(typed, now, input.customerId);
+          const taken = db.prepare("SELECT 1 FROM customers WHERE lower(email) = ? AND id != ?").get(typed, customerId);
+          if (!taken) db.prepare("UPDATE customers SET email = ?, updated_at = ? WHERE id = ?").run(typed, now, customerId);
         }
       }
     }
     return {
       id,
       number,
-      ...(input.customerId ? { customerId: input.customerId } : {}),
+      ...(customerId ? { customerId } : {}),
       createdAt: now,
       updatedAt: now,
       status: "pending",
@@ -1196,7 +1207,11 @@ export async function setOrderStage(id: string, stage: ShipStage, note = ""): Pr
     const target = STAGE_UNIT_STATUS[stage];
     const unitIds = target ? raiseOrderUnitsSync(db, id, target, { note: `Theo tiến độ đơn${note ? ` · ${note}` : ""}` }) : [];
     // delivered AND paid = done (a COD order waits for "Hoàn tất thanh toán"); anything before keeps it "processing"
-    if (stage === "delivered") db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
+    if (stage === "delivered") {
+      db.prepare("UPDATE orders SET status = CASE WHEN paid_at IS NOT NULL THEN 'completed' ELSE 'processing' END WHERE id = ? AND status <> 'cancelled'").run(id);
+      const cid = (db.prepare("SELECT customer_id FROM orders WHERE id = ?").get(id) as { customer_id: string | null } | undefined)?.customer_id;
+      if (cid) recomputeTierSync(db, cid);
+    }
     else if (stage !== "ordered") db.prepare("UPDATE orders SET status = 'processing' WHERE id = ? AND status IN ('pending','completed')").run(id);
     // moved back to the start and still unpaid → "Chờ xử lý" again
     else db.prepare("UPDATE orders SET status = 'pending' WHERE id = ? AND status IN ('processing','completed') AND paid_at IS NULL").run(id);
@@ -2013,6 +2028,32 @@ export async function getCustomerOverview(): Promise<CustomerOverview[]> {
   return [...map.values()].sort((a, b) => (b.lastOrderAt ?? b.createdAt ?? "").localeCompare(a.lastOrderAt ?? a.createdAt ?? ""));
 }
 
+/** Admin › Khách hàng: every buyer profile with its figures. */
+export async function listCustomerDirectory() {
+  return listCustomerDirectorySync(getDb());
+}
+export async function getCustomerDirectoryRow(id: string) {
+  return getCustomerDirectoryRowSync(getDb(), id);
+}
+/** Admin › Tạo đơn mới: the type-ahead list of buyers. */
+export async function customerPickList() {
+  return customerPickListSync(getDb());
+}
+export async function upsertCustomerProfile(input: Parameters<typeof upsertCustomerProfileSync>[1]) {
+  return upsertCustomerProfileSync(getDb(), input);
+}
+export async function getTierRules(): Promise<TierRules> {
+  return loadTierRules(getDb());
+}
+export async function setTierRules(rules: TierRules): Promise<number> {
+  const db = getDb();
+  saveTierRules(db, rules);
+  return recomputeAllTiersSync(db);
+}
+export async function recomputeAllTiers(): Promise<number> {
+  return recomputeAllTiersSync(getDb());
+}
+
 export async function getOrdersForCustomerKey(key: string): Promise<Order[]> {
   const db = getDb();
   if (key.startsWith("c:")) {
@@ -2110,11 +2151,24 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     permissions: input.permissions ?? [],
     active: input.active ?? true,
     isRegular: false,
+    kind: "account",
+    tier: "",
+    tierManual: "",
+    note: "",
     createdAt: now,
     updatedAt: now,
   };
-  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, address, role, permissions, active, username, customer_no, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+  // a web account whose phone already has a guest profile (orders typed by the admin / guest checkouts): the guest
+  // profile becomes this account, so the history stays on one card
+  const guest = db.prepare("SELECT id FROM customers WHERE phone_key = ? AND kind = 'guest' AND phone_key <> '' ORDER BY created_at LIMIT 1").get(normalizePhone(customer.phone)) as { id: string } | undefined;
+  if (guest) {
+    db.prepare(`UPDATE customers SET email = ?, password_hash = ?, salt = ?, first_name = CASE WHEN ? <> '' THEN ? ELSE first_name END, last_name = CASE WHEN ? <> '' THEN ? ELSE last_name END, address = CASE WHEN ? <> '' THEN ? ELSE address END, role = ?, permissions = ?, active = ?, username = ?, kind = 'account', updated_at = ? WHERE id = ?`).run(
+      customer.email, customer.passwordHash, customer.salt, customer.firstName, customer.firstName, customer.lastName, customer.lastName, customer.address, customer.address, customer.role, JSON.stringify(customer.permissions), customer.active ? 1 : 0, customer.username || null, now, guest.id,
+    );
+    return (await getCustomerById(guest.id)) ?? customer;
+  }
+  db.prepare(`INSERT INTO customers (id, email, password_hash, salt, first_name, last_name, phone, phone_key, address, role, permissions, active, username, customer_no, kind, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'account', ?, ?)`).run(
     customer.id,
     customer.email,
     customer.passwordHash,
@@ -2122,6 +2176,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     customer.firstName,
     customer.lastName,
     customer.phone,
+    normalizePhone(customer.phone),
     customer.address,
     customer.role,
     JSON.stringify(customer.permissions),
@@ -2198,8 +2253,8 @@ export async function adminUpdateUser(id: string, patch: AdminUserPatch): Promis
     }
     c.updatedAt = new Date().toISOString();
     db.prepare(
-      `UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, role = ?, permissions = ?, active = ?, username = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`,
-    ).run(c.email, c.firstName, c.lastName, c.phone, c.address, c.role, JSON.stringify(c.permissions), c.active ? 1 : 0, c.username || null, c.passwordHash, c.salt, c.updatedAt, id);
+      `UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, phone_key = ?, address = ?, role = ?, permissions = ?, active = ?, username = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`,
+    ).run(c.email, c.firstName, c.lastName, c.phone, normalizePhone(c.phone), c.address, c.role, JSON.stringify(c.permissions), c.active ? 1 : 0, c.username || null, c.passwordHash, c.salt, c.updatedAt, id);
     return c;
   });
 }
@@ -2243,11 +2298,12 @@ export async function updateCustomer(
       c.passwordHash = hashPassword(patch.password, c.salt);
     }
     c.updatedAt = new Date().toISOString();
-    db.prepare(`UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, address = ?, avatar = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`).run(
+    db.prepare(`UPDATE customers SET email = ?, first_name = ?, last_name = ?, phone = ?, phone_key = ?, address = ?, avatar = ?, password_hash = ?, salt = ?, updated_at = ? WHERE id = ?`).run(
       c.email,
       c.firstName,
       c.lastName,
       c.phone,
+      normalizePhone(c.phone),
       c.address,
       c.avatar,
       c.passwordHash,
@@ -3010,7 +3066,7 @@ export async function saveAddress(customerId: string, input: { id?: number; labe
     }
     // keep the legacy single address column in sync with the default
     const def = db.prepare("SELECT address, phone FROM customer_addresses WHERE customer_id = ? AND is_default = 1").get(customerId) as { address: string; phone: string } | undefined;
-    if (def) db.prepare("UPDATE customers SET address = ?, phone = CASE WHEN ? <> '' THEN ? ELSE phone END, updated_at = ? WHERE id = ?").run(def.address, def.phone, def.phone, new Date().toISOString(), customerId);
+    if (def) db.prepare("UPDATE customers SET address = ?, phone = CASE WHEN ? <> '' THEN ? ELSE phone END, phone_key = CASE WHEN ? <> '' THEN ? ELSE phone_key END, updated_at = ? WHERE id = ?").run(def.address, def.phone, def.phone, def.phone, normalizePhone(def.phone), new Date().toISOString(), customerId);
     return id;
   });
 }

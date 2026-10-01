@@ -3,13 +3,14 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
 import { type PickableProduct, ProductSearchSelect } from "./ProductSearchSelect";
 import { AdminOrderShip } from "./AdminOrderShip";
+import { type CustomerPickItem, CustomerSearchSelect } from "./CustomerSearchSelect";
 import { adminInput, btnPrimary, tableClass, tdClass, thClass } from "./ui";
 
 /**
  * "Tạo đơn mới" on the orders list: a collapsed block the bottom-bar button opens (OpenDetailsButton target "new-order").
  * Goods are priced from the catalogue like a web order; the VN delivery fee is typed by hand and editable per leg later.
  */
-export function NewOrderPanel({ products }: { products: PickableProduct[] }) {
+export function NewOrderPanel({ products, customers }: { products: PickableProduct[]; customers: CustomerPickItem[] }) {
   const label = "text-[12px] font-semibold text-[#374151]";
   return (
     <details id="new-order" className="mb-5 hidden rounded-md border-2 border-lien-blue bg-white open:block" data-savebar="off" data-testid="new-order">
@@ -19,6 +20,12 @@ export function NewOrderPanel({ products }: { products: PickableProduct[] }) {
       <form action={createOrderAdminAction} className="grid gap-4 border-t border-[#e5e7eb] px-4 py-4 text-[13px] md:grid-cols-[1fr_1fr]">
         <fieldset className="m-0 grid gap-2 border-0 p-0">
           <legend className="mb-1 text-[13px] font-semibold text-lien-heading">Khách hàng</legend>
+          <div className={label}>
+            Khách đã mua
+            <div className="mt-1">
+              <CustomerSearchSelect customers={customers} />
+            </div>
+          </div>
           <label className={label}>
             Họ tên *
             <input name="name" required className={cn(adminInput, "mt-1")} placeholder="Nguyễn Văn A" />

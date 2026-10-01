@@ -7,6 +7,7 @@ import { heldByOthers, listAllocationViews, listSourceOptions } from "@/lib/allo
 import { cn } from "@/lib/utils";
 import { OrderChat } from "@/components/sites/lienstore/shop/cart/OrderChat";
 import type { OrderMessage } from "@/types/shop";
+import { TIER_CLASS, TIER_LABEL, isTier } from "@/lib/customer-tiers";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
 import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
@@ -419,6 +420,12 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             title="Khách hàng"
             actions={
               <span className="flex items-center gap-2">
+                {regularCustomer && isTier(regularCustomer.tierManual || regularCustomer.tier) && (regularCustomer.tierManual || regularCustomer.tier) ? (
+                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", TIER_CLASS[(regularCustomer.tierManual || regularCustomer.tier) as keyof typeof TIER_CLASS])} title="Hạng khách (theo đơn đã giao)" data-testid="order-customer-tier">
+                    {TIER_LABEL[(regularCustomer.tierManual || regularCustomer.tier) as keyof typeof TIER_LABEL]}
+                  </span>
+                ) : null}
+                {regularCustomer?.customerNo ? <span className="font-mono text-[11px] text-lien-muted" title="Mã khách hàng">#{regularCustomer.customerNo}</span> : null}
                 {isRegular ? (
                   <span className="rounded-full bg-lien-blue-soft px-2 py-0.5 text-[11px] font-semibold text-lien-blue" title="Khách quen — được thanh toán khi nhận hàng">
                     <Fa name="star" /> Khách quen

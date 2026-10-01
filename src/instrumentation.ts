@@ -19,6 +19,9 @@ export async function register() {
       running = true;
       const r = await runPricingJob();
       console.info(`[pricing] nightly run: rate ${r.rate} (${r.rateSource}), costs ${r.costsUpdated}, prices ${r.pricesUpdated}`);
+      const { recomputeAllTiers } = await import("./lib/db");
+      const tiers = await recomputeAllTiers();
+      if (tiers) console.info(`[customers] tiers moved for ${tiers} customer(s)`);
     } catch (e) {
       console.warn(`[pricing] nightly run failed: ${e instanceof Error ? e.message : e}`);
     } finally {

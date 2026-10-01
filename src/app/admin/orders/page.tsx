@@ -10,7 +10,7 @@ import { ADMIN_STATUSES, adminInput, btnPrimary, Card, Flash, PageHeader, Status
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { accountingRowsFor } from "@/lib/accounting";
-import { getAllProducts, getOrders, getPurchaseLines, getUnreadMessageCounts, listRegularSets } from "@/lib/db";
+import { customerPickList, getAllProducts, getOrders, getPurchaseLines, getUnreadMessageCounts, listRegularSets } from "@/lib/db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { OrdersStockPanel } from "@/components/sites/lienstore/admin/OrdersStockPanel";
 import { isRegularBy } from "@/lib/regular-customers";
@@ -109,7 +109,7 @@ export default async function AdminOrders({ searchParams }: Props) {
       <BarTools>
         <OpenDetailsButton target="new-order" label="+ Tạo đơn mới" className={cn(btnPrimary, "!py-1 !text-[13px]")} />
       </BarTools>
-      <NewOrderPanel products={pickable} />
+      <NewOrderPanel products={pickable} customers={await customerPickList()} />
       <Card className={cn("mb-5", view === "stock" && "hidden")}>
         <form method="get" className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_auto] md:items-end">
           <label className="text-[12px] font-semibold text-[#374151]">
