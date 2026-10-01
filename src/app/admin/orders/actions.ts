@@ -7,6 +7,7 @@ import { can, getAdminSession } from "@/lib/auth";
 import { reallocateOrder, setManualAllocation } from "@/lib/allocations-db";
 import { listAllocationViews } from "@/lib/allocations-db";
 import { getDb } from "@/lib/sqlite";
+import { isCarrierCode } from "@/lib/carriers";
 import { createOrder, findCustomerByEmail, addOrderMessage, getOrderById, deleteOrder, type OrderItemsEdit, updateOrderCustomer, updateOrderItems, setOrderCod, setOrderCodCollected, setOrderStage, setOrderTransferReceived, updateOrderStatus } from "@/lib/db";
 import { deleteUpload } from "@/lib/uploads";
 import { parseJpy, saveOrderReceipts } from "@/lib/order-receipts";
@@ -281,22 +282,32 @@ export async function createOrderAdminAction(formData: FormData): Promise<void> 
   }
   if (!items.length) fail("Chọn ít nhất một sản phẩm.");
   const delivery = v("delivery") === "pickup" ? "pickup" : "ship";
-  if (delivery === "ship" && !v("address")) fail("Nhập địa chỉ giao hàng (hoặc chọn Khách tự lấy tại kho).");
+  const provinceCode = v("ship_province_code");
+  const wardCode = v("ship_ward_code");
+  const street = v("address");
+  const carrier = v("ship_carrier");
+  const serviceCode = v("ship_service");
+  const clientFee = num("ship_fee");
+  if (delivery === "ship") {
+    if (!provinceCode || !wardCode) fail("Chọn tỉnh / thành và xã / phường giao hàng (hoặc chọn Nhận tại kho).");
+    if (!street) fail("Nhập số nhà, đường giao hàng.");
+    if (!isCarrierCode(carrier) || !serviceCode) fail("Chọn một phương án vận chuyển (GHN / Viettel Post / J&T…) cho địa chỉ này.");
+  }
   const paymentMethod = v("pay") === "cod" ? "cod" : "bacs";
   const customer = email ? await findCustomerByEmail(email) : null;
   let id = "";
   let number = 0;
   try {
     const order = await createOrder({
-      customer: { firstName: name.slice(0, 120), lastName: "", address: v("address").slice(0, 400), phone: phone.slice(0, 30), email: email.slice(0, 160), note: v("note").slice(0, 1000) },
+      customer: { firstName: name.slice(0, 120), lastName: "", address: delivery === "ship" ? street.slice(0, 400) : "", phone: phone.slice(0, 30), email: email.slice(0, 160), note: v("note").slice(0, 1000) },
       items: items.map((it) => ({ productId: it.productId, slug: "", name: "", price: 0, image: "", quantity: it.quantity })),
       paymentMethod,
       customerId: customer?.id,
       delivery,
       voucherCode: v("voucher") || undefined,
       shipFeePayment: delivery === "ship" && v("ship_fee_payment") === "on_delivery" ? "on_delivery" : "prepaid",
-      adminShip: delivery === "ship" ? { fee: num("ship_fee") ?? 0, label: v("ship_label") } : undefined,
-      shipTo: null,
+      // home delivery: the carrier is re-quoted on the server for this exact address (same path as the storefront)
+      shipTo: delivery === "ship" ? { provinceCode, wardCode, street, carrier: isCarrierCode(carrier) ? carrier : undefined, serviceCode, clientFee } : null,
     });
     id = order.id;
     number = order.number;

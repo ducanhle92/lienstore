@@ -498,6 +498,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   {order.prepaidRequired ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Hàng order · cần thanh toán trước 100%</span> : null}
                   <span className="block text-[12px] text-lien-muted">
                     Mã thanh toán / nội dung CK: <code className="rounded bg-lien-cream px-1.5 font-bold tracking-wider text-lien-heading">{order.payCode || "—"}</code>
+                    {order.paymentMethod !== "cod" && !order.paidAt ? (
+                      <a href={`/checkout/order-received/${order.id}/`} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 text-[12px] font-semibold text-lien-blue hover:underline" title="Trang khách xem QR chuyển khoản, số tài khoản, số tiền và nội dung CK — gửi link này cho khách" data-testid="pay-page-link">
+                        Trang QR / hướng dẫn CK gửi khách ↗
+                      </a>
+                    ) : null}
                   </span>
                 </dd>
               </div>
