@@ -36,7 +36,7 @@ export async function updateShipmentAction(formData: FormData): Promise<void> {
   if (plannedAt === undefined) go("error", "Ngày dự kiến gửi không hợp lệ (VD 2026-10-02).", id);
   const shippedAt = dateOrNull(text(formData, "shippedAt"));
   if (shippedAt === undefined) go("error", "Ngày gửi không hợp lệ (VD 2026-10-02).", id);
-  updateShipment(id!, { label: text(formData, "label"), plannedAt: plannedAt ?? null, shippedAt: shippedAt ?? null, tracking: text(formData, "tracking"), note: text(formData, "note") });
+  updateShipment(id!, { label: text(formData, "label"), plannedAt: plannedAt ?? null, shippedAt: shippedAt ?? null, tracking: text(formData, "tracking"), trackingDomestic: text(formData, "trackingDomestic"), note: text(formData, "note") });
   revalidatePath("/admin", "layout");
   go("saved", "Đã lưu thông tin chuyến.", id);
 }

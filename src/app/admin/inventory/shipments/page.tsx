@@ -11,10 +11,10 @@ import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHead
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { listPurchaseSources } from "@/lib/db";
-import { formatAmount, formatDate } from "@/lib/format";
+import { formatAmount, formatDate, formatDateTime } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentOpen } from "@/lib/shipments";
+import { CARRIER_STEPS, carrierStepIndex, SHIPMENT_STAGES, shipmentEditable, shipmentIndex, shipmentOpen } from "@/lib/shipments";
 import { listPackCandidates, listPackSources, listShipments, type PackCandidate, type Shipment } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { listStockGroups } from "@/lib/lots-db";
@@ -168,7 +168,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {runsShown.map((s) => (
-          <ShipmentCard key={s.id} s={s} sources={sources} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} sources={sources} carrierView={transit} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit ? (
@@ -290,7 +290,52 @@ function ShipmentTimeline({ s }: { s: Shipment }) {
   );
 }
 
-function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources }) {
+/** ⑤ Vận chuyển JP-VN: the carrier's own five states (API codes shown) — clicking a dot moves the run to the matching status. */
+function CarrierTimeline({ s }: { s: Shipment }) {
+  const cur = carrierStepIndex(s.status);
+  const n = CARRIER_STEPS.length;
+  const pct = cur <= 0 ? 0 : (cur / (n - 1)) * 100;
+  return (
+    <div className="mb-3 rounded-md border border-sky-200 bg-sky-50/40 px-3 py-3" data-testid={`carrier-timeline-${s.id}`}>
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px] text-lien-muted">
+        <Fa name="truck" /> Trạng thái bên Kiến Express
+        {s.carrierStatus ? (
+          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title={s.carrierCheckedAt ? `API báo lúc ${formatDateTime(s.carrierCheckedAt)}` : ""}>
+            API: {s.carrierStatus}
+          </span>
+        ) : (
+          <span className="text-[11px]">— đối chiếu API tự động sẽ chạy khi có mã quốc tế (KEA…)</span>
+        )}
+        {cur < 0 ? <span className="ml-auto text-[11px]">chưa gửi cho ĐVVC</span> : null}
+      </div>
+      <ol className="relative m-0 grid list-none p-0" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+        <span aria-hidden="true" className="absolute top-[9px] h-[3px] rounded bg-[#e5e5e5]" style={{ left: `calc(100% / ${n * 2})`, right: `calc(100% / ${n * 2})` }} />
+        <span aria-hidden="true" className="absolute top-[9px] h-[3px] rounded bg-lien-heart" style={{ left: `calc(100% / ${n * 2})`, width: `calc((100% - 100% / ${n}) * ${pct / 100})` }} />
+        {CARRIER_STEPS.map((st, i) => {
+          const done = i <= cur;
+          const current = i === cur;
+          return (
+            <li key={st.api} className="relative flex flex-col items-center text-center">
+              <form action={setShipmentStatusAction}>
+                <input type="hidden" name="shipmentId" value={s.id} />
+                <input type="hidden" name="status" value={st.run} />
+                <button type="submit" disabled={current} className="group flex flex-col items-center gap-1.5 disabled:cursor-default" title={`${st.hint}${current ? "" : " — bấm để chuyển chuyến tới bước này"}`} data-testid={`carrier-${s.id}-${st.api}`}>
+                  <span className={cn("relative z-[1] block h-[21px] w-[21px] rounded-full border-[3px] bg-white transition-shadow", done ? "border-lien-heart" : "border-[#d1d5db] group-hover:border-lien-blue", current && "shadow-[0_0_0_4px_rgba(192,0,0,0.15)]")}>
+                    {done ? <span className={cn("absolute inset-[3px] rounded-full", current ? "bg-lien-heart" : "bg-lien-heart/70")} /> : null}
+                  </span>
+                  <span className={cn("text-[11px] leading-4 sm:text-[12px]", current ? "font-bold text-lien-heart" : done ? "font-semibold text-lien-heading" : "text-lien-muted group-hover:text-lien-blue")}>{st.label}</span>
+                  <code className="text-[10px] text-lien-muted">{st.api}</code>
+                </button>
+              </form>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; carrierView?: boolean }) {
   const editable = shipmentEditable(s.status);
   // locked = "Đã đóng xong": contents frozen until Mở khoá (back to Đang đóng)
   const open = shipmentOpen(s.status);
@@ -309,6 +354,16 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
                 {s.code}
                 {s.label ? ` · ${s.label}` : ""}
               </span>
+              {s.tracking ? (
+                <span className="rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-900" title="Mã vận chuyển quốc tế JP → VN (Kiến Express)" data-testid={`code-intl-${s.id}`}>
+                  <Fa name="plane" /> {s.tracking}
+                </span>
+              ) : null}
+              {s.trackingDomestic ? (
+                <span className="rounded-md border border-[#e5e7eb] bg-white px-1.5 py-0.5 font-mono text-[11px] font-semibold text-lien-heading" title="Mã nội địa Nhật: kho shop JP → kho Kiến Express JP" data-testid={`code-dom-${s.id}`}>
+                  <Fa name="truck" /> {s.trackingDomestic}
+                </span>
+              ) : null}
               <OpenDetailsButton target={`info-${s.id}`} label="✎ Sửa" className={cn(btnSecondary, btnHead, "!border-lien-blue !text-lien-blue")} />
               {locked ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" data-testid={`locked-${s.id}`}>
@@ -346,7 +401,7 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
         }
       >
         <BatchBody id={s.id} ns="ship">
-        <ShipmentTimeline s={s} />
+        {carrierView ? <CarrierTimeline s={s} /> : <ShipmentTimeline s={s} />}
 
         {open ? (
           <>
@@ -489,8 +544,8 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
         ) : null}
 
         <details id={`info-${s.id}`} className="mt-3 hidden rounded-md border border-lien-blue px-3 pb-3 open:block" data-testid={`info-${s.id}`}>
-          <summary className="cursor-pointer pt-2 text-[12px] font-semibold text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã vận đơn, ghi chú) — bấm để đóng</summary>
-          <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_160px_1fr_auto] lg:items-end">
+          <summary className="cursor-pointer pt-2 text-[12px] font-semibold text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã nội địa PU…, mã quốc tế KEA…, ghi chú) — bấm để đóng</summary>
+          <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_170px_170px_1fr_auto] lg:items-end">
             <input type="hidden" name="shipmentId" value={s.id} />
             <div>
               <label className={adminLabel} htmlFor={`ul-${s.id}`}>
@@ -505,10 +560,16 @@ function ShipmentCard({ s, sources, pick, pickSources }: { s: Shipment; sources:
               <input type="date" id={`ud-${s.id}`} name="shippedAt" defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
             </div>
             <div>
-              <label className={adminLabel} htmlFor={`ut-${s.id}`}>
-                Mã vận đơn
+              <label className={adminLabel} htmlFor={`utd-${s.id}`} title="Kiến Express cấp khi lấy hàng từ kho shop JP về kho Kiến JP">
+                Mã nội địa JP (PU…)
               </label>
-              <input id={`ut-${s.id}`} name="tracking" defaultValue={s.tracking} maxLength={120} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
+              <input id={`utd-${s.id}`} name="trackingDomestic" defaultValue={s.trackingDomestic} maxLength={120} placeholder="PU26093001" className={cn(adminInput, "!py-1.5 font-mono !text-[13px]")} />
+            </div>
+            <div>
+              <label className={adminLabel} htmlFor={`ut-${s.id}`} title="Mã kiện quốc tế JP → VN trên app Kiến Express — dùng để đối chiếu API">
+                Mã quốc tế JP→VN (KEA…)
+              </label>
+              <input id={`ut-${s.id}`} name="tracking" defaultValue={s.tracking} maxLength={120} placeholder="KEA260930003" className={cn(adminInput, "!py-1.5 font-mono !text-[13px]")} />
             </div>
             <div>
               <label className={adminLabel} htmlFor={`un-${s.id}`}>

@@ -1478,6 +1478,18 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE orders ADD COLUMN loyalty_excluded INTEGER NOT NULL DEFAULT 0`,
     ],
   },
+  {
+    // A packing run handed to Kiến Express carries two carrier codes: the Japan-domestic one (PU…, shop → Kiến JP
+    // warehouse) and the international one (KEA…, JP → VN). The last state the carrier reported is kept for the
+    // automatic status check.
+    version: 69,
+    name: "shipment-carrier-codes",
+    up: [
+      `ALTER TABLE shipments ADD COLUMN tracking_domestic TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_status TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN carrier_checked_at TEXT`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -21,7 +21,13 @@ export interface Shipment {
   status: ShipmentStatus;
   plannedAt: string | null;
   shippedAt: string | null;
+  /** Carrier code JP → VN (KEA…). */
   tracking: string;
+  /** Carrier code of the Japan-domestic leg shop → Kiến JP warehouse (PU…). */
+  trackingDomestic: string;
+  /** Last state the carrier API reported (waiting / warehouse_jp / shipping / warehouse_hn / delivered) and when. */
+  carrierStatus: string;
+  carrierCheckedAt: string | null;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +46,9 @@ interface Row {
   planned_at: string | null;
   shipped_at: string | null;
   tracking: string;
+  tracking_domestic?: string | null;
+  carrier_status?: string | null;
+  carrier_checked_at?: string | null;
   note: string;
   created_at: string;
   updated_at: string;
@@ -63,6 +72,9 @@ function hydrate(rows: Row[]): Shipment[] {
       plannedAt: r.planned_at,
       shippedAt: r.shipped_at,
       tracking: r.tracking ?? "",
+      trackingDomestic: r.tracking_domestic ?? "",
+      carrierStatus: r.carrier_status ?? "",
+      carrierCheckedAt: r.carrier_checked_at ?? null,
       note: r.note ?? "",
       createdAt: r.created_at,
       updatedAt: r.updated_at,
@@ -108,15 +120,16 @@ export function createShipment(input: { label: string; plannedAt: string | null;
   return getShipment(id)!;
 }
 
-export function updateShipment(id: number, patch: { label?: string; plannedAt?: string | null; shippedAt?: string | null; tracking?: string; note?: string }): boolean {
+export function updateShipment(id: number, patch: { label?: string; plannedAt?: string | null; shippedAt?: string | null; tracking?: string; trackingDomestic?: string; note?: string }): boolean {
   const db = getDb();
   const cur = db.prepare("SELECT * FROM shipments WHERE id = ?").get(id) as Row | undefined;
   if (!cur) return false;
-  db.prepare("UPDATE shipments SET label = ?, planned_at = ?, shipped_at = ?, tracking = ?, note = ?, updated_at = ? WHERE id = ?").run(
+  db.prepare("UPDATE shipments SET label = ?, planned_at = ?, shipped_at = ?, tracking = ?, tracking_domestic = ?, note = ?, updated_at = ? WHERE id = ?").run(
     (patch.label ?? cur.label ?? "").slice(0, 80),
     patch.plannedAt === undefined ? cur.planned_at : patch.plannedAt,
     patch.shippedAt === undefined ? cur.shipped_at : patch.shippedAt,
-    (patch.tracking ?? cur.tracking ?? "").slice(0, 120),
+    (patch.tracking ?? cur.tracking ?? "").trim().toUpperCase().slice(0, 120),
+    (patch.trackingDomestic ?? cur.tracking_domestic ?? "").trim().toUpperCase().slice(0, 120),
     (patch.note ?? cur.note ?? "").slice(0, 300),
     new Date().toISOString(),
     id,

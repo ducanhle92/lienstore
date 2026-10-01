@@ -24,6 +24,34 @@ export const SHIPMENT_STAGES: ShipmentStage[] = [
   { key: "done", label: "Đã về kho shop VN", short: "Về kho VN", cls: "bg-green-100 text-green-800", location: { warehouse: "vn", inTransit: false } },
 ];
 
+/**
+ * The carrier's own five states (Kiến Express API) a handed-over run goes through — what ⑤ Vận chuyển JP-VN shows.
+ * `run` is the shop-side status each state corresponds to; the API code is what the status check will compare later.
+ */
+export interface CarrierStep {
+  api: "waiting" | "warehouse_jp" | "shipping" | "warehouse_hn" | "delivered";
+  label: string;
+  hint: string;
+  run: ShipmentStatus;
+}
+export const CARRIER_STEPS: CarrierStep[] = [
+  { api: "waiting", label: "Nhận yêu cầu", hint: "Đã tạo yêu cầu gửi; Kiến chưa xác nhận nhận hàng vào kho Nhật", run: "packed" },
+  { api: "warehouse_jp", label: "Kho JP đang xử lý", hint: "Kiện đã vào kho Kiến Express Nhật (mã nội địa PU…)", run: "handed" },
+  { api: "shipping", label: "Đang vận chuyển", hint: "Đang bay Nhật → Hà Nội (mã quốc tế KEA…)", run: "flying" },
+  { api: "warehouse_hn", label: "Kho HN đang xử lý", hint: "Kiện đã về kho Kiến Express Hà Nội", run: "arrived" },
+  { api: "delivered", label: "Đã giao hàng xong", hint: "Kiến báo đã giao; đối chiếu bước nhận ở kho shop VN", run: "done" },
+];
+/** Index of the carrier step a run is at (−1 while still packing at the shop). */
+export function carrierStepIndex(s: ShipmentStatus): number {
+  const i = CARRIER_STEPS.findIndex((c) => c.run === s);
+  if (i >= 0) return i;
+  return shipmentIndex(s) > shipmentIndex("packed") ? CARRIER_STEPS.length - 1 : -1;
+}
+/** Shop-side status for a carrier API state (for the status check job). */
+export function runStatusForCarrier(api: string): ShipmentStatus | null {
+  return CARRIER_STEPS.find((c) => c.api === api)?.run ?? null;
+}
+
 export function isShipmentStatus(v: unknown): v is ShipmentStatus {
   return typeof v === "string" && SHIPMENT_STAGES.some((s) => s.key === v);
 }

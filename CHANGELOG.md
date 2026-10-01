@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- ⑤ Vận chuyển JP-VN: mỗi chuyến hiện **5 trạng thái của Kiến Express** (Nhận yêu cầu `waiting` → Kho JP đang xử lý `warehouse_jp` → Đang vận chuyển `shipping` → Kho HN đang xử lý `warehouse_hn` → Đã giao hàng xong `delivered`, kèm mã API) thay cho mốc rút gọn; bấm một mốc để chuyển chuyến tới bước đó. Các màn khác (④ Đóng hàng, kho) vẫn dùng mốc rút gọn.
+- Chuyến hàng có **2 mã của ĐVVC** (migration 69): **mã nội địa JP** (PU…, kho shop JP → kho Kiến JP) và **mã quốc tế JP→VN** (KEA…); nhập ở ✎ Sửa, hiện ngay cạnh tên chuyến; chuẩn hoá chữ in hoa. Cột `carrier_status` / `carrier_checked_at` đã sẵn để bước sau tự đối chiếu API Kiến Express theo mã KEA.
+
 ## [2.15.1] - 2026-10-01
 
 ## [2.15.0] - 2026-10-01
