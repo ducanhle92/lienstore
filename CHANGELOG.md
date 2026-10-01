@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đóng hàng / Vận chuyển JP-VN: các ô **Dự kiến gửi · Ngày gửi · PU… (mã nội địa JP) · KEA… (mã quốc tế JP→VN)** nằm ngay trên thanh đầu chuyến, sửa xong bấm **Lưu thay đổi** ở thanh dưới; bỏ nút ✎ Sửa và khối "Sửa thông tin chuyến" (bỏ luôn Tên chuyến, Ghi chú).
+- Nút thu gọn chuyến đổi thành **Ẩn / Hiện** (như đợt mua).
+
 ## [2.16.1] - 2026-10-01
 
 ### Fixed

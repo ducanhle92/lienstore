@@ -354,17 +354,6 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
                 {s.code}
                 {s.label ? ` · ${s.label}` : ""}
               </span>
-              {s.tracking ? (
-                <span className="rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-900" title="Mã vận chuyển quốc tế JP → VN (Kiến Express)" data-testid={`code-intl-${s.id}`}>
-                  <Fa name="plane" /> {s.tracking}
-                </span>
-              ) : null}
-              {s.trackingDomestic ? (
-                <span className="rounded-md border border-[#e5e7eb] bg-white px-1.5 py-0.5 font-mono text-[11px] font-semibold text-lien-heading" title="Mã nội địa Nhật: kho shop JP → kho Kiến Express JP" data-testid={`code-dom-${s.id}`}>
-                  <Fa name="truck" /> {s.trackingDomestic}
-                </span>
-              ) : null}
-              <OpenDetailsButton target={`info-${s.id}`} label="✎ Sửa" className={cn(btnSecondary, btnHead, "!border-lien-blue !text-lien-blue")} />
               {locked ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800" data-testid={`locked-${s.id}`}>
                   <Fa name="lock" /> Đã khoá
@@ -376,7 +365,18 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
               Dự kiến gửi
               <input type="date" name="plannedAt" form={infoId} defaultValue={s.plannedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày dự kiến gửi" data-testid={`planned-${s.id}`} />
             </label>
-            {s.shippedAt ? <span className="text-[12px] text-lien-muted">đã gửi {formatDate(s.shippedAt)}</span> : null}
+            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
+              Ngày gửi
+              <input type="date" name="shippedAt" form={infoId} defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày gửi" data-testid={`shipped-${s.id}`} />
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted" title="Mã nội địa Nhật (Kiến Express cấp khi lấy hàng từ kho shop JP về kho Kiến JP)">
+              <Fa name="truck" /> PU…
+              <input name="trackingDomestic" form={infoId} defaultValue={s.trackingDomestic} maxLength={120} placeholder="PU26093001" className={cn(adminInput, "!mb-0 !w-[130px] !py-1 font-mono !text-[12px] uppercase")} aria-label="Mã nội địa JP" data-testid={`code-dom-${s.id}`} />
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted" title="Mã kiện quốc tế JP → VN trên app Kiến Express — dùng để đối chiếu API">
+              <Fa name="plane" /> KEA…
+              <input name="tracking" form={infoId} defaultValue={s.tracking} maxLength={120} placeholder="KEA260930003" className={cn(adminInput, "!mb-0 !w-[150px] !py-1 font-mono !text-[12px] uppercase")} aria-label="Mã quốc tế JP→VN" data-testid={`code-intl-${s.id}`} />
+            </label>
             <span className="ml-auto flex items-center gap-3">
               {editable ? (
                 <form action={deleteShipmentAction}>
@@ -395,7 +395,7 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
                   </button>
                 </form>
               ) : null}
-              <BatchToggle id={s.id} ns="ship" labels={["Thu gọn", "Mở chuyến"]} className={cn(btnSecondary, btnHead)} />
+              <BatchToggle id={s.id} ns="ship" labels={["Ẩn", "Hiện"]} className={cn(btnSecondary, btnHead)} />
             </span>
           </div>
         }
@@ -543,45 +543,10 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
           </div>
         ) : null}
 
-        <details id={`info-${s.id}`} className="mt-3 hidden rounded-md border border-lien-blue px-3 pb-3 open:block" data-testid={`info-${s.id}`}>
-          <summary className="cursor-pointer pt-2 text-[12px] font-semibold text-lien-blue">Sửa thông tin chuyến (tên, ngày gửi, mã nội địa PU…, mã quốc tế KEA…, ghi chú) — bấm để đóng</summary>
-          <form id={infoId} action={updateShipmentAction} className="mt-2 grid gap-2 lg:grid-cols-[1fr_130px_170px_170px_1fr_auto] lg:items-end">
-            <input type="hidden" name="shipmentId" value={s.id} />
-            <div>
-              <label className={adminLabel} htmlFor={`ul-${s.id}`}>
-                Tên chuyến
-              </label>
-              <input id={`ul-${s.id}`} name="label" defaultValue={s.label} maxLength={80} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor={`ud-${s.id}`}>
-                Ngày gửi
-              </label>
-              <input type="date" id={`ud-${s.id}`} name="shippedAt" defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor={`utd-${s.id}`} title="Kiến Express cấp khi lấy hàng từ kho shop JP về kho Kiến JP">
-                Mã nội địa JP (PU…)
-              </label>
-              <input id={`utd-${s.id}`} name="trackingDomestic" defaultValue={s.trackingDomestic} maxLength={120} placeholder="PU26093001" className={cn(adminInput, "!py-1.5 font-mono !text-[13px]")} />
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor={`ut-${s.id}`} title="Mã kiện quốc tế JP → VN trên app Kiến Express — dùng để đối chiếu API">
-                Mã quốc tế JP→VN (KEA…)
-              </label>
-              <input id={`ut-${s.id}`} name="tracking" defaultValue={s.tracking} maxLength={120} placeholder="KEA260930003" className={cn(adminInput, "!py-1.5 font-mono !text-[13px]")} />
-            </div>
-            <div>
-              <label className={adminLabel} htmlFor={`un-${s.id}`}>
-                Ghi chú
-              </label>
-              <input id={`un-${s.id}`} name="note" defaultValue={s.note} maxLength={300} className={cn(adminInput, "!py-1.5 !text-[13px]")} />
-            </div>
-            <button type="submit" className={cn(btnSecondary, "!py-1.5 !text-[13px]")}>
-              Lưu
-            </button>
-          </form>
-        </details>
+        {/* the header inputs (Dự kiến gửi, Ngày gửi, PU…, KEA…) post here — saved by the bottom "Lưu thay đổi" */}
+        <form id={infoId} action={updateShipmentAction}>
+          <input type="hidden" name="shipmentId" value={s.id} />
+        </form>
         </BatchBody>
       </Card>
     </div>
