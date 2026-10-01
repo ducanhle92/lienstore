@@ -173,10 +173,11 @@ export interface LoyaltySummary {
 export function loyaltySummariesSync(db: DatabaseSync): Map<string, LoyaltySummary> {
   const out = new Map<string, LoyaltySummary>();
   const mk = (id: string): LoyaltySummary => out.get(id) ?? { customerId: id, earned: 0, redeemed: 0, balance: 0, firstOrderAt: null, excludedOrders: 0 };
-  for (const r of db.prepare("SELECT customer_id, SUM(CASE WHEN kind = 'earn' THEN points ELSE 0 END) AS earned, SUM(CASE WHEN kind = 'redeem' THEN -points ELSE 0 END) AS redeemed, SUM(points) AS balance FROM loyalty_points GROUP BY customer_id").all() as Array<{ customer_id: string; earned: number; redeemed: number; balance: number }>) {
+  // earned = net of take-backs; redeemed = what is still spent on orders (undo and refunds netted out)
+  for (const r of db.prepare("SELECT customer_id, SUM(CASE WHEN kind IN ('earn','reverse') THEN points ELSE 0 END) AS earned, SUM(CASE WHEN order_id IS NULL AND kind = 'adjust' THEN points ELSE 0 END) AS manual, SUM(points) AS balance FROM loyalty_points GROUP BY customer_id").all() as Array<{ customer_id: string; earned: number; manual: number; balance: number }>) {
     const s = mk(r.customer_id);
     s.earned = r.earned;
-    s.redeemed = r.redeemed;
+    s.redeemed = Math.max(0, r.earned + r.manual - r.balance);
     s.balance = r.balance;
     out.set(r.customer_id, s);
   }
