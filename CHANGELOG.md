@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.18.2] - 2026-10-01
+
 ### Changed
 - Tải trang nhanh hơn: font chữ và file thương hiệu trong `/sites/` có header cache dài (font 1 năm, còn lại 1 tuần / 1 tháng ở biên) — trước đây Cloudflare hỏi lại máy chủ ở Nhật cho 13 file font ở mỗi lượt xem (421 KB).
 - Logo đầu trang và chân trang đi qua bộ tối ưu ảnh (WebP đúng cỡ 132–150 px) thay vì PNG gốc 2000 px (84 + 120 KB).
