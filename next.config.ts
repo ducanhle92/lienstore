@@ -9,6 +9,16 @@ const nextConfig: NextConfig = {
   images: { minimumCacheTTL: 2592000 },
   // The original WordPress site uses trailing slashes everywhere (/shop/, /product/<slug>/).
   trailingSlash: true,
+  // Static files under public/ otherwise go out as `max-age=0`, so Cloudflare revalidated every font / brand file with
+  // the origin on every page view (REVALIDATED/EXPIRED). Fonts never change in place → a year; the rest a week at the
+  // browser and a month at the edge (a redeploy that changes a file keeps its name only for brand/sprite files).
+  async headers() {
+    return [
+      // later rules win for the same header → the generic one first, fonts after it
+      { source: "/sites/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400" }] },
+      { source: "/sites/:site/shared/fonts/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+    ];
+  },
   // "Về chúng tôi" and "Liên hệ" were merged into one page (UI v2).
   async redirects() {
     return [

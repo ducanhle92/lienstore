@@ -83,6 +83,7 @@ export function HeroSlider({ slides, arrowSprite, intervalMs = 5000, className, 
                     width={SLIDE_WIDTH}
                     height={SLIDE_HEIGHT}
                     priority={i === 0}
+                    sizes="100vw"
                     className={cn("relative block", fullBleed ? "mx-auto h-full w-auto max-w-full object-contain" : "h-auto w-full")}
                   />
                 </a>

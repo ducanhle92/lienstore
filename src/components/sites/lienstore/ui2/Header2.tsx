@@ -96,7 +96,7 @@ export function Header2({ logo, categories, supportLinks, newsLinks, aboutHref, 
 
         {/* the header artwork already carries the slogan; the text version lives under the footer logo */}
         <Link href="/" className="flex shrink-0 flex-col items-start no-underline" aria-label={logo.alt}>
-          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority unoptimized className={cn("h-auto w-[112px] transition-[width] sm:w-[132px]", stuck && "sm:w-[112px]")} />
+          <Image src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} priority sizes="132px" className={cn("h-auto w-[112px] transition-[width] sm:w-[132px]", stuck && "sm:w-[112px]")} />
         </Link>
 
         <nav aria-label="Menu chính" className="hidden items-center lg:flex">

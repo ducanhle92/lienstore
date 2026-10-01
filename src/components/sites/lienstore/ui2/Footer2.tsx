@@ -30,7 +30,7 @@ export function Footer2({ logo, shopName = "Shop", slogan = "", contact, account
     <footer className="mt-12 bg-lien-footer2 text-lien-text">
       <div className="mx-auto grid max-w-[1300px] gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">
-          <Image src={logo.src} alt={shopName} width={logo.width} height={logo.height} unoptimized className={slogan ? "mb-1.5 h-auto w-[150px]" : "mb-4 h-auto w-[150px]"} />
+          <Image src={logo.src} alt={shopName} width={logo.width} height={logo.height} sizes="150px" className={slogan ? "mb-1.5 h-auto w-[150px]" : "mb-4 h-auto w-[150px]"} />
           {slogan ? (
             <p className="mb-4 text-[13px] font-bold leading-5 tracking-[0.2px] text-lien-heading" data-testid="footer-slogan">
               {slogan}

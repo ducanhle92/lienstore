@@ -85,7 +85,7 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
       >
         {tiles.map((c) => (
           <li key={c.slug} className="w-[calc((100%-0.75rem*2)/3)] shrink-0 snap-start sm:w-[calc((100%-0.75rem*3)/4)] md:w-[calc((100%-0.75rem*5)/6)] lg:w-[calc((100%-0.75rem*7)/8)]">
-            <Link href={`/product-category/${c.slug}/`} className="group flex h-full flex-col items-center rounded-xl bg-lien-footer2 px-2 pt-4 pb-4 text-center no-underline transition-colors hover:bg-lien-blue-soft">
+            <Link href={`/product-category/${c.slug}/`} prefetch={false} className="group flex h-full flex-col items-center rounded-xl bg-lien-footer2 px-2 pt-4 pb-4 text-center no-underline transition-colors hover:bg-lien-blue-soft">
               <span className="mb-3 flex h-[84px] w-[84px] items-center justify-center">
                 {c.image ? (
                   <Image src={c.image} alt="" width={84} height={84} className="h-[84px] w-[84px] object-contain drop-shadow-sm transition-transform group-hover:scale-105" />
@@ -99,7 +99,7 @@ export function CategoryCarousel({ categories }: { categories: HeaderCategory[] 
           </li>
         ))}
         <li className="w-[calc((100%-0.75rem*2)/3)] shrink-0 snap-start sm:w-[calc((100%-0.75rem*3)/4)] md:w-[calc((100%-0.75rem*5)/6)] lg:w-[calc((100%-0.75rem*7)/8)]">
-          <Link href="/shop/" className="group flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-lien-blue/40 bg-white px-2 py-4 text-center no-underline hover:bg-lien-blue-soft">
+          <Link href="/shop/" prefetch={false} className="group flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-lien-blue/40 bg-white px-2 py-4 text-center no-underline hover:bg-lien-blue-soft">
             <span className="mb-3 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-lien-blue-soft text-[28px] text-lien-blue">
               <Fa name="th-large" />
             </span>
