@@ -39,7 +39,8 @@ export async function updateShipmentAction(formData: FormData): Promise<void> {
   const opt = (k: string) => (formData.has(k) ? text(formData, k) : undefined);
   updateShipment(id!, { label: opt("label"), plannedAt: plannedAt ?? null, shippedAt: shippedAt ?? null, tracking: opt("tracking"), trackingDomestic: opt("trackingDomestic"), note: opt("note") });
   revalidatePath("/admin", "layout");
-  go("saved", "Đã lưu thông tin chuyến.", id);
+  // back to the view the form was on (⑤ Vận chuyển JP-VN keeps its own list)
+  go("saved", "Đã lưu thông tin chuyến.", id, text(formData, "transit") === "1");
 }
 
 export async function setShipmentStatusAction(formData: FormData): Promise<void> {

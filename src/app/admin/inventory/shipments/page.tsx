@@ -546,6 +546,7 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
         {/* the header inputs (Dự kiến gửi, Ngày gửi, PU…, KEA…) post here — saved by the bottom "Lưu thay đổi" */}
         <form id={infoId} action={updateShipmentAction}>
           <input type="hidden" name="shipmentId" value={s.id} />
+          {carrierView ? <input type="hidden" name="transit" value="1" /> : null}
         </form>
         </BatchBody>
       </Card>
