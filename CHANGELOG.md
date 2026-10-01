@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Máy chủ không tự nén gzip nữa (`compress: false`): Cloudflare đã nén brotli ở biên cho mọi khách; bỏ cảnh báo “drain listeners added to [Gzip]” lặp trong log và bớt CPU trên NAS.
+
 ## [2.18.0] - 2026-10-01
 
 ### Changed

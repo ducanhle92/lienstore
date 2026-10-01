@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Cloudflare compresses at the edge (brotli) for every public visitor; gzip in Node only costs CPU on the NAS and
+  // triggers "11 drain listeners added to [Gzip]" warnings under streaming. LAN visitors get plain HTML (fine).
+  compress: false,
   // optimised images are immutable per (url, w, q): let browsers and Cloudflare keep them for a month
   images: { minimumCacheTTL: 2592000 },
   // The original WordPress site uses trailing slashes everywhere (/shop/, /product/<slug>/).
