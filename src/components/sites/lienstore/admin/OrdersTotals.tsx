@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { formatPrice } from "@/lib/format";
 import { StatChip, StatChips } from "./StatChip";
 
 export interface OrdersTotalsInit {
@@ -15,6 +14,8 @@ export interface OrdersTotalsInit {
   missing: number;
 }
 
+// compact money ("24.977.000đ") so the whole line fits once
+const formatPrice = (n: number) => `${Math.round(n).toLocaleString("vi-VN")}đ`;
 const signedText = (n: number) => `${n < 0 ? "−" : ""}${formatPrice(Math.abs(n))}`;
 
 /**
@@ -84,16 +85,16 @@ export function OrdersTotals({ target, initial }: { target: string; initial: Ord
   const i = initial;
   return (
     <div ref={box} className="mb-3" data-testid="orders-totals" title="Tính theo các đơn đang hiện (sau khi lọc ▾), trừ đơn đã huỷ; tick đơn thì chỉ tính các đơn đã tick">
-      <StatChips caption="Tổng theo bộ lọc">
-        <span className="text-[12px] text-lien-muted" data-k="scope" />
-        <StatChip icon="shopping-cart" value={i.orders} label="đơn" dataKey="orders" title="Đơn trong bộ lọc, trừ đơn đã huỷ" />
-        <StatChip icon="money" value={formatPrice(i.revenue)} label="doanh thu" tone="green" dataKey="revenue" title="Tiền hàng sau voucher + ship khách trả shop" />
-        <StatChip icon="tags" value={formatPrice(i.cogs)} label="giá vốn" dataKey="cogs" />
-        <StatChip icon="truck" value={formatPrice(i.ship)} label="vận chuyển" dataKey="ship" title="Phí vận chuyển shop chịu: nhập 3 chặng + giao VN trả hãng − ship khách trả shop" />
-        <StatChip icon="gift" value={formatPrice(i.voucher)} label="voucher" tone="amber" hidden={!i.voucher} dataKey="voucher" />
-        <StatChip icon="tag" value={formatPrice(i.promo)} label="giảm giá SP" tone="amber" hidden={!i.promo} dataKey="promo" />
-        <StatChip icon="line-chart" value={signedText(i.profit)} label="lãi / lỗ" tone={i.profit >= 0 ? "green" : "red"} dataKey="profit" />
-        <StatChip value={i.missing} label="dòng chưa có giá vốn" tone="red" hidden={!i.missing} dataKey="missing" />
+      <StatChips caption="Tổng" className="flex-nowrap gap-1 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+        <span className="shrink-0 text-[12px] text-lien-muted empty:hidden" data-k="scope" />
+        <StatChip className="px-1.5" icon="shopping-cart" value={i.orders} label="đơn" dataKey="orders" title="Đơn trong bộ lọc, trừ đơn đã huỷ" />
+        <StatChip className="px-1.5" icon="money" value={formatPrice(i.revenue)} label="doanh thu" tone="green" dataKey="revenue" title="Tiền hàng sau voucher + ship khách trả shop" />
+        <StatChip className="px-1.5" icon="tags" value={formatPrice(i.cogs)} label="giá vốn" dataKey="cogs" />
+        <StatChip className="px-1.5" icon="truck" value={formatPrice(i.ship)} label="vận chuyển" dataKey="ship" title="Phí vận chuyển shop chịu: nhập 3 chặng + giao VN trả hãng − ship khách trả shop" />
+        <StatChip className="px-1.5" icon="gift" value={formatPrice(i.voucher)} label="voucher" tone="amber" hidden={!i.voucher} dataKey="voucher" />
+        <StatChip className="px-1.5" icon="tag" value={formatPrice(i.promo)} label="giảm giá SP" tone="amber" hidden={!i.promo} dataKey="promo" />
+        <StatChip className="px-1.5" icon="line-chart" value={signedText(i.profit)} label="lãi / lỗ" tone={i.profit >= 0 ? "green" : "red"} dataKey="profit" />
+        <StatChip className="px-1.5" value={i.missing} label="dòng chưa có giá vốn" tone="red" hidden={!i.missing} dataKey="missing" />
       </StatChips>
     </div>
   );

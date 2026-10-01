@@ -26,7 +26,7 @@ export function StatChip({ icon, value, label, tone = "gray", className, title, 
 export function StatChips({ caption, children, className, testId }: { caption?: ReactNode; children: ReactNode; className?: string; testId?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5 text-[13px] text-lien-heading", className)} data-testid={testId}>
-      {caption ? <b className="mr-1">{caption}</b> : null}
+      {caption ? <b className="mr-1 shrink-0 whitespace-nowrap">{caption}</b> : null}
       {children}
     </div>
   );

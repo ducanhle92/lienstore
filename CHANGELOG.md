@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Đơn hàng › Tổng theo bộ lọc: luôn gọn trong một dòng (tiền ghi "24.977.000đ", chú thích "Tổng"; màn hẹp thì cuộn ngang thay vì xuống dòng).
+
 ## [2.12.0] - 2026-10-01
 
 ### Changed
