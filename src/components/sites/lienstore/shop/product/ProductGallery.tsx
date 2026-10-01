@@ -76,8 +76,8 @@ export function ProductGallery({ images, alt, className, watermark = null, badge
             <img src={badge} alt="Best seller" draggable={false} className="pointer-events-none absolute top-0 left-0 z-[6] w-[30%] max-w-[150px] -translate-x-[20%] -translate-y-[8%] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]" data-testid="hot-badge" />
           ) : null}
           {watermark ? (
-            // eslint-disable-next-line @next/next/no-img-element -- theme logo, plain img keeps the overlay light
-            <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-5 bottom-5 z-[5] w-[22%] max-w-[120px] select-none opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />
+            // through the image optimiser: the uploaded logo is a 1600 px PNG (~120 KB), the stamp needs ~120 px
+            <Image src={watermark} alt="" aria-hidden="true" width={800} height={388} sizes="120px" draggable={false} className="pointer-events-none absolute right-5 bottom-5 z-[5] h-auto w-[22%] max-w-[120px] select-none opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />
           ) : null}
           {lens ? (
             <>
@@ -120,8 +120,7 @@ export function ProductGallery({ images, alt, className, watermark = null, badge
                     <span className="relative block h-full w-full">
                       <Image src={src} alt="" width={100} height={100} draggable={false} onContextMenu={(e) => e.preventDefault()} className="block h-full w-full select-none object-contain" />
                       {watermark ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- theme logo overlay
-                        <img src={watermark} alt="" aria-hidden="true" draggable={false} className="pointer-events-none absolute right-1 bottom-1 w-[34%] select-none opacity-80" />
+                        <Image src={watermark} alt="" aria-hidden="true" width={800} height={388} sizes="48px" draggable={false} className="pointer-events-none absolute right-1 bottom-1 h-auto w-[34%] select-none opacity-80" />
                       ) : null}
                     </span>
                   </button>

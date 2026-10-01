@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Trang sản phẩm: logo đóng dấu trên ảnh (watermark) đi qua bộ tối ưu ảnh — trước đây mỗi trang tải PNG gốc 120 KB cho con dấu 120 px.
+
 ## [2.18.2] - 2026-10-01
 
 ### Changed
