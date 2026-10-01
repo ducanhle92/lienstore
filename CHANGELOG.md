@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-10-01
+
 ### Added
 - ⑤ Vận chuyển JP-VN — **đối chiếu trạng thái với Kiến Express theo mã KEA…** của từng chuyến: gọi API tra cứu của Kiến (chỉ từ máy chủ, host cố định, không nhận URL từ người dùng), lưu trạng thái mới nhất + thời điểm, lịch sử 5 bước (sắp theo thời gian, không ghi trùng), id của Kiến, lần đồng bộ thành công / lần thử / lỗi gần nhất. Trên chuyến hiện mã KEA, trạng thái Kiến + giờ (giờ VN), “đồng bộ lúc…”, nút **Đồng bộ từ Kiến** (có trạng thái đang chạy), link **Xem trên Kiến**, giờ Kiến ghi nhận dưới từng bước và mục “Lịch sử Kiến ghi nhận”.
 - Quy tắc trạng thái: Kiến báo *Kho JP / Đang vận chuyển / Kho HN* và đi trước bước shop đang chọn → chuyến tự tiến tới bước đó (chỉ tiến, không lùi; Kiến đi sau thì chỉ cảnh báo). *Đã giao hàng xong* chỉ hiển thị — không cộng tồn, không kết thúc chuyến / đơn; hàng vào ⑥ khi shop nhận tay như trước. Trạng thái lạ được ghi lại và đánh dấu, không đoán.
