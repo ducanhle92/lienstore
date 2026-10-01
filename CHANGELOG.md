@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-10-01
+
 ### Changed
 - Đơn hàng › Tạo đơn mới: **Hình thức nhận hàng** giống trang thanh toán của khách — **Nhận tại kho** (miễn phí, không cần địa chỉ) hoặc **Giao tận nhà** với tỉnh / thành · xã / phường · số nhà và bảng cước các hãng (GHN / Viettel Post / J&T…) để bấm **Chọn**; cước, chặng Giao VN và địa chỉ ghi vào đơn đúng như đơn web. Bỏ ô phí ship nhập tay / tên đơn vị giao. Cước theo khối lượng, kích thước của các sản phẩm đã chọn nên chọn sản phẩm trước.
 - Chi tiết đơn › Khách hàng: cạnh mã thanh toán có link **Trang QR / hướng dẫn CK gửi khách ↗** (trang khách xem QR, số tài khoản, số tiền, nội dung CK) cho đơn chuyển khoản chưa thanh toán — admin tạo đơn hộ thì gửi link này cho khách.
