@@ -32,6 +32,8 @@ const GLYPHS = {
   "user": "",
   "angle-right": "",
   "angle-left": "",
+  "angle-double-left": "",
+  "angle-double-right": "",
   "star": "",
   "star-o": "",
   "cog": "",

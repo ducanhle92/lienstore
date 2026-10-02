@@ -7,6 +7,7 @@ import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAl
 import { BarTools, BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
 import { CsvImportButton } from "@/components/sites/lienstore/admin/CsvImportButton";
 import { StatTile, StatTiles } from "@/components/sites/lienstore/admin/StatTiles";
+import { AdminPager, pageOf } from "@/components/sites/lienstore/admin/AdminPager";
 import { filterProducts, PRICE_BUCKETS } from "@/lib/product-filter";
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductStatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
@@ -53,6 +54,11 @@ export default async function AdminProducts({ searchParams }: Props) {
   const money = (v: number | null | undefined) => (v === null || v === undefined ? <span className="text-lien-muted">—</span> : formatPrice(v));
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
   const items = filterProducts(all, sp);
+  // the list is paged (10 rows by default): the filters / search above still run over every product, only the rows
+  // shown change — 600+ rows with the price formula each was what made the page slow
+  const pg = pageOf(sp, items.length);
+  const pageItems = items.slice(pg.from - 1, pg.to);
+  const pagerParams = Object.fromEntries(Object.entries(sp).filter(([k]) => !["saved", "deleted", "error"].includes(k)));
   const fulfillment = first(sp.fulfillment);
   const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
@@ -148,6 +154,13 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
+          <select name="per" defaultValue={String(pg.per)} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`} aria-label="Số dòng mỗi trang" title="Số sản phẩm hiện mỗi trang" data-testid="products-per">
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n} / trang
+              </option>
+            ))}
+          </select>
           <button type="submit" className={`${btnPrimary} shrink-0 !py-1.5 !text-[13px]`}>
             Lọc
           </button>
@@ -173,6 +186,14 @@ export default async function AdminProducts({ searchParams }: Props) {
             <Fa name="th-large" /> Gộp thành nhóm biến thể
           </button>
         </BulkBar>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[13px] text-lien-muted">
+          <span data-testid="products-range">
+            {items.length ? `Hiện ${pg.from}–${pg.to} / ${items.length} sản phẩm` : "0 sản phẩm"}
+            {items.length !== all.length ? ` (lọc từ ${all.length})` : ""}
+            {pg.totalPages > 1 ? ` · trang ${pg.page} / ${pg.totalPages}` : ""}
+          </span>
+          <AdminPager page={pg.page} totalPages={pg.totalPages} path="/admin/products/" params={pagerParams} testId="pager-top" />
+        </div>
         <ResizableTable id="products">
           <SheetTable id="products">
           <table className={tableClass}>
@@ -216,7 +237,7 @@ export default async function AdminProducts({ searchParams }: Props) {
                   </td>
                 </tr>
               ) : null}
-              {items.map((p) => (
+              {pageItems.map((p) => (
                 <tr key={p.id} className="hover:bg-[#fafafa]">
                   <td className={`${tdClass} !px-2`}>
                     <input type="checkbox" name="ids" value={p.id} form="bulk-group" className="h-4 w-4" aria-label={`Chọn ${p.name}`} />
@@ -331,6 +352,7 @@ export default async function AdminProducts({ searchParams }: Props) {
           </table>
           </SheetTable>
         </ResizableTable>
+        <AdminPager page={pg.page} totalPages={pg.totalPages} path="/admin/products/" params={pagerParams} className="mt-3 justify-center" testId="pager" />
       </Card>
     </>
   );
