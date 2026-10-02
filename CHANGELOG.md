@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.20.0] - 2026-10-02
+
 ### Changed
 - Màn Sản phẩm **chia trang**: mặc định 10 sản phẩm mỗi trang (chọn 10 / 20 / 50 / 100), nút trang 1 2 3 … và ‹ › « » ở trên và dưới bảng, dòng “Hiện 1–10 / 648 sản phẩm”. Ô tìm kiếm và các bộ lọc vẫn chạy trên toàn bộ sản phẩm; Xuất CSV vẫn xuất cả danh sách đã lọc. Trước đây 600+ dòng kèm công thức giá render một lượt làm trang chậm và đơ.
 
