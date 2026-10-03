@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Quản lý mua hàng: khối Hoá đơn đồ tiêu hao ẩn hẳn, chỉ hiện khi bấm nút **+ Hoá đơn đồ tiêu hao** ở thanh dưới (như Mở đợt mua mới); tổng tháng này nằm trong tiêu đề bảng hoá đơn gần đây.
+
 ## [2.21.0] - 2026-10-03
 
 ### Added

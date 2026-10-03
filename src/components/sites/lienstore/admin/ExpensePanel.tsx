@@ -17,9 +17,8 @@ export function ExpensePanel({ expenses, rate, tab, open }: { expenses: Expense[
   const thisMonth = byMonth.get(month) ?? 0;
   return (
     <details id="expenses" open={open} className="mb-5 min-w-0" data-testid="expenses">
-      <summary className="cursor-pointer text-[15px] font-bold text-lien-heading">
-        Hoá đơn đồ tiêu hao <span className="text-[13px] font-normal text-lien-muted">(băng keo, xốp, thùng… · tháng này {formatPrice(thisMonth)} · {expenses.length} hoá đơn gần đây)</span>
-      </summary>
+      {/* nothing shows until the bar button "+ Hoá đơn đồ tiêu hao" opens the block (like Mở đợt mua mới) */}
+      <summary className="hidden">Hoá đơn đồ tiêu hao</summary>
       <div className="mt-3 grid gap-3 lg:grid-cols-[380px_1fr]">
         <Card title="Nhập hoá đơn đồ tiêu hao">
           <form action={createExpenseAction} className="grid gap-3" data-testid="expense-create" encType="multipart/form-data">
@@ -91,7 +90,7 @@ export function ExpensePanel({ expenses, rate, tab, open }: { expenses: Expense[
             <p className="m-0 text-[12px] text-lien-muted">¥ quy ra VNĐ theo tỉ giá lúc ghi ({rate.toLocaleString("vi-VN")} đ/¥). Khoản này được trừ vào Lợi nhuận ở Kế toán › Lãi/lỗ theo ngày mua.</p>
           </form>
         </Card>
-        <Card title="Hoá đơn gần đây">
+        <Card title={`Hoá đơn gần đây — tháng này ${formatPrice(thisMonth)} · ${expenses.length} hoá đơn`}>
           <div className="overflow-x-auto">
             <table className={tableClass} data-testid="expense-table">
               <thead>
