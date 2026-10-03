@@ -22,6 +22,10 @@ import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getPurchaseLines, listPurchaseSources } from "@/lib/db";
 import { StockPurchasePanel } from "@/components/sites/lienstore/admin/StockPurchasePanel";
+import { ExpensePanel } from "@/components/sites/lienstore/admin/ExpensePanel";
+import { OpenDetailsButton } from "@/components/sites/lienstore/admin/AddRowButton";
+import { listExpenses } from "@/lib/expenses-db";
+import { getJpyRate } from "@/lib/db";
 import { IN_TRANSIT_STATUSES, PURCHASE_STAGES, type PurchaseStatus } from "@/lib/purchase";
 import { cn } from "@/lib/utils";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
@@ -58,6 +62,10 @@ export default async function AdminPurchases({ searchParams }: Props) {
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const source = first(sp.source);
+  // đồ tiêu hao: the block opens when the bar button is used or an action just landed on it
+  const expenses = listExpenses({ limit: 30 });
+  const jpyRate = await getJpyRate();
+  const expensesOpen = first(sp.expenses) === "1" || /Hoá đơn|hoá đơn|tệp/i.test(first(sp.saved));
   const shopDayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const [all, sources, allProducts] = await Promise.all([getPurchaseLines(includeDone), listPurchaseSources(), tab !== "orders" ? getAllProducts(true) : Promise.resolve([])]);
   const receipts = listReceipts(40);
@@ -117,6 +125,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
         }
       />
       <BarTools end>
+        <OpenDetailsButton target="expenses" label="+ Hoá đơn đồ tiêu hao" className={btnSecondary} />
         <Link href="/admin/inventory/export/" className={btnSecondary} data-testid="bar-csv">
           <Fa name="download" /> CSV cần mua
         </Link>
@@ -133,6 +142,8 @@ export default async function AdminPurchases({ searchParams }: Props) {
         <StatTile label="Sẵn tại kho shop VN" value={`${counts.at_shop} đv`} accent="green" href="/admin/inventory/?side=vn" title="Hàng của đơn đã ở kho shop VN — bấm sang Tồn kho VN" />
         <StatTile label="Đơn đang xử lý" value={`${all.length} dòng · ${all.reduce((n, l) => n + l.quantity, 0)} đv`} accent="gray" href="/admin/orders/?view=stock" title="Mọi dòng sản phẩm trong các đơn đang xử lý — bấm sang Đơn hàng › Theo kho hàng" />
       </StatTiles>
+
+      <ExpensePanel expenses={expenses} rate={jpyRate} tab={tab} open={expensesOpen} />
 
       {tab === "stock" ? <StockPurchasePanel groups={stockGroups} products={pickable} sources={sources} batches={batchHeads} /> : null}
       {tab === "batches" && receiptsOpen ? (

@@ -1,3 +1,5 @@
+import { sumExpenses } from "@/lib/expenses";
+import { listExpenses } from "@/lib/expenses-db";
 import Link from "next/link";
 import { StatTile } from "@/components/sites/lienstore/admin/StatTile";
 import { Card, Flash, PageHeader, StatusBadge, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
@@ -29,7 +31,7 @@ export default async function AdminDashboard({ searchParams }: DashboardProps) {
   // Lãi/lỗ: same formula as Kế toán › Lãi/lỗ, over every non-cancelled order
   const live = orders.filter((o) => o.status !== "cancelled");
   const pnl = canAcc ? await accountingRowsFor(live) : null;
-  const profit = pnl ? [...pnl.values()].reduce((s, r) => s + r.profit, 0) : 0;
+  const profit = pnl ? [...pnl.values()].reduce((s, r) => s + r.profit, 0) - sumExpenses(listExpenses({ limit: 100000 })).total : 0;
   const missingCost = pnl ? [...pnl.values()].filter((r) => r.missingCost > 0).length : 0;
   const n = (v: number) => v.toLocaleString("vi-VN");
   const linkIf = (ok: boolean, href: string) => (ok ? href : undefined);

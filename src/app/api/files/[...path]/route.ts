@@ -9,6 +9,8 @@ import { absolutePath, MIME_BY_EXT, verifyOrderFileToken } from "@/lib/uploads";
 export const dynamic = "force-dynamic";
 
 const PUBLIC_DIRS = new Set(["products", "categories", "banners", "theme", "avatars", "posts", "badges"]);
+/** Bill photos (phiếu mua hàng, hoá đơn đồ tiêu hao): any logged-in admin, never public. */
+const ADMIN_DIRS = new Set(["receipts", "expenses"]);
 
 /**
  * Serves admin uploads stored outside `public/`:
@@ -33,6 +35,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
       }
     }
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
+  } else if (ADMIN_DIRS.has(parts[0])) {
+    if (!(await isAdmin())) return new NextResponse("Forbidden", { status: 403 });
   } else if (!PUBLIC_DIRS.has(parts[0])) {
     return new NextResponse("Not found", { status: 404 });
   }

@@ -1,3 +1,5 @@
+import { sumExpenses } from "./expenses";
+import { listExpenses } from "./expenses-db";
 import "server-only";
 import { getAllProducts, getOrderLegs, getOrders } from "./db";
 import { expectedPriceOf } from "./price-display";
@@ -49,13 +51,15 @@ export interface AccountingTotals {
   missingCost: number;
   voucher: number;
   promoDiscount: number;
+  /** Chi phí vận hành (đồ tiêu hao…) booked in the period — subtracted from `profit`. */
+  expenses: number;
 }
 
 export interface MonthRow extends AccountingTotals {
   month: string;
 }
 
-export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, goods: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0 });
+export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, goods: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0, expenses: 0 });
 
 function add(t: AccountingTotals, r: AccountingRow): void {
   t.orders++;
@@ -142,6 +146,16 @@ export async function getAccounting(fromDay: string, toDay: string): Promise<{ r
     const k = monthKey(r.createdAt);
     const m = months.get(k) ?? { month: k, ...emptyTotals() };
     add(m, r);
+    months.set(k, m);
+  }
+  // operating expenses (đồ tiêu hao…) of the period, by the day they were spent — a month with only expenses still shows
+  const spent = sumExpenses(listExpenses({ from: fromDay, to: toDay }));
+  totals.expenses = spent.total;
+  totals.profit -= spent.total;
+  for (const [k, v] of spent.byMonth) {
+    const m = months.get(k) ?? { month: k, ...emptyTotals() };
+    m.expenses += v;
+    m.profit -= v;
     months.set(k, m);
   }
   return { rows, totals, byMonth: [...months.values()].sort((a, b) => b.month.localeCompare(a.month)) };

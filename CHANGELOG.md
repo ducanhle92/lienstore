@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Quản lý mua hàng: nút **+ Hoá đơn đồ tiêu hao** trên thanh dưới (cạnh CSV cần mua) mở khối nhập như “Mở đợt mua mới”: nội dung, loại (đồ tiêu hao đóng hàng / chi phí khác), ngày mua, số tiền ¥ hoặc đ (¥ quy ra đ theo tỉ giá lúc ghi), nơi mua, ảnh / PDF hoá đơn, ghi chú; bảng hoá đơn gần đây với tổng tháng này, gỡ tệp, xoá. Bảng `expenses` (migration 72).
+- Kế toán › Lãi/lỗ: ô **Chi phí đồ tiêu hao** và cột **Đồ tiêu hao** theo tháng; **Lợi nhuận** của khoảng / tháng = Σ lãi các đơn − đồ tiêu hao (theo ngày mua); dòng tổng ghi rõ đã trừ; CSV lãi/lỗ thêm dòng đồ tiêu hao; ô Lãi/lỗ ở Tổng quan cũng trừ.
+
+### Fixed
+- Ảnh bill của phiếu mua hàng trả 404 (đường dẫn `/api/files/receipts/…` chưa được phục vụ) — giờ admin đăng nhập xem được; ảnh hoá đơn đồ tiêu hao cũng vậy, khách không xem được.
+
 ## [2.20.0] - 2026-10-02
 
 ### Changed

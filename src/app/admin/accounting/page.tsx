@@ -98,13 +98,14 @@ export default async function AdminAccounting({ searchParams }: Props) {
         </form>
       </Card>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" data-testid="acc-kpis">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" data-testid="acc-kpis">
         <Kpi label="Doanh thu" value={money(totals.revenue)} hint={`${totals.orders} đơn · ${totals.paidOrders} đã thanh toán · phí ship khách trả ${money(totals.shipCollected)}`} tone="blue" />
         <Kpi label="Giá vốn hàng bán" value={money(totals.cogs)} hint={totals.missingCost ? `${totals.missingCost} dòng chưa có giá vốn` : "Theo giá vốn hiện tại của sản phẩm"} tone="gray" />
         <Kpi label="Chi phí vận chuyển" value={money(totals.importFees + totals.vnCarrierFee)} hint={`Nhập hàng 3 chặng ${money(totals.importFees)} · giao nội địa trả hãng ${money(totals.vnCarrierFee)}`} tone="amber" />
         <Kpi label="Chi phí voucher" value={money(totals.voucher)} hint={totals.voucher ? "Mã giảm giá khách nhập ở thanh toán — đã trừ khỏi doanh thu" : "Chưa có đơn dùng voucher"} tone={totals.voucher ? "amber" : "gray"} />
         <Kpi label="Chi phí giảm giá sản phẩm" value={money(totals.promoDiscount)} hint={totals.promoDiscount ? "Σ (giá kỳ vọng − giá khuyến mại) × SL — đã nằm trong doanh thu thấp hơn" : "Không bán dưới giá kỳ vọng"} tone={totals.promoDiscount ? "amber" : "gray"} />
-        <Kpi label="Lợi nhuận" value={`${totals.profit < 0 ? "−" : ""}${money(Math.abs(totals.profit))}`} hint={`${marginPct}% doanh thu`} tone={totals.profit >= 0 ? "green" : "red"} />
+        <Kpi label="Chi phí đồ tiêu hao" value={money(totals.expenses)} hint={totals.expenses ? "Hoá đơn băng keo, xốp, thùng… ghi ở Quản lý mua hàng — đã trừ khỏi lợi nhuận" : "Chưa có hoá đơn trong khoảng này (ghi ở Quản lý mua hàng)"} tone={totals.expenses ? "amber" : "gray"} />
+        <Kpi label="Lợi nhuận" value={`${totals.profit < 0 ? "−" : ""}${money(Math.abs(totals.profit))}`} hint={`${marginPct}% doanh thu · sau đồ tiêu hao`} tone={totals.profit >= 0 ? "green" : "red"} />
       </div>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -120,6 +121,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
                 <th className={`${thClass} text-right`}>Vận chuyển</th>
                 <th className={`${thClass} text-right`} title="Mã giảm giá khách dùng — đã trừ trong Doanh thu và Lợi nhuận">Voucher (đã trừ)</th>
                 <th className={`${thClass} text-right`} title="Giá kỳ vọng − giá khuyến mại, nhân số lượng">Giảm giá SP</th>
+                <th className={`${thClass} text-right`} title="Hoá đơn đồ tiêu hao (băng keo, xốp…) theo ngày mua — đã trừ khỏi Lợi nhuận">Đồ tiêu hao</th>
                 <th className={`${thClass} text-right`}>Lợi nhuận</th>
               </tr>
             </thead>
@@ -133,6 +135,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right`}>{money(m.importFees + m.vnCarrierFee)}</td>
                   <td className={`${tdClass} text-right text-amber-700`}>{m.voucher ? money(m.voucher) : "—"}</td>
                   <td className={`${tdClass} text-right text-amber-700`}>{m.promoDiscount ? money(m.promoDiscount) : "—"}</td>
+                  <td className={`${tdClass} text-right text-amber-700`} data-testid={`acc-exp-${m.month}`}>{m.expenses ? `−${money(m.expenses)}` : "—"}</td>
                   <td className={`${tdClass} text-right font-semibold`}>{signed(m.profit)}</td>
                 </tr>
               ))}
@@ -247,7 +250,10 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right whitespace-nowrap`} title={`Nhập 3 chặng ${money(totals.importFees)} + giao VN trả hãng ${money(totals.vnCarrierFee)} − khách trả shop ${money(totals.shipCollected)}`}>
                     {signedCost(totals.importFees + totals.vnCarrierFee - totals.shipCollected)}
                   </td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`}>{signed(totals.profit)}</td>
+                  <td className={`${tdClass} text-right whitespace-nowrap`} title={totals.expenses ? `Σ lãi/lỗ các đơn − đồ tiêu hao ${money(totals.expenses)}` : undefined}>
+                    {signed(totals.profit)}
+                    {totals.expenses ? <span className="block text-[11px] font-normal text-amber-700">đã trừ đồ tiêu hao {money(totals.expenses)}</span> : null}
+                  </td>
                 </tr>
               </tfoot>
             ) : null}

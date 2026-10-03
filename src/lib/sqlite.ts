@@ -1529,6 +1529,31 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_tracking_events_shipment ON shipment_tracking_events(shipment_id, at)`,
     ],
   },
+  {
+    // Chi phí vận hành: hoá đơn đồ tiêu hao (băng keo, xốp…) — one row per bill, VND value at the day's rate,
+    // bill photos as JSON [{path,url,name,mime}] under uploads/expenses/<id>/ (admin-only files route)
+    version: 72,
+    name: "expenses",
+    up: [
+      `CREATE TABLE IF NOT EXISTS expenses (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind       TEXT NOT NULL DEFAULT 'supplies',
+        spent_at   TEXT NOT NULL,
+        title      TEXT NOT NULL,
+        store      TEXT NOT NULL DEFAULT '',
+        amount     REAL NOT NULL,
+        currency   TEXT NOT NULL DEFAULT 'JPY',
+        rate       REAL,
+        amount_vnd INTEGER NOT NULL,
+        note       TEXT NOT NULL DEFAULT '',
+        files      TEXT NOT NULL DEFAULT '[]',
+        created_by TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_expenses_day ON expenses(spent_at)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
