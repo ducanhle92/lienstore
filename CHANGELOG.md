@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.23.0] - 2026-10-05
+
 ### Changed
 - ④ Đóng hàng JP: liệt kê cả các chuyến đã gửi ĐVVC (sau các chuyến đang đóng) với nhãn vị trí (Đã giao ĐVVC · JP→VN · Kho ĐVVC VN · Về kho VN) và trạng thái Kiến báo gần nhất ngay trên dòng tiêu đề; mỗi chuyến mặc định chỉ hiện dòng tiêu đề (bấm Hiện để mở, trình duyệt nhớ lựa chọn) như Quản lý mua hàng; thêm thanh tìm chuyến / sản phẩm / mã bill / đơn, lọc từ ngày – đến ngày và chọn bước (Đang đóng ở shop, từng bước, tất cả kể cả đã về kho VN).
 
