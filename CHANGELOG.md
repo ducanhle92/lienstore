@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.22.0] - 2026-10-05
+
 ### Added
 - ⑥ Kho VN có hai sheet ở góc phải tiêu đề (như Quản lý mua hàng): **Lưu kho** (bảng tồn tại kho shop VN như cũ) và **Đơn hàng** — các đơn có hàng ở kho VN chia ba ô: *Đủ hàng — chờ giao* (bấm sang ⑦ để giao), *Có hàng ở kho, còn thiếu* (ghi rõ thiếu mấy cái, món nào đang về), *Đang giao*; mỗi đơn hiện khách, điện thoại, địa chỉ, mã từng cái đã ở kho, thu hộ / đã thanh toán, trạng thái chặng VN, mã vận đơn. Admin ở nhà biết ngay hàng nào lưu kho và đơn nào cần ship.
 
