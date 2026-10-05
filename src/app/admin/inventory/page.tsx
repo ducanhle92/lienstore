@@ -24,6 +24,9 @@ import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/L
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { listOrdersReadyToShip, listStockGroups } from "@/lib/lots-db";
+import { bucketOrders, VnOrdersPanel, type VnOrderBucket, type VnOrderUnits } from "@/components/sites/lienstore/admin/VnOrdersPanel";
+import { getOrderLegs, getOrders } from "@/lib/db";
+import { listUnits } from "@/lib/units-db";
 import { listOpenShipments } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
@@ -75,6 +78,24 @@ export default async function AdminInventory({ searchParams }: Props) {
   const lotSide: "jp" | "vn" = side;
 
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
+  // ⑥ Kho VN has two sheets: "Lưu kho" (the shelf, default) and "Đơn hàng" (orders whose goods are here / on the way here)
+  const vnTab: "stock" | "orders" = view === "lots" && side === "vn" && first(sp.t) === "orders" ? "orders" : "stock";
+  const orderTab: VnOrderBucket = first(sp.ot) === "waiting" ? "waiting" : first(sp.ot) === "delivering" ? "delivering" : "ready";
+  const vnOrders = vnTab === "orders" ? await getOrders() : [];
+  const vnOpen = vnOrders.filter((o) => o.status === "pending" || o.status === "processing");
+  const vnItemIds = vnOpen.flatMap((o) => o.items.map((it) => it.itemId).filter((x): x is number => typeof x === "number"));
+  const unitsByItem = new Map<number, VnOrderUnits>();
+  if (vnTab === "orders") {
+    for (const u of listUnits(getDb(), { itemIds: vnItemIds })) {
+      if (!u.itemId) continue;
+      const e = unitsByItem.get(u.itemId) ?? { atShop: [], away: 0 };
+      if (u.status === "at_shop") e.atShop.push(u.code);
+      else e.away++;
+      unitsByItem.set(u.itemId, e);
+    }
+  }
+  const vnBuckets = vnTab === "orders" ? bucketOrders(vnOpen, unitsByItem, new Set(readyOrders.map((o) => o.orderId))) : null;
+  const vnLegs = vnBuckets ? await getOrderLegs(vnBuckets[orderTab].map((o) => o.id)) : new Map();
   const lotsBack = `/admin/inventory/?side=${lotSide}${lotFilter.q ? `&q=${encodeURIComponent(lotFilter.q)}` : ""}${lotFilter.src ? `&src=${lotFilter.src}` : ""}${lotFilter.exp ? `&exp=${lotFilter.exp}` : ""}${lotFilter.mode ? `&mode=${lotFilter.mode}` : ""}`;
   const sourceName = (k: string) => purchaseSourceName(k, sources);
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
@@ -88,6 +109,18 @@ export default async function AdminInventory({ searchParams }: Props) {
       {view === "lots" ? <FlowSteps current={side} counts={flowCounts(getDb())} /> : null}
       <PageHeader
         title={view !== "lots" ? "Tồn kho" : side === "jp" ? "Kho Nhật" : "Kho VN"}
+        actions={
+          view === "lots" && side === "vn" ? (
+            <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Kho VN" data-testid="vn-tabs">
+              <Link href="/admin/inventory/?side=vn" role="tab" aria-selected={vnTab === "stock"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "stock" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-stock">
+                <Fa name="archive" /> Lưu kho
+              </Link>
+              <Link href="/admin/inventory/?side=vn&t=orders" role="tab" aria-selected={vnTab === "orders"} className={cn("border-l border-[#d1d5db] px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "orders" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-orders">
+                <Fa name="shopping-cart" /> Đơn hàng{vnBuckets ? ` (${vnBuckets.ready.length} chờ giao)` : ""}
+              </Link>
+            </span>
+          ) : undefined
+        }
         summary={
           view === "products" ? (
           <span className="font-normal text-[13px] text-lien-muted" title="Phiếu kiểm kê riêng từng kho (CSV): chỉ các sản phẩm có hàng ở kho đó, cột 'Kiểm đếm thực tế' để điền rồi Nhập CSV ở thanh dưới" data-testid="stocktake-links">
@@ -130,7 +163,8 @@ export default async function AdminInventory({ searchParams }: Props) {
       <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="inventory-tabs">
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
       </div>
-      {view === "lots" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+      {view === "lots" && vnTab === "orders" && vnBuckets ? <VnOrdersPanel buckets={vnBuckets} tab={orderTab} unitsByItem={unitsByItem} legs={vnLegs} /> : null}
+      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>
