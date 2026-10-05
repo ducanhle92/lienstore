@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils";
 
 const EVENT = "lien-batch-collapse";
 const key = (id: number, ns: string) => `lien-${ns}-collapsed:${id}`;
-const read = (id: number, ns: string) => {
+const read = (id: number, ns: string, def = false) => {
   try {
-    return window.localStorage.getItem(key(id, ns)) === "1";
+    const v = window.localStorage.getItem(key(id, ns));
+    return v === null ? def : v === "1";
   } catch {
-    return false;
+    return def;
   }
 };
 const subscribe = (cb: () => void) => {
@@ -21,15 +22,14 @@ const subscribe = (cb: () => void) => {
     window.removeEventListener("storage", cb);
   };
 };
-const useCollapsed = (id: number, ns: string) => useSyncExternalStore(subscribe, () => read(id, ns), () => false);
+const useCollapsed = (id: number, ns: string, def = false) => useSyncExternalStore(subscribe, () => read(id, ns, def), () => def);
 
 /** "Ẩn đợt" / "Hiện đợt" in the header of a purchase trip: only the header (totals, Sửa, trạng thái) stays; remembered per browser. */
-export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn", "Hiện"] }: { id: number; className?: string; ns?: string; labels?: [string, string] }) {
-  const collapsed = useCollapsed(id, ns);
+export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn", "Hiện"], defaultCollapsed = false }: { id: number; className?: string; ns?: string; labels?: [string, string]; defaultCollapsed?: boolean }) {
+  const collapsed = useCollapsed(id, ns, defaultCollapsed);
   const toggle = () => {
     try {
-      if (collapsed) window.localStorage.removeItem(key(id, ns));
-      else window.localStorage.setItem(key(id, ns), "1");
+      window.localStorage.setItem(key(id, ns), collapsed ? "0" : "1");
     } catch {
       /* private window: the toggle just does nothing */
     }
@@ -43,8 +43,8 @@ export function BatchToggle({ id, className, ns = "batch", labels = ["Ẩn", "Hi
 }
 
 /** Body of the trip card; hidden while the trip is collapsed (the card's padding goes too — see globals.css). */
-export function BatchBody({ id, children, ns = "batch" }: { id: number; children: ReactNode; ns?: string }) {
-  const collapsed = useCollapsed(id, ns);
+export function BatchBody({ id, children, ns = "batch", defaultCollapsed = false }: { id: number; children: ReactNode; ns?: string; defaultCollapsed?: boolean }) {
+  const collapsed = useCollapsed(id, ns, defaultCollapsed);
   return (
     <div data-batch-collapsed={collapsed ? "1" : "0"} className={cn(collapsed && "hidden")}>
       {children}
