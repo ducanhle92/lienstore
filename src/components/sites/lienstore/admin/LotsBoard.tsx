@@ -34,6 +34,8 @@ interface Props {
   readyOrders: OrderReadyToShip[];
   /** Extra query the tile links keep (⑥ Kho VN sheet, e.g. "&t=stock"). */
   tabQuery?: string;
+  /** see_cost: the "Vốn" tile and the ¥/cái column. */
+  showCost?: boolean;
   backUrl: string;
 }
 
@@ -87,7 +89,7 @@ const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchas
  * Tồn kho by bill line (every row expands to its unit codes): two tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho
  * shop" (actions) and "Tại kho ĐVVC" (read-only), the NB→VN flight strip in between. FEFO order everywhere.
  */
-export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl, tabQuery = "" }: Props) {
+export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl, tabQuery = "", showCost = true }: Props) {
   // Tồn kho = what is physically at the shop; goods with the carrier / in the air are under ⑤ Vận chuyển
   const shopStatus = side === "jp" ? "bought" : "at_shop";
   const atShop = groups.filter((g) => g.status === shopStatus);
@@ -116,7 +118,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
         )}
         <Tile label="Giữ cho đơn" value={`${totals.held} cái`} accent="amber" href={tileHref("orders")} active={filter.mode === "orders"} title="Chỉ dòng có hàng giữ cho đơn khách" />
         <Tile label="Tồn tự do" value={`${totals.free} cái`} accent="green" href={tileHref("free")} active={filter.mode === "free"} title="Chỉ dòng còn hàng tự do (chưa ai đặt)" />
-        <Tile label="Vốn (tồn tự do)" value={formatPrice(totals.costVnd)} accent="gray" />
+        {showCost ? <Tile label="Vốn (tồn tự do)" value={formatPrice(totals.costVnd)} accent="gray" /> : null}
         {side === "jp" ? <Tile label="Cân nặng (trên kệ)" value={kg(weightOf(atShop.filter((g) => !g.shipmentId)).g)} accent="gray" title="Tổng cân nặng hàng trên kệ theo cân nặng sản phẩm (chưa gồm thùng, lót)" /> : null}
       </div>
 
@@ -169,7 +171,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
           ) : null}
         </BulkBar>
         {filter.mode === "boxed" ? null : <LiveTotals target={`[data-sheet="lots-shop-${side}"] table`} />}
-        {filter.mode === "boxed" ? null : <GroupTable rows={splitByHolder(shelf).filter((r) => (filter.mode === "free" ? !r.holder : filter.mode === "orders" ? !!r.holder : true))} sources={sources} scope={`shop-${side}`} formId={formId} />}
+        {filter.mode === "boxed" ? null : <GroupTable showCost={showCost} rows={splitByHolder(shelf).filter((r) => (filter.mode === "free" ? !r.holder : filter.mode === "orders" ? !!r.holder : true))} sources={sources} scope={`shop-${side}`} formId={formId} />}
         {parcels.length ? (
           <div className="mt-3 space-y-2" data-testid="boxed-lots">
             <p className="m-0 text-[13px] font-semibold text-lien-heading">
@@ -188,7 +190,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
                     {run?.label ? <span className="text-lien-muted">{run.label}</span> : null}
                     <span className="text-lien-text">
                       {units(pc.groups)} cái · {pc.groups.length} dòng bill{held ? ` · ${held} cái cho đơn khách` : ""}
-                      {jpy ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
+                      {jpy && showCost ? ` · ≈ ¥${formatAmount(jpy)}` : ""}
                     </span>
                     <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-[12px] text-sky-900" title={`Cân nặng ước lượng để báo ĐVVC: cộng cân nặng sản phẩm × số cái, chưa gồm thùng, lót, băng keo${w.missing ? ` — ${w.missing} cái chưa có cân nặng sản phẩm nên còn thiếu` : ""}`} data-testid={`parcel-weight-${pc.id}`}>
                       <Fa name="balance-scale" /> ≈ {kg(w.g)} hàng{w.missing ? <span className="text-amber-700"> · {w.missing} cái chưa rõ cân</span> : null}
@@ -250,7 +252,7 @@ function Tile({ label, value, accent, href, active = false, title }: { label: st
   );
 }
 
-function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: PurchaseSource[]; scope: string; formId: string | null }) {
+function GroupTable({ rows, sources, scope, formId, showCost = true }: { rows: Row[]; sources: PurchaseSource[]; scope: string; formId: string | null; showCost?: boolean }) {
   return (
     <div className="overflow-x-auto">
       <SheetTable id={`lots-${scope}`}>
@@ -269,7 +271,7 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
             <th className={thClass}>HSD</th>
             <th className={thClass}>SL</th>
             <th className={thClass}>Cho đơn</th>
-            <th className={thClass}>¥/cái</th>
+            {showCost ? <th className={thClass}>¥/cái</th> : null}
             <th className={thClass}>Đợt mua</th>
           </tr>
         </thead>
@@ -351,7 +353,7 @@ function GroupTable({ rows, sources, scope, formId }: { rows: Row[]; sources: Pu
                     <span className="text-green-700">tự do</span>
                   )}
                 </td>
-                <td className={`${tdClass} whitespace-nowrap text-[12px] text-lien-muted`}>{g.unitCostJpy ? `¥${formatAmount(g.unitCostJpy)}` : "—"}</td>
+                {showCost ? <td className={`${tdClass} whitespace-nowrap text-[12px] text-lien-muted`}>{g.unitCostJpy ? `¥${formatAmount(g.unitCostJpy)}` : "—"}</td> : null}
                 <td className={`${tdClass} whitespace-nowrap text-[12px]`}>
                   {g.batchCode ? (
                     <Link href={`/admin/purchases/?tab=batches#batch-${g.batchId}`} className="rounded bg-[#ecfdf5] px-1.5 py-0.5 font-mono font-semibold text-[#065f46] no-underline hover:underline">

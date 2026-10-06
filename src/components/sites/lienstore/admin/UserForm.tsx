@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { adminInput, adminLabel } from "./ui";
-import { ADMIN_MODULES, ROLE_LABELS, type UserRole } from "@/lib/permissions";
+import { ADMIN_MODULES, effectivePermissions, PERMISSION_PRESETS, PERMISSION_TABS, ROLE_LABELS, type UserRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -15,8 +15,17 @@ interface Props {
 }
 
 /** Shared fields of the create / edit user forms (no <form> element; the page supplies the action and buttons). */
-export function UserFields({ user, isSelf = false, assignable = ["customer", "staff"] }: Props) {
+export function UserFields({ user, isSelf = false, assignable = ["staff"] }: Props) {
   const [role, setRole] = useState<UserRole>(user?.role ?? "staff");
+  // ticks start from what the account can do today (a pre-2.25 "Kho hàng" grant shows as every warehouse screen)
+  const [perms, setPerms] = useState<Set<string>>(() => new Set(user ? effectivePermissions("staff", user.permissions).filter((p) => p !== "inventory") : []));
+  const toggle = (k: string) => setPerms((p) => {
+    const n = new Set(p);
+    if (n.has(k)) n.delete(k);
+    else n.add(k);
+    return n;
+  });
+  const moduleOf = Object.fromEntries(ADMIN_MODULES.map((m) => [m.key, m]));
   const lockedRole = isSelf || user?.role === "owner";
   const roleOptions = Array.from(new Set<UserRole>([...(user ? [user.role] : []), ...assignable]));
   const isEdit = !!user;
@@ -85,17 +94,44 @@ export function UserFields({ user, isSelf = false, assignable = ["customer", "st
           ))}
         </div>
         <p className="mt-2 text-[12px] leading-5 text-lien-muted">
-          Khách hàng: chỉ mua hàng, không vào được trang quản trị. Nhân viên: vào các module được tick bên dưới. Quản trị viên: toàn quyền với cửa hàng, quản lý nhân viên và khách hàng. Chủ sở hữu: như quản trị viên và là người duy nhất thêm / sửa / xoá quản trị viên.
+          Nhân viên: chỉ vào được các màn được tick bên dưới, và chỉ thấy tiền khi tick nhóm “Xem tiền”. Quản trị viên: toàn quyền với cửa hàng, quản lý nhân viên và khách hàng. Chủ sở hữu: như quản trị viên và là người duy nhất thêm / sửa / xoá quản trị viên.
         </p>
-        <div className={cn("mt-3 grid gap-2 sm:grid-cols-2", role !== "staff" && "pointer-events-none opacity-40")}>
-          {ADMIN_MODULES.filter((m) => m.key !== "users").map((m) => (
-            <label key={m.key} className="flex items-start gap-2 rounded border border-[#e5e7eb] px-3 py-2 text-[13px]">
-              <input type="checkbox" name="permissions" value={m.key} defaultChecked={user?.permissions.includes(m.key) ?? false} disabled={role !== "staff"} className="mt-0.5 h-4 w-4" />
-              <span>
-                <span className="font-semibold text-lien-heading">{m.label}</span>
-                <span className="block text-[12px] text-lien-muted">{m.description}</span>
-              </span>
-            </label>
+        <div className={cn("mt-3 space-y-3", role !== "staff" && "pointer-events-none opacity-40")} data-testid="perm-picker">
+          <div className="flex flex-wrap items-center gap-2 text-[12px]">
+            <span className="font-semibold text-[#374151]">Mẫu nhanh:</span>
+            {PERMISSION_PRESETS.map((p) => (
+              <button key={p.key} type="button" onClick={() => setPerms(new Set(p.keys))} disabled={role !== "staff"} title={p.hint} className="rounded-full border border-lien-blue px-2.5 py-0.5 font-semibold text-lien-blue hover:bg-lien-blue hover:text-white" data-testid={`preset-${p.key}`}>
+                {p.label}
+              </button>
+            ))}
+            <button type="button" onClick={() => setPerms(new Set())} disabled={role !== "staff"} className="rounded-full border border-[#d1d5db] px-2.5 py-0.5 text-lien-muted hover:border-lien-heart hover:text-lien-heart">
+              Bỏ hết
+            </button>
+          </div>
+          {PERMISSION_TABS.map((tab) => (
+            <div key={tab.label} className={cn("rounded-md border px-3 py-2", tab.label === "Xem tiền" ? "border-amber-300 bg-amber-50/50" : "border-[#e5e7eb]")}>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="text-[13px] font-bold text-lien-heading">{tab.label}</span>
+                <button type="button" onClick={() => setPerms((p) => { const n = new Set(p); const all = tab.keys.every((k) => n.has(k)); for (const k of tab.keys) { if (all) n.delete(k); else n.add(k); } return n; })} disabled={role !== "staff"} className="text-[11px] text-lien-blue hover:underline">
+                  {tab.keys.every((k) => perms.has(k)) ? "bỏ cả tab" : "chọn cả tab"}
+                </button>
+              </div>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {tab.keys.map((k) => {
+                  const m = moduleOf[k];
+                  if (!m) return null;
+                  return (
+                    <label key={k} className="flex items-start gap-2 text-[13px]">
+                      <input type="checkbox" name="permissions" value={k} checked={perms.has(k)} onChange={() => toggle(k)} disabled={role !== "staff"} className="mt-0.5 h-4 w-4" data-testid={`perm-${k}`} />
+                      <span>
+                        <span className="font-semibold text-lien-heading">{m.label}</span>
+                        <span className="block text-[11px] leading-4 text-lien-muted">{m.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
         <label className={cn("mt-4 inline-flex items-center gap-2 text-[14px]", isSelf && "opacity-50")}>

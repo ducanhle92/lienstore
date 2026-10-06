@@ -44,7 +44,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
  * "how many units of X are still to buy, on the way, or already in Vietnam".
  */
 export default async function AdminPurchases({ searchParams }: Props) {
-  await requireAdmin("inventory");
+  await requireAdmin("purchases");
   const sp = await searchParams;
   const status = first(sp.status);
   const q = first(sp.q).trim().toLowerCase();

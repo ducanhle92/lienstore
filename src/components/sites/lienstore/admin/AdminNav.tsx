@@ -33,12 +33,12 @@ const NAV: NavGroup[] = [
       // the flow, in the order the goods travel: ⓪ the catalogue the customer orders from, then ① … ⑦
       { href: "/admin/products/", label: "⓪ Sản phẩm", icon: "list", module: "products", match: (p) => p.startsWith("/admin/products/") && !p.startsWith("/admin/products/sources") && !p.startsWith("/admin/products/pricing") && !p.startsWith("/admin/products/groups") },
       { href: "/admin/orders/", label: "① Đơn hàng", icon: "shopping-cart", module: "orders" },
-      { href: "/admin/purchases/", label: "② Quản lý mua hàng", icon: "shopping-basket", module: "inventory" },
-      { href: "/admin/inventory/?side=jp", label: "③ Kho Nhật", icon: "archive", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/lots") || (isInventoryHome(p) && q.get("side") === "jp") },
-      { href: "/admin/inventory/shipments/", label: "④ Đóng hàng JP", icon: "cube", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") !== "transit" },
-      { href: "/admin/inventory/shipments/?stage=transit", label: "⑤ Vận chuyển JP-VN", icon: "truck", module: "inventory", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
-      { href: "/admin/inventory/?side=vn", label: "⑥ Kho VN", icon: "building", module: "inventory", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" },
-      { href: "/admin/inventory/delivery/", label: "⑦ Giao hàng VN", icon: "map-marker", module: "orders", match: (p) => p.startsWith("/admin/inventory/delivery") },
+      { href: "/admin/purchases/", label: "② Quản lý mua hàng", icon: "shopping-basket", module: "purchases" },
+      { href: "/admin/inventory/?side=jp", label: "③ Kho Nhật", icon: "archive", module: "kho_jp", match: (p, q) => p.startsWith("/admin/inventory/lots") || (isInventoryHome(p) && q.get("side") === "jp") },
+      { href: "/admin/inventory/shipments/", label: "④ Đóng hàng JP", icon: "cube", module: "packing", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") !== "transit" },
+      { href: "/admin/inventory/shipments/?stage=transit", label: "⑤ Vận chuyển JP-VN", icon: "truck", module: "transit", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
+      { href: "/admin/inventory/?side=vn", label: "⑥ Kho VN", icon: "building", module: "kho_vn", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" },
+      { href: "/admin/inventory/delivery/", label: "⑦ Giao hàng VN", icon: "map-marker", module: "delivery", match: (p) => p.startsWith("/admin/inventory/delivery") },
       {
         href: "/admin/categories/",
         label: "Khác",
@@ -63,6 +63,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/banners/", label: "Banner trang chủ", icon: "picture-o", module: "banners" },
       { href: "/admin/posts/", label: "Góc chia sẻ", icon: "newspaper-o", module: "posts" },
       { href: "/admin/fanpage/", label: "Đăng bài fanpage", icon: "facebook", module: "fanpage" },
+      { href: "/admin/users/", label: "Người dùng", icon: "user-circle", module: "users" },
     ],
   },
   {
@@ -107,7 +108,6 @@ const NAV: NavGroup[] = [
       { href: "/admin/shipping/?leg=display", label: "Hiển thị cho khách", icon: "eye", module: "shipping" },
     ],
   },
-  { href: "/admin/users/", label: "Người dùng", icon: "user-circle", module: "users" },
 ];
 
 interface AdminNavProps {

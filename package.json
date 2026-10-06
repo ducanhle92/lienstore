@@ -65,6 +65,7 @@
     "test:kien": "npx -y tsx --conditions=react-server --test scripts/tests/kien.test.ts",
     "test:icons": "npx -y tsx --conditions=react-server --test scripts/tests/icons-font.test.ts",
     "test:expenses": "npx -y tsx --conditions=react-server --test scripts/tests/expenses.test.ts",
+    "test:permissions": "npx -y tsx --conditions=react-server --test scripts/tests/permissions.test.ts",
     "fonts:subset": "python scripts/fonts/subset-fontawesome.py"
   },
   "dependencies": {

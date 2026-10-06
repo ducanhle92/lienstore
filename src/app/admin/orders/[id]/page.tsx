@@ -43,6 +43,8 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 
 export default async function AdminOrderDetail({ params, searchParams }: Props) {
   const session = await requireAdmin("orders");
+  // without see_prices the order shows only what is still to collect (warehouse staff, shippers)
+  const seePrices = session.permissions.includes("see_prices");
   const isOwner = session.role === "owner";
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [order, files, overview, legMap, shippingMethods, messages, orderWeightG, importQuote, theme] = await Promise.all([getOrderById(id), getOrderFiles(id), getCustomerOverview(), getOrderLegs([id]), getShippingMethods(false), getOrderMessages(id), getOrderChargeableWeightG(id), getImportQuoteConfig(), getSiteTheme()]);
@@ -200,13 +202,13 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                 <tr>
                   <th className={thClass} />
                   <th className={thClass}>Sản phẩm</th>
-                  <th className={thClass}>Đơn giá</th>
+                  {seePrices ? <th className={thClass}>Đơn giá</th> : null}
                   <th className={thClass}>SL</th>
                   <th className={thClass}>
                     Nguồn hàng
                     <InfoPopover>Hàng của dòng này lấy từ đâu: lô có sẵn (kho VN / ĐVVC / Nhật, theo hạn dùng gần nhất trước), phiếu mua đang về, đợt đang gom, hay còn phải mua. Tồn kho đã trừ phần giữ chỗ; trừ thật khi xác nhận thanh toán hoặc đổi sang thu khi giao. Chọn nguồn khác trong ô bên dưới nếu muốn ghi đè.</InfoPopover>
                   </th>
-                  <th className={`${thClass} text-right`}>Thành tiền</th>
+                  {seePrices ? <th className={`${thClass} text-right`}>Thành tiền</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -226,7 +228,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                         </Link>
                       </div>
                     </td>
-                    <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td>
+                    {seePrices ? <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td> : null}
                     <td className={tdClass}>{it.quantity}</td>
                     <td className={`${tdClass} min-w-[260px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
                       {it.itemId ? (
@@ -281,10 +283,21 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                         </>
                       ) : null}
                     </td>
-                    <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td>
+                    {seePrices ? <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td> : null}
                   </tr>
                 ))}
               </tbody>
+              {seePrices ? null : (
+                <tfoot>
+                  <tr>
+                    <td colSpan={4} className={`${tdClass} text-right font-semibold`} data-testid="order-to-collect">
+                      {order.paidAt ? "Đã thanh toán" : order.paymentMethod === "cod" ? "Cần thu khi giao (COD)" : "Cần thu"}
+                    </td>
+                    <td className={`${tdClass} text-right text-[16px] font-bold`}>{order.paidAt ? "—" : formatPrice(order.total, order.currency)}</td>
+                  </tr>
+                </tfoot>
+              )}
+              {seePrices ? (
               <tfoot>
                 <tr>
                   <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
@@ -319,6 +332,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                   <td className={`${tdClass} text-right text-[16px] font-bold`}>{formatPrice(order.total, order.currency)}</td>
                 </tr>
               </tfoot>
+              ) : null}
             </table>
             </SheetTable>
           </Card>

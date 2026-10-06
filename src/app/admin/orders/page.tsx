@@ -45,6 +45,9 @@ const STAGE_CLS: Record<ShipStage, string> = {
 /** Admin › Đơn hàng: filters by day, payment method and logistics stage (the 6 customer-facing statuses). */
 export default async function AdminOrders({ searchParams }: Props) {
   const session = await requireAdmin("orders");
+  // money on this list follows the account: see_prices → order totals; see_cost (+ prices) → lãi/lỗ and the totals chips
+  const seePrices = session.permissions.includes("see_prices");
+  const seeCost = session.permissions.includes("see_cost");
   const isOwner = session.role === "owner"; // only the owner may delete orders (selection column + button)
   const sp = await searchParams;
   const raw = first(sp.status);
@@ -151,7 +154,7 @@ export default async function AdminOrders({ searchParams }: Props) {
               </BulkBar>
             </>
           ) : null}
-          <OrdersTotals target="[data-sheet='orders'] table" initial={{ orders: pnl.size, revenue: sum.revenue, cogs: sum.cogs, ship: sum.ship, voucher: sum.voucher, promo: sum.promo, profit: sum.profit, missing: sum.missing }} />
+          {seePrices && seeCost ? <OrdersTotals target="[data-sheet='orders'] table" initial={{ orders: pnl.size, revenue: sum.revenue, cogs: sum.cogs, ship: sum.ship, voucher: sum.voucher, promo: sum.promo, profit: sum.profit, missing: sum.missing }} /> : null}
           <ResizableTable id="orders">
             <SheetTable id="orders">
             <table className={tableClass}>
@@ -167,8 +170,8 @@ export default async function AdminOrders({ searchParams }: Props) {
                   <th className={thClass}>Khách hàng</th>
                   <th className={thClass}>Sản phẩm</th>
                   <th className={thClass}>Thanh toán</th>
-                  <th className={thClass}>Tổng</th>
-                  <th className={thClass} title="Doanh thu + ship khách trả − giá vốn − phí 3 chặng nhập − phí giao nội địa (cùng cách tính với Kế toán)">Lãi / lỗ</th>
+                  <th className={thClass} title={seePrices ? undefined : "Số tiền còn phải thu của khách (đơn chưa thanh toán)"}>{seePrices ? "Tổng" : "Cần thu"}</th>
+                  {seePrices && seeCost ? <th className={thClass} title="Doanh thu + ship khách trả − giá vốn − phí 3 chặng nhập − phí giao nội địa (cùng cách tính với Kế toán)">Lãi / lỗ</th> : null}
                   <th className={thClass}>Trạng thái đơn</th>
                   <th className={thClass}>Xử lý</th>
                 </tr>
@@ -178,7 +181,7 @@ export default async function AdminOrders({ searchParams }: Props) {
                   const s = SHIP_STAGES[stageIndex(o.shipStage)];
                   const pr = pnl.get(o.id);
                   // per-row figures for the live "Tổng theo bộ lọc" (cancelled orders have no P&L row → not counted)
-                  const fig = pr ? { "data-rev": pr.revenue + pr.shipCollected, "data-cogs": pr.cogs, "data-ship": pr.importFees + pr.vnCarrierFee, "data-voucher": pr.voucher, "data-promo": pr.promoDiscount, "data-profit": pr.profit, "data-missing": pr.missingCost } : {};
+                  const fig = pr && seePrices && seeCost ? { "data-rev": pr.revenue + pr.shipCollected, "data-cogs": pr.cogs, "data-ship": pr.importFees + pr.vnCarrierFee, "data-voucher": pr.voucher, "data-promo": pr.promoDiscount, "data-profit": pr.profit, "data-missing": pr.missingCost } : {};
                   return (
                     <tr key={o.id} className="hover:bg-[#fafafa]" {...fig}>
                       {isOwner ? (
@@ -216,7 +219,8 @@ export default async function AdminOrders({ searchParams }: Props) {
                           PAYMENT[o.paymentMethod]
                         )}
                       </td>
-                      <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(o.total, o.currency)}</td>
+                      <td className={`${tdClass} whitespace-nowrap`}>{seePrices ? formatPrice(o.total, o.currency) : o.paidAt || o.status === "cancelled" ? <span className="text-[12px] text-green-700">đã thanh toán</span> : formatPrice(o.total, o.currency)}</td>
+                      {seePrices && seeCost ? (
                       <td className={`${tdClass} whitespace-nowrap font-semibold`}>
                         {(() => {
                           const r = pnl.get(o.id);
@@ -229,6 +233,7 @@ export default async function AdminOrders({ searchParams }: Props) {
                           );
                         })()}
                       </td>
+                      ) : null}
                       <td className={tdClass}>
                         {o.status === "cancelled" ? <StatusBadge status="cancelled" /> : <span className={cn("inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold", STAGE_CLS[s.key])}>{s.label}</span>}
                       </td>

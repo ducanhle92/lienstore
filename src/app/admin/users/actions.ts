@@ -81,7 +81,7 @@ export async function updateUserAction(formData: FormData): Promise<void> {
   if (isSelf || current!.role === "owner") {
     role = current!.role;
     active = true;
-  } else if (!assignableRoles(me.role).includes(role)) {
+  } else if (role !== current!.role && !assignableRoles(me.role).includes(role)) {
     back(url, "error", `Bạn không có quyền gán vai trò ${ROLE_LABELS[role]}.`);
   }
   // Keep at least one active owner/admin account in the database.

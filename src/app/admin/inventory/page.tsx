@@ -59,8 +59,10 @@ const PSTATUS_LABEL: Record<Exclude<Pstatus, "">, string> = {
 };
 
 export default async function AdminInventory({ searchParams }: Props) {
-  await requireAdmin("inventory");
   const sp = await searchParams;
+  // each warehouse screen has its own permission (Kho Nhật / Kho VN); the product table is the shared module
+  const session = await requireAdmin(first(sp.view) === "products" ? "inventory" : first(sp.side) === "jp" ? "kho_jp" : "kho_vn");
+  const seeCost = session.permissions.includes("see_cost");
   const v = parseInventoryView(sp);
   const saved = first(sp.saved);
 
@@ -169,7 +171,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
       </div>
       {view === "lots" && vnTab === "orders" && vnBuckets ? <VnOrdersPanel buckets={vnBuckets} tab={orderTab} unitsByItem={unitsByItem} legs={vnLegs} /> : null}
-      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} tabQuery={vnTab === "stock" ? "&t=stock" : ""} /> : null}
+      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} tabQuery={vnTab === "stock" ? "&t=stock" : ""} showCost={seeCost} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

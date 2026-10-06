@@ -43,7 +43,7 @@ function sinceIso(days: number): string {
  * so units, order progress and the customer's page follow on their own.
  */
 export default async function DeliveryPage({ searchParams }: Props) {
-  if (!(await can("orders")) && !(await can("shipping"))) redirect("/admin/login/");
+  if (!(await can("delivery"))) redirect("/admin/?denied=delivery");
   const sp = await searchParams;
   const tabRaw = first(sp.tab);
   const tab: Tab = tabRaw === "delivering" || tabRaw === "done" ? tabRaw : "ready";

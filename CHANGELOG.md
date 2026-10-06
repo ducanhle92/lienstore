@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Người dùng** chuyển vào **Cài đặt web › Người dùng** và chỉ còn tài khoản vào trang quản trị (chủ sở hữu, quản trị viên, nhân viên). Tài khoản khách hàng xem / sửa ở Sales › Khách hàng (link ngay trên tiêu đề); form tạo tài khoản không còn vai trò Khách hàng.
+- **Phân quyền nhân viên theo tab › màn**: Vận hành (⓪ Sản phẩm, ① Đơn hàng, ② Mua hàng, ③ Kho Nhật, ④ Đóng hàng JP, ⑤ Vận chuyển JP-VN, ⑥ Kho VN, ⑦ Giao hàng VN, Danh mục), Cài đặt web, Sales, Kế toán, Vận chuyển; mỗi màn kho / giao hàng có quyền riêng (trước đây gộp chung “Kho hàng”). Nút **chọn cả tab** và **Mẫu nhanh**: Admin kho VN · Admin kho Nhật · Bán hàng.
+- **Nhóm “Xem tiền”**: *Xem giá bán & doanh thu* và *Xem giá vốn & lãi / lỗ*. Nhân viên không có quyền xem giá: danh sách đơn chỉ còn cột **Cần thu** (đơn đã thanh toán ghi “đã thanh toán”), không có cột Lãi / lỗ và dải tổng doanh thu / vốn; chi tiết đơn ẩn đơn giá, thành tiền, tạm tính, chỉ hiện **Cần thu / Cần thu khi giao (COD)**. Không có quyền xem giá vốn: Kho VN / Kho Nhật ẩn ô Vốn và cột ¥/cái.
+- Danh sách người dùng ghi rõ từng nhân viên được vào màn nào và “thấy / ẩn giá bán · giá vốn”. Tài khoản nhân viên tạo trước bản này giữ nguyên quyền cũ (Kho hàng = mọi màn kho, có xem tiền).
+
 ## [2.24.0] - 2026-10-06
 
 ### Added

@@ -27,13 +27,46 @@ export const ADMIN_MODULES: AdminModule[] = [
   { key: "theme", label: "Giao diện & Logo", href: "/admin/theme/", description: "Logo, slogan, bảng màu của web và web app" },
   { key: "posts", label: "Góc chia sẻ", href: "/admin/posts/", description: "Bài viết blog: viết, sửa, đăng / ẩn" },
   { key: "fanpage", label: "Đăng bài fanpage", href: "/admin/fanpage/", description: "Soạn và đăng bài sản phẩm lên Facebook Page, lên lịch / tự động" },
-  { key: "inventory", label: "Kho hàng", href: "/admin/inventory/", description: "Tồn kho, danh sách cần đặt" },
+  { key: "inventory", label: "Kho hàng (chung)", href: "/admin/inventory/", description: "Tự có khi được một màn kho bất kỳ: tồn kho theo sản phẩm, địa chỉ kho, nhập / chuyển kho" },
+  { key: "purchases", label: "② Quản lý mua hàng", href: "/admin/purchases/", description: "Đợt mua, bill, hoá đơn đồ tiêu hao" },
+  { key: "kho_jp", label: "③ Kho Nhật", href: "/admin/inventory/?side=jp", description: "Tồn kho tại kho Nhật (shop)" },
+  { key: "packing", label: "④ Đóng hàng JP", href: "/admin/inventory/shipments/", description: "Đóng chuyến, khoá, giao ĐVVC" },
+  { key: "transit", label: "⑤ Vận chuyển JP-VN", href: "/admin/inventory/shipments/?stage=transit", description: "Chuyến đã giao ĐVVC, mã PU / KEA, đồng bộ Kiến" },
+  { key: "kho_vn", label: "⑥ Kho VN", href: "/admin/inventory/?side=vn", description: "Nhận hàng vào kho VN, kiểm kho, đơn chờ giao" },
+  { key: "delivery", label: "⑦ Giao hàng VN", href: "/admin/inventory/delivery/", description: "Chọn ĐVVC, mã vận đơn, bắt đầu giao / đã giao, đã thu tiền" },
+  { key: "see_prices", label: "Xem giá bán & doanh thu", href: "/admin/orders/", description: "Đơn giá, tạm tính, tổng tiền, doanh thu. Không tick: đơn hàng chỉ hiện số tiền cần thu" },
+  { key: "see_cost", label: "Xem giá vốn & lãi / lỗ", href: "/admin/orders/", description: "Giá vốn ¥ / VNĐ, vốn tồn kho, lãi / lỗ từng đơn" },
   { key: "accounting", label: "Kế toán", href: "/admin/accounting/", description: "Doanh thu, giá vốn, phí vận chuyển, lãi/lỗ theo đơn và theo tháng; vốn tồn kho" },
   { key: "shipping", label: "Vận chuyển", href: "/admin/shipping/", description: "Bảng phí vận chuyển" },
   { key: "users", label: "Người dùng", href: "/admin/users/", description: "Tài khoản, vai trò, quyền (chỉ admin)" },
 ];
 
 export const ALL_PERMISSIONS: string[] = ADMIN_MODULES.map((m) => m.key);
+
+/** Screens of the Vận hành flow that live under the old "inventory" module (any of them also grants "inventory"). */
+export const INVENTORY_SCREENS = ["purchases", "kho_jp", "packing", "transit", "kho_vn"];
+/** Keys added in 2.25 — a stored list with none of them is a pre-2.25 staff account (expanded so nothing is lost). */
+const FINE_KEYS = [...INVENTORY_SCREENS, "delivery", "see_prices", "see_cost"];
+
+/**
+ * How the permission picker is laid out: one box per admin tab, a tick per screen (same order as the side menu), and
+ * the money-visibility switches apart. `inventory` is not offered — it follows from the screens.
+ */
+export const PERMISSION_TABS: Array<{ label: string; keys: string[] }> = [
+  { label: "Vận hành", keys: ["products", "orders", "purchases", "kho_jp", "packing", "transit", "kho_vn", "delivery", "categories"] },
+  { label: "Cài đặt web", keys: ["theme", "banners", "posts", "fanpage"] },
+  { label: "Sales", keys: ["customers", "promotions", "reviews"] },
+  { label: "Kế toán", keys: ["accounting"] },
+  { label: "Vận chuyển", keys: ["shipping"] },
+  { label: "Xem tiền", keys: ["see_prices", "see_cost"] },
+];
+
+/** Quick presets for the staff form (a starting point; boxes stay editable). */
+export const PERMISSION_PRESETS: Array<{ key: string; label: string; hint: string; keys: string[] }> = [
+  { key: "kho_vn", label: "Admin kho VN", hint: "Đơn hàng (chỉ thấy tiền cần thu), lên đơn, nhận hàng vào kho, kiểm kho, giao hàng", keys: ["orders", "kho_vn", "delivery"] },
+  { key: "kho_jp", label: "Admin kho Nhật", hint: "Mua hàng, kho Nhật, đóng hàng, vận chuyển JP-VN — thấy giá vốn ¥", keys: ["purchases", "kho_jp", "packing", "transit", "see_cost"] },
+  { key: "sales", label: "Bán hàng", hint: "Sản phẩm, đơn hàng, khách hàng, khuyến mãi — thấy giá bán", keys: ["products", "orders", "customers", "promotions", "reviews", "see_prices"] },
+];
 
 export const ROLE_LABELS: Record<UserRole, string> = { owner: "Chủ sở hữu", admin: "Quản trị viên", staff: "Nhân viên", customer: "Khách hàng" };
 
@@ -43,8 +76,9 @@ export const isAdminRole = (r: UserRole): r is AdminRole => r === "owner" || r =
 
 /** Roles an actor may assign when creating / editing accounts (the owner role is never assigned through the UI). */
 export function assignableRoles(actor: UserRole): UserRole[] {
-  if (actor === "owner") return ["customer", "staff", "admin"];
-  if (actor === "admin") return ["customer", "staff"];
+  // customer accounts are managed in Sales › Khách hàng — the users screen only creates staff / admins
+  if (actor === "owner") return ["staff", "admin"];
+  if (actor === "admin") return ["staff"];
   return [];
 }
 
@@ -62,8 +96,18 @@ export function isUserRole(v: unknown): v is UserRole {
 /** Effective module permissions for a role + stored permission list. */
 export function effectivePermissions(role: UserRole, permissions: string[]): string[] {
   if (role === "owner" || role === "admin") return ALL_PERMISSIONS;
-  if (role === "staff") return permissions.filter((p) => ALL_PERMISSIONS.includes(p) && p !== "users");
-  return [];
+  if (role !== "staff") return [];
+  const out = new Set(permissions.filter((p) => ALL_PERMISSIONS.includes(p) && p !== "users"));
+  // pre-2.25 account: "inventory" meant every warehouse screen, orders / shipping opened ⑦, and money was always shown
+  if (!permissions.some((p) => FINE_KEYS.includes(p))) {
+    if (out.has("inventory")) for (const k of INVENTORY_SCREENS) out.add(k);
+    if (out.has("orders") || out.has("shipping")) out.add("delivery");
+    out.add("see_prices");
+    out.add("see_cost");
+  }
+  // any warehouse screen brings the shared warehouse module (its actions, Tồn kho theo sản phẩm, địa chỉ kho)
+  if (INVENTORY_SCREENS.some((k) => out.has(k))) out.add("inventory");
+  return [...out];
 }
 
 export function sanitizePermissions(values: unknown): string[] {

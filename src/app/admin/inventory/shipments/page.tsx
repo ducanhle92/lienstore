@@ -45,8 +45,8 @@ const TRANSIT_AT = [{ key: "to_shop", label: "Đang về kho shop · chi phí v�
  * box — units leave the shelf (FEFO, paid orders first); the run then walks Đã đóng xong → Đã giao ĐVVC → NB→VN → …
  */
 export default async function ShipmentsPage({ searchParams }: Props) {
-  await requireAdmin("inventory");
   const sp = await searchParams;
+  await requireAdmin(first(sp.stage) === "transit" ? "transit" : "packing");
   // ⑤ filters: ?q= (run code / name / KEA / PU / product / bill / order), ?from= ?to= (Ngày gửi), ?st= (carrier step | done | any)
   const q = first(sp.q).trim();
   const qf = foldSearch(q);
