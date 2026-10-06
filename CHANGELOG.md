@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.25.0] - 2026-10-06
+
 ### Changed
 - **Người dùng** chuyển vào **Cài đặt web › Người dùng** và chỉ còn tài khoản vào trang quản trị (chủ sở hữu, quản trị viên, nhân viên). Tài khoản khách hàng xem / sửa ở Sales › Khách hàng (link ngay trên tiêu đề); form tạo tài khoản không còn vai trò Khách hàng.
 - **Phân quyền nhân viên theo tab › màn**: Vận hành (⓪ Sản phẩm, ① Đơn hàng, ② Mua hàng, ③ Kho Nhật, ④ Đóng hàng JP, ⑤ Vận chuyển JP-VN, ⑥ Kho VN, ⑦ Giao hàng VN, Danh mục), Cài đặt web, Sales, Kế toán, Vận chuyển; mỗi màn kho / giao hàng có quyền riêng (trước đây gộp chung “Kho hàng”). Nút **chọn cả tab** và **Mẫu nhanh**: Admin kho VN · Admin kho Nhật · Bán hàng.
