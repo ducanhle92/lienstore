@@ -6,7 +6,7 @@ import { can, getAdminSession } from "@/lib/auth";
 import { getOrderById, getOrderChargeableWeightG, getOrderLegs, getShippingMethods, saveOrderLeg, setOrderLegStatus, updateOrderShipping } from "@/lib/db";
 import { parseAmount } from "@/lib/format";
 import { isLegStatus, LEG_STATUS_LABEL } from "@/lib/leg-status";
-import { isShippingLeg, LEG_LABEL, zoneFeeForWeight } from "@/lib/shipping";
+import { isShippingLeg, LEG_LABEL, type ShippingLeg, zoneFeeForWeight } from "@/lib/shipping";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -76,6 +76,27 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
   redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đã lưu vận chuyển đơn #${order.number}.`)}#order-${orderId}`);
 }
 
+/**
+ * ⑦ Giao hàng VN: the row's / bulk bar's ĐVVC choice ("<methodId>" | "pickup" | "" = keep). Writes the leg's method +
+ * label (fee and zone stay as they are); returns the label for the message, null when nothing changed.
+ */
+async function applyMethodChoice(orderId: string, leg: ShippingLeg, choice: string, tracking?: string): Promise<string | null> {
+  if (!choice) return null;
+  const cur = (await getOrderLegs([orderId])).get(orderId)?.find((l) => l.leg === leg);
+  let methodId: number | null = null;
+  let label = "";
+  if (choice === "pickup") label = "Khách tự tới kho lấy";
+  else {
+    const method = (await getShippingMethods(false)).find((x) => String(x.id) === choice && x.leg === leg);
+    if (!method) return null;
+    methodId = method.id;
+    label = `${method.name}${method.carrierName && !method.name.includes(method.carrierName) ? ` (${method.carrierName})` : ""}`;
+  }
+  if (cur && cur.methodId === methodId && cur.label === label && (tracking === undefined || tracking === cur.tracking)) return null;
+  await saveOrderLeg({ orderId, leg, methodId, zoneId: methodId && cur?.methodId === methodId ? (cur.zoneId ?? null) : null, label, fee: cur?.fee ?? 0, tracking: tracking ?? cur?.tracking ?? "", note: cur?.note ?? "" });
+  return label;
+}
+
 /** Quick status change of one leg (Vận chuyển › sheet của từng chặng): status + optional tracking / note. */
 export async function setOrderLegStatusAction(formData: FormData): Promise<void> {
   if (!(await can("shipping")) && !(await can("orders"))) redirect("/admin/login/");
@@ -89,9 +110,11 @@ export async function setOrderLegStatusAction(formData: FormData): Promise<void>
   if (!order) redirect(back);
   const who = (await getAdminSession())?.label ?? "";
   const trackingRaw = formData.get("tracking");
-  await setOrderLegStatus(orderId, legRaw, statusRaw, { tracking: trackingRaw === null ? undefined : String(trackingRaw).trim(), note: text(formData, "note"), actor: who });
+  const tracking = trackingRaw === null ? undefined : String(trackingRaw).trim();
+  const carrier = await applyMethodChoice(orderId, legRaw, text(formData, "method"), tracking);
+  await setOrderLegStatus(orderId, legRaw, statusRaw, { tracking, note: text(formData, "note"), actor: who });
   revalidatePath("/admin", "layout");
-  redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đơn #${order.number} · ${LEG_LABEL[legRaw]}: ${LEG_STATUS_LABEL[statusRaw]}.`)}#order-${orderId}`);
+  redirect(`${back}${back.includes("?") ? "&" : "?"}saved=${encodeURIComponent(`Đơn #${order.number} · ${LEG_LABEL[legRaw]}: ${LEG_STATUS_LABEL[statusRaw]}${carrier ? ` · ${carrier}` : ""}${tracking ? ` · mã ${tracking}` : ""}.`)}#order-${orderId}`);
 }
 
 /** Sheet của một chặng › ticked orders: one leg status (+ note) for all of them; tracking numbers stay as they are. */
@@ -106,9 +129,11 @@ export async function bulkOrderLegStatusAction(formData: FormData): Promise<void
   if (!ids.length) redirect(`${back}${sep}error=${encodeURIComponent("Chưa tick đơn nào.")}`);
   const who = (await getAdminSession())?.label ?? "";
   const note = text(formData, "note");
+  const choice = text(formData, "method");
   let n = 0;
   for (const id of ids) {
     if (!(await getOrderById(id))) continue;
+    await applyMethodChoice(id, legRaw, choice);
     await setOrderLegStatus(id, legRaw, statusRaw, { note, actor: who });
     n++;
   }

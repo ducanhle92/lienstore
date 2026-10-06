@@ -70,7 +70,9 @@ export default async function AdminInventory({ searchParams }: Props) {
   // ?side=orders (old "Hàng theo đơn") now lives on the orders page
   if (first(sp.side) === "orders") redirect("/admin/orders/?view=stock");
   const side: "jp" | "vn" = first(sp.side) === "jp" ? "jp" : "vn";
-  const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: (["orders", "free", "shelf", "boxed"] as const).find((m) => m === first(sp.mode)) ?? "" };
+  // ⑥ Kho VN sheets: Tổng (everything at the shop), Lưu kho (free stock only by default), Đơn hàng
+  const vnTabRaw = first(sp.t);
+  const lotFilter: LotsFilter = { q: first(sp.q), src: first(sp.src), exp: first(sp.exp) === "soon" ? "soon" : first(sp.exp) === "expired" ? "expired" : "", mode: (["orders", "free", "shelf", "boxed"] as const).find((m) => m === first(sp.mode)) ?? (vnTabRaw === "stock" && side === "vn" ? "free" : "") };
   // every unit in hand (Kho Nhật → Kho VN) as bill lines × place × packing run
   const allGroups = view === "lots" ? listStockGroups(getDb(), { statuses: ["bought", "to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop", "at_shop"] }) : [];
   const flyingUnits = allGroups.filter((g) => g.status === "shipped_jp_vn").reduce((n, g) => n + g.qty, 0);
@@ -79,8 +81,8 @@ export default async function AdminInventory({ searchParams }: Props) {
 
   const readyOrders = view === "lots" && side === "vn" ? listOrdersReadyToShip(getDb()) : [];
   // ⑥ Kho VN has two sheets: "Lưu kho" (the shelf, default) and "Đơn hàng" (orders whose goods are here / on the way here)
-  const vnTab: "stock" | "orders" = view === "lots" && side === "vn" && first(sp.t) === "orders" ? "orders" : "stock";
-  const orderTab: VnOrderBucket = first(sp.ot) === "waiting" ? "waiting" : first(sp.ot) === "delivering" ? "delivering" : "ready";
+  const vnTab: "all" | "stock" | "orders" = view === "lots" && side === "vn" && (vnTabRaw === "orders" || vnTabRaw === "stock") ? vnTabRaw : "all";
+  const orderTab: VnOrderBucket = (["waiting", "none", "delivering"] as const).find((k) => k === first(sp.ot)) ?? "ready";
   const vnOrders = vnTab === "orders" ? await getOrders() : [];
   const vnOpen = vnOrders.filter((o) => o.status === "pending" || o.status === "processing");
   const vnItemIds = vnOpen.flatMap((o) => o.items.map((it) => it.itemId).filter((x): x is number => typeof x === "number"));
@@ -88,9 +90,9 @@ export default async function AdminInventory({ searchParams }: Props) {
   if (vnTab === "orders") {
     for (const u of listUnits(getDb(), { itemIds: vnItemIds })) {
       if (!u.itemId) continue;
-      const e = unitsByItem.get(u.itemId) ?? { atShop: [], away: 0 };
+      const e = unitsByItem.get(u.itemId) ?? { atShop: [], away: {} };
       if (u.status === "at_shop") e.atShop.push(u.code);
-      else e.away++;
+      else e.away[u.status] = (e.away[u.status] ?? 0) + 1;
       unitsByItem.set(u.itemId, e);
     }
   }
@@ -112,7 +114,10 @@ export default async function AdminInventory({ searchParams }: Props) {
         actions={
           view === "lots" && side === "vn" ? (
             <span className="inline-flex overflow-hidden rounded-md border border-[#d1d5db]" role="tablist" aria-label="Kho VN" data-testid="vn-tabs">
-              <Link href="/admin/inventory/?side=vn" role="tab" aria-selected={vnTab === "stock"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "stock" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-stock">
+              <Link href="/admin/inventory/?side=vn" role="tab" aria-selected={vnTab === "all"} className={cn("px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "all" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-all" title="Mọi cái đang ở kho shop VN (lưu kho + giữ cho đơn) — kiểm số lượng khi hàng về">
+                <Fa name="th-list" /> Tổng
+              </Link>
+              <Link href="/admin/inventory/?side=vn&t=stock" role="tab" aria-selected={vnTab === "stock"} className={cn("border-l border-[#d1d5db] px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "stock" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-stock" title="Hàng lưu kho (tồn tự do, chưa ai đặt)">
                 <Fa name="archive" /> Lưu kho
               </Link>
               <Link href="/admin/inventory/?side=vn&t=orders" role="tab" aria-selected={vnTab === "orders"} className={cn("border-l border-[#d1d5db] px-3 py-1.5 text-[13px] font-semibold no-underline", vnTab === "orders" ? "bg-lien-heart text-white" : "bg-white text-lien-text hover:bg-[#f5f5f5]")} data-testid="vn-tab-orders">
@@ -164,7 +169,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
       </div>
       {view === "lots" && vnTab === "orders" && vnBuckets ? <VnOrdersPanel buckets={vnBuckets} tab={orderTab} unitsByItem={unitsByItem} legs={vnLegs} /> : null}
-      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} /> : null}
+      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} tabQuery={vnTab === "stock" ? "&t=stock" : ""} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

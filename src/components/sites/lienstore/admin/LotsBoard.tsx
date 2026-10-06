@@ -32,6 +32,8 @@ interface Props {
   /** Open packing runs (Đóng hàng): ticked rows can be boxed into them; their boxes are the parcels still at Kho Nhật. */
   shipments?: Array<{ id: number; code: string; label: string; status?: string }>;
   readyOrders: OrderReadyToShip[];
+  /** Extra query the tile links keep (⑥ Kho VN sheet, e.g. "&t=stock"). */
+  tabQuery?: string;
   backUrl: string;
 }
 
@@ -85,7 +87,7 @@ const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchas
  * Tồn kho by bill line (every row expands to its unit codes): two tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho
  * shop" (actions) and "Tại kho ĐVVC" (read-only), the NB→VN flight strip in between. FEFO order everywhere.
  */
-export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl }: Props) {
+export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl, tabQuery = "" }: Props) {
   // Tồn kho = what is physically at the shop; goods with the carrier / in the air are under ⑤ Vận chuyển
   const shopStatus = side === "jp" ? "bought" : "at_shop";
   const atShop = groups.filter((g) => g.status === shopStatus);
@@ -93,7 +95,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
   const shown = applyLotsFilter(atShop, filter);
   const shelf = filter.mode === "boxed" ? [] : shown.filter((g) => !(side === "jp" && g.shipmentId));
   const boxed = side === "jp" && filter.mode !== "shelf" ? shown.filter((g) => g.shipmentId) : [];
-  const tileHref = (mode: LotsFilter["mode"]) => `/admin/inventory/?side=${side}${mode ? `&mode=${mode}` : ""}`;
+  const tileHref = (mode: LotsFilter["mode"]) => `/admin/inventory/?side=${side}${tabQuery}${mode ? `&mode=${mode}` : ""}`;
   const boxedAll = side === "jp" ? atShop.filter((g) => g.shipmentId) : [];
   // parcels = packing runs whose boxes are still on the shop floor (one run = one parcel id CH-…)
   const parcels = [...new Map(boxed.map((g) => [g.shipmentId!, { id: g.shipmentId!, code: g.shipmentCode ?? `#${g.shipmentId}`, groups: [] as StockGroup[] }])).values()];
@@ -167,7 +169,7 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
           ) : null}
         </BulkBar>
         {filter.mode === "boxed" ? null : <LiveTotals target={`[data-sheet="lots-shop-${side}"] table`} />}
-        {filter.mode === "boxed" ? null : <GroupTable rows={splitByHolder(shelf)} sources={sources} scope={`shop-${side}`} formId={formId} />}
+        {filter.mode === "boxed" ? null : <GroupTable rows={splitByHolder(shelf).filter((r) => (filter.mode === "free" ? !r.holder : filter.mode === "orders" ? !!r.holder : true))} sources={sources} scope={`shop-${side}`} formId={formId} />}
         {parcels.length ? (
           <div className="mt-3 space-y-2" data-testid="boxed-lots">
             <p className="m-0 text-[13px] font-semibold text-lien-heading">

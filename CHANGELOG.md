@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- ⑥ Kho VN: ba sheet **Tổng** (mọi cái đang ở kho shop VN, lưu kho + giữ cho đơn — để kiểm số lượng khi hàng về), **Lưu kho** (chỉ tồn tự do) và **Đơn hàng**. Sheet Đơn hàng lấy mọi đơn đang xử lý từ Vận hành › Đơn hàng, thêm ô **Chưa có hàng ở kho**; mỗi đơn hiện “N món · M cái” và chip từng nơi hàng đang ở (chưa mua · đã đặt mua · kho Nhật · tới ĐVVC Nhật · JP→VN · kho ĐVVC VN · về kho shop · tại kho VN) để báo khách, mục **Chi tiết từng sản phẩm** ẩn/hiện liệt kê từng món với mã cái đã ở kho; cột Chặng VN ghi ĐVVC và mã vận đơn.
+- ⑦ Giao hàng VN: mỗi đơn chọn được **ĐVVC** (các phương thức chặng ④ Nội địa VN, hoặc Khách tới kho lấy) và nhập **mã vận đơn** ngay trên dòng; thanh dưới **Lưu thay đổi** lưu cho mọi dòng đã sửa, hoặc lưu cùng lúc với **Bắt đầu giao**; tick nhiều đơn → chọn ĐVVC chung ở thanh dưới rồi Bắt đầu giao. ĐVVC và mã hiện ở chặng ④ trong chi tiết đơn (Vận hành › Đơn hàng) và ở ⑥ Kho VN › Đơn hàng.
+
 ## [2.23.0] - 2026-10-05
 
 ### Changed

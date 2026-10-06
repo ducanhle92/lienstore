@@ -8,7 +8,8 @@ import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAl
 import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { can } from "@/lib/auth";
-import { getOrderLegs, getOrders } from "@/lib/db";
+import { getOrderLegs, getOrders, getShippingMethods } from "@/lib/db";
+import type { ShippingMethod } from "@/types/shop";
 import { flowCounts } from "@/lib/flow-db";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
@@ -59,6 +60,8 @@ export default async function DeliveryPage({ searchParams }: Props) {
   // oldest first while waiting / on the road; newest first once delivered
   const rows = [...lists[tab]].sort((a, b) => (tab === "done" ? b.updatedAt.localeCompare(a.updatedAt) : a.createdAt.localeCompare(b.createdAt)));
   const legMap = await getOrderLegs(rows.map((o) => o.id));
+  // ĐVVC nội địa the shop can hand an order to (Vận chuyển › chặng ④); the row select and the bulk select list them
+  const methods = (await getShippingMethods(true)).filter((m) => m.leg === "vn_domestic");
   const itemIds = rows.flatMap((o) => o.items.map((it) => it.itemId).filter((x): x is number => typeof x === "number"));
   const codesByItem = new Map<number, string[]>();
   for (const u of listUnits(db, { itemIds, withDelivered: true })) if (u.itemId) codesByItem.set(u.itemId, [...(codesByItem.get(u.itemId) ?? []), u.code]);
@@ -88,6 +91,16 @@ export default async function DeliveryPage({ searchParams }: Props) {
       </form>
       {tab !== "done" ? (
         <BulkBar scope={bulkId}>
+          <select name="method" form={bulkId} defaultValue="" className={cn(adminInput, "!mb-0 !w-[220px] !py-1 !text-[13px]")} aria-label="Đơn vị vận chuyển cho các đơn đã tick" data-testid="bulk-method">
+            <option value="">ĐVVC: giữ nguyên</option>
+            {methods.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.carrierName && !m.name.includes(m.carrierName) ? ` (${m.carrierName})` : ""}
+              </option>
+            ))}
+            <option value="pickup">Khách tới kho lấy</option>
+          </select>
           {tab === "ready" ? (
             <button type="submit" form={bulkId} name="status" value="sent" className={cn(btnPrimary, "!py-1")} data-testid="bulk-start">
               <Fa name="truck" /> Bắt đầu giao
@@ -117,13 +130,13 @@ export default async function DeliveryPage({ searchParams }: Props) {
                   <th className={thClass}>Khách · địa chỉ</th>
                   <th className={thClass}>Hàng</th>
                   <th className={thClass}>Giao · thu</th>
-                  <th className={thClass}>Mã vận đơn · ghi chú cho khách</th>
+                  <th className={thClass}>ĐVVC · mã vận đơn · ghi chú cho khách</th>
                   <th className={thClass} />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((o) => (
-                  <DeliveryRow key={o.id} o={o} leg={(legMap.get(o.id) ?? []).find((l) => l.leg === "vn_domestic")} codesByItem={codesByItem} tab={tab} back={back} bulkId={bulkId} />
+                  <DeliveryRow key={o.id} o={o} leg={(legMap.get(o.id) ?? []).find((l) => l.leg === "vn_domestic")} codesByItem={codesByItem} tab={tab} back={back} bulkId={bulkId} methods={methods} />
                 ))}
               </tbody>
             </table>
@@ -135,7 +148,7 @@ export default async function DeliveryPage({ searchParams }: Props) {
   );
 }
 
-function DeliveryRow({ o, leg, codesByItem, tab, back, bulkId }: { o: Order; leg: OrderLeg | undefined; codesByItem: Map<number, string[]>; tab: Tab; back: string; bulkId: string }) {
+function DeliveryRow({ o, leg, codesByItem, tab, back, bulkId, methods }: { o: Order; leg: OrderLeg | undefined; codesByItem: Map<number, string[]>; tab: Tab; back: string; bulkId: string; methods: ShippingMethod[] }) {
   const fid = `dl-${o.id}`;
   const st = leg?.status ?? "pending";
   const pickup = o.delivery === "pickup";
@@ -192,10 +205,26 @@ function DeliveryRow({ o, leg, codesByItem, tab, back, bulkId }: { o: Order; leg
         {o.shipFeePayment === "on_delivery" && !pickup ? <span className="mt-1 block text-lien-muted">khách trả phí ship cho shipper</span> : null}
       </td>
       <td className={tdClass}>
-        {pickup ? (
-          <span className="text-[12px] text-lien-muted">—</span>
+        {/* ĐVVC + mã vận đơn of this order: typed here, saved by the bottom bar ("Lưu thay đổi") or with Bắt đầu giao;
+            the same leg ④ shows on Vận hành › Đơn hàng › chi tiết đơn */}
+        {tab !== "done" ? (
+          <select name="method" form={fid} defaultValue={leg?.methodId ? String(leg.methodId) : pickup || leg?.label === "Khách tự tới kho lấy" ? "pickup" : ""} className={cn(adminInput, "!mb-1 !w-[170px] !py-1 !text-[12px]")} aria-label="Đơn vị vận chuyển" data-testid={`method-${o.number}`}>
+            <option value="">— ĐVVC —</option>
+            {methods.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.carrierName && !m.name.includes(m.carrierName) ? ` (${m.carrierName})` : ""}
+              </option>
+            ))}
+            <option value="pickup">Khách tới kho lấy</option>
+          </select>
         ) : (
-          <input name="tracking" form={fid} defaultValue={leg?.tracking ?? ""} placeholder="Mã vận đơn" className={cn(adminInput, "!mb-1 !w-[170px] !py-1 !text-[12px]")} aria-label="Mã vận đơn" />
+          <span className="block text-[12px] text-lien-muted">{leg?.label || (pickup ? "Khách tới kho lấy" : "—")}</span>
+        )}
+        {tab === "done" ? (
+          <span className="block font-mono text-[12px] text-lien-blue">{leg?.tracking || "—"}</span>
+        ) : (
+          <input name="tracking" form={fid} defaultValue={leg?.tracking ?? ""} placeholder="Mã vận đơn" className={cn(adminInput, "!mb-1 !w-[170px] !py-1 !text-[12px]")} aria-label="Mã vận đơn" data-testid={`tracking-${o.number}`} />
         )}
         <input name="note" form={fid} defaultValue="" placeholder="Ghi chú cho khách" className={cn(adminInput, "!mb-0 !w-[170px] !py-1 !text-[12px]")} aria-label="Ghi chú cho khách" />
       </td>

@@ -33,6 +33,7 @@ const GLYPHS = {
   "angle-right": "",
   "angle-left": "",
   "angle-double-left": "",
+  "th-list": "",
   "angle-double-right": "",
   "star": "",
   "star-o": "",
