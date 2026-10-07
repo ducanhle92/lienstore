@@ -8,6 +8,7 @@ Admin ⓪ Sản phẩm: thanh lọc một hàng, bỏ bộ chuyển trang phía 
 ## Đang làm
 - (không)
 ## Tiếp theo
-- [ ] Deploy lên prod (v2.25.1) — đang chạy
+- [ ] (chờ yêu cầu mới)
+- [x] Đã lên prod v2.25.1 (health check xác nhận)
 ## Ghi chú / quyết định
 - Nhánh: fix/products-filter-one-row
