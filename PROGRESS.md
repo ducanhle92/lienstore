@@ -8,6 +8,6 @@ Admin ⓪ Sản phẩm: thanh lọc một hàng, bỏ bộ chuyển trang phía 
 ## Đang làm
 - (không)
 ## Tiếp theo
-- [ ] Người dùng kiểm tra trên trình duyệt, rồi release khi được yêu cầu
+- [ ] Deploy lên prod (v2.25.1) — đang chạy
 ## Ghi chú / quyết định
 - Nhánh: fix/products-filter-one-row
