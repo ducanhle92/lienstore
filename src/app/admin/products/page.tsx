@@ -112,9 +112,9 @@ export default async function AdminProducts({ searchParams }: Props) {
       {deleted ? <Flash>Đã xoá sản phẩm.</Flash> : null}
 
       <Card>
-        <form method="get" className="mb-3 flex flex-wrap items-center gap-2">
-          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={`${adminInput} min-w-[150px] max-w-[240px] flex-1 !w-auto !py-1.5 !text-[13px]`} />
-          <select name="category" defaultValue={category} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[170px]`}>
+        <form method="get" className="mb-3 flex flex-nowrap items-center gap-2">
+          <input name="q" defaultValue={first(sp.q)} placeholder="Tìm theo tên Việt / tên Nhật, slug, SKU…" className={`${adminInput} min-w-[120px] max-w-[240px] flex-1 !w-auto !py-1.5 !text-[13px]`} />
+          <select name="category" defaultValue={category} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px] max-w-[170px]`}>
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -122,22 +122,22 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <select name="status" defaultValue={status} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`}>
+          <select name="status" defaultValue={status} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px]`}>
             <option value="">Mọi trạng thái</option>
             <option value="publish">Đang bán</option>
             <option value="draft">Bản nháp</option>
           </select>
-          <select name="stock" defaultValue={stock} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[130px]`}>
+          <select name="stock" defaultValue={stock} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px] max-w-[130px]`}>
             <option value="">Mọi tồn kho</option>
             <option value="in">Còn hàng</option>
             <option value="out">Hết hàng (ngừng bán tại Nhật)</option>
           </select>
-          <select name="fulfillment" defaultValue={fulfillment} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`}>
+          <select name="fulfillment" defaultValue={fulfillment} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px]`}>
             <option value="">Mọi hình thức</option>
             <option value="stock">Lưu kho</option>
             <option value="order">Order</option>
           </select>
-          <select name="source" defaultValue={source} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[160px]`}>
+          <select name="source" defaultValue={source} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px] max-w-[160px]`}>
             <option value="">Mọi nguồn nhập</option>
             {sourceOptions.map((s) => (
               <option key={s.key} value={s.key}>
@@ -146,7 +146,7 @@ export default async function AdminProducts({ searchParams }: Props) {
             ))}
             {hasNoSource ? <option value="none">Chưa gắn nguồn</option> : null}
           </select>
-          <select name="price" defaultValue={priceBucket} className={`${adminInput} !w-auto !py-1.5 !text-[13px] max-w-[150px]`} aria-label="Giá thực tế trên website" data-testid="price-filter">
+          <select name="price" defaultValue={priceBucket} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px] max-w-[150px]`} aria-label="Giá thực tế trên website" data-testid="price-filter">
             <option value="">Mọi giá bán</option>
             {PRICE_BUCKETS.map((b) => (
               <option key={b.key} value={b.key}>
@@ -154,7 +154,7 @@ export default async function AdminProducts({ searchParams }: Props) {
               </option>
             ))}
           </select>
-          <select name="per" defaultValue={String(pg.per)} className={`${adminInput} !w-auto !py-1.5 !text-[13px]`} aria-label="Số dòng mỗi trang" title="Số sản phẩm hiện mỗi trang" data-testid="products-per">
+          <select name="per" defaultValue={String(pg.per)} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px]`} aria-label="Số dòng mỗi trang" title="Số sản phẩm hiện mỗi trang" data-testid="products-per">
             {[10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
                 {n} / trang
@@ -186,14 +186,6 @@ export default async function AdminProducts({ searchParams }: Props) {
             <Fa name="th-large" /> Gộp thành nhóm biến thể
           </button>
         </BulkBar>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[13px] text-lien-muted">
-          <span data-testid="products-range">
-            {items.length ? `Hiện ${pg.from}–${pg.to} / ${items.length} sản phẩm` : "0 sản phẩm"}
-            {items.length !== all.length ? ` (lọc từ ${all.length})` : ""}
-            {pg.totalPages > 1 ? ` · trang ${pg.page} / ${pg.totalPages}` : ""}
-          </span>
-          <AdminPager page={pg.page} totalPages={pg.totalPages} path="/admin/products/" params={pagerParams} testId="pager-top" />
-        </div>
         <ResizableTable id="products">
           <SheetTable id="products">
           <table className={tableClass}>
@@ -352,7 +344,14 @@ export default async function AdminProducts({ searchParams }: Props) {
           </table>
           </SheetTable>
         </ResizableTable>
-        <AdminPager page={pg.page} totalPages={pg.totalPages} path="/admin/products/" params={pagerParams} className="mt-3 justify-center" testId="pager" />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[13px] text-lien-muted">
+          <span data-testid="products-range">
+            {items.length ? `Hiện ${pg.from}–${pg.to} / ${items.length} sản phẩm` : "0 sản phẩm"}
+            {items.length !== all.length ? ` (lọc từ ${all.length})` : ""}
+            {pg.totalPages > 1 ? ` · trang ${pg.page} / ${pg.totalPages}` : ""}
+          </span>
+          <AdminPager page={pg.page} totalPages={pg.totalPages} path="/admin/products/" params={pagerParams} testId="pager" />
+        </div>
       </Card>
     </>
   );

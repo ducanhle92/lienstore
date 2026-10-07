@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- Vận hành › ⓪ Sản phẩm: thanh lọc gói gọn trên **một hàng** (các ô lọc tự co lại khi màn hẹp). Bỏ bộ chuyển trang phía trên bảng; dòng “Hiện 1–10 / … sản phẩm” chuyển xuống cạnh bộ chuyển trang phía dưới, để bảng hiện được nhiều dòng hơn.
+
 ## [2.25.0] - 2026-10-06
 
 ### Changed
