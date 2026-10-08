@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.26.0] - 2026-10-08
+
 ### Added
 - **In hoá đơn**: ⑥ Kho VN › Đơn hàng có ô tick từng đơn (và chọn tất cả); tick xong, thanh dưới hiện nút **In hoá đơn** — mở tab mới với mỗi đơn một trang A5 (logo, số đơn, người nhận, điện thoại, địa chỉ, ĐVVC và mã vận đơn, danh sách sản phẩm + số lượng, ô ký người giao / người nhận) và tự bật hộp thoại in. Tài khoản có quyền *Xem giá bán* in **Hoá đơn** đủ đơn giá, thành tiền, tổng; tài khoản không có (như admin kho VN) in **Phiếu giao hàng** chỉ ghi số tiền **Thu hộ (COD) / Cần thu / Đã thanh toán**. Nút cũng có ở thanh dưới của ⑦ Giao hàng VN.
 
