@@ -8,6 +8,8 @@ import { PURCHASE_STAGES, purchaseIndex, type PurchaseStatus } from "@/lib/purch
 import { cn } from "@/lib/utils";
 import type { Order, OrderLeg } from "@/types/shop";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
+import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
+import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 
 /**
  * ⑥ Kho VN › sheet "Đơn hàng": every open order from Vận hành › Đơn hàng seen from the VN shop — complete and waiting to
@@ -78,6 +80,13 @@ export function VnOrdersPanel({ buckets, tab, unitsByItem, legs }: { buckets: Re
         ))}
         <StatTile label="Giao hàng VN" value="Sang ⑦ →" accent="gray" href="/admin/inventory/delivery/" title="Màn ⑦: chọn ĐVVC, nhập mã vận đơn, bấm Bắt đầu giao / Đã giao" />
       </StatTiles>
+      {/* ticked orders → "In hoá đơn" in the bottom bar: one A5 sheet per order in a new tab (/print/orders/) */}
+      <form id="vn-print" method="get" action="/print/orders/" target="_blank" />
+      <BulkBar scope="vn-print" label="đơn">
+        <button type="submit" form="vn-print" className={cn(btnPrimary, "!py-1")} data-testid="bulk-print">
+          <Fa name="print" /> In hoá đơn
+        </button>
+      </BulkBar>
       <Card>
         {rows.length === 0 ? (
           <p className="m-0 text-[13px] text-lien-muted">{empty}</p>
@@ -87,6 +96,9 @@ export function VnOrdersPanel({ buckets, tab, unitsByItem, legs }: { buckets: Re
               <table className={tableClass} data-testid={`vn-orders-${tab}`} data-csv-table>
                 <thead>
                   <tr>
+                    <th className={cn(thClass, "w-8")}>
+                      <TableSelectAll name="ids" />
+                    </th>
                     <th className={thClass}>Đơn</th>
                     <th className={thClass}>Khách · địa chỉ</th>
                     <th className={thClass}>Hàng của đơn đang ở đâu</th>
@@ -110,6 +122,9 @@ export function VnOrdersPanel({ buckets, tab, unitsByItem, legs }: { buckets: Re
                     const here = summary.get("at_shop") ?? 0;
                     return (
                       <tr key={o.id} className="align-top hover:bg-[#fafafa]" data-testid={`vn-order-${o.number}`}>
+                        <td className={cn(tdClass, "w-8")}>
+                          <input type="checkbox" name="ids" value={o.id} form="vn-print" className="h-4 w-4" aria-label={`Chọn đơn #${o.number}`} />
+                        </td>
                         <td className={cn(tdClass, "whitespace-nowrap")}>
                           <Link href={`/admin/orders/${o.id}/`} className="font-semibold text-lien-heading hover:text-lien-blue">
                             #{o.number}
