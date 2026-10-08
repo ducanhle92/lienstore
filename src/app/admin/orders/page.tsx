@@ -146,25 +146,23 @@ export default async function AdminOrders({ searchParams }: Props) {
           <p className="text-[14px] text-lien-muted">Không có đơn hàng phù hợp.</p>
         ) : (
           <>
-          {isOwner ? (
-            <>
-              <form id={BULK_FORM_ID} action={deleteOrdersAction} data-testid="orders-bulk-bar" />
-              <BulkBar scope={BULK_FORM_ID}>
-                <BulkDeleteButton className={bulkBtn} />
-              </BulkBar>
-            </>
-          ) : null}
+          {/* every account can tick orders to print invoices; only the owner also gets "Xóa đơn hàng" */}
+          <form id={BULK_FORM_ID} action={deleteOrdersAction} data-testid="orders-bulk-bar" />
+          <BulkBar scope={BULK_FORM_ID} label="đơn">
+            <button type="submit" form={BULK_FORM_ID} formAction="/print/orders/" formMethod="get" formTarget="_blank" className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid="bulk-print">
+              <Fa name="print" /> In hoá đơn
+            </button>
+            {isOwner ? <BulkDeleteButton className={bulkBtn} /> : null}
+          </BulkBar>
           {seePrices && seeCost ? <OrdersTotals target="[data-sheet='orders'] table" initial={{ orders: pnl.size, revenue: sum.revenue, cogs: sum.cogs, ship: sum.ship, voucher: sum.voucher, promo: sum.promo, profit: sum.profit, missing: sum.missing }} /> : null}
           <ResizableTable id="orders">
             <SheetTable id="orders">
             <table className={tableClass}>
               <thead>
                 <tr>
-                  {isOwner ? (
-                    <th className={`${thClass} w-8`}>
-                      <SelectAllOrders />
-                    </th>
-                  ) : null}
+                  <th className={`${thClass} w-8`}>
+                    <SelectAllOrders />
+                  </th>
                   <th className={thClass}>Mã</th>
                   <th className={thClass}>Ngày</th>
                   <th className={thClass}>Khách hàng</th>
@@ -184,11 +182,9 @@ export default async function AdminOrders({ searchParams }: Props) {
                   const fig = pr && seePrices && seeCost ? { "data-rev": pr.revenue + pr.shipCollected, "data-cogs": pr.cogs, "data-ship": pr.importFees + pr.vnCarrierFee, "data-voucher": pr.voucher, "data-promo": pr.promoDiscount, "data-profit": pr.profit, "data-missing": pr.missingCost } : {};
                   return (
                     <tr key={o.id} className="hover:bg-[#fafafa]" {...fig}>
-                      {isOwner ? (
-                        <td className={tdClass}>
-                          <input type="checkbox" name="ids" value={o.id} form={BULK_FORM_ID} data-number={o.number} aria-label={`Chọn đơn #${o.number}`} className="h-4 w-4" />
-                        </td>
-                      ) : null}
+                      <td className={tdClass}>
+                        <input type="checkbox" name="ids" value={o.id} form={BULK_FORM_ID} data-number={o.number} aria-label={`Chọn đơn #${o.number}`} className="h-4 w-4" />
+                      </td>
                       <td className={`${tdClass} font-semibold`}>
                         <Link href={`/admin/orders/${o.id}/`} className="text-lien-heading hover:text-lien-blue">
                           #{o.number}

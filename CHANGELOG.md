@@ -5,6 +5,16 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- ① Đơn hàng: mọi tài khoản đều tick được đơn (ô chọn tất cả ở đầu bảng); thanh dưới hiện **In hoá đơn** như ở ⑥ Kho VN › Đơn hàng. Nút *Xóa đơn hàng* vẫn chỉ chủ sở hữu thấy.
+
+### Fixed
+- Hoá đơn in bị lẹm phần dưới khi đơn có nhiều món: hoá đơn giờ **tự chia trang A5** — đầu trang (Zalo · Đặt hàng · Fanpage · logo) lặp lại ở mọi trang, trang sau ghi “Hoá đơn #… (tiếp theo) · Trang 2/2” và lặp lại đầu bảng; phần tổng tiền và khối **Thông tin thanh toán** (QR) sang trang sau khi trang đầu không đủ chỗ, khối thanh toán luôn nằm cuối trang cuối. Đã kiểm tra 39 đơn (40 trang) không trang nào tràn.
+
+### Changed
+- Khối Thông tin thanh toán theo mẫu: dải đỏ sát mép trái từ trên QR tới đáy trang, **QR chấm tròn màu xanh rêu với ba mắt tròn và logo shop ở giữa** (mã sửa lỗi mức cao; đã quét thử bằng bộ giải mã kiểu app ngân hàng, ra đúng số tiền và nội dung CK của đơn). Tiền trên hoá đơn ghi kiểu `1.650.000đ` như mẫu, các cột Đơn giá / Thành tiền không còn dính nhau.
+- Khổ in: giữ **A5 (148 × 210 mm)**. In trên giấy A5 là đúng tỉ lệ 1:1; nếu chỉ có giấy A4 thì chọn “2 trang trên 1 tờ” hoặc in A4 rồi cắt đôi — không xuất PDF khổ A4 vì máy in thu nhỏ còn 71 % khi in sang A5, chữ sẽ quá nhỏ.
+
 ## [2.27.0] - 2026-10-08
 
 ### Changed

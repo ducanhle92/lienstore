@@ -1,13 +1,17 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import QRCode from "qrcode";
 import { AutoPrint } from "@/components/sites/lienstore/admin/AutoPrint";
 import { contact, invoiceInfo } from "@/components/sites/lienstore/root-8a5edab2/data";
 import { getAdminSession } from "@/lib/auth";
 import { accountForOrder, orderQrPayload } from "@/lib/bank-config";
 import { getOrderById, getSiteTheme } from "@/lib/db";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatAmount, formatDate } from "@/lib/format";
+
+/** Money as on the shop's paper invoice: 1.650.000đ */
+const vnd = (n: number) => `${formatAmount(Math.round(n))}đ`;
 import { BANK_BINS } from "@/lib/vietqr";
+import { paginateInvoice } from "@/lib/invoice-layout";
+import { qrArtSvg } from "@/lib/qr-art";
 import type { BankAccount, Order } from "@/types/shop";
 
 export const dynamic = "force-dynamic";
@@ -69,14 +73,19 @@ export default async function PrintOrders({ searchParams }: Props) {
       const bank = await accountForOrder(o);
       const due = o.paidAt || o.status === "cancelled" ? 0 : o.total;
       // unpaid: the code carries the amount and the order's pay code (SePay matches it); paid: the bare account
-      const qr = bank.accountNumber ? await QRCode.toString(orderQrPayload(bank, due, due ? o.payCode : ""), { type: "svg", margin: 0, errorCorrectionLevel: "M" }).catch(() => "") : "";
+      let qr = "";
+      try {
+        qr = bank.accountNumber ? qrArtSvg(orderQrPayload(bank, due, due ? o.payCode : ""), { color: "#0f4d3a", logoHref: theme.icon }) : "";
+      } catch {
+        qr = "";
+      }
       return { o, bank, due, qr };
     }),
   );
   const zalo = contact.phones.find((p) => p.label === "VN")?.number ?? contact.phones[0]?.number ?? "";
 
   return (
-    <div className="min-h-screen bg-[#e5e7eb] py-6 font-sans text-[#1f2937] print:bg-white print:py-0">
+    <div className="min-h-screen bg-[#e5e7eb] py-6 font-sans text-[#1f2a44] print:bg-white print:py-0">
       <style>{`
         @page { size: A5 portrait; margin: 0; }
         @media print { .no-print { display: none !important; } .sheet { box-shadow: none !important; margin: 0 !important; } .sheet + .sheet { break-before: page; } }
@@ -84,101 +93,129 @@ export default async function PrintOrders({ searchParams }: Props) {
       `}</style>
       <AutoPrint count={orders.length} />
       {orders.length === 0 ? <p className="no-print mx-auto max-w-[148mm] rounded bg-white p-6 text-center">Không có đơn nào để in (chưa tick đơn, hoặc đơn đã bị xoá).</p> : null}
-      {sheets.map(({ o, bank, due, qr }) => {
+      {sheets.flatMap(({ o, bank, due, qr }) => {
         const c = o.customer;
         const name = `${c.lastName} ${c.firstName}`.trim();
         const pickup = o.delivery === "pickup";
-        return (
-          <section key={o.id} className="sheet relative mx-auto mb-6 flex h-[210mm] w-[148mm] flex-col overflow-hidden bg-white px-[11mm] pt-[11mm] pb-[9mm] text-[10.5pt] shadow" data-testid={`invoice-${o.number}`}>
-            {/* contacts · logo */}
+        const address = pickup ? "Khách tới kho lấy" : c.address;
+        const totalsLines = 1 + (o.discount > 0 ? 1 : 0) + (o.shippingFee > 0 ? 1 : 0);
+        const pages = paginateInvoice(o.items, { address, totalsLines });
+        return pages.map((pg, pi) => (
+          <section key={`${o.id}-${pi}`} className="sheet relative mx-auto mb-6 flex h-[210mm] w-[148mm] flex-col overflow-hidden bg-white px-[11mm] pt-[9mm] pb-[8mm] text-[10pt] leading-snug shadow" data-testid={`invoice-${o.number}-p${pi + 1}`}>
+            {/* contacts · logo — repeated on every page */}
             <header className="flex items-start justify-between gap-3">
-              <ul className="m-0 mt-[7mm] list-none space-y-0.5 p-0 text-[11pt] leading-snug">
-                <li>
-                  <span className="mr-1 inline-block rounded bg-[#0068ff] px-1 text-[7pt] font-bold leading-4 text-white align-middle">Zalo</span>Zalo: {zalo}
+              <ul className="m-0 mt-[5mm] list-none space-y-1 p-0 text-[11pt]">
+                <li className="flex items-center gap-1.5">
+                  <span className="inline-flex h-[15px] w-[15px] items-center justify-center rounded-full bg-[#0068ff] text-[5pt] font-bold text-white">Zalo</span>Zalo: {zalo}
                 </li>
-                <li>🛒 Đặt hàng: {invoiceInfo.website}</li>
-                <li>
-                  <span className="mr-1 inline-flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#1877f2] text-[8pt] font-bold leading-none text-white align-middle">f</span>Fanpage: {invoiceInfo.fanpage}
+                <li className="flex items-center gap-1.5">
+                  <span className="w-[15px] text-center text-[10pt]">🛒</span>Đặt hàng: {invoiceInfo.website}
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="inline-flex h-[15px] w-[15px] items-center justify-center rounded-full bg-[#1877f2] text-[9pt] font-bold leading-none text-white">f</span>Fanpage: {invoiceInfo.fanpage}
                 </li>
               </ul>
               <div className="flex shrink-0 flex-col items-end">
-                {theme.logoLight ? <Image src={theme.logoLight} alt={theme.shopName} width={800} height={388} sizes="200px" className="h-auto w-[50mm]" /> : <span className="text-[20pt] font-bold text-[#c8282d]">{theme.shopName}</span>}
-                {theme.slogan ? <span className="-mt-1 text-[10pt] font-bold text-[#c8282d]">{theme.slogan}</span> : null}
+                {theme.logoLight ? <Image src={theme.logoLight} alt={theme.shopName} width={800} height={388} sizes="200px" className="h-auto w-[46mm]" /> : <span className="text-[20pt] font-bold text-[#d32f2f]">{theme.shopName}</span>}
+                {theme.slogan ? <span className="-mt-1 text-[10pt] font-bold text-[#d32f2f]">{theme.slogan}</span> : null}
               </div>
             </header>
 
-            {/* customer · HÓA ĐƠN */}
-            <div className="mt-[9mm] flex items-start justify-between gap-4">
-              <div className="min-w-0 leading-snug">
-                <div className="text-[12pt] font-bold uppercase">TÊN KH: {name}</div>
-                <div className="text-[9.5pt]">SĐT: {c.phone}</div>
-                <div className="text-[9.5pt]">Địa chỉ: {pickup ? "Khách tới kho lấy" : c.address}</div>
-                <div className="text-[9.5pt]">
-                  Thanh toán: {PAYMENT[o.paymentMethod] ?? o.paymentMethod}
-                  {o.paidAt ? " · đã thanh toán" : ""}
+            {pi === 0 ? (
+              <div className="mt-[7mm] flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[12pt] font-bold uppercase">TÊN KH: {name}</div>
+                  <div className="text-[9.5pt]">SĐT: {c.phone}</div>
+                  <div className="text-[9.5pt]">Địa chỉ: {address}</div>
+                  <div className="text-[9.5pt]">
+                    Thanh toán: {PAYMENT[o.paymentMethod] ?? o.paymentMethod}
+                    {o.paidAt ? " · đã thanh toán" : ""}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[24pt] font-bold leading-none text-[#d32f2f]">HÓA ĐƠN</div>
+                  <div className="mt-2 text-[10pt] font-bold">Hoá đơn #{o.number}</div>
+                  <div className="text-[9.5pt]">Ngày tạo đơn {formatDate(o.createdAt)}</div>
                 </div>
               </div>
-              <div className="shrink-0 text-right leading-snug">
-                <div className="text-[24pt] font-bold leading-none text-[#c8282d]">HÓA ĐƠN</div>
-                <div className="mt-2 text-[10pt] font-bold">Hoá đơn #{o.number}</div>
-                <div className="text-[9.5pt]">Ngày tạo đơn {formatDate(o.createdAt)}</div>
+            ) : (
+              <div className="mt-[4mm] flex items-center justify-between border-b border-[#d1d5db] pb-1 text-[9.5pt]">
+                <span className="font-bold">
+                  Hoá đơn #{o.number} · {name} <span className="font-normal">(tiếp theo)</span>
+                </span>
+                <span>
+                  Trang {pi + 1}/{pages.length}
+                </span>
               </div>
-            </div>
+            )}
 
-            {/* items */}
-            <table className="mt-[7mm] w-full border-collapse text-[10pt]">
-              <thead>
-                <tr className="border-y-2 border-[#1f2937]">
-                  <th className="py-2 pl-2 text-left font-bold">Sản phẩm</th>
-                  <th className="w-[19mm] py-2 text-center font-bold">Số lượng</th>
-                  <th className="w-[22mm] py-2 text-right font-bold">Đơn giá</th>
-                  <th className="w-[24mm] py-2 pr-2 text-right font-bold">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {o.items.map((it) => (
-                  <tr key={it.itemId ?? it.productId} className="align-top">
-                    <td className="py-[2.2mm] pl-2 pr-2">{it.name}</td>
-                    <td className="py-[2.2mm] text-center">{it.quantity}</td>
-                    <td className="whitespace-nowrap py-[2.2mm] text-right">{formatPrice(it.price, o.currency)}</td>
-                    <td className="whitespace-nowrap py-[2.2mm] pr-2 text-right">{formatPrice(it.price * it.quantity, o.currency)}</td>
+            {pg.rows.length ? (
+              <table className="mt-[6mm] w-full border-collapse text-[10pt]">
+                <thead>
+                  <tr className="border-y-2 border-[#1f2a44]">
+                    <th className="py-2 pl-2 text-left font-bold">Sản phẩm</th>
+                    <th className="w-[18mm] py-2 text-center font-bold">Số lượng</th>
+                    <th className="w-[22mm] py-2 text-right font-bold">Đơn giá</th>
+                    <th className="w-[24mm] py-2 pr-2 text-right font-bold">Thành tiền</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-[#1f2937]">
-                  <td colSpan={4} />
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {pg.rows.map((i) => {
+                    const it = o.items[i];
+                    return (
+                      <tr key={it.itemId ?? `${it.productId}-${i}`} className="align-top">
+                        <td className="py-[1.9mm] pl-2 pr-2">{it.name}</td>
+                        <td className="py-[1.9mm] text-center">{it.quantity}</td>
+                        <td className="whitespace-nowrap py-[1.9mm] pl-2 text-right">{vnd(it.price)}</td>
+                        <td className="whitespace-nowrap py-[1.9mm] pl-3 pr-2 text-right">{vnd(it.price * it.quantity)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className={pg.totals ? "border-t-2 border-[#1f2a44]" : "border-t border-[#d1d5db]"}>
+                    <td colSpan={4} className={pg.totals ? "" : "pt-1 text-right text-[8.5pt] italic text-[#6b7280]"}>
+                      {pg.totals ? null : "còn tiếp trang sau →"}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            ) : null}
 
-            {/* totals */}
-            <div className="ml-auto mt-2 w-[62%] pr-2 text-right text-[9.5pt] leading-relaxed">
-              <div>Tổng cộng: {formatPrice(o.subtotal, o.currency)}</div>
-              {o.discount > 0 ? <div>Giảm giá: {formatPrice(o.discount, o.currency)}</div> : null}
-              {o.shippingFee > 0 ? (
-                <div>
-                  Phí giao hàng{o.shipFeePayment === "on_delivery" ? " (khách trả shipper)" : ""}: {formatPrice(o.shippingFee, o.currency)}
-                </div>
-              ) : null}
-              <div className="mt-3 inline-block border-b-2 border-[#1f2937] pb-2 pl-6 text-[11pt] font-bold uppercase">TỔNG TIỀN: {formatPrice(o.total, o.currency)}</div>
-              {o.paidAt ? <div className="mt-1 text-[9.5pt] font-bold text-green-700">ĐÃ THANH TOÁN</div> : o.paymentMethod === "cod" ? <div className="mt-1 text-[9.5pt] font-bold text-[#c8282d]">Thu hộ khi giao: {formatPrice(due, o.currency)}</div> : null}
-            </div>
-
-            {/* payment details */}
-            <footer className="mt-auto flex items-center gap-[6mm] pl-[3mm]" data-testid={`invoice-pay-${o.number}`}>
-              <span aria-hidden className="absolute bottom-0 left-0 h-[42mm] w-[4mm] bg-[#c8282d]" />
-              {qr ? <div className="h-[27mm] w-[27mm] shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} /> : null}
-              <div className="text-[9.5pt] leading-snug">
-                <div className="mb-2 text-[10pt] font-bold uppercase">Thông tin thanh toán</div>
-                <div>{bankLine(bank)}</div>
-                <div>Tên tài khoản: {bank.accountName}</div>
-                <div>Số tài khoản: {bank.accountNumber}</div>
-                {due && o.payCode ? <div>Nội dung CK: {o.payCode}</div> : null}
+            {pg.totals ? (
+              <div className={`ml-auto w-[64%] pr-2 text-right text-[9.5pt] leading-relaxed ${pg.rows.length ? "mt-2" : "mt-[6mm] border-t-2 border-[#1f2a44] pt-2"}`}>
+                <div>Tổng cộng: {vnd(o.subtotal)}</div>
+                {o.discount > 0 ? <div>Giảm giá: {vnd(o.discount)}</div> : null}
+                {o.shippingFee > 0 ? (
+                  <div>
+                    Phí giao hàng{o.shipFeePayment === "on_delivery" ? " (khách trả shipper)" : ""}: {vnd(o.shippingFee)}
+                  </div>
+                ) : null}
+                <div className="mt-3 inline-block border-b-2 border-[#1f2a44] pb-2 pl-6 text-[11pt] font-bold uppercase">TỔNG TIỀN: {vnd(o.total)}</div>
+                {o.paidAt ? <div className="mt-1 text-[9.5pt] font-bold text-green-700">ĐÃ THANH TOÁN</div> : o.paymentMethod === "cod" ? <div className="mt-1 text-[9.5pt] font-bold text-[#d32f2f]">Thu hộ khi giao: {vnd(due)}</div> : null}
               </div>
-            </footer>
+            ) : null}
+
+            {pg.payment ? (
+              <>
+                {/* red bar on the page edge, from just above the QR down to the bottom — as in the shop's template */}
+                <span aria-hidden className="absolute bottom-0 left-0 h-[47mm] w-[5mm] bg-[#d32f2f]" />
+                <footer className="mt-auto flex items-center gap-[7mm] pl-[4mm]" data-testid={`invoice-pay-${o.number}`}>
+                  {qr ? <div className="h-[30mm] w-[30mm] shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} /> : null}
+                  <div className="text-[10pt] leading-normal">
+                    <div className="mb-2 text-[10.5pt] font-bold uppercase">Thông tin thanh toán</div>
+                    <div>{bankLine(bank)}</div>
+                    <div>Tên tài khoản: {bank.accountName}</div>
+                    <div>Số tài khoản: {bank.accountNumber}</div>
+                    {due && o.payCode ? <div>Nội dung CK: {o.payCode}</div> : null}
+                  </div>
+                </footer>
+              </>
+            ) : pages.length > 1 && pi === 0 ? (
+              <div className="mt-auto text-right text-[8.5pt] text-[#6b7280]">Trang 1/{pages.length}</div>
+            ) : null}
           </section>
-        );
+        ));
       })}
     </div>
   );
