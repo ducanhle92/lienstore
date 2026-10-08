@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.28.0] - 2026-10-08
+
 ### Added
 - ① Đơn hàng: mọi tài khoản đều tick được đơn (ô chọn tất cả ở đầu bảng); thanh dưới hiện **In hoá đơn** như ở ⑥ Kho VN › Đơn hàng. Nút *Xóa đơn hàng* vẫn chỉ chủ sở hữu thấy.
 
