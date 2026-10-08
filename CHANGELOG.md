@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.27.0] - 2026-10-08
+
 ### Changed
 - **In hoá đơn** theo mẫu hoá đơn của shop, khổ A5, mỗi đơn một trang: Zalo / Đặt hàng / Fanpage và logo + slogan ở đầu; TÊN KH, SĐT, địa chỉ, hình thức thanh toán; chữ **HÓA ĐƠN** đỏ, số hoá đơn = số đơn, ngày tạo đơn; bảng Sản phẩm · Số lượng · Đơn giá · Thành tiền; Tổng cộng, Giảm giá, phí giao hàng, **TỔNG TIỀN**, dòng *Thu hộ khi giao* (COD) hoặc *Đã thanh toán*; khối **Thông tin thanh toán** với mã QR chuyển khoản (đã kèm số tiền và nội dung CK của đơn khi chưa thanh toán), ngân hàng, tên và số tài khoản, dải đỏ góc dưới. Hoá đơn in cho khách nên luôn có giá bán (không bao giờ có giá vốn), kể cả với nhân viên kho. Lưu PDF: chọn máy in “Lưu dưới dạng PDF” — tên file gợi ý là `HoaDon-<số đơn>`.
 
