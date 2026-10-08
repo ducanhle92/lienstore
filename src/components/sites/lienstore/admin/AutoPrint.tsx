@@ -16,7 +16,7 @@ export function AutoPrint({ count }: { count: number }) {
   }, [count]);
   return (
     <div className="no-print sticky top-0 z-10 mx-auto mb-4 flex w-[148mm] items-center justify-between gap-3 rounded bg-white px-4 py-2 shadow">
-      <span className="text-[13px]">{count} phiếu · khổ A5, mỗi đơn một trang</span>
+      <span className="text-[13px]">{count} hoá đơn · khổ A5, mỗi đơn một trang · muốn lưu PDF: chọn máy in “Lưu dưới dạng PDF”, khổ A5, lề Không</span>
       <span className="flex gap-2">
         <button type="button" onClick={() => window.print()} className="rounded bg-[#c00] px-3 py-1.5 text-[13px] font-semibold text-white">
           In

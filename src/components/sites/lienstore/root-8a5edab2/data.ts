@@ -28,6 +28,12 @@ export const contact: ContactInfo = {
   ],
 };
 
+/** Lines printed at the top of the paper invoice (/print/orders/). */
+export const invoiceInfo = {
+  website: "https://linconnn.io.vn/",
+  fanpage: "Tạp hoá Liên Anh",
+};
+
 export const branding = {
   logo: "/sites/lienstore/brand/lienstore-logo-horizontal.svg",
   logoWidth: 520,
