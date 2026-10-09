@@ -1554,6 +1554,21 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_expenses_day ON expenses(spent_at)`,
     ],
   },
+  {
+    // BIDV gave the shop's account (LE THI LIEN) its new short number 2600748323 in place of 26010000748323 — same
+    // account, so the row is updated in place (old and new orders all print / QR the new number). The old number is
+    // kept as an inactive row: checkout never shows it, but a SePay webhook still reporting it is accepted.
+    version: 73,
+    name: "bidv-short-account-number",
+    up: [
+      `UPDATE bank_accounts SET account_number = '2600748323' WHERE account_number = '26010000748323'
+         AND NOT EXISTS (SELECT 1 FROM bank_accounts WHERE account_number = '2600748323')`,
+      `INSERT INTO bank_accounts (bank_code, bin, account_number, account_name, branch, is_default, active, created_at)
+         SELECT bank_code, bin, '26010000748323', account_name, branch, 0, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM bank_accounts WHERE account_number = '2600748323'
+           AND NOT EXISTS (SELECT 1 FROM bank_accounts WHERE account_number = '26010000748323') LIMIT 1`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

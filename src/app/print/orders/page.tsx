@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AutoPrint } from "@/components/sites/lienstore/admin/AutoPrint";
 import { contact, invoiceInfo } from "@/components/sites/lienstore/root-8a5edab2/data";
@@ -55,9 +56,11 @@ export async function generateMetadata({ searchParams }: Props) {
 }
 
 /**
- * Hoá đơn for the ticked orders (⑥ Kho VN › Đơn hàng, ⑦ Giao hàng VN): one A5 sheet per order in the shop's invoice
- * layout — contacts + logo, customer block, "HÓA ĐƠN", items with prices, totals, bank details with a VietQR code.
- * Opened in a new tab outside the admin chrome; the print dialog prints it or saves it as an A5 PDF.
+ * Hoá đơn for the ticked orders (① Đơn hàng, ⑥ Kho VN › Đơn hàng, ⑦ Giao hàng VN): A5 pages in the shop's invoice
+ * layout — contacts + logo, customer block, "HÓA ĐƠN", items with prices, totals, bank details with a VietQR code
+ * (left out once the order is paid or cancelled). Opened in a new tab outside the admin chrome.
+ * `?paper=a5` (default): one A5 portrait page per sheet. `?paper=a4`: A4 landscape with two A5 pages side by side,
+ * a dashed cut line in the middle — print on A4, cut in half.
  * Shows selling prices only (never cost): it is the paper that goes into the customer's parcel.
  */
 export default async function PrintOrders({ searchParams }: Props) {
@@ -66,42 +69,48 @@ export default async function PrintOrders({ searchParams }: Props) {
   if (!["orders", "kho_vn", "delivery"].some((k) => session.permissions.includes(k))) redirect("/admin/?denied=orders");
   const sp = await searchParams;
   const ids = [...new Set([...all(sp.ids), ...all(sp.orderIds)])].slice(0, 200);
+  const paper = all(sp.paper)[0] === "a4" ? "a4" : "a5";
   const orders = (await Promise.all(ids.map((id) => getOrderById(id)))).filter((o): o is Order => !!o);
   const theme = await getSiteTheme();
   const sheets = await Promise.all(
     orders.map(async (o) => {
       const bank = await accountForOrder(o);
-      const due = o.paidAt || o.status === "cancelled" ? 0 : o.total;
-      // unpaid: the code carries the amount and the order's pay code (SePay matches it); paid: the bare account
+      const cancelled = o.status === "cancelled";
+      const due = o.paidAt || cancelled ? 0 : o.total;
+      // paid / cancelled: nothing to transfer, so no payment block at all; unpaid: the QR carries the amount and the
+      // order's pay code (SePay matches it)
+      const showPay = !!due;
       let qr = "";
       try {
-        qr = bank.accountNumber ? qrArtSvg(orderQrPayload(bank, due, due ? o.payCode : ""), { color: "#0f4d3a", logoHref: theme.icon }) : "";
+        qr = showPay && bank.accountNumber ? qrArtSvg(orderQrPayload(bank, due, o.payCode), { color: "#0f4d3a", logoHref: theme.icon }) : "";
       } catch {
         qr = "";
       }
-      return { o, bank, due, qr };
+      return { o, bank, due, qr, showPay, cancelled };
     }),
   );
+  const a4 = paper === "a4";
   const zalo = contact.phones.find((p) => p.label === "VN")?.number ?? contact.phones[0]?.number ?? "";
 
   return (
     <div className="min-h-screen bg-[#e5e7eb] py-6 font-sans text-[#1f2a44] print:bg-white print:py-0">
       <style>{`
-        @page { size: A5 portrait; margin: 0; }
-        @media print { .no-print { display: none !important; } .sheet { box-shadow: none !important; margin: 0 !important; } .sheet + .sheet { break-before: page; } }
+        @page { size: ${a4 ? "A4 landscape" : "A5 portrait"}; margin: 0; }
+        @media print { .no-print { display: none !important; } .sheet, .a4 { box-shadow: none !important; margin: 0 !important; } ${a4 ? ".a4 + .a4" : ".sheet + .sheet"} { break-before: page; } }
         .sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .a4::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 0.3mm dashed #c4c4c4; }
       `}</style>
-      <AutoPrint count={orders.length} />
+      <AutoPrint count={orders.length} paper={paper} />
       {orders.length === 0 ? <p className="no-print mx-auto max-w-[148mm] rounded bg-white p-6 text-center">Không có đơn nào để in (chưa tick đơn, hoặc đơn đã bị xoá).</p> : null}
-      {sheets.flatMap(({ o, bank, due, qr }) => {
+      {(a4 ? pairs : (x: ReactNode[]) => x)(sheets.flatMap(({ o, bank, due, qr, showPay, cancelled }) => {
         const c = o.customer;
         const name = `${c.lastName} ${c.firstName}`.trim();
         const pickup = o.delivery === "pickup";
         const address = pickup ? "Khách tới kho lấy" : c.address;
         const totalsLines = 1 + (o.discount > 0 ? 1 : 0) + (o.shippingFee > 0 ? 1 : 0);
-        const pages = paginateInvoice(o.items, { address, totalsLines });
+        const pages = paginateInvoice(o.items, { address, totalsLines, payment: showPay });
         return pages.map((pg, pi) => (
-          <section key={`${o.id}-${pi}`} className="sheet relative mx-auto mb-6 flex h-[210mm] w-[148mm] flex-col overflow-hidden bg-white px-[11mm] pt-[9mm] pb-[8mm] text-[10pt] leading-snug shadow" data-testid={`invoice-${o.number}-p${pi + 1}`}>
+          <section key={`${o.id}-${pi}`} className={`sheet relative flex h-[210mm] shrink-0 flex-col ${a4 ? "w-[148.5mm]" : "mx-auto mb-6 w-[148mm] shadow"} overflow-hidden bg-white px-[11mm] pt-[9mm] pb-[8mm] text-[10pt] leading-snug`} data-testid={`invoice-${o.number}-p${pi + 1}`}>
             {/* contacts · logo — repeated on every page */}
             <header className="flex items-start justify-between gap-3">
               <ul className="m-0 mt-[5mm] list-none space-y-1 p-0 text-[11pt]">
@@ -129,7 +138,7 @@ export default async function PrintOrders({ searchParams }: Props) {
                   <div className="text-[9.5pt]">Địa chỉ: {address}</div>
                   <div className="text-[9.5pt]">
                     Thanh toán: {PAYMENT[o.paymentMethod] ?? o.paymentMethod}
-                    {o.paidAt ? " · đã thanh toán" : ""}
+                    {o.paidAt ? " · đã thanh toán" : cancelled ? " · đơn đã huỷ" : ""}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -192,7 +201,7 @@ export default async function PrintOrders({ searchParams }: Props) {
                   </div>
                 ) : null}
                 <div className="mt-3 inline-block border-b-2 border-[#1f2a44] pb-2 pl-6 text-[11pt] font-bold uppercase">TỔNG TIỀN: {vnd(o.total)}</div>
-                {o.paidAt ? <div className="mt-1 text-[9.5pt] font-bold text-green-700">ĐÃ THANH TOÁN</div> : o.paymentMethod === "cod" ? <div className="mt-1 text-[9.5pt] font-bold text-[#d32f2f]">Thu hộ khi giao: {vnd(due)}</div> : null}
+                {cancelled ? <div className="mt-1 text-[9.5pt] font-bold text-[#6b7280]">ĐƠN ĐÃ HUỶ</div> : o.paidAt ? <div className="mt-1 text-[9.5pt] font-bold text-green-700">ĐÃ THANH TOÁN</div> : o.paymentMethod === "cod" ? <div className="mt-1 text-[9.5pt] font-bold text-[#d32f2f]">Thu hộ khi giao: {vnd(due)}</div> : null}
               </div>
             ) : null}
 
@@ -200,11 +209,14 @@ export default async function PrintOrders({ searchParams }: Props) {
               <>
                 {/* red bar on the page edge, from just above the QR down to the bottom — as in the shop's template */}
                 <span aria-hidden className="absolute bottom-0 left-0 h-[47mm] w-[5mm] bg-[#d32f2f]" />
-                <footer className="mt-auto flex items-center gap-[7mm] pl-[4mm]" data-testid={`invoice-pay-${o.number}`}>
+                <footer className="mt-auto flex items-center gap-[5mm] pl-[1mm]" data-testid={`invoice-pay-${o.number}`}>
                   {qr ? <div className="h-[30mm] w-[30mm] shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} /> : null}
-                  <div className="text-[10pt] leading-normal">
+                  <div className="min-w-0 text-[9.5pt] leading-normal">
                     <div className="mb-2 text-[10.5pt] font-bold uppercase">Thông tin thanh toán</div>
-                    <div>{bankLine(bank)}</div>
+                    {/* the bank's full name stays on one line ("…Việt Nam" must not wrap) */}
+                    <div className="whitespace-nowrap" data-testid="invoice-bank-line">
+                      {bankLine(bank)}
+                    </div>
                     <div>Tên tài khoản: {bank.accountName}</div>
                     <div>Số tài khoản: {bank.accountNumber}</div>
                     {due && o.payCode ? <div>Nội dung CK: {o.payCode}</div> : null}
@@ -216,7 +228,20 @@ export default async function PrintOrders({ searchParams }: Props) {
             ) : null}
           </section>
         ));
-      })}
+      }))}
     </div>
   );
+}
+
+/** A4 landscape: two A5 pages per sheet, side by side (a 3rd page starts the next sheet). */
+function pairs(pages: ReactNode[]): ReactNode[] {
+  const out: ReactNode[] = [];
+  for (let i = 0; i < pages.length; i += 2)
+    out.push(
+      <div key={`a4-${i}`} className="a4 relative mx-auto mb-6 flex h-[210mm] w-[297mm] bg-white shadow print:mb-0" data-testid={`a4-sheet-${i / 2 + 1}`}>
+        {pages[i]}
+        {pages[i + 1] ?? null}
+      </div>,
+    );
+  return out;
 }

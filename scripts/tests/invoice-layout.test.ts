@@ -30,6 +30,14 @@ describe("paginateInvoice", () => {
       assert.ok(t <= pay && pay === pages.length - 1, `n=${n}`);
     }
   });
+  it("paid / cancelled orders print no payment block and need no room for it", () => {
+    const withPay = paginateInvoice(items(4, 70));
+    const noPay = paginateInvoice(items(4, 70), { payment: false });
+    assert.equal(noPay.filter((p) => p.payment).length, 0);
+    assert.equal(noPay.filter((p) => p.totals).length, 1);
+    assert.ok(noPay.length <= withPay.length);
+    assert.deepEqual(paginateInvoice(items(2), { payment: false }), [{ rows: [0, 1], totals: true, payment: false }]);
+  });
   it("a very long address or name never loops", () => {
     const pages = paginateInvoice([{ name: "x".repeat(2000) }], { address: "y".repeat(400) });
     assert.ok(pages.length <= 4);

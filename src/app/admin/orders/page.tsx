@@ -149,8 +149,12 @@ export default async function AdminOrders({ searchParams }: Props) {
           {/* every account can tick orders to print invoices; only the owner also gets "Xóa đơn hàng" */}
           <form id={BULK_FORM_ID} action={deleteOrdersAction} data-testid="orders-bulk-bar" />
           <BulkBar scope={BULK_FORM_ID} label="đơn">
-            <button type="submit" form={BULK_FORM_ID} formAction="/print/orders/" formMethod="get" formTarget="_blank" className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid="bulk-print">
-              <Fa name="print" /> In hoá đơn
+            {/* two paper sizes: A5 (one page per A5 sheet) or A4 landscape with two A5 invoices side by side, cut in half */}
+            <button type="submit" form={BULK_FORM_ID} formAction="/print/orders/" formMethod="get" formTarget="_blank" name="paper" value="a5" className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid="bulk-print" title="Mỗi trang hoá đơn một tờ A5">
+              <Fa name="print" /> In hoá đơn A5
+            </button>
+            <button type="submit" form={BULK_FORM_ID} formAction="/print/orders/" formMethod="get" formTarget="_blank" name="paper" value="a4" className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid="bulk-print-a4" title="Tờ A4 ngang, 2 hoá đơn A5 cạnh nhau — in xong cắt đôi">
+              <Fa name="print" /> In A4 (2 đơn/tờ)
             </button>
             {isOwner ? <BulkDeleteButton className={bulkBtn} /> : null}
           </BulkBar>

@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **In hoá đơn khổ A4 (2 đơn/tờ)**: thanh dưới ở ① Đơn hàng, ⑥ Kho VN › Đơn hàng và ⑦ Giao hàng VN có hai nút **In hoá đơn A5** và **In A4 (2 đơn/tờ)**. Khổ A4 in ngang, hai trang A5 nằm cạnh nhau, giữa có đường nét đứt để cắt đôi. Trên trang in có nút chuyển A5 ⇄ A4.
+
+### Changed
+- **Số tài khoản BIDV mới 2600748323** (cùng chủ tài khoản LE THI LIEN, thay cho 26010000748323): migration 73 đổi tại chỗ, nên hoá đơn, QR và trang thanh toán của cả đơn cũ lẫn đơn mới đều dùng số mới. Số cũ được giữ thành tài khoản "ngừng dùng" để giao dịch SePay báo về số cũ vẫn được nhận.
+- **Hoá đơn của đơn đã thanh toán hoặc đã huỷ không in khối "Thông tin thanh toán"** (không có QR, không có thanh đỏ). Đơn huỷ ghi "ĐƠN ĐÃ HUỶ" dưới tổng tiền.
+- **Dòng tên ngân hàng nằm trên một dòng**: "Ngân hàng BIDV - NH TMCP Đầu tư và Phát triển Việt Nam" không còn bị xuống dòng.
+
 ## [2.28.0] - 2026-10-08
 
 ### Added
