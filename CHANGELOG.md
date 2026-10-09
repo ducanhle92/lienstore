@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **① Đơn hàng · lọc theo trạng thái**: ô "Trạng thái" có Tất cả, Tất cả trừ đơn huỷ, 6 bước giao hàng (Đã đặt hàng → … → Đã về kho VN → Đang giao → Đã giao) và Đã huỷ. Ví dụ, chọn "Đã về kho VN" rồi tick tất cả để in hoá đơn, không lẫn đơn đang trên đường hoặc đã huỷ. Có thêm link "✕ Xoá lọc".
+
+### Changed
+- Bộ lọc ở ① Đơn hàng gọn còn một hàng (ô ngắn lại, thấp hơn) nên bảng đơn bên dưới hiện được nhiều hơn.
+
 ## [2.30.0] - 2026-10-09
 
 ### Added

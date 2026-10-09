@@ -33,6 +33,8 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 const bulkBtn = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-lien-sale-text/60 bg-white px-3 py-1.5 text-[13px] font-semibold text-lien-sale-text transition-colors hover:bg-red-50";
 
 const PAYMENT: Record<string, string> = { bacs: "Chuyển khoản", cod: "COD" };
+const filterLabel = "flex shrink-0 flex-col gap-0.5 text-[12px] font-semibold text-[#374151]";
+const filterInput = cn(adminInput, "!mb-0 !h-[34px] !py-1 !text-[13px]");
 const STAGE_CLS: Record<ShipStage, string> = {
   ordered: "bg-amber-100 text-amber-800",
   sent: "bg-sky-100 text-sky-800",
@@ -51,8 +53,13 @@ export default async function AdminOrders({ searchParams }: Props) {
   const isOwner = session.role === "owner"; // only the owner may delete orders (selection column + button)
   const sp = await searchParams;
   const raw = first(sp.status);
-  const status = ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;
-  const stage = isShipStage(first(sp.stage)) ? (first(sp.stage) as ShipStage) : undefined;
+  // "Trạng thái" select (?stage=): a logistics stage (cancelled orders excluded), "live" = every order not cancelled,
+  // "cancelled" = only cancelled ones; ?status= (dashboard links) still works on its own
+  const stageRaw = first(sp.stage);
+  const status = stageRaw === "cancelled" ? "cancelled" : ADMIN_STATUSES.includes(raw as OrderStatus) ? (raw as OrderStatus) : undefined;
+  const stage = isShipStage(stageRaw) ? (stageRaw as ShipStage) : undefined;
+  const liveOnly = stageRaw === "live";
+  const stageSel = stage ?? (stageRaw === "live" || stageRaw === "cancelled" ? stageRaw : "");
   // "unpaid" = not paid yet (transfer not received / COD not collected), any method, not cancelled
   const payment = ["bacs", "cod", "unpaid"].includes(first(sp.payment)) ? first(sp.payment) : "";
   const from = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.from)) ? first(sp.from) : "";
@@ -65,6 +72,7 @@ export default async function AdminOrders({ searchParams }: Props) {
   const items = all
     .filter((o) => !status || o.status === status)
     .filter((o) => !stage || (o.shipStage === stage && o.status !== "cancelled"))
+    .filter((o) => !liveOnly || o.status !== "cancelled")
     .filter((o) => !payment || (payment === "unpaid" ? !o.paidAt && o.status !== "cancelled" : o.paymentMethod === payment))
     .filter((o) => !from || localDay(o.createdAt) >= from)
     .filter((o) => !to || localDay(o.createdAt) <= to)
@@ -113,32 +121,51 @@ export default async function AdminOrders({ searchParams }: Props) {
         <OpenDetailsButton target="new-order" label="+ Tạo đơn mới" className={cn(btnPrimary, "!py-1 !text-[13px]")} />
       </BarTools>
       <NewOrderPanel products={pickable} customers={await customerPickList()} />
-      <Card className={cn("mb-5", view === "stock" && "hidden")}>
-        <form method="get" className="grid gap-3 md:grid-cols-[1fr_170px_170px_170px_auto] md:items-end">
-          <label className="text-[12px] font-semibold text-[#374151]">
+      {/* one compact row (wraps only on narrow screens) so the table below gets the height */}
+      <Card className={cn("mb-3 [&>.admin-card-body]:!px-3 [&>.admin-card-body]:!py-2", view === "stock" && "hidden")}>
+        <form method="get" className="flex flex-wrap items-end gap-2 lg:flex-nowrap" data-testid="orders-filter">
+          <label className={filterLabel + " min-w-[180px] flex-1"}>
             Tìm
-            <input name="q" defaultValue={first(sp.q)} placeholder="#đơn, tên khách, điện thoại, email…" className={cn(adminInput, "mt-1")} />
+            <input name="q" defaultValue={first(sp.q)} placeholder="#đơn, tên khách, điện thoại, email…" className={filterInput} />
           </label>
-          <label className="text-[12px] font-semibold text-[#374151]">
+          <label className={filterLabel}>
             Từ ngày
-            <input type="date" name="from" defaultValue={from} className={cn(adminInput, "mt-1")} />
+            <input type="date" name="from" defaultValue={from} className={cn(filterInput, "!w-[138px]")} />
           </label>
-          <label className="text-[12px] font-semibold text-[#374151]">
+          <label className={filterLabel}>
             Đến ngày
-            <input type="date" name="to" defaultValue={to} className={cn(adminInput, "mt-1")} />
+            <input type="date" name="to" defaultValue={to} className={cn(filterInput, "!w-[138px]")} />
           </label>
-          <label className="text-[12px] font-semibold text-[#374151]">
+          <label className={filterLabel}>
             Thanh toán
-            <select name="payment" defaultValue={payment} className={cn(adminInput, "mt-1")}>
+            <select name="payment" defaultValue={payment} className={cn(filterInput, "!w-[140px]")}>
               <option value="">Tất cả</option>
               <option value="bacs">Chuyển khoản</option>
               <option value="cod">COD</option>
               <option value="unpaid">Chưa thanh toán</option>
             </select>
           </label>
-          <button type="submit" className={btnPrimary}>
+          <label className={filterLabel}>
+            Trạng thái
+            <select name="stage" defaultValue={stageSel} className={cn(filterInput, "!w-[190px]")} data-testid="orders-filter-stage">
+              <option value="">Tất cả</option>
+              <option value="live">Tất cả trừ đơn huỷ</option>
+              {SHIP_STAGES.map((st) => (
+                <option key={st.key} value={st.key}>
+                  {st.label}
+                </option>
+              ))}
+              <option value="cancelled">Đã huỷ</option>
+            </select>
+          </label>
+          <button type="submit" className={cn(btnPrimary, "!h-[34px] shrink-0 !py-1 !text-[13px]")}>
             <Fa name="check" /> Lọc
           </button>
+          {q || from || to || payment || stageSel || status ? (
+            <Link href="/admin/orders/" className="shrink-0 self-center whitespace-nowrap text-[12px] text-lien-blue hover:underline" data-testid="orders-filter-clear">
+              ✕ Xoá lọc
+            </Link>
+          ) : null}
         </form>
       </Card>
       <Card className={cn(view === "stock" && "hidden")}>
