@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.29.0] - 2026-10-09
+
 ### Added
 - **In hoá đơn khổ A4 (2 đơn/tờ)**: thanh dưới ở ① Đơn hàng, ⑥ Kho VN › Đơn hàng và ⑦ Giao hàng VN có hai nút **In hoá đơn A5** và **In A4 (2 đơn/tờ)**. Khổ A4 in ngang, hai trang A5 nằm cạnh nhau, giữa có đường nét đứt để cắt đôi. Trên trang in có nút chuyển A5 ⇄ A4.
 
