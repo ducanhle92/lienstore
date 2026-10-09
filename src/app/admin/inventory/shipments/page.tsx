@@ -470,8 +470,9 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false, fee 
     <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`} data-run-id={carrierView ? s.id : undefined} className={cn(carrierView && "scroll-mt-4 rounded-lg data-[run-active=1]:ring-2 data-[run-active=1]:ring-sky-600")}>
       <Card
         actions={
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
-            <h2 className="flex items-center gap-2 text-[15px] font-semibold leading-6 text-lien-heading">
+          // ⑤: the whole header (code, chips incl. the fee, Ngày gửi, PU…, KEA…, Ẩn/Hiện) stays on one line on desktop
+          <div className={cn("flex min-w-0 flex-1 flex-wrap items-center gap-y-2", carrierView ? "gap-x-3 min-[1360px]:flex-nowrap" : "gap-x-4")} data-testid={`ship-head-${s.id}`}>
+            <h2 className={cn("flex items-center gap-2 text-[15px] font-semibold leading-6 text-lien-heading", carrierView && "min-w-0 gap-1.5 whitespace-nowrap")}>
               <span>
                 {s.code}
                 {s.label ? ` · ${s.label}` : ""}
@@ -488,13 +489,18 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false, fee 
                 </span>
               ) : null}
               {!editable && s.carrierLabel && s.carrierCode === normalizeKienCode(s.tracking) ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title={s.carrierStatusAt ? `Kiến ghi nhận ${formatDateTime(s.carrierStatusAt)}` : undefined} data-testid={`kien-chip-${s.id}`}>
-                  <Fa name="truck" /> Kiến: {s.carrierLabel}
+                <span className="inline-flex min-w-[64px] max-w-[210px] items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title={`Kiến: ${s.carrierLabel}${s.carrierStatusAt ? ` · ghi nhận ${formatDateTime(s.carrierStatusAt)}` : ""}`} data-testid={`kien-chip-${s.id}`}>
+                  <Fa name="truck" className="shrink-0" /> <span className="truncate">Kiến: {s.carrierLabel}</span>
                 </span>
               ) : null}
               {carrierView ? (
-                <OpenShopFee id={s.id} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", fee ? "bg-green-100 text-green-800" : "bg-[#f3f4f6] text-lien-muted hover:text-lien-blue")} testId={`shopfee-chip-${s.id}`}>
-                  <Fa name="truck" /> {fee ? `Phí ĐVVC → shop ${vnd(fee.fee)}` : "chưa nhập phí ĐVVC → shop"}
+                <OpenShopFee
+                  id={s.id}
+                  className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", fee ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-[#f3f4f6] text-lien-muted hover:text-lien-blue")}
+                  title={fee ? `Phí ship ĐVVC → shop VN ${vnd(fee.fee)} · trả ${formatDate(fee.paidAt)}${fee.note ? ` · ${fee.note}` : ""} — bấm để sửa` : "Chưa nhập phí ship ĐVVC → shop VN — bấm để nhập"}
+                  testId={`shopfee-chip-${s.id}`}
+                >
+                  <Fa name="money" /> {fee ? `Phí về shop ${vnd(fee.fee)} · ${fee.paidAt.slice(8, 10)}/${fee.paidAt.slice(5, 7)}` : "+ Phí về shop"}
                 </OpenShopFee>
               ) : null}
             </h2>
@@ -504,19 +510,21 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false, fee 
                 <input type="date" name="plannedAt" form={infoId} defaultValue={s.plannedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày dự kiến gửi" data-testid={`planned-${s.id}`} />
               </label>
             )}
-            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted">
-              Ngày gửi
-              <input type="date" name="shippedAt" form={infoId} defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!mb-0 !w-[150px] !py-1 !text-[13px]")} aria-label="Ngày gửi" data-testid={`shipped-${s.id}`} />
+            <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-lien-muted" title="Ngày gửi cho ĐVVC">
+              {carrierView ? <Fa name="calendar" /> : "Ngày gửi"}
+              <input type="date" name="shippedAt" form={infoId} defaultValue={s.shippedAt ?? ""} className={cn(adminInput, "!mb-0 !py-1 !text-[13px]", carrierView ? "!w-[132px]" : "!w-[150px]")} aria-label="Ngày gửi" data-testid={`shipped-${s.id}`} />
             </label>
-            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted" title="Mã nội địa Nhật (Kiến Express cấp khi lấy hàng từ kho shop JP về kho Kiến JP)">
-              <Fa name="truck" /> PU…
-              <input name="trackingDomestic" form={infoId} defaultValue={s.trackingDomestic} maxLength={120} placeholder="PU26093001" className={cn(adminInput, "!mb-0 !w-[130px] !py-1 font-mono !text-[12px] uppercase")} aria-label="Mã nội địa JP" data-testid={`code-dom-${s.id}`} />
+            <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-lien-muted" title="Mã nội địa Nhật (Kiến Express cấp khi lấy hàng từ kho shop JP về kho Kiến JP)">
+              <Fa name="truck" />
+              {carrierView ? null : " PU…"}
+              <input name="trackingDomestic" form={infoId} defaultValue={s.trackingDomestic} maxLength={120} placeholder="PU26093001" className={cn(adminInput, "!mb-0 !py-1 font-mono !text-[12px] uppercase", carrierView ? "!w-[114px]" : "!w-[130px]")} aria-label="Mã nội địa JP" data-testid={`code-dom-${s.id}`} />
             </label>
-            <label className="flex items-center gap-1.5 text-[12px] text-lien-muted" title="Mã kiện quốc tế JP → VN trên app Kiến Express — dùng để đối chiếu API">
-              <Fa name="plane" /> KEA…
-              <input name="tracking" form={infoId} defaultValue={s.tracking} maxLength={120} placeholder="KEA260930003" className={cn(adminInput, "!mb-0 !w-[150px] !py-1 font-mono !text-[12px] uppercase")} aria-label="Mã quốc tế JP→VN" data-testid={`code-intl-${s.id}`} />
+            <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-lien-muted" title="Mã kiện quốc tế JP → VN trên app Kiến Express — dùng để đối chiếu API">
+              <Fa name="plane" />
+              {carrierView ? null : " KEA…"}
+              <input name="tracking" form={infoId} defaultValue={s.tracking} maxLength={120} placeholder="KEA260930003" className={cn(adminInput, "!mb-0 !py-1 font-mono !text-[12px] uppercase", carrierView ? "!w-[124px]" : "!w-[150px]")} aria-label="Mã quốc tế JP→VN" data-testid={`code-intl-${s.id}`} />
             </label>
-            <span className="ml-auto flex items-center gap-3">
+            <span className="ml-auto flex shrink-0 items-center gap-3">
               {editable ? (
                 <form action={deleteShipmentAction}>
                   <input type="hidden" name="shipmentId" value={s.id} />

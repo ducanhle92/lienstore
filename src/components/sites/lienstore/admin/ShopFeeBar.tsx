@@ -47,9 +47,9 @@ export function ShopFeeBar({ runs }: { runs: Array<{ id: number; code: string; f
 }
 
 /** A button that opens the fee dialog of a run (the chip in the run header, the row of the cost table). */
-export function OpenShopFee({ id, className, children, testId }: { id: number; className?: string; children: React.ReactNode; testId?: string }) {
+export function OpenShopFee({ id, className, children, testId, title }: { id: number; className?: string; children: React.ReactNode; testId?: string; title?: string }) {
   return (
-    <button type="button" onClick={() => openDialog(id)} className={cn(className)} data-testid={testId}>
+    <button type="button" onClick={() => openDialog(id)} className={cn(className)} title={title} data-testid={testId}>
       {children}
     </button>
   );

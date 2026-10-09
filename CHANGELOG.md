@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **⑤ Vận chuyển JP-VN · đầu mỗi chuyến nằm trên một dòng** (màn hình rộng từ 1366 px): mã chuyến, bước, trạng thái Kiến, phí, ngày gửi, mã PU, mã KEA và nút Ẩn/Hiện. Ở màn này, chữ "Ngày gửi", "PU…" và "KEA…" đổi thành biểu tượng (rê chuột để xem tên). Ô nhập hẹp lại, và chip trạng thái Kiến tự rút gọn khi thiếu chỗ.
+- **Chip phí ngay trên dòng đầu chuyến**: sau khi nhập, chip hiện "Phí về shop 244.000đ · 09/10" (rê chuột để xem ngày trả và ghi chú, bấm để sửa). Chuyến chưa nhập phí hiện "+ Phí về shop".
+
 ## [2.31.0] - 2026-10-09
 
 ### Added
