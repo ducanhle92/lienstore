@@ -1569,6 +1569,31 @@ export const MIGRATIONS: Migration[] = [
            AND NOT EXISTS (SELECT 1 FROM bank_accounts WHERE account_number = '26010000748323') LIMIT 1`,
     ],
   },
+  {
+    // ⑤ "Phí ship ĐVVC → shop VN": what the shop actually paid for one run's carrier VN warehouse → shop leg (one
+    // transfer per run), when, a note and the transfer receipt (uploads/shipments/<id>/). The fee is split over the
+    // run's units by billable weight and frozen in shipment_fee_shares: one row per order holding units of the run,
+    // order_id '' = units with no order (stock) — booked as a cost of the month it was paid. Accounting uses the
+    // orders' shares in place of their estimated ③ leg fee.
+    version: 74,
+    name: "shipment-shop-fee",
+    up: [
+      `ALTER TABLE shipments ADD COLUMN shop_fee INTEGER`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_at TEXT`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_note TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_files TEXT NOT NULL DEFAULT '[]'`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_by TEXT NOT NULL DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS shipment_fee_shares (
+        shipment_id INTEGER NOT NULL,
+        order_id    TEXT NOT NULL DEFAULT '',
+        units       INTEGER NOT NULL DEFAULT 0,
+        grams       INTEGER NOT NULL DEFAULT 0,
+        fee         INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (shipment_id, order_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_shipment_fee_shares_order ON shipment_fee_shares(order_id)`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

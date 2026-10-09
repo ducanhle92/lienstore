@@ -5,9 +5,11 @@ import { useEffect } from "react";
 /** The print dialog opens once per page load (React dev runs effects twice). */
 let opened = false;
 
+// the browser's own "Headers and footers" prints the page URL / date / title in the margins — it is a print-dialog
+// setting the page cannot switch off, so the toolbar says to untick it (margins "None" also leaves it no room)
 const HINT = {
-  a5: "khổ A5 dọc, mỗi trang một tờ A5 · lưu PDF: máy in “Lưu dưới dạng PDF”, khổ A5, lề Không",
-  a4: "khổ A4 ngang, 2 trang A5 mỗi tờ · in xong cắt đôi theo đường nét đứt · lưu PDF: khổ A4, hướng Ngang, lề Không",
+  a5: "khổ A5 dọc, mỗi trang một tờ A5 · hộp thoại in: khổ A5, lề Không, bỏ tick “Đầu trang và chân trang”",
+  a4: "khổ A4 ngang, 2 trang A5 mỗi tờ, cắt đôi theo nét đứt · hộp thoại in: khổ A4, hướng Ngang, lề Không, bỏ tick “Đầu trang và chân trang”",
 };
 
 /** Print toolbar of /print/orders/: A5 / A4 switch, and opens the print dialog once the sheets (and the logo) have loaded. */

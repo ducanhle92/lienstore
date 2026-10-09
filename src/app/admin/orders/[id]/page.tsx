@@ -25,6 +25,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { getDb, getSetting } from "@/lib/sqlite";
+import { orderShopFees } from "@/lib/shipment-fee-db";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { formatDateTime, formatPrice } from "@/lib/format";
@@ -433,6 +434,15 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             </summary>
             <div className="border-t border-[#e5e7eb] p-4 md:p-5">
               <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/?legs=1`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
+              {(() => {
+                // ⑤ recorded what the runs carrying this order really cost for kho ĐVVC → kho shop: that replaces ③ in lãi/lỗ
+                const real = orderShopFees([order.id]).get(order.id);
+                return real ? (
+                  <p className="m-0 mt-3 rounded-md bg-green-50 px-3 py-2 text-[12px] text-green-900" data-testid="order-shopfee">
+                    ③ phí thực trả (phần của đơn, chia theo cân nặng): <b>{formatPrice(real.fee, order.currency)}</b> từ chuyến {real.runs.join(", ")} — lãi/lỗ dùng số này thay cho phí ③ ước tính ở trên.
+                  </p>
+                ) : null;
+              })()}
               <p className="mt-3 text-[12px] text-lien-muted">
                 Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
                 <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>

@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createShipmentAction, deleteShipmentAction, packCandidatesAction, setShipmentStatusAction, syncKienAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { clearShopFeeAction, createShipmentAction, deleteShipmentAction, deleteShopFeeFileAction, packCandidatesAction, saveShopFeeAction, setShipmentStatusAction, syncKienAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
+import { CloseDialog, OpenShopFee, ShopFeeBar } from "@/components/sites/lienstore/admin/ShopFeeBar";
+import { getShopFees, type ShopFee } from "@/lib/shipment-fee-db";
 import { PendingSubmit } from "@/components/sites/lienstore/admin/PendingSubmit";
 import { kienStepIndex, kienTrackingPageUrl, normalizeKienCode } from "@/lib/carriers/kien-express";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
@@ -39,6 +41,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "", none: "" } as const;
 /** ⑤ Vận chuyển › "Đang về kho shop": the carrier VN → shop leg (ship nội địa bên nhận trả) — its cost sheet, to be extended. */
 const TRANSIT_AT = [{ key: "to_shop", label: "Đang về kho shop · chi phí về kho shop VN", icon: "truck", status: "to_shop", run: null }] as const;
+const vnd = (n: number) => `${formatAmount(n)}đ`;
 
 /**
  * Kho hàng › Đóng hàng: packing runs from Kho Nhật (shop) to the carrier. Search a product, type how many go into the
@@ -54,7 +57,8 @@ export default async function ShipmentsPage({ searchParams }: Props) {
   const to = /^\d{4}-\d{2}-\d{2}$/.test(first(sp.to)) ? first(sp.to) : "";
   const st = first(sp.st);
   const filtering = !!(q || from || to || st);
-  const includeDone = first(sp.done) === "1" || st === "done" || st === "any" || (!!q && !st);
+  // the "chi phí về kho shop" tab lists every run, also those already received at Kho VN (the fee is paid on arrival)
+  const includeDone = first(sp.done) === "1" || st === "done" || st === "any" || (!!q && !st) || (first(sp.stage) === "transit" && first(sp.at) === "to_shop");
   // ④ Đóng hàng = every run, the ones still at the shop (packing / packed) first, then those already handed over (with
   // their carrier state); ⑤ Vận chuyển = only the runs with the carrier (handed → arrived, + done on demand)
   const transit = first(sp.stage) === "transit";
@@ -117,6 +121,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
     if (to && runDay(x) > to) return false;
     return !qf || runText(x).includes(qf);
   });
+  const fees = transit ? getShopFees(shipments.map((x) => x.id), db) : new Map<number, ShopFee>();
   const openCount = shipments.filter((x) => shipmentEditable(x.status)).length;
   const sentCount = shipments.filter((x) => !shipmentEditable(x.status) && x.status !== "done").length;
   return (
@@ -128,6 +133,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
       />
       {saved ? <Flash>{saved}</Flash> : null}
       {error ? <Flash kind="error">{error}</Flash> : null}
+      {transit ? <ShopFeeBar runs={runsShown.map((x) => ({ id: x.id, code: x.code, fee: fees.get(x.id)?.fee ?? null }))} /> : null}
 
       {(
         <form method="get" action="/admin/inventory/shipments/" className="mb-4 flex flex-wrap items-end gap-x-3 gap-y-2 rounded-md border border-[#e5e5e5] bg-white px-3 py-2" data-savebar="off" data-testid="transit-filter">
@@ -210,6 +216,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
         </BarTools>
       ) : null}
       <div className="space-y-5">
+        {at ? <ShopFeeTable runs={runsShown} fees={fees} /> : null}
         {at ? <TransitTable title={`${at.label} — ${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill`} groups={atGroups} withRun testId={`at-${at.key}`} /> : null}
         {runsShown.length === 0 && !at ? (
           <Card>
@@ -217,7 +224,7 @@ export default async function ShipmentsPage({ searchParams }: Props) {
           </Card>
         ) : null}
         {runsShown.map((s) => (
-          <ShipmentCard key={s.id} s={s} sources={sources} carrierView={transit} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
+          <ShipmentCard key={s.id} s={s} sources={sources} carrierView={transit} fee={fees.get(s.id) ?? null} atToShop={!!at} pick={s.id === pickFor && pickFilter ? { active: true, order: pickOrder, batch: pickBatchRaw, q: pickQ, rows: picked, note: tripNote } : shipmentEditable(s.status) ? { active: false, order: "", batch: "", q: "", rows: allCands, note: "" } : null} pickSources={pickSources} />
         ))}
         {transit && !at && atGroups.length ? <TransitTable title={`Hàng đang vận chuyển ngoài chuyến (${atGroups.reduce((n, g) => n + g.qty, 0)} cái · ${atGroups.length} dòng bill)`} groups={atGroups} testId="loose-transit" /> : null}
         {transit && !filtering ? (
@@ -450,7 +457,7 @@ function CarrierTimeline({ s }: { s: Shipment }) {
   );
 }
 
-function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; carrierView?: boolean }) {
+function ShipmentCard({ s, sources, pick, pickSources, carrierView = false, fee = null, atToShop = false }: { s: Shipment; sources: PurchaseSource[]; pick: Pick | null; pickSources: PickSources; carrierView?: boolean; fee?: ShopFee | null; atToShop?: boolean }) {
   const editable = shipmentEditable(s.status);
   // locked = "Đã đóng xong": contents frozen until Mở khoá (back to Đang đóng)
   const open = shipmentOpen(s.status);
@@ -460,7 +467,7 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
   const pkId = `pk-${s.id}`;
   const outId = `out-${s.id}`;
   return (
-    <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`}>
+    <div id={`shipment-${s.id}`} data-testid={`shipment-${s.id}`} data-run-id={carrierView ? s.id : undefined} className={cn(carrierView && "scroll-mt-4 rounded-lg data-[run-active=1]:ring-2 data-[run-active=1]:ring-sky-600")}>
       <Card
         actions={
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
@@ -484,6 +491,11 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
                 <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800" title={s.carrierStatusAt ? `Kiến ghi nhận ${formatDateTime(s.carrierStatusAt)}` : undefined} data-testid={`kien-chip-${s.id}`}>
                   <Fa name="truck" /> Kiến: {s.carrierLabel}
                 </span>
+              ) : null}
+              {carrierView ? (
+                <OpenShopFee id={s.id} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", fee ? "bg-green-100 text-green-800" : "bg-[#f3f4f6] text-lien-muted hover:text-lien-blue")} testId={`shopfee-chip-${s.id}`}>
+                  <Fa name="truck" /> {fee ? `Phí ĐVVC → shop ${vnd(fee.fee)}` : "chưa nhập phí ĐVVC → shop"}
+                </OpenShopFee>
               ) : null}
             </h2>
             {carrierView || !editable ? null : (
@@ -529,6 +541,7 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
       >
         <BatchBody id={s.id} ns="ship" defaultCollapsed={!carrierView}>
         {carrierView ? <CarrierTimeline s={s} /> : <ShipmentTimeline s={s} />}
+        {carrierView && fee ? <ShopFeeSplit fee={fee} /> : null}
 
         {open ? (
           <>
@@ -677,7 +690,189 @@ function ShipmentCard({ s, sources, pick, pickSources, carrierView = false }: { 
         </form>
         </BatchBody>
       </Card>
+      {carrierView ? <ShopFeeDialog s={s} fee={fee} atToShop={atToShop} /> : null}
     </div>
+  );
+}
+
+/** How the run's recorded "phí ship ĐVVC → shop VN" was shared: per order by weight, the rest on stock. */
+function ShopFeeSplit({ fee }: { fee: ShopFee }) {
+  return (
+    <div className="mb-3 rounded-md border border-green-200 bg-green-50/50 px-3 py-2 text-[12px]" data-testid={`shopfee-split-${fee.shipmentId}`}>
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold text-green-900">
+          <Fa name="truck" /> Phí ship ĐVVC → shop VN: {vnd(fee.fee)}
+        </span>
+        <span className="text-lien-muted">
+          trả ngày {formatDate(fee.paidAt)}
+          {fee.by ? ` · ${fee.by} nhập` : ""}
+        </span>
+        {fee.note ? <span className="text-lien-heading">{fee.note}</span> : null}
+        {fee.files.map((f) => (
+          <a key={f.path} href={f.url} target="_blank" rel="noopener noreferrer" className="text-lien-blue hover:underline">
+            <Fa name="paperclip" /> {f.name}
+          </a>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {fee.shares.map((x) =>
+          x.orderId ? (
+            <Link key={x.orderId} href={`/admin/orders/${x.orderId}/`} className="rounded bg-white px-1.5 py-0.5 font-semibold text-lien-heading no-underline ring-1 ring-green-200 hover:underline" title={`${x.customer} · ${x.units} cái · ${formatAmount(x.grams)} g`}>
+              #{x.orderNumber} {vnd(x.fee)}
+            </Link>
+          ) : (
+            <span key="stock" className="rounded bg-white px-1.5 py-0.5 text-lien-muted ring-1 ring-[#e5e7eb]" title={`${x.units} cái · ${formatAmount(x.grams)} g — tính vào chi phí tháng trả`}>
+              Hàng lưu kho {vnd(x.fee)}
+            </span>
+          ),
+        )}
+        <span className="self-center text-[11px] text-lien-muted">chia theo cân nặng · lãi/lỗ ở ① Đơn hàng và Kế toán dùng phí thực này</span>
+      </div>
+    </div>
+  );
+}
+
+/** "Nhập phí ship ĐVVC → shop VN" of one run: amount, day paid, note, transfer receipt (opened from the bottom bar). */
+function ShopFeeDialog({ s, fee, atToShop }: { s: Shipment; fee: ShopFee | null; atToShop: boolean }) {
+  const formId = `shopfee-form-${s.id}`;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const at = atToShop ? <input type="hidden" name="at" value="to_shop" /> : null;
+  return (
+    <dialog id={`shopfee-${s.id}`} className="m-auto w-[min(560px,calc(100vw-32px))] rounded-lg border border-[#e5e7eb] p-0 shadow-xl backdrop:bg-black/40" data-testid={`shopfee-dialog-${s.id}`}>
+      <div className="border-b border-[#e5e7eb] px-4 py-3">
+        <h3 className="m-0 text-[15px] font-semibold text-lien-heading">Phí ship ĐVVC → shop VN · {s.code}</h3>
+        <p className="m-0 mt-1 text-[12px] text-lien-muted">
+          Tiền đã chuyển cho chặng kho ĐVVC Hà Nội → kho shop ({s.units} cái trong chuyến). Phí được chia theo cân nặng cho từng đơn trong chuyến; phần của hàng lưu kho tính vào chi phí tháng trả. Bấm Lưu lần nữa để chia lại theo hàng đang có trong chuyến.
+        </p>
+      </div>
+      <form id={formId} action={saveShopFeeAction} data-savebar="off" className="grid gap-3 px-4 py-3 sm:grid-cols-2">
+        <input type="hidden" name="shipmentId" value={s.id} />
+        {at}
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-lien-heading">
+          Số tiền đã trả (đ)
+          <input name="fee" required inputMode="numeric" defaultValue={fee ? formatAmount(fee.fee) : ""} placeholder="VD 244.000" className={cn(adminInput, "!mb-0")} data-testid={`shopfee-fee-${s.id}`} />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-lien-heading">
+          Ngày chuyển tiền
+          <input type="date" name="paidAt" defaultValue={fee?.paidAt || today} className={cn(adminInput, "!mb-0")} data-testid={`shopfee-date-${s.id}`} />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-lien-heading sm:col-span-2">
+          <span>
+            Ghi chú <span className="font-normal text-lien-muted">— người nhận, ngân hàng, mã giao dịch…</span>
+          </span>
+          <input name="note" maxLength={300} defaultValue={fee?.note ?? ""} placeholder="VD: CK LE THI THUY · Timo · mã GD 6281ICBVC2J92NSF" className={cn(adminInput, "!mb-0")} data-testid={`shopfee-note-${s.id}`} />
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-lien-heading sm:col-span-2">
+          <span>
+            Ảnh bill chuyển khoản <span className="font-normal text-lien-muted">— tuỳ chọn, ảnh / PDF dưới 10 MB</span>
+          </span>
+          <input type="file" name="files" multiple accept="image/*,application/pdf" className="text-[12px] font-normal" data-testid={`shopfee-files-${s.id}`} />
+        </label>
+      </form>
+      {fee?.files.length ? (
+        <div className="flex flex-wrap gap-2 px-4 pb-2 text-[12px]">
+          {fee.files.map((f) => (
+            <form key={f.path} action={deleteShopFeeFileAction} data-savebar="off" className="flex items-center gap-1 rounded bg-[#f3f4f6] px-2 py-0.5">
+              <input type="hidden" name="shipmentId" value={s.id} />
+              <input type="hidden" name="path" value={f.path} />
+              {at}
+              <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-lien-blue hover:underline">
+                {f.name}
+              </a>
+              <button type="submit" className="text-lien-heart" title="Gỡ ảnh này">
+                ✕
+              </button>
+            </form>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2 border-t border-[#e5e7eb] px-4 py-3">
+        {fee ? (
+          <form action={clearShopFeeAction} data-savebar="off">
+            <input type="hidden" name="shipmentId" value={s.id} />
+            {at}
+            <ConfirmSubmit message={`Xoá phí ship ĐVVC → shop của ${s.code}? Lãi/lỗ các đơn quay về phí ③ ước tính.`} className={cn(btnSecondary, "!py-1.5 !text-[13px] !text-lien-heart")}>
+              <Fa name="trash" /> Xoá phí
+            </ConfirmSubmit>
+          </form>
+        ) : null}
+        <span className="ml-auto flex gap-2">
+          <CloseDialog className={cn(btnSecondary, "!py-1.5 !text-[13px]")}>Huỷ</CloseDialog>
+          <button type="submit" form={formId} className={cn(btnPrimary, "!py-1.5 !text-[13px]")} data-testid={`shopfee-save-${s.id}`}>
+            <Fa name="check" /> Lưu phí
+          </button>
+        </span>
+      </div>
+    </dialog>
+  );
+}
+
+/** ⑤ › "Đang về kho shop · chi phí": every run with its "phí ship ĐVVC → shop VN" (or "chưa nhập"), and the total. */
+function ShopFeeTable({ runs, fees }: { runs: Shipment[]; fees: Map<number, ShopFee> }) {
+  const entered = runs.filter((r) => fees.has(r.id));
+  const total = entered.reduce((n, r) => n + (fees.get(r.id)?.fee ?? 0), 0);
+  return (
+    <Card title={`Chi phí ship ĐVVC → kho shop VN — ${entered.length}/${runs.length} chuyến đã nhập · ${vnd(total)}`}>
+      <div className="overflow-x-auto">
+        <table className={tableClass} data-testid="shopfee-table">
+          <thead>
+            <tr>
+              <th className={thClass}>Chuyến</th>
+              <th className={thClass}>KEA…</th>
+              <th className={thClass}>Bước</th>
+              <th className={cn(thClass, "text-right")}>Phí đã trả</th>
+              <th className={thClass}>Ngày trả</th>
+              <th className={thClass}>Chia cho</th>
+              <th className={thClass}>Ghi chú · bill</th>
+              <th className={thClass}>
+                <span className="sr-only">Nhập / sửa</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {runs.length === 0 ? (
+              <tr>
+                <td colSpan={8} className={cn(tdClass, "text-center text-lien-muted")}>
+                  Không có chuyến nào.
+                </td>
+              </tr>
+            ) : null}
+            {runs.map((r) => {
+              const f = fees.get(r.id);
+              const orders = f?.shares.filter((x) => x.orderId) ?? [];
+              const stock = f?.shares.find((x) => !x.orderId);
+              return (
+                <tr key={r.id} data-testid={`shopfee-row-${r.id}`}>
+                  <td className={cn(tdClass, "font-mono text-[12px] font-semibold")}>
+                    <a href={`#shipment-${r.id}`} className="text-lien-blue hover:underline">
+                      {r.code}
+                    </a>
+                  </td>
+                  <td className={cn(tdClass, "font-mono text-[12px]")}>{r.tracking || "—"}</td>
+                  <td className={cn(tdClass, "text-[12px]")}>{shipmentStage(r.status).short}</td>
+                  <td className={cn(tdClass, "whitespace-nowrap text-right font-semibold")}>{f ? vnd(f.fee) : <span className="font-normal text-lien-muted">chưa nhập</span>}</td>
+                  <td className={cn(tdClass, "whitespace-nowrap text-[12px]")}>{f ? formatDate(f.paidAt) : "—"}</td>
+                  <td className={cn(tdClass, "text-[12px]")}>{f ? `${orders.length} đơn${stock?.fee ? ` · lưu kho ${vnd(stock.fee)}` : ""}` : "—"}</td>
+                  <td className={cn(tdClass, "max-w-[260px] text-[12px]")}>
+                    {f?.note ?? ""}
+                    {f?.files.map((x) => (
+                      <a key={x.path} href={x.url} target="_blank" rel="noopener noreferrer" className="ml-1 text-lien-blue hover:underline" title={x.name}>
+                        <Fa name="paperclip" />
+                      </a>
+                    ))}
+                  </td>
+                  <td className={tdClass}>
+                    <OpenShopFee id={r.id} className={cn(btnSecondary, "!px-2 !py-1 !text-[12px]")} testId={`shopfee-edit-${r.id}`}>
+                      {f ? "Sửa" : "Nhập phí"}
+                    </OpenShopFee>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

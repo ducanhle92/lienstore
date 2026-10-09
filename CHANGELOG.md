@@ -5,6 +5,14 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **⑤ Vận chuyển JP-VN · phí ship ĐVVC → shop VN theo chuyến**: bấm vào một chuyến, ở góc phải thanh dưới sẽ hiện nút **Nhập phí ship ĐVVC → shop VN · <mã chuyến>**. Hộp nhập gồm số tiền đã chuyển, ngày chuyển, ghi chú (người nhận, mã giao dịch) và ảnh bill chuyển khoản. Đầu chuyến có chip "Phí ĐVVC → shop …" (bấm để sửa). Trong chuyến hiện phần chia phí cho từng đơn.
+- **Chia phí theo cân nặng** cho các đơn có hàng trong chuyến. Phần của đơn thay cho phí chặng ③ ước tính khi tính lãi/lỗ ở ① Đơn hàng, chi tiết đơn, Kế toán và file CSV. Phần của hàng lưu kho (chưa có đơn) được tính vào chi phí vận chuyển của tháng trả tiền. Xoá phí thì lãi/lỗ quay về số ước tính.
+- **Tab "Đang về kho shop · chi phí"** có bảng tất cả chuyến (kể cả chuyến đã về kho VN): phí đã trả, ngày trả, số đơn được chia, ghi chú, bill và nút Nhập / Sửa.
+
+### Changed
+- Thanh công cụ trang in hoá đơn nhắc bỏ tick "Đầu trang và chân trang" trong hộp thoại in, để giấy in không có dòng địa chỉ trang ở mép dưới.
+
 ## [2.29.0] - 2026-10-09
 
 ### Added
