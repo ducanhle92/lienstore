@@ -106,7 +106,10 @@ export default async function PrintOrders({ searchParams }: Props) {
         const c = o.customer;
         const name = `${c.lastName} ${c.firstName}`.trim();
         const pickup = o.delivery === "pickup";
-        const address = pickup ? "Khách tới kho lấy" : c.address;
+        // the 3 lines of the shop's template (SĐT · Địa chỉ · Thanh toán): the customer's address is always printed —
+        // a pickup order only adds "(nhận tại kho)"; with no address on file it says how the goods are collected
+        const addr = c.address.trim();
+        const address = addr ? `${addr}${pickup ? " (nhận tại kho)" : ""}` : pickup ? "Khách tới kho lấy" : "—";
         const totalsLines = 1 + (o.discount > 0 ? 1 : 0) + (o.shippingFee > 0 ? 1 : 0);
         const pages = paginateInvoice(o.items, { address, totalsLines, payment: showPay });
         return pages.map((pg, pi) => (
