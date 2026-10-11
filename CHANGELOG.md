@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.31.2] - 2026-10-11
+
 ### Fixed
 - **Hoá đơn in luôn có địa chỉ khách**: trước đây đơn "Khách tới kho lấy" in chữ đó thay cho địa chỉ. Giờ khối khách in đủ 3 dòng như mẫu Canva (SĐT · Địa chỉ · Thanh toán), dùng địa chỉ của đơn. Đơn nhận tại kho thêm "(nhận tại kho)"; chỉ khi đơn không có địa chỉ mới in "Khách tới kho lấy".
 
