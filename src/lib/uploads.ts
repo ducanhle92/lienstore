@@ -88,6 +88,42 @@ export function uniqueName(base: string, ext: string): string {
   return `${base}-${randomBytes(4).toString("hex")}${ext}`;
 }
 
+/** File existence per uploaded URL, cached for a minute (order lists check every line's image). */
+const existsCache = new Map<string, { ok: boolean; at: number }>();
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+/**
+ * False for an /api/files/… upload or a static /sites/… image whose file is gone; anything else (http…, data:) and
+ * a build without its public folder next to the server are assumed fine.
+ */
+export function uploadUrlExists(url: string): boolean {
+  const rel = relFromUrl(url);
+  const isStatic = !rel && url.startsWith("/sites/");
+  if (!rel && !isStatic) return true;
+  const hit = existsCache.get(url);
+  if (hit && Date.now() - hit.at < 60_000) return hit.ok;
+  let ok: boolean;
+  if (rel) {
+    const abs = absolutePath(rel);
+    ok = !!abs && fs.existsSync(abs);
+  } else {
+    const abs = path.resolve(PUBLIC_DIR, "." + decodeURI(url.split("?")[0]));
+    ok = !abs.startsWith(PUBLIC_DIR + path.sep) || !fs.existsSync(path.join(PUBLIC_DIR, "sites")) || fs.existsSync(abs);
+  }
+  existsCache.set(url, { ok, at: Date.now() });
+  return ok;
+}
+
+/**
+ * Image of an order line: the photo copied onto the line when it was ordered, unless that uploaded file was removed
+ * since (the product's photos were replaced) — then the product's current thumbnail.
+ */
+export function orderLineImage(saved: string, productThumb: string | null | undefined): string {
+  const current = (productThumb ?? "").trim();
+  if (!saved) return current;
+  if (uploadUrlExists(saved)) return saved;
+  return current && uploadUrlExists(current) ? current : saved;
+}
+
 /** Convert a public URL (/api/files/x/y.jpg) back to the storage-relative path, or null for other URLs. */
 export function relFromUrl(url: string): string | null {
   return url.startsWith(FILES_URL_PREFIX) ? safeRelativePath(url.slice(FILES_URL_PREFIX.length)) : null;

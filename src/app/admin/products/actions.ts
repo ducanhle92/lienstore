@@ -15,7 +15,7 @@ import { normalizeAttrLabels } from "@/lib/variants";
 import { plainToHtml } from "@/lib/plain-html";
 import { slugify } from "@/lib/format";
 import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
-import { getAllProducts } from "@/lib/db";
+import { getAllProducts, imageUsedByOrders } from "@/lib/db";
 import type { CatalogProduct } from "@/types/shop";
 import { structureDescription } from "@/lib/description";
 import { suggestSku } from "@/lib/sku";
@@ -214,13 +214,17 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   redirect(`/admin/products/?saved=${saved.id}`);
 }
 
-/** Delete uploaded files that were removed from a product and are not referenced by any other product. */
+/**
+ * Delete uploaded files that were removed from a product and are not referenced by any other product — nor by an
+ * order line, which keeps the photo the customer ordered (deleting it broke the image on old orders).
+ */
 async function cleanupRemovedUploads(before: string[], after: string[], productId: number): Promise<void> {
   const removed = before.filter((u) => !after.includes(u) && relFromUrl(u));
   if (removed.length === 0) return;
   const others = (await getAllProducts(true)).filter((p) => p.id !== productId);
   for (const url of removed) {
     if (others.some((p) => p.images.includes(url) || p.thumb === url)) continue;
+    if (imageUsedByOrders(url)) continue;
     const rel = relFromUrl(url);
     if (!rel) continue;
     await deleteUpload(rel);

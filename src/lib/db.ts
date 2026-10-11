@@ -65,6 +65,7 @@ import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, so
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
 import { todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
+import { orderLineImage } from "./uploads";
 
 /** Synchronous category list for use inside transactions. */
 function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
@@ -256,6 +257,8 @@ interface OrderItemRow {
   name: string;
   price: number;
   image: string;
+  /** The product's current thumbnail (fallback when the line's saved photo file is gone). */
+  product_thumb: string | null;
   quantity: number;
   list_price: number | null;
 }
@@ -265,12 +268,12 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
   const db = getDb();
   const placeholders = rows.map(() => "?").join(",");
   const items = db
-    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note, list_price FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
+    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, (SELECT p.thumb FROM products p WHERE p.id = order_items.product_id) AS product_thumb, quantity, purchase_status, purchase_note, list_price FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
     .all(...rows.map((r) => r.id)) as unknown as OrderItemRow[];
   const byOrder = new Map<string, CartItem[]>();
   for (const it of items) {
     const list = byOrder.get(it.order_id) ?? [];
-    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity, listPrice: it.list_price ?? null, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
+    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: orderLineImage(it.image, it.product_thumb), quantity: it.quantity, listPrice: it.list_price ?? null, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
     byOrder.set(it.order_id, list);
   }
   return rows.map((r) => ({
@@ -2467,16 +2470,22 @@ export interface RecentPurchase {
   createdAt: string;
 }
 
+/** Whether any order line still shows this photo (or its -300x300 thumbnail) — such files must not be deleted. */
+export function imageUsedByOrders(url: string): boolean {
+  const thumb = url.replace(/(\.[a-z0-9]+)$/i, "-300x300$1");
+  return !!getDb().prepare("SELECT 1 FROM order_items WHERE image IN (?, ?) LIMIT 1").get(url, thumb);
+}
+
 /** Most recent confirmed order lines (processing / completed), one per product, for the "khách vừa mua" popup. */
 export async function getRecentPurchases(limit = 12): Promise<RecentPurchase[]> {
   const rows = getDb()
     .prepare(
-      `SELECT oi.slug, oi.name, oi.image, o.address, o.status, o.created_at
+      `SELECT oi.slug, oi.name, oi.image, (SELECT p.thumb FROM products p WHERE p.id = oi.product_id) AS product_thumb, o.address, o.status, o.created_at
          FROM order_items oi JOIN orders o ON o.id = oi.order_id
         WHERE o.status IN ('processing', 'completed')
         ORDER BY o.created_at DESC, oi.id DESC LIMIT ?`,
     )
-    .all(limit * 3) as unknown as Array<{ slug: string; name: string; image: string; address: string; status: OrderStatus; created_at: string }>;
+    .all(limit * 3) as unknown as Array<{ slug: string; name: string; image: string; product_thumb: string | null; address: string; status: OrderStatus; created_at: string }>;
   const seen = new Set<string>();
   const out: RecentPurchase[] = [];
   for (const r of rows) {
@@ -2484,7 +2493,7 @@ export async function getRecentPurchases(limit = 12): Promise<RecentPurchase[]> 
     seen.add(r.slug);
     const parts = r.address.split(",").map((s) => s.trim()).filter(Boolean);
     const city = (parts[parts.length - 1] ?? "").replace(/^(tỉnh|tp\.?|thành phố|t\.p\.?)\s+/i, "").trim();
-    out.push({ slug: r.slug, name: r.name, image: r.image, city, status: r.status, createdAt: r.created_at });
+    out.push({ slug: r.slug, name: r.name, image: orderLineImage(r.image, r.product_thumb), city, status: r.status, createdAt: r.created_at });
     if (out.length >= limit) break;
   }
   return out;

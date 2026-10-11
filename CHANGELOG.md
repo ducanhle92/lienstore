@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- **Ảnh sản phẩm bị lỗi trong đơn hàng cũ**: mỗi dòng đơn lưu ảnh sản phẩm lúc đặt, nhưng khi thay ảnh sản phẩm, tệp ảnh cũ bị xoá. Bước xoá chỉ kiểm tra sản phẩm khác, không kiểm tra đơn hàng. Giờ nếu tệp ảnh đã lưu của dòng đơn không còn, đơn hiện ảnh hiện tại của sản phẩm. Áp dụng ở chi tiết đơn admin, trang khách hàng, trang đơn của khách, Tài khoản của tôi và popup "khách vừa mua" ngoài web.
+- **Thay hoặc xoá ảnh sản phẩm không còn xoá tệp ảnh mà một đơn hàng vẫn dùng.**
+
 ## [2.31.2] - 2026-10-11
 
 ### Fixed
