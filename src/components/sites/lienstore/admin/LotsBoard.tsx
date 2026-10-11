@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { moveUnitsAction, packUnitsAction } from "@/app/admin/inventory/lot-actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";

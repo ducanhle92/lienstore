@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AutoPrint } from "@/components/sites/lienstore/admin/AutoPrint";

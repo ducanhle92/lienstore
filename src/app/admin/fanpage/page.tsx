@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { bulkFanpageAction, cancelPostAction, clearFanpageTokenAction, composeDraftAction, postNowAction, regenerateDraftAction, saveDraftAction, saveFanpageAutoAction, saveFanpageConnectionAction } from "@/app/admin/fanpage/actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";

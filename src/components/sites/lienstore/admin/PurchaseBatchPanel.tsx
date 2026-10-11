@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { addProductAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, importBillsAction, renameBillAction, saveBatchRowsAction, syncBatchOrdersAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";

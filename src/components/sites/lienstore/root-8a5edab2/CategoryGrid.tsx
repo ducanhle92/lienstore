@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import type { CategoryCard } from "@/types/lienstore";
 import { cn } from "@/lib/utils";
 

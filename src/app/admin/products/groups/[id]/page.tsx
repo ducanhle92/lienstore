@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { moveVariantAction, saveGroupAction, saveVariantAction, saveVariantsBulkAction, ungroupVariantsAction } from "@/app/admin/products/groups/actions";

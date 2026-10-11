@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { useMemo, useState } from "react";
 import { adminInput } from "./ui";
 

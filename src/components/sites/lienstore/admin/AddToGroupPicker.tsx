@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { useMemo, useState } from "react";
 import { addToGroupAction } from "@/app/admin/products/groups/actions";
 import { Fa } from "@/components/sites/lienstore/shared/icons";

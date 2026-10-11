@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- **Ảnh lấy từ web ngoài bị vỡ ở trang khách** (ví dụ ô biến thể của SANA Nameraka Honpo ND): bộ tối ưu ảnh chỉ phục vụ ảnh của chính shop và trả lỗi 400 với host khác (netshop.create-sd.co.jp). Giờ mọi ảnh trên web (thẻ sản phẩm, ô biến thể, ảnh trang sản phẩm, giỏ hàng, popup…) đi qua một thành phần chung: ảnh từ web ngoài được trình duyệt tải thẳng, ảnh của shop vẫn được tối ưu. Đã quét 33 trang danh sách và 360 trang sản phẩm trên prod: chỉ 2 ảnh (4 vị trí) bị lỗi, đều do nguyên nhân này.
+
 ## [2.31.3] - 2026-10-11
 
 ### Fixed

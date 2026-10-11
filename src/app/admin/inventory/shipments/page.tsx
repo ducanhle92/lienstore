@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { clearShopFeeAction, createShipmentAction, deleteShipmentAction, deleteShopFeeFileAction, packCandidatesAction, saveShopFeeAction, setShipmentStatusAction, syncKienAction, unpackUnitsAction, updateShipmentAction } from "@/app/admin/inventory/shipments/actions";
 import { CloseDialog, OpenShopFee, ShopFeeBar } from "@/components/sites/lienstore/admin/ShopFeeBar";

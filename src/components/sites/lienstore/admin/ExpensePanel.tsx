@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { createExpenseAction, deleteExpenseAction, deleteExpenseFileAction } from "@/app/admin/purchases/expense-actions";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";
 import { adminInput, adminLabel, btnPrimary, Card, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";

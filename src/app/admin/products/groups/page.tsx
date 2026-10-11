@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { deleteGroupAction, saveGroupAction } from "@/app/admin/products/groups/actions";
 import { AttrLabelsEditor } from "@/components/sites/lienstore/admin/AttrLabelsEditor";

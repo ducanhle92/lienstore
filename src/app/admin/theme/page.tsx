@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { resetThemeAction, saveThemeAction } from "@/app/admin/theme/actions";
 import { ColorField } from "@/components/sites/lienstore/admin/ColorField";
 import { FilePicker } from "@/components/sites/lienstore/admin/FilePicker";

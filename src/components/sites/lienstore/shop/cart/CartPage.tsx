@@ -3,7 +3,7 @@
 import { useLang } from "@/components/sites/lienstore/shared/LangProvider";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { useCart } from "@/components/sites/lienstore/shop/CartProvider";
 import { cn } from "@/lib/utils";
