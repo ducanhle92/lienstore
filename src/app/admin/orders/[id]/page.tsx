@@ -206,7 +206,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             }
           >
             <SheetTable id="order-items">
-            <table className={tableClass}>
+            {/* tighter cells so the whole table (incl. Khối lượng) fits the card without sideways scrolling */}
+            <table className={cn(tableClass, "[&_td]:!px-2.5 [&_th]:!px-2.5")}>
               <thead>
                 <tr>
                   <th className={thClass} />
@@ -218,6 +219,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     <InfoPopover>Hàng của dòng này lấy từ đâu: lô có sẵn (kho VN / ĐVVC / Nhật, theo hạn dùng gần nhất trước), phiếu mua đang về, đợt đang gom, hay còn phải mua. Tồn kho đã trừ phần giữ chỗ; trừ thật khi xác nhận thanh toán hoặc đổi sang thu khi giao. Chọn nguồn khác trong ô bên dưới nếu muốn ghi đè.</InfoPopover>
                   </th>
                   {seePrices ? <th className={`${thClass} text-right`}>Thành tiền</th> : null}
+                  <th className={`${thClass} text-right`} title="Cân nặng 1 cái × số lượng (cân nặng nhập ở trang sửa sản phẩm)">Khối lượng</th>
                 </tr>
               </thead>
               <tbody>
@@ -232,11 +234,6 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       </Link>
                       <div className="text-[12px] text-lien-muted">
                         #{it.productId} ·{" "}
-                        {weightOf.get(it.productId) ? (
-                          <span className="whitespace-nowrap" title="Cân nặng 1 sản phẩm (trang sửa sản phẩm)">{grams(weightOf.get(it.productId)!)}{it.quantity > 1 ? ` × ${it.quantity}` : ""} · </span>
-                        ) : (
-                          <span className="whitespace-nowrap text-amber-700" title={`Chưa nhập cân nặng — khối lượng dự tính tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái`}>chưa có cân nặng · </span>
-                        )}
                         <Link href={`/admin/products/${it.productId}/`} className="hover:text-lien-blue">
                           sửa sản phẩm
                         </Link>
@@ -244,7 +241,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     </td>
                     {seePrices ? <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td> : null}
                     <td className={tdClass}>{it.quantity}</td>
-                    <td className={`${tdClass} min-w-[260px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
+                    <td className={`${tdClass} min-w-[180px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
                       {it.itemId ? (
                         <>
                           <div className="space-y-1">
@@ -278,7 +275,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                             <form action={setItemSourceAction} className="mt-1.5 flex items-center gap-1">
                               <input type="hidden" name="id" value={order.id} />
                               <input type="hidden" name="itemId" value={it.itemId} />
-                              <select name="source" defaultValue="" className="max-w-[240px] rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Đổi nguồn hàng">
+                              <select name="source" defaultValue="" className="w-[150px] rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Đổi nguồn hàng">
                                 <option value="" disabled>
                                   — đổi nguồn —
                                 </option>
@@ -298,6 +295,19 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       ) : null}
                     </td>
                     {seePrices ? <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td> : null}
+                    <td className={`${tdClass} whitespace-nowrap text-right`} data-testid={`weight-${it.itemId ?? it.productId}`}>
+                      {weightOf.get(it.productId) ? (
+                        <>
+                          {grams(weightOf.get(it.productId)! * it.quantity)}
+                          {it.quantity > 1 ? <span className="block text-[11px] text-lien-muted">{grams(weightOf.get(it.productId)!)} × {it.quantity}</span> : null}
+                        </>
+                      ) : (
+                        <span className="text-amber-700" title={`Chưa nhập cân nặng ở trang sửa sản phẩm — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái`}>
+                          ~{grams(DEFAULT_ITEM_WEIGHT_G * it.quantity)}
+                          <span className="block text-[11px]">chưa có cân nặng</span>
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -308,6 +318,10 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       {order.paidAt ? "Đã thanh toán" : order.paymentMethod === "cod" ? "Cần thu khi giao (COD)" : "Cần thu"}
                     </td>
                     <td className={`${tdClass} text-right text-[16px] font-bold`}>{order.paidAt ? "—" : formatPrice(order.total, order.currency)}</td>
+                    <td className={`${tdClass} whitespace-nowrap text-right text-[16px] font-bold`} title={parcel.missing ? `${parcel.missing} sản phẩm chưa có cân nặng — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái` : "Tổng khối lượng hàng (chưa gồm bao bì)"} data-testid="order-weight-total">
+                      {parcel.missing ? "~" : ""}
+                      {grams(parcel.goodsG)}
+                    </td>
                   </tr>
                 </tfoot>
               )}
@@ -318,6 +332,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     Tạm tính
                   </td>
                   <td className={`${tdClass} text-right`}>{formatPrice(order.subtotal, order.currency)}</td>
+                  <td className={tdClass} />
                 </tr>
                 {order.discount > 0 ? (
                   <tr>
@@ -330,6 +345,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       ) : null}
                     </td>
                     <td className={`${tdClass} text-right text-lien-success`}>−{formatPrice(order.discount, order.currency)}</td>
+                    <td className={tdClass} />
                   </tr>
                 ) : null}
                 <tr>
@@ -338,12 +354,17 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     {order.shipFeePayment === "on_delivery" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">khách trả phí ship cho shipper · không nằm trong Tổng</span> : null}
                   </td>
                   <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? `${order.shipFeePayment === "on_delivery" ? "≈ " : ""}${formatPrice(order.shippingFee, order.currency)}` : "Miễn phí"}</td>
+                  <td className={tdClass} />
                 </tr>
                 <tr>
                   <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                     Tổng
                   </td>
                   <td className={`${tdClass} text-right text-[16px] font-bold`}>{formatPrice(order.total, order.currency)}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-right text-[16px] font-bold`} title={parcel.missing ? `${parcel.missing} sản phẩm chưa có cân nặng — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái` : "Tổng khối lượng hàng (chưa gồm bao bì)"} data-testid="order-weight-total">
+                      {parcel.missing ? "~" : ""}
+                      {grams(parcel.goodsG)}
+                    </td>
                 </tr>
               </tfoot>
               ) : null}
