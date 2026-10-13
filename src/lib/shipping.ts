@@ -323,3 +323,26 @@ export const TRANSIT_SUBSTEPS: Array<{ status: string; label: string }> = [
 export function stageIndex(stage: ShipStage): number {
   return Math.max(0, SHIP_STAGES.findIndex((s) => s.key === stage));
 }
+
+/**
+ * Parcel weight to type when creating the Vietnam delivery (GHN / Viettel / SPX…): Σ product weight × qty
+ * (DEFAULT_ITEM_WEIGHT_G for a product with no weight yet, counted in `missing`), plus packaging (box, bubble wrap:
+ * 10 %, at least 50 g), rounded up to the next 50 g — a little over is safer than a re-weigh surcharge.
+ */
+export function parcelWeightEstimate(lines: Array<{ weightG: number | null; quantity: number }>): { goodsG: number; packagingG: number; totalG: number; missing: number } {
+  let goodsG = 0;
+  let missing = 0;
+  for (const l of lines) {
+    const q = Math.max(0, l.quantity);
+    if (!q) continue;
+    if (l.weightG && l.weightG > 0) goodsG += l.weightG * q;
+    else {
+      goodsG += DEFAULT_ITEM_WEIGHT_G * q;
+      missing++;
+    }
+  }
+  goodsG = Math.round(goodsG);
+  const packagingG = goodsG ? Math.max(50, Math.round(goodsG * 0.1)) : 0;
+  const totalG = goodsG ? Math.ceil((goodsG + packagingG) / 50) * 50 : 0;
+  return { goodsG, packagingG, totalG, missing };
+}

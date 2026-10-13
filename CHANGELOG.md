@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Chi tiết đơn · khối lượng dự tính tạo đơn ship VN**: dưới bảng sản phẩm hiện khối lượng gợi ý để điền khi tạo vận đơn GHN / Viettel / SPX… Cách tính: tổng cân nặng hàng (cân nặng sản phẩm × số lượng), cộng bao bì khoảng 10 % (ít nhất 50 g), làm tròn lên 50 g. Mỗi dòng sản phẩm hiện cân nặng 1 cái. Sản phẩm chưa có cân nặng được đánh dấu "chưa có cân nặng" và tính tạm 500 g/cái.
+
 ## [2.31.4] - 2026-10-11
 
 ### Fixed

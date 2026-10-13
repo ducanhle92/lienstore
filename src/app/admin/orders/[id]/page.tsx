@@ -11,7 +11,7 @@ import { TIER_CLASS, TIER_LABEL, isTier } from "@/lib/customer-tiers";
 import { redeemPointsAction, setOrderLoyaltyExcludedAction } from "@/app/admin/loyalty/actions";
 import { getLoyaltyRules, getPointsBalance } from "@/lib/db";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
-import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
+import { DEFAULT_ITEM_WEIGHT_G, orderSteps, parcelWeightEstimate, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
 import { purchaseIndex } from "@/lib/purchase";
 import { deleteOrderFileAction } from "@/app/admin/orders/files-actions";
@@ -70,6 +70,14 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   }
   const shop = theme.shopName;
   if (!order) notFound();
+  // khối lượng dự tính for the Vietnam delivery label: each product's weight (null = not entered yet)
+  const weightOf = new Map<number, number | null>(
+    order.items.length
+      ? (getDb().prepare(`SELECT id, weight_g FROM products WHERE id IN (${order.items.map(() => "?").join(",")})`).all(...order.items.map((it) => it.productId)) as Array<{ id: number; weight_g: number | null }>).map((r) => [r.id, r.weight_g && r.weight_g > 0 ? r.weight_g : null])
+      : [],
+  );
+  const parcel = parcelWeightEstimate(order.items.map((it) => ({ weightG: weightOf.get(it.productId) ?? null, quantity: it.quantity })));
+  const grams = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg` : `${g.toLocaleString("vi-VN")} g`);
   await markOrderMessagesRead(order.id, "admin");
   const curStage = stageIndex(order.shipStage);
   const nextStage = SHIP_STAGES[curStage + 1];
@@ -224,6 +232,11 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       </Link>
                       <div className="text-[12px] text-lien-muted">
                         #{it.productId} ·{" "}
+                        {weightOf.get(it.productId) ? (
+                          <span className="whitespace-nowrap" title="Cân nặng 1 sản phẩm (trang sửa sản phẩm)">{grams(weightOf.get(it.productId)!)}{it.quantity > 1 ? ` × ${it.quantity}` : ""} · </span>
+                        ) : (
+                          <span className="whitespace-nowrap text-amber-700" title={`Chưa nhập cân nặng — khối lượng dự tính tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái`}>chưa có cân nặng · </span>
+                        )}
                         <Link href={`/admin/products/${it.productId}/`} className="hover:text-lien-blue">
                           sửa sản phẩm
                         </Link>
@@ -336,6 +349,21 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
               ) : null}
             </table>
             </SheetTable>
+            {parcel.totalG ? (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[13px]" data-testid="order-parcel-weight">
+                <span className="font-semibold text-sky-900">
+                  <Fa name="balance-scale" /> Khối lượng dự tính tạo đơn ship VN: <span className="text-[15px]" data-testid="order-parcel-total">{grams(parcel.totalG)}</span>
+                </span>
+                <span className="text-[12px] text-lien-muted">
+                  hàng {grams(parcel.goodsG)} + bao bì ~{grams(parcel.packagingG)} · làm tròn lên 50 g
+                </span>
+                {parcel.missing ? (
+                  <span className="text-[12px] font-semibold text-amber-700" data-testid="order-parcel-missing">
+                    {parcel.missing} sản phẩm chưa có cân nặng (tính tạm {grams(DEFAULT_ITEM_WEIGHT_G)}/cái) — nhập ở “sửa sản phẩm” để chính xác hơn
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </Card>
 
 
