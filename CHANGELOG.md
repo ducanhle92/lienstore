@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.32.1] - 2026-10-13
+
 ### Changed
 - **Chi tiết đơn · cột "Khối lượng"** trong bảng sản phẩm: mỗi dòng ghi cân nặng × số lượng (ví dụ "240 g", dưới là "120 g × 2"). Dòng chưa có cân nặng hiện "~500 g · chưa có cân nặng" màu cam. Dòng **Tổng** cuối bảng ghi tổng khối lượng hàng ngay cạnh tổng tiền. Khung "Khối lượng dự tính tạo đơn ship VN" (có thêm bao bì, làm tròn) giữ nguyên.
 - Bảng sản phẩm của đơn gọn hơn (lề ô hẹp hơn, ô "đổi nguồn" ngắn hơn) nên vừa khung, không phải cuộn ngang để xem Thành tiền / Khối lượng.
