@@ -133,13 +133,17 @@ export function getReceipt(id: number): Receipt | null {
   return r ? hydrate([r])[0] : null;
 }
 
-function nextCode(boughtAt: string): string {
+/**
+ * Next free bill code of a day: PM-YYMMDD-NN (bills made in Quản lý mua hàng); other prefixes mark where a bill was
+ * made — NT-… = "Nhập hàng trực tiếp" on a product's stock page.
+ */
+export function nextCode(boughtAt: string, kind = "PM"): string {
   const db = getDb();
-  const prefix = receiptCode(boughtAt, 1).slice(0, -3);
+  const prefix = receiptCode(boughtAt, 1, kind).slice(0, -3);
   const n = (db.prepare("SELECT COUNT(*) AS n FROM purchase_receipts WHERE code LIKE ?").get(`${prefix}-%`) as { n: number }).n;
   let seq = Number(n) + 1;
-  while (db.prepare("SELECT 1 FROM purchase_receipts WHERE code = ?").get(receiptCode(boughtAt, seq))) seq++;
-  return receiptCode(boughtAt, seq);
+  while (db.prepare("SELECT 1 FROM purchase_receipts WHERE code = ?").get(receiptCode(boughtAt, seq, kind))) seq++;
+  return receiptCode(boughtAt, seq, kind);
 }
 
 /** Lines the admin ticked → one receipt (items grouped per product); the lines become "Đã mua" and remember the source. */
@@ -317,7 +321,7 @@ export function removeReceiptFile(id: number, path: string): ReceiptFile | null 
 }
 
 /** An empty bill (no parsed lines) — the paper trail for photos and for rows added by hand in a batch. */
-export function createManualReceipt(input: { sourceKey: string; boughtAt: string; orderRef?: string; note?: string; batchId?: number | null; /** the shop's own bill number; blank = PM-… generated */ code?: string }): Receipt | null {
+export function createManualReceipt(input: { sourceKey: string; boughtAt: string; orderRef?: string; note?: string; batchId?: number | null; /** the shop's own bill number; blank = <prefix>-… generated */ code?: string; /** prefix of a generated code (default PM) */ prefix?: string }): Receipt | null {
   const db = getDb();
   const now = new Date().toISOString();
   const boughtAt = input.boughtAt || now.slice(0, 10);
@@ -327,7 +331,7 @@ export function createManualReceipt(input: { sourceKey: string; boughtAt: string
     if (ex) return getReceipt(ex.id);
   }
   const id = withTransaction(db, () => {
-    const code = custom || nextCode(boughtAt);
+    const code = custom || nextCode(boughtAt, input.prefix ?? "PM");
     const r = db.prepare("INSERT INTO purchase_receipts (code, source_key, bought_at, order_ref, total_jpy, shipped_at, tracking, note, status, raw_text, batch_id, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, NULL, '', ?, 'bought', '', ?, ?, ?)").run(code, input.sourceKey || UNKNOWN_SOURCE, boughtAt, (input.orderRef ?? "").slice(0, 80), (input.note ?? "").slice(0, 300), input.batchId ?? null, now, now);
     return Number(r.lastInsertRowid);
   });

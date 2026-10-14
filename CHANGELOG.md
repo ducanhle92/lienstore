@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **Trang hàng của sản phẩm · "Nhập hàng trực tiếp"**:
+  - **Mã bill tự tạo**: để trống ô Bill thì mỗi lần nhập tạo một bill mới mã **NT-YYMMDD-NN** (NT = nhập trực tiếp ở màn này, khác PM-… của Quản lý mua hàng). Ô Bill hiện sẵn mã sẽ được tạo; gõ mã khác nếu muốn gắn vào bill có sẵn. Hàng nhập ở đây không còn "chưa có bill".
+  - **Bỏ ô "Đang ở"**: mua trực tiếp → vào Kho Nhật (shop); khách trả lại → vào Kho VN (chọn ở ô Loại).
+  - **Cùng bộ ô với "+ Thêm vào đợt"** ở Quản lý mua hàng: Số lượng, ¥/cái, HSD, Ngày mua, Mua ở + cửa hàng / chi nhánh, Bill, Loại, Ghi chú.
+
 ## [2.32.2] - 2026-10-14
 
 ### Fixed
