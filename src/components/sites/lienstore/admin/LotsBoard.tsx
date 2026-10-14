@@ -7,6 +7,7 @@ import { daysToExpiry, expiryState } from "@/lib/lots";
 import { groupTotals, type OrderReadyToShip, type StockGroup } from "@/lib/lots-db";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
+import { UNIT_ORIGIN_LABEL } from "@/lib/units";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { BulkBar } from "./BulkBar";
@@ -315,7 +316,13 @@ function GroupTable({ rows, sources, scope, formId, showCost = true }: { rows: R
                       {g.receiptCode}
                     </Link>
                   ) : (
-                    <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted">chưa có bill</span>
+                    <>
+                      <span className="rounded bg-[#f3f4f6] px-1 py-0.5 text-[10px] text-lien-muted">chưa có bill</span>
+                      {/* how a unit with no bill got here: entered by hand, bought for an order line, stocktake surplus… */}
+                      <span className="block text-[10px] text-amber-700" title={g.units[0]?.note || undefined} data-testid="nobill-origin">
+                        {originHint(g.units[0])}
+                      </span>
+                    </>
                   )}
                   <details className="mt-0.5 text-[11px]">
                     <summary className="cursor-pointer font-mono text-lien-blue">{r.codes.length > 1 ? `${r.codes[0]} … ${r.codes.length} mã` : r.codes[0]}</summary>
@@ -371,4 +378,11 @@ function GroupTable({ rows, sources, scope, formId, showCost = true }: { rows: R
       </SheetTable>
     </div>
   );
+}
+
+/** "Nhập tay" / "Mua theo đơn #1075" / "Kiểm kê (thừa)"… — where a unit with no bill came from (its note says more). */
+function originHint(u: { origin: keyof typeof UNIT_ORIGIN_LABEL; note: string } | undefined): string {
+  if (!u) return "";
+  const order = /#\d+/.exec(u.note)?.[0];
+  return u.origin === "order" && order ? `${UNIT_ORIGIN_LABEL.order} ${order}` : UNIT_ORIGIN_LABEL[u.origin];
 }
