@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.32.2] - 2026-10-14
+
 ### Fixed
 - **② Quản lý mua hàng · đầu thẻ đợt không còn bị xô xuống dòng**: đợt có tên dài (VD "DG-261011-01 · DG-261010-01") và đủ 5 chip từng bị đẩy cả cụm chip + nút xuống hàng dưới, lệch trái. Giờ tên đợt, chip và nút nằm chung một hàng; chip gọn hơn ("đã mua"; "tiền hàng" / "hàng" chuyển vào chú thích khi rê chuột), từ màn hình 1500 px trở lên vừa một dòng, hẹp hơn thì chỉ chip tự xuống dòng gọn gàng.
 
