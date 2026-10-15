@@ -128,7 +128,9 @@ hoặc cùng một thay đổi: `{ "ids": [2710, 2711], "set": { "saleStatus": "
 
 ## 5. Token & phân quyền
 
-- Scope: `products:read` (đọc sản phẩm, danh mục, nhật ký), `products:write` (tạo/sửa/hàng loạt), `media:write` (upload).
+- Scope: `products:read` (đọc sản phẩm, danh mục, nhật ký), `products:write` (tạo/sửa/hàng loạt, liên kết mã vạch),
+  `media:write` (upload), `inventory:read` (tra mã, tồn, phiếu quét), `inventory:write` (phiếu nhập / kiểm kê / soạn hàng —
+  còn cần quyền kho tương ứng của tài khoản: ③ Kho Nhật, ⑥ Kho VN, ⑦ Giao hàng VN).
 - Token **thuộc về tài khoản đã cấp** và mỗi request kiểm tra lại: tài khoản bị khoá / hạ quyền / mất module "Sản phẩm"
   → token mất quyền tương ứng (401 `TOKEN_OWNER_INACTIVE` hoặc 403 `FORBIDDEN`).
 - Lưu `sha256` của token (bảng `api_tokens`), không lưu/ghi log token thô. Hết hạn → 401 `TOKEN_EXPIRED`; thu hồi
@@ -188,3 +190,41 @@ Test: `npm run test:admin-api` (service, DB tạm) · `npm run test:admin-api:e2
 - Cloudflare/WAF: cho phép header `Authorization`, `Idempotency-Key`, `If-Match` tới `/api/admin/v1/*`; không cache
   đường dẫn này (server trả `Cache-Control: no-store`). Nên đặt giới hạn tốc độ cho `/api/admin/v1/*`.
 - Tuỳ chọn `LIEN_ENV_LABEL=production` để `whoami` hiện đúng nhãn.
+
+## 9. Quét mã, tồn kho và phiếu kho (v1, thêm cho màn quét điện thoại)
+
+Chi tiết nghiệp vụ: `docs/architecture/mobile-scanning.md`, hướng dẫn: `docs/SCANNING.md`. Màn `/admin/scan/` dùng
+chính các endpoint này bằng phiên đăng nhập (+ `X-Lien-Csrf: 1`); agent dùng Bearer token.
+
+| Method | Path | Scope | |
+| --- | --- | --- | --- |
+| GET | `/codes/resolve/?code=` | inventory:read | `kind`: product / unit / unknown / conflict / invalid / unsupported_qr |
+| GET | `/products/{id}/stock/` | inventory:read | tồn theo kho, hạn dùng, giữ cho đơn, đang về |
+| GET / POST | `/products/{id}/barcodes/` | products:read / write | `{ code, packQty?, packLabel?, force? }` |
+| DELETE | `/barcodes/{id}/` | products:write | ngừng dùng liên kết |
+| GET / POST | `/stock-receipts/` · `/stock-counts/` · `/picks/` | inventory:read / write | danh sách (`?status=draft`) / tạo |
+| GET | `/stock-receipts/shipments/` · `/picks/orders/` | inventory:read | chuyến chờ nhận / đơn sẵn sàng giao |
+| GET | `/{family}/{id}/` | inventory:read | phiếu + dòng + `version` + `blockers` |
+| POST | `/{family}/{id}/scans/` | inventory:write | `{ code, opId, qty? }` — cùng `opId` = cùng kết quả |
+| POST | `/{family}/{id}/lines/` | inventory:write | `{ productId }` |
+| PATCH / DELETE | `/{family}/{id}/lines/{lineId}/` | inventory:write | `{ rev, qty?, expiry?, unitCostJpy?, billCode?, recount?, acceptDrift? }` |
+| POST | `/{family}/{id}/undo/` | inventory:write | hoàn tác lần quét gần nhất |
+| POST | `/stock-receipts/{id}/confirm/` · `/stock-counts/{id}/close/` · `/picks/{id}/complete/` | inventory:write | `{ version }` — một transaction, gọi lại trả kết quả cũ |
+| POST | `/{family}/{id}/cancel/` | inventory:write | huỷ nháp |
+
+CLI:
+```bash
+lienstore codes resolve 4961989409139
+lienstore stock 2710
+lienstore barcodes add 2710 4961989409139 [--pack-qty 12 --pack-label thùng]
+lienstore receipts create --warehouse vn                 # hàng mới; nhận chuyến: --mode shipment --shipment <id>
+lienstore receipts scan <docId> 4961989409139 --qty 2
+lienstore receipts get <docId>                          # xem lại, lấy "version"
+lienstore receipts confirm <docId> --version <v>
+lienstore counts create --warehouse vn · counts scan … · counts set-line <docId> <lineId> --rev R --qty 0 · counts confirm …
+lienstore picks orders · picks create --order-number 1234 · picks scan … · picks confirm <docId> --version <v>
+```
+Mã lỗi thêm: `INVALID_CODE`, `UNKNOWN_CODE`, `CODE_CONFLICT`, `CODE_LINKED_ELSEWHERE`, `CODE_IS_SKU_OF_OTHER`,
+`WAREHOUSE_FORBIDDEN`, `DOC_EXISTS`, `DOC_NOT_DRAFT`, `DOC_CHANGED`, `LINE_CHANGED`, `OP_ID_REUSED`, `OVER_QUANTITY`,
+`WRONG_PRODUCT`, `WRONG_UNIT`, `UNIT_NOT_IN_SHIPMENT`, `COUNT_DRIFT`, `COUNT_SHORT_HELD`, `PICK_INCOMPLETE`,
+`ORDER_NOT_READY`, `STOCK_CHANGED`.

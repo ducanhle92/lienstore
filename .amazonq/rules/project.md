@@ -76,6 +76,9 @@ scripts/            # Asset download scripts
 - Do not open the web preview / puppeteer for data changes; if the API fails, report the JSON error (exit code ≠ 0)
   instead of falling back to the browser. The preview is only for checking the UI when asked.
 - Never edit the SQLite file directly for catalogue changes — the API keeps validation, history, cache and audit.
+- Stock work (look up a barcode, stock of a product, receive goods, stock counts, pick an order) also goes through the
+  CLI (`codes resolve`, `stock`, `barcodes`, `receipts|counts|picks …`, see `docs/ADMIN_API.md` §9) — never change
+  `products.stock` or `stock_units` directly. Phone scanning screen: `/admin/scan/` (`docs/SCANNING.md`).
 
 ## MOST IMPORTANT NOTES
 - When launching Claude Code agent teams, ALWAYS have each teammate work in their own worktree branch and merge everyone's work at the end, resolving any merge conflicts smartly since you are basically serving the orchestrator role and have full context to our goals, work given, work achieved, and desired outcomes.
