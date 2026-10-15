@@ -28,6 +28,8 @@ Trình duyệt
 ## Backend (trong cùng ứng dụng Next.js)
 - **Server Actions**: `checkout/actions.ts` (đặt hàng, tạo tài khoản), `my-account/actions.ts` (đăng nhập/đăng ký/cập nhật), `admin/**/actions.ts` (CRUD sản phẩm, danh mục, trạng thái đơn). Mọi action ghi dữ liệu đều kiểm tra phiên và validate phía server; giá được tính lại từ catalogue nên client không sửa được giá.
 - **Route Handler**: `src/app/api/health/route.ts` cho health check.
+- **Admin API v1** (`src/app/api/admin/v1/**`, Bearer token hoặc phiên admin + CSRF): sản phẩm / ảnh / danh mục cho agent và CLI `scripts/lienstore.mjs`; nghiệp vụ dùng chung với Server Actions trong `src/lib/product-service.ts`, `product-rules.ts`, `media-service.ts`; token/nhật ký/idempotency ở `src/lib/api-tokens.ts`, HTTP chung ở `src/lib/api-http.ts`. Chi tiết: `docs/ADMIN_API.md`.
+- **Quét mã điện thoại** (`/admin/scan/`, `src/components/sites/lienstore/admin/scan/*`): mã vạch `src/lib/barcodes(.ts|-db.ts)`, phiếu nhập/kiểm kê/soạn hàng `src/lib/scan-docs.ts` (chốt bằng các hàm từng cái trong `units-db.ts`), route `src/app/api/admin/v1/{codes,stock-receipts,stock-counts,picks}`. Thiết kế: `docs/architecture/mobile-scanning.md`.
 - **Xác thực**: 
   - Admin: `src/lib/auth.ts` — tài khoản từ biến môi trường `ADMIN_USER`/`ADMIN_PASSWORD`, cookie `lien_admin` ký HMAC-SHA256 bằng `ADMIN_SESSION_SECRET`, hạn 12 giờ.
   - Khách hàng: `src/lib/customer-auth.ts` — bảng `customers` trong DB, mật khẩu băm **scrypt** + salt riêng, cookie `lien_customer` ký HMAC, hạn 30 ngày.

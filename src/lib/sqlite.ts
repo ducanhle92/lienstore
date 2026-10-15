@@ -5,6 +5,7 @@ import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { backfillGroupCodes, convertLegacyStock } from "./units-migrate";
+import { canonicalGtin } from "./barcodes";
 import { backfillCustomersSync, relinkOrdersByNameSync } from "./customers-db";
 
 /**
@@ -1594,6 +1595,145 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_shipment_fee_shares_order ON shipment_fee_shares(order_id)`,
     ],
   },
+  {
+    // Admin API v1 (/api/admin/v1, CLI `lienstore`): Bearer tokens (only the SHA-256 of the raw token is kept), the audit
+    // trail of every write made with a token, and idempotency records so a retried create / update is not applied twice.
+    version: 75,
+    name: "admin-api-tokens",
+    up: [
+      `CREATE TABLE IF NOT EXISTS api_tokens (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        name         TEXT NOT NULL,
+        prefix       TEXT NOT NULL,
+        token_hash   TEXT NOT NULL UNIQUE,
+        scopes       TEXT NOT NULL DEFAULT '[]',
+        owner_id     TEXT NOT NULL,
+        owner_label  TEXT NOT NULL DEFAULT '',
+        created_by   TEXT NOT NULL DEFAULT '',
+        created_at   TEXT NOT NULL,
+        expires_at   TEXT,
+        revoked_at   TEXT,
+        revoked_by   TEXT NOT NULL DEFAULT '',
+        last_used_at TEXT,
+        last_used_ip TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE TABLE IF NOT EXISTS api_audit_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        at         TEXT NOT NULL,
+        actor      TEXT NOT NULL,
+        token_id   INTEGER,
+        action     TEXT NOT NULL,
+        target     TEXT NOT NULL DEFAULT '',
+        changes    TEXT NOT NULL DEFAULT '{}',
+        status     TEXT NOT NULL DEFAULT 'ok',
+        request_id TEXT NOT NULL DEFAULT '',
+        ip         TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_api_audit_at ON api_audit_log(at)`,
+      `CREATE INDEX IF NOT EXISTS idx_api_audit_target ON api_audit_log(target)`,
+      `CREATE TABLE IF NOT EXISTS api_idempotency (
+        token_id     INTEGER NOT NULL,
+        key          TEXT NOT NULL,
+        request_hash TEXT NOT NULL,
+        status       INTEGER,
+        response     TEXT,
+        created_at   TEXT NOT NULL,
+        PRIMARY KEY (token_id, key)
+      )`,
+    ],
+  },
+  {
+    // Quét mã (docs/architecture/mobile-scanning.md): barcodes linked to products (several per product, an optional pack
+    // size), and the scan documents of the phone screen — receipts (nhập), stock counts (kiểm kê), picks (soạn/xuất) —
+    // with their lines and the journal of scan operations (op_id = idempotency key of one deliberate scan).
+    version: 76,
+    name: "scan-codes-and-documents",
+    up: [
+      `CREATE TABLE IF NOT EXISTS product_barcodes (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        code       TEXT NOT NULL,
+        symbology  TEXT NOT NULL DEFAULT 'text',
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        pack_qty   INTEGER NOT NULL DEFAULT 1 CHECK (pack_qty >= 1),
+        pack_label TEXT NOT NULL DEFAULT '',
+        active     INTEGER NOT NULL DEFAULT 1,
+        source     TEXT NOT NULL DEFAULT 'manual',
+        note       TEXT NOT NULL DEFAULT '',
+        created_by TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_product_barcodes_active ON product_barcodes(code COLLATE NOCASE) WHERE active = 1`,
+      `CREATE INDEX IF NOT EXISTS idx_product_barcodes_product ON product_barcodes(product_id)`,
+      `CREATE TABLE IF NOT EXISTS scan_docs (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        code         TEXT NOT NULL UNIQUE,
+        kind         TEXT NOT NULL CHECK (kind IN ('receive','count','pick')),
+        mode         TEXT NOT NULL DEFAULT '',
+        status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
+        warehouse    TEXT NOT NULL DEFAULT 'vn',
+        shipment_id  INTEGER,
+        order_id     TEXT,
+        note         TEXT NOT NULL DEFAULT '',
+        version      INTEGER NOT NULL DEFAULT 1,
+        result       TEXT,
+        created_by   TEXT NOT NULL DEFAULT '',
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL,
+        confirmed_by TEXT NOT NULL DEFAULT '',
+        confirmed_at TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_scan_docs_status ON scan_docs(kind, status)`,
+      `CREATE TABLE IF NOT EXISTS scan_lines (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id        INTEGER NOT NULL REFERENCES scan_docs(id) ON DELETE CASCADE,
+        product_id    INTEGER NOT NULL,
+        qty           INTEGER,
+        expected      INTEGER,
+        expected_at   TEXT,
+        unit_codes    TEXT NOT NULL DEFAULT '[]',
+        expiry        TEXT,
+        unit_cost_jpy INTEGER,
+        bill_code     TEXT NOT NULL DEFAULT '',
+        note          TEXT NOT NULL DEFAULT '',
+        rev           INTEGER NOT NULL DEFAULT 1,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_scan_lines_doc ON scan_lines(doc_id)`,
+      `CREATE TABLE IF NOT EXISTS scan_ops (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id     INTEGER NOT NULL REFERENCES scan_docs(id) ON DELETE CASCADE,
+        op_id      TEXT NOT NULL,
+        line_id    INTEGER,
+        kind       TEXT NOT NULL,
+        code_raw   TEXT NOT NULL DEFAULT '',
+        code       TEXT NOT NULL DEFAULT '',
+        delta      INTEGER NOT NULL DEFAULT 0,
+        unit_code  TEXT,
+        request    TEXT NOT NULL DEFAULT '',
+        response   TEXT,
+        actor      TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        undone_at  TEXT,
+        UNIQUE (doc_id, op_id)
+      )`,
+    ],
+    run: (db) => {
+      // products.sku that is a valid GTIN and unique among products becomes a barcode link (duplicates stay out and
+      // show up as conflicts when scanned)
+      const rows = db.prepare("SELECT id, sku FROM products WHERE sku IS NOT NULL AND TRIM(sku) <> ''").all() as Array<{ id: number; sku: string }>;
+      const byCode = new Map<string, number[]>();
+      for (const r of rows) {
+        const g = canonicalGtin(r.sku.trim().replace(/[\s-]/g, ""));
+        if (!g) continue;
+        byCode.set(g.code, [...(byCode.get(g.code) ?? []), r.id]);
+      }
+      const ts = new Date().toISOString();
+      const ins = db.prepare("INSERT OR IGNORE INTO product_barcodes (code, symbology, product_id, pack_qty, pack_label, active, source, note, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, '', 1, 'sku', 'Từ SKU', 'migration', ?, ?)");
+      for (const [code, ids] of byCode) if (ids.length === 1) ins.run(code, code.length === 8 ? "ean8" : code.length === 14 ? "itf14" : "ean13", ids[0], ts, ts);
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -1644,7 +1784,26 @@ export function getDb(): DatabaseSync {
   return globalRef.__lienDb;
 }
 
+let savepointSeq = 0;
+
+/**
+ * Runs `fn` atomically. Nested calls (e.g. `saveProduct` inside a bulk update) become SAVEPOINTs of the outer
+ * transaction, so the outer caller decides whether everything commits.
+ */
 export function withTransaction<T>(db: DatabaseSync, fn: () => T): T {
+  if (db.isTransaction) {
+    const sp = `lien_sp_${++savepointSeq}`;
+    db.exec(`SAVEPOINT ${sp}`);
+    try {
+      const result = fn();
+      db.exec(`RELEASE ${sp}`);
+      return result;
+    } catch (e) {
+      db.exec(`ROLLBACK TO ${sp}`);
+      db.exec(`RELEASE ${sp}`);
+      throw e;
+    }
+  }
   db.exec("BEGIN IMMEDIATE");
   try {
     const result = fn();
@@ -1662,15 +1821,21 @@ function migrate(db: DatabaseSync) {
     name       TEXT NOT NULL,
     applied_at TEXT NOT NULL
   )`);
-  const applied = new Set(
-    (db.prepare("SELECT version FROM schema_migrations").all() as Array<{ version: number }>).map((r) => r.version),
+  // version → name: a dev database that ran a branch's migration under a number main later used for another one
+  // (same version, other name) still gets main's migration; the branch's own one runs again under its new number,
+  // which is why migrations stay idempotent (IF NOT EXISTS / OR IGNORE).
+  const applied = new Map(
+    (db.prepare("SELECT version, name FROM schema_migrations").all() as Array<{ version: number; name: string }>).map((r) => [r.version, r.name]),
   );
+  const renumbered = (name: string | undefined, version: number) => !!name && MIGRATIONS.some((x) => x.name === name && x.version !== version);
   for (const m of MIGRATIONS) {
-    if (applied.has(m.version)) continue;
+    const recorded = applied.get(m.version);
+    // recorded under this number: done — unless what was recorded is ANOTHER migration that has since moved to a new number
+    if (recorded !== undefined && !renumbered(recorded, m.version)) continue;
     withTransaction(db, () => {
       for (const sql of m.up) db.exec(sql);
       m.run?.(db);
-      db.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)").run(
+      db.prepare("INSERT OR REPLACE INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)").run(
         m.version,
         m.name,
         new Date().toISOString(),

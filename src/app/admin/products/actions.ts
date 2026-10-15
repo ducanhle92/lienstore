@@ -8,14 +8,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can, getAdminSession } from "@/lib/auth";
 import { NO_IMAGE } from "@/lib/contact-links";
-import { storedPrices } from "@/lib/price-display";
+import { isValidDimsCm, isValidWeightG, normalizeDimsCm, PRODUCT_MESSAGES, resolveWebPrices } from "@/lib/product-rules";
+import { cleanupRemovedUploads, deriveCostPrice } from "@/lib/product-service";
 import { deleteProduct, getCategories, getJpyRate, getPricingConfig, getProductById, getProductGroupById, getSourceFeeMap, listPurchaseSources, purchaseSourceKeys, replaceCostSources, saveProduct, saveProductGroup, slugExists, updateProductStock } from "@/lib/db";
 import { resolvePurchaseSourceKey, UNKNOWN_SOURCE } from "@/lib/purchase-sources";
 import { normalizeAttrLabels } from "@/lib/variants";
 import { plainToHtml } from "@/lib/plain-html";
 import { slugify } from "@/lib/format";
-import { deleteUpload, relFromUrl, resolveThumbFor } from "@/lib/uploads";
-import { getAllProducts, imageUsedByOrders } from "@/lib/db";
+import { resolveThumbFor } from "@/lib/uploads";
+import { getAllProducts } from "@/lib/db";
 import type { CatalogProduct } from "@/types/shop";
 import { structureDescription } from "@/lib/description";
 import { suggestSku } from "@/lib/sku";
@@ -41,24 +42,25 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (id && !existing) return { error: "Sản phẩm không tồn tại." };
 
   const name = get("name");
-  if (!name) fields.name = "Tên sản phẩm là bắt buộc.";
+  if (!name) fields.name = PRODUCT_MESSAGES.nameRequired;
 
   let slug = slugify(get("slug") || existing?.slug || name);
-  if (!slug) fields.slug = "Đường dẫn không hợp lệ.";
-  else if (await slugExists(slug, id)) fields.slug = "Đường dẫn đã tồn tại, hãy chọn đường dẫn khác.";
+  if (!slug) fields.slug = PRODUCT_MESSAGES.slugInvalid;
+  else if (await slugExists(slug, id)) fields.slug = PRODUCT_MESSAGES.slugTaken;
 
   // three prices (lib/price-display.ts): web price (blank / 0 = "Liên hệ" — the shopper is sent to Zalo) · promo · market reference
   const expectedRaw = get("expectedPrice") || get("regularPrice") || get("price");
   const expected = expectedRaw ? parseIntField(expectedRaw) : 0;
-  if (expected === null || expected < 0) fields.price = "Giá bán trên web phải là số nguyên ≥ 0 (để trống = Liên hệ).";
   const promoRaw = get("expectedPrice") ? get("promoPrice") : get("regularPrice") ? get("price") : "";
   const promo = promoRaw ? parseIntField(promoRaw) : null;
-  if (promoRaw && promo === null) fields.promoPrice = "Giá khuyến mại không hợp lệ.";
   const marketRaw = get("marketPrice");
   const marketPrice = marketRaw ? parseIntField(marketRaw) : null;
-  if (marketRaw && marketPrice === null) fields.marketPrice = "Giá thị trường không hợp lệ.";
-  if (promo !== null && marketPrice !== null && promo >= marketPrice) fields.promoPrice = "Giá khuyến mại phải thấp hơn giá thị trường.";
-  const { price, regularPrice } = storedPrices(expected ?? 0, promo);
+  // same rules as the Admin API (lib/product-rules.ts); unparsable text is reported here
+  const prices = resolveWebPrices(expected, promo, marketPrice);
+  Object.assign(fields, prices.fields);
+  if (promoRaw && promo === null) fields.promoPrice = PRODUCT_MESSAGES.promoPrice;
+  if (marketRaw && marketPrice === null) fields.marketPrice = PRODUCT_MESSAGES.marketPrice;
+  const { price, regularPrice } = prices;
 
   // ¥ quotes per purchase source (cs_* repeated); the primary row feeds cost_jpy / cost_source / cost_url
   const csSources = formData.getAll("cs_source").map(String);
@@ -96,16 +98,16 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
 
   const weightRaw = get("weightG");
   const weightG = weightRaw === "" ? null : parseIntField(weightRaw);
-  if (weightRaw !== "" && (weightG === null || weightG <= 0)) fields.weightG = "Khối lượng tính bằng gram, số nguyên > 0.";
-  const dimsCm = get("dimsCm").replace(/\s+/g, "").replace(/[×*]/g, "x") || null;
+  if (weightRaw !== "" && (weightG === null || !isValidWeightG(weightG))) fields.weightG = PRODUCT_MESSAGES.weightG;
+  const dimsCm = normalizeDimsCm(get("dimsCm"));
   const confRaw = get("dimsConfidence");
   const dimsConfidence = isDimsConfidence(confRaw) ? confRaw : null;
   const dimsSource = get("dimsSource").slice(0, 300);
-  if (dimsCm && !/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/.test(dimsCm)) fields.dimsCm = "Kích thước ghi dạng Dài x Rộng x Cao (cm), ví dụ 12x8x5.";
+  if (!isValidDimsCm(dimsCm)) fields.dimsCm = PRODUCT_MESSAGES.dimsCm;
   // VND cost from the chosen ¥ quote + the source's surcharges (which may depend on the item's billable weight)
   const weightChanged = (existing?.weightG ?? null) !== weightG || (existing?.dimsCm ?? null) !== dimsCm || (existing?.dimsConfidence ?? null) !== dimsConfidence;
   if (costJpy && (costPrice === null || existing?.costJpy !== costJpy || (existing?.costSource ?? "") !== costSourceSel || weightChanged)) {
-    costPrice = costPriceFromJpy(costJpy, costSourceSel, await getJpyRate(), getSourceFeeMap(), billableProductWeightG(weightG, dimsCm, dimsConfidence), (await getPricingConfig()).lotWeightG);
+    costPrice = await deriveCostPrice({ costJpy, costSource: costSourceSel, weightG, dimsCm, dimsConfidence });
   }
 
   const stockRaw = get("stock");
@@ -118,7 +120,7 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   const fulfillment: CatalogProduct["fulfillment"] = stockMode ? (stockMode === "stock" ? "stock" : "order") : get("fulfillment") === "stock" ? "stock" : "order";
 
   const categories = formData.getAll("categories").map(String).filter(Boolean);
-  if (categories.length === 0) fields.categories = "Chọn ít nhất một danh mục.";
+  if (categories.length === 0) fields.categories = PRODUCT_MESSAGES.categoriesRequired;
 
   const images = get("images")
     .split(/\r?\n/)
@@ -212,24 +214,6 @@ export async function saveProductAction(_prev: ProductFormState, formData: FormD
   if (existing) await cleanupRemovedUploads(existing.images, saved.images, saved.id);
   revalidatePath("/", "layout");
   redirect(`/admin/products/?saved=${saved.id}`);
-}
-
-/**
- * Delete uploaded files that were removed from a product and are not referenced by any other product — nor by an
- * order line, which keeps the photo the customer ordered (deleting it broke the image on old orders).
- */
-async function cleanupRemovedUploads(before: string[], after: string[], productId: number): Promise<void> {
-  const removed = before.filter((u) => !after.includes(u) && relFromUrl(u));
-  if (removed.length === 0) return;
-  const others = (await getAllProducts(true)).filter((p) => p.id !== productId);
-  for (const url of removed) {
-    if (others.some((p) => p.images.includes(url) || p.thumb === url)) continue;
-    if (imageUsedByOrders(url)) continue;
-    const rel = relFromUrl(url);
-    if (!rel) continue;
-    await deleteUpload(rel);
-    await deleteUpload(rel.replace(/(\.[a-z0-9]+)$/i, "-300x300$1"));
-  }
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {

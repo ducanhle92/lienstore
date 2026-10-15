@@ -65,6 +65,7 @@ import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, so
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
 import { todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
+import { ProductVersionConflictError, productVersion } from "./product-version";
 import { orderLineImage } from "./uploads";
 
 /** Synchronous category list for use inside transactions. */
@@ -552,7 +553,16 @@ export async function getRelatedProducts(product: CatalogProduct, limit = 4): Pr
   return [...explicit, ...sameCat].slice(0, limit);
 }
 
-export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary" | "stockVn"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number; /** Who is saving (for the change history). */ changedBy?: string };
+export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary" | "stockVn"> & {
+  id?: number;
+  groupId?: number | null;
+  variantAttrs?: Record<string, string>;
+  variantPosition?: number;
+  /** Who is saving (for the change history). */
+  changedBy?: string;
+  /** Update only when the stored row still has this `productVersion` (else ProductVersionConflictError, nothing written). */
+  expectedVersion?: string;
+};
 
 // ---------- Change history (lịch sử thay đổi) ----------
 
@@ -580,13 +590,21 @@ export function listProductChanges(productId: number, limit = 60): ProductChange
 }
 
 export async function saveProduct(input: ProductInput): Promise<CatalogProduct> {
-  const db = getDb();
+  return saveProductSync(getDb(), input);
+}
+
+/** Synchronous `saveProduct` for callers that group several saves in one transaction (Admin API bulk update). */
+export function saveProductSync(db: DatabaseSync, input: ProductInput): CatalogProduct {
   return withTransaction(db, () => {
     const now = new Date().toISOString();
     let id = input.id;
     if (id) {
       const before = db.prepare(`${PRODUCT_SELECT} WHERE p.id = ?`).get(id) as ProductRow | undefined;
       if (!before) throw new Error(`Product ${id} not found`);
+      if (input.expectedVersion) {
+        const current = productVersion(rowToProduct(before));
+        if (current !== input.expectedVersion) throw new ProductVersionConflictError(id, input.expectedVersion, current);
+      }
       logProductChanges(db, id, diffProductChanges(snapshotOf(rowToProduct(before)), snapshotOf({ ...input, status: input.status })), input.changedBy ?? "admin", now);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, market_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
         cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, margin_pct = ?,
@@ -1609,7 +1627,11 @@ export async function listOrderLegEvents(orderIds: string[]): Promise<Map<string
  * (never lowered). A leg the admin never assigned a method to gets a row too, so the status can be tracked anyway.
  */
 export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, status: LegStatus, opts: { tracking?: string; note?: string; actor?: string } = {}): Promise<boolean> {
-  const db = getDb();
+  return setOrderLegStatusSync(getDb(), orderId, leg, status, opts);
+}
+
+/** Synchronous `setOrderLegStatus` (one transaction with the caller, e.g. a scan pick document). */
+export function setOrderLegStatusSync(db: DatabaseSync, orderId: string, leg: ShippingLeg, status: LegStatus, opts: { tracking?: string; note?: string; actor?: string } = {}): boolean {
   const now = new Date().toISOString();
   return withTransaction(db, () => {
     const order = db.prepare("SELECT id, ship_stage FROM orders WHERE id = ?").get(orderId) as { id: string; ship_stage: string | null } | undefined;
