@@ -91,10 +91,18 @@ export function CameraView({ onCode }: { onCode: (raw: string) => void }) {
       setState("starting");
       try {
         const id = wanted || deviceId || localStorage.getItem(CAMERA_PREF) || "";
-        const s = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: id ? { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 } } : { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        });
+        const rear = { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } };
+        let s: MediaStream;
+        try {
+          s = await navigator.mediaDevices.getUserMedia({ audio: false, video: id ? { deviceId: { exact: id }, width: { ideal: 1280 }, height: { ideal: 720 } } : rear });
+        } catch (e) {
+          // a remembered camera that no longer exists (other phone / browser reset ids): forget it, use the rear camera
+          const name = e instanceof DOMException ? e.name : "";
+          if (!id || (name !== "OverconstrainedError" && name !== "NotFoundError" && name !== "NotReadableError")) throw e;
+          localStorage.removeItem(CAMERA_PREF);
+          setDeviceId("");
+          s = await navigator.mediaDevices.getUserMedia({ audio: false, video: rear });
+        }
         stream.current = s;
         const v = video.current!;
         v.srcObject = s;
