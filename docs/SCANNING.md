@@ -32,6 +32,10 @@ nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
 - *Mỗi lần quét =* N: một lần quét mã sản phẩm cộng N × quy cách (ví dụ thùng 12). Mã từng cái `H…` luôn là 1 cái và
   chỉ tính một lần trong một phiếu. **Mỗi món chỉ quét một lần** — bằng mã H *hoặc* mã JAN, không cả hai.
 - *Hoàn tác lần quét*: bỏ lần quét gần nhất. Sửa số lượng bằng − / ô số / +.
+- **Xem / sửa mã JAN của một sản phẩm**: trang sản phẩm (Admin › Sản phẩm › mở sản phẩm) › ô **Mã SKU & trạng thái** —
+  danh sách mã đã liên kết, ô *Nhập / quét mã JAN* (+ quy cách hộp/thùng), nút *Gỡ*. Lưu ngay, không cần bấm Lưu sản
+  phẩm. Dòng dưới tên sản phẩm cũng ghi `SKU … · JAN …`. SKU vẫn là mã nội bộ (mọi sản phẩm đều có, dùng cho CSV, đợt
+  mua, mã từng cái); JAN là mã trên bao bì để quét — một sản phẩm có thể có nhiều JAN, một số sản phẩm (set, áo…) không có.
 - **Mã lạ** ("Chưa liên kết"): tìm sản phẩm → *Liên kết mã* (cần quyền Sản phẩm; chọn quy cách nếu là hộp/thùng) → lần
   quét đó tự áp dụng lại vào đúng phiếu đang mở. Không có sản phẩm → *Tạo sản phẩm mới (tab mới)* rồi quay lại.
   **Mã trùng nhiều sản phẩm** (SKU trùng) → hiện danh sách, liên kết vào đúng sản phẩm để hết nhập nhằng.

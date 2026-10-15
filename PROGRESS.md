@@ -5,6 +5,20 @@
 - Lint đạt (0 lỗi, 25 warning có sẵn), production build đạt, 26/26 kiểm thử purchase-export/inventory/units đạt.
 - Tiếp theo: merge main, push, chờ CI xanh, `npm run release -- patch`; theo dõi Release và health production.
 
+## Mã JAN cho sản phẩm prod — 2026-10-16 (nhánh `feat/jan-codes`)
+- [x] Đã ghi lên prod qua CLI (`barcodes import`, token "T3 code agent"): **647/819 sản phẩm có JAN** (641/801 đang bán),
+      667 liên kết (gồm mã bao bì cũ/mới). Nguồn: mô tả/SKU của shop (311), tra web có kiểm chứng (252 cao, 105 trung bình).
+- [x] Công cụ: `scripts/jan/extract-jan.mjs` (trích JAN từ mô tả/SKU), `scripts/jan/build-import.mjs` (gộp + chính sách),
+      lệnh CLI `barcodes import --file … [--dry-run]`; prompt tra web `data/jan/PROMPT.md`, kết quả `data/jan/lookup/*.json`.
+- Còn lại: `data/jan/chua-co-jan.csv` (172 SP: 122 không có JAN thật/không tìm thấy, 21 độ tin thấp, 23 trùng sản phẩm
+  trong catalogue, 3 mô tả ghi 2 mã — Pigeon), `data/jan/link-amazon-sai.csv` (51 link Amazon trỏ sai sản phẩm).
+- Xung đột: #2348 (Curel UV Essence) và #2656 (Curel Tone Up Base) cùng ghi JAN 4901301413505 trong mô tả — mã đang
+  gắn #2656; cần sửa mô tả sản phẩm sai.
+- [x] Trang sản phẩm: ô "Mã SKU & trạng thái" hiện/thêm/gỡ JAN (app/admin/products/barcode-actions.ts, ProductForm);
+      quyết định GIỮ SKU làm mã nội bộ (485/819 SKU theo quy ước, dùng khắp CSV/đợt mua/từng cái), JAN là mã bao bì
+      (172 SP không có, nhiều SP có 2) → không thay SKU bằng JAN.
+- Token prod đã được dán vào chat → nên thu hồi và cấp lại sau khi xong việc này.
+
 ## Mục tiêu
 1. (xong) API quản trị `/api/admin/v1/` + CLI `lienstore` cho agent thao tác sản phẩm/ảnh bằng Bearer token.
 2. (xong, chờ thử trên điện thoại thật) Quét mã trên điện thoại (`/admin/scan/`): tra cứu, nhập hàng, kiểm kho, xuất

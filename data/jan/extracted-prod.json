@@ -1,0 +1,5579 @@
+{
+ "generatedAt": "2026-10-15T15:56:04.211Z",
+ "total": 819,
+ "found": [
+  {
+   "productId": 2694,
+   "name": "Dầu xả ngăn gàu và ngứa da đầu LION Octo 320ml",
+   "nameJa": "ライオン オクト 薬用リンス 320mL",
+   "code": "4903301437246",
+   "source": "description+sku",
+   "evidence": "。内容量320mL、JAN：4903301437246。 特徴:"
+  },
+  {
+   "productId": 2513,
+   "name": "Xịt chống muỗi Fumakilla Skin Vape Mist 200ml — Chai xanh",
+   "nameJa": "フマキラー スキンベープミスト 200mL",
+   "code": "4902424433050",
+   "source": "description",
+   "evidence": "6 tháng. JAN 4902424433050."
+  },
+  {
+   "productId": 2246,
+   "name": "Thuốc điều hòa kinh nguyệt Kobayashi Inochi no Haha White 180 viên",
+   "nameJa": "小林製薬 女性薬 命の母ホワイト 180錠",
+   "code": "4987072073971",
+   "source": "description",
+   "evidence": "iên/ngày. JAN: 4987072073971 Nhà s"
+  },
+  {
+   "productId": 2747,
+   "name": "Kem đánh răng Kobayashi Shoyo se chặt nướu 100g (cam)",
+   "nameJa": "生葉（しょうよう）ひきしめ実感タイプ 100g",
+   "code": "4987072072752",
+   "source": "description+sku",
+   "evidence": "tự nhiên. JAN 4987072072752."
+  },
+  {
+   "productId": 2746,
+   "name": "Kem đánh răng Kobayashi Shoyo chăm sóc ê buốt 100g (hồng)",
+   "nameJa": "生葉（しょうよう）知覚過敏ケアタイプ 100g",
+   "code": "4987072027110",
+   "source": "description+sku",
+   "evidence": "tự nhiên. JAN 4987072027110."
+  },
+  {
+   "productId": 2700,
+   "name": "Miếng dán hạ sốt Kobayashi Netsusama Sheet cho trẻ em (Hộp 16 miếng)",
+   "nameJa": "小林製薬 熱さまシート 子供用 16枚",
+   "code": "4987072087732",
+   "source": "description+sku",
+   "evidence": "16 Sheets JAN: 4987072087732 Xuất"
+  },
+  {
+   "productId": 2699,
+   "name": "Miếng dán hạ sốt Kobayashi Netsusama Sheet cho người lớn (Hộp 16 miếng)",
+   "nameJa": "Kobayashi Pharmaceutical Heating Sheet, For Adults, Cooling Sheet, Set of 16 x 2 Boxes, Fever, Gentle on the Skin, Weak",
+   "code": "4987072087725",
+   "source": "description+sku",
+   "evidence": "kin, Weak JAN: 4987072087725 Xuất"
+  },
+  {
+   "productId": 2745,
+   "name": "Kem đánh răng Kobayashi Shoyo hơi thở tươi mát 100g (xanh dương)",
+   "nameJa": "生葉（しょうよう）息スーッと実感タイプ 100g",
+   "code": "4987072060322",
+   "source": "description+sku",
+   "evidence": "tự nhiên. JAN 4987072060322."
+  },
+  {
+   "productId": 2744,
+   "name": "Kem đánh răng Kobayashi Shoyo không hạt mài 95g (xanh)",
+   "nameJa": "生葉（しょうよう）無研磨タイプ 95g",
+   "code": "4987072036655",
+   "source": "description+sku",
+   "evidence": "tự nhiên. JAN 4987072036655."
+  },
+  {
+   "productId": 2495,
+   "name": "Gel chống nắng Anessa Mineral UV Mild Gel SPF35 PA+++ 90g",
+   "nameJa": "アネッサ ミネラルUV マイルドジェル SPF35・PA+++ 90g",
+   "code": "4909978200879",
+   "source": "description",
+   "evidence": "内容量: 90g／JAN 4909978200879 メーカー:"
+  },
+  {
+   "productId": 2498,
+   "name": "Gel chống nắng nâng tông Anessa Brightening UV Gel SPF50+ PA++++ 90g",
+   "nameJa": "アネッサ ブライトニングUV ジェル SPF50+・PA++++ 90g",
+   "code": "4909978205539",
+   "source": "description",
+   "evidence": "容量: 90g／売場JAN参照：4909978205539（NA）"
+  },
+  {
+   "productId": 2497,
+   "name": "Gel chống nắng dưỡng ẩm Anessa Perfect UV Skincare Gel NB SPF50+ PA++++ 90g",
+   "nameJa": "アネッサ パーフェクトUV スキンケアジェル NB 90g",
+   "code": "4909978228545",
+   "source": "description",
+   "evidence": "量: 90g／NB／JAN 4909978228545 メーカー:"
+  },
+  {
+   "productId": 2722,
+   "name": "Kẹo sô-cô-la hạnh nhân Meiji Almond Chocolate Pocket Pack gói bỏ túi 42g",
+   "nameJa": "Kẹo sô-cô-la hạnh nhân Meiji Almond Chocolate Pocket Pack gói bỏ túi 42g",
+   "code": "4902777005089",
+   "source": "description+sku",
+   "evidence": "ỏ túi 42g JAN: 4902777005089 SKU:"
+  },
+  {
+   "productId": 2706,
+   "name": "Bánh xốp sô-cô-la Nestle KitKat Otona no Amasa sô-cô-la đen ngọt thanh",
+   "nameJa": "Bánh xốp sô-cô-la Nestle KitKat Otona no Amasa sô-cô-la đen ngọt thanh",
+   "code": "4902201178778",
+   "source": "description+sku",
+   "evidence": "gọt thanh JAN: 4902201178778 Xuất"
+  },
+  {
+   "productId": 2705,
+   "name": "Bánh xốp sô-cô-la Nestle KitKat vị trà xanh Matcha đậm đà",
+   "nameJa": "Bánh xốp sô-cô-la Nestle KitKat vị trà xanh Matcha đậm đà",
+   "code": "4902201178822",
+   "source": "description+sku",
+   "evidence": "ha đậm đà JAN: 4902201178822 Xuất"
+  },
+  {
+   "productId": 2702,
+   "name": "Bánh quy bơ ngàn lớp Fujiya Home Pie Nhật Bản (Gói 38 miếng / 19 gói nhỏ)",
+   "nameJa": "Bánh quy bơ ngàn lớp Fujiya Home Pie Nhật Bản (Gói 38 miếng / 19 gói nhỏ)",
+   "code": "4902555271651",
+   "source": "description+sku",
+   "evidence": "gói nhỏ) JAN: 4902555271651 Xuất"
+  },
+  {
+   "productId": 2698,
+   "name": "Viên uống phục hồi thể lực và mệt mỏi khi ngủ Q&P Kowa Healing 30 viên",
+   "nameJa": "Kewpie Kowa Healing Pills, 30 Tablets, Recovery and Prevents Fatigue, Improves Awakening, Zero Caffeine (Designated Quas",
+   "code": "4987973113707",
+   "source": "description+sku",
+   "evidence": "ated Quas JAN: 4987973113707 Xuất"
+  },
+  {
+   "productId": 2674,
+   "name": "Mặt Nạ Gạo Keana Nadeshiko Rice Mask 10 Miếng",
+   "nameJa": "毛穴撫子 お米のマスク (10枚入)",
+   "code": "4992440034713",
+   "source": "description+sku",
+   "evidence": "713 SKU: KEANA-4992440034713 Xuất"
+  },
+  {
+   "productId": 2299,
+   "name": "Mặt nạ rửa trôi Keana Nadeshiko Rice Pack 170g",
+   "nameJa": "毛穴撫子 お米のパック 170g",
+   "code": "4992440036656",
+   "source": "description",
+   "evidence": "ích: 170g Mã vạch (JAN): 4992440036656 Công"
+  },
+  {
+   "productId": 2325,
+   "name": "Kẹo ngậm thảo dược Ryukakusan Nodo Sukkiri Ame 88g",
+   "nameJa": "龍角散の のどすっきり飴 88g",
+   "code": "4987240618607",
+   "source": "description",
+   "evidence": "tích: 88g Mã vạch (JAN): 4987240618607 Công"
+  },
+  {
+   "productId": 2322,
+   "name": "Thuốc bột thảo dược Ryukakusan Direct Stick Mint 16 gói",
+   "nameJa": "龍角散ダイレクト スティック ミント 16包",
+   "code": "4987240210535",
+   "source": "description",
+   "evidence": "h: 16 gói Mã vạch (JAN): 4987240210535 Công"
+  },
+  {
+   "productId": 2287,
+   "name": "Viên uống collagen Eisai Bi Chocola Collagen Premium 140 viên",
+   "nameJa": "美 チョコラ コラーゲンプレミアム 140粒",
+   "code": "4987028116608",
+   "source": "description",
+   "evidence": "n・28 ngày Mã vạch (JAN): 4987028116608 Công"
+  },
+  {
+   "productId": 2286,
+   "name": "Viên uống collagen Eisai Bi Chocola Collagen 120 viên",
+   "nameJa": "美 チョコラ コラーゲン 120粒",
+   "code": "4987028115847",
+   "source": "description",
+   "evidence": "n・40 ngày Mã vạch (JAN): 4987028115847 Công"
+  },
+  {
+   "productId": 2675,
+   "name": "Tinh Chất Dưỡng Sáng Da Rohto Melano CC Premium Essence 20ml",
+   "nameJa": "ロート製薬 メラノCC 薬用しみ集中対策プレミアム美容液 20ml",
+   "code": "4987241168583",
+   "source": "description+sku",
+   "evidence": "ム美容液 20ml JAN: 4987241168583 SKU:"
+  },
+  {
+   "productId": 2148,
+   "name": "Thuốc bổ gan Zeria Hepalyse Plus II 180 viên",
+   "nameJa": "ゼリア新薬 ヘパリーゼプラスII 180錠",
+   "code": "4987103049111",
+   "source": "description",
+   "evidence": "iên/ngày. JAN: 4987103049111 Nhà s"
+  },
+  {
+   "productId": 2398,
+   "name": "Kem làm sáng vùng da dưới cánh tay himecoto Shiro Waki Hime R1 18g",
+   "nameJa": "himecoto 白ワキ姫 R1 18g",
+   "code": "4533213678361",
+   "source": "description",
+   "evidence": "tích: 18g Mã vạch (JAN): 4533213678361 Công"
+  },
+  {
+   "productId": 2714,
+   "name": "Nước hoa nam Yves Saint Laurent Y Eau de Parfum 60ml",
+   "nameJa": "Yves Saint Laurent Y Eau de Parfum 60ml",
+   "code": "3614272050358",
+   "source": "sku",
+   "evidence": "SKU YSL-3614272050358"
+  },
+  {
+   "productId": 2713,
+   "name": "Nước hoa nữ Yves Saint Laurent Libre EDP 50ml",
+   "nameJa": "Yves Saint Laurent Libre Eau de Parfum 50ml",
+   "code": "3614272648418",
+   "source": "sku",
+   "evidence": "SKU YSL-3614272648418"
+  },
+  {
+   "productId": 2712,
+   "name": "Nước hoa nữ Yves Saint Laurent Black Opium EDP 50ml",
+   "nameJa": "Yves Saint Laurent Black Opium Eau de Parfum 50ml",
+   "code": "3365440787971",
+   "source": "sku",
+   "evidence": "SKU YSL-3365440787971"
+  },
+  {
+   "productId": 2718,
+   "name": "Nước hoa nữ Chanel Chance Eau Tendre EDT 50ml",
+   "nameJa": "シャネル チャンス オー タンドゥル オードゥ トワレット 50ml",
+   "code": "3145891263206",
+   "source": "sku",
+   "evidence": "SKU CHANEL-3145891263206"
+  },
+  {
+   "productId": 2717,
+   "name": "Nước hoa nữ Chanel Gabrielle Eau de Parfum 50ml",
+   "nameJa": "シャネル ガブリエル シャネル オードゥ パルファム 50ml",
+   "code": "3145891206302",
+   "source": "sku",
+   "evidence": "SKU CHANEL-3145891206302"
+  },
+  {
+   "productId": 2716,
+   "name": "Nước hoa nam Chanel Bleu de Chanel Eau de Parfum 50ml",
+   "nameJa": "シャネル ブルー ドゥ シャネル オードゥ パルファム 50ml",
+   "code": "3145891073706",
+   "source": "sku",
+   "evidence": "SKU CHANEL-3145891073706"
+  },
+  {
+   "productId": 2677,
+   "name": "Son dưỡng có màu Curel Lip Care Cream Red 4.2g",
+   "nameJa": "Curel Lip Care Cream Beautiful Color Red",
+   "code": "4901301417534",
+   "source": "description+sku",
+   "evidence": "Color Red JAN: 4901301417534 SKU:"
+  },
+  {
+   "productId": 2648,
+   "name": "Viên nhai bổ sung Vitamin C ORIHIRO vị chanh 30 ngày 120 viên",
+   "nameJa": "かんでおいしいチュアブルサプリ ビタミンC レモン味 120粒（30日分）",
+   "code": "4571157256740",
+   "source": "description",
+   "evidence": "0mg）・30日分 JAN：4571157256740 特徴 レモ"
+  },
+  {
+   "productId": 2649,
+   "name": "Viên nhai Collagen + Placenta ORIHIRO vị đào 30 ngày 90 viên",
+   "nameJa": "かんでおいしいチュアブルサプリ 濃密コラーゲン＋プラセンタ ピーチ味 90粒（30日分）",
+   "code": "4571157259406",
+   "source": "description",
+   "evidence": "0mg）・30日分 JAN：4571157259406 特徴 濃密"
+  },
+  {
+   "productId": 2650,
+   "name": "Viên nhai Multivitamin & Mineral ORIHIRO vị bưởi 30 ngày 120 viên",
+   "nameJa": "かんでおいしいチュアブルサプリ マルチビタミン＆ミネラル グレープフルーツ味 120粒（30日分）",
+   "code": "4571157256672",
+   "source": "description",
+   "evidence": "0mg）・30日分 JAN：4571157256672 特徴 ビタ"
+  },
+  {
+   "productId": 2653,
+   "name": "Kem nền BB Curel màu tự nhiên SPF30 PA+++ 35g",
+   "nameJa": "キュレル ベースメイク BBクリーム 自然な肌色 35g",
+   "code": "4901301286505",
+   "source": "description",
+   "evidence": "F30・PA+++ JAN：4901301286505 特徴 化粧"
+  },
+  {
+   "productId": 2652,
+   "name": "Kem nền BB Curel màu sáng SPF30 PA+++ 35g",
+   "nameJa": "キュレル ベースメイク BBクリーム 明るい肌色 35g",
+   "code": "4901301286499",
+   "source": "description",
+   "evidence": "F30・PA+++ JAN：4901301286499 特徴 化粧"
+  },
+  {
+   "productId": 2762,
+   "name": "Kem đánh răng Lion Dentor Clear MAX hương bạc hà Spearmint 140g",
+   "nameJa": "ライオン デンタークリアMAX スペアミント 140g",
+   "code": "4903301186441",
+   "source": "description",
+   "evidence": "pearmint (JAN 4903301186441) Nhà"
+  },
+  {
+   "productId": 2169,
+   "name": "Kem đánh răng nha khoa Lion DENT Check-Up standard 1450ppm 135g",
+   "nameJa": "ライオン DENT. Check-Up standard（チェックアップ スタンダード）マイルドピュアミント 135g",
+   "code": "4903301329770",
+   "source": "description",
+   "evidence": "ure Mint (JAN 4903301329770) Nhà"
+  },
+  {
+   "productId": 2651,
+   "name": "Sữa lót nâng tông Curel màu hồng SPF24 PA++ 30ml",
+   "nameJa": "キュレル 潤浸保湿 色づくベースミルク 湯あがりピンク 30ml",
+   "code": "4901301439918",
+   "source": "description",
+   "evidence": "PF24・PA++ JAN：4901301439918 特徴 4種"
+  },
+  {
+   "productId": 2654,
+   "name": "Kem lót bảo vệ da Curel Barrier UV Primer SPF41 PA+++ 30g",
+   "nameJa": "キュレル 潤浸保湿 ファンデ負担防止ベース 30g",
+   "code": "4901301449436",
+   "source": "description",
+   "evidence": "F41・PA+++ JAN：4901301449436 特徴 独自"
+  },
+  {
+   "productId": 2759,
+   "name": "Mặt nạ ủ trắng bã rượu sake Maiko Nhật Bản – Ashiya Cosmetics 170g",
+   "nameJa": "舞妓の酒粕パック 170g",
+   "code": "4571212867027",
+   "source": "sku",
+   "evidence": "SKU 4571212867027"
+  },
+  {
+   "productId": 2697,
+   "name": "Thạch collagen DHC Collagen Jelly EX vị xoài (33 thanh / Hộp) - Bản giới hạn Matsukiyo",
+   "nameJa": "DHC コラーゲンゼリー EX マンゴー味 33本",
+   "code": "4511413408063",
+   "source": "description+sku",
+   "evidence": "i hạn Mat JAN: 4511413408063 Xuất"
+  },
+  {
+   "productId": 2715,
+   "name": "Nước hoa nam Dior Sauvage Eau de Toilette 60ml",
+   "nameJa": "Dior Sauvage Eau de Toilette 60ml",
+   "code": "3348901250153",
+   "source": "sku",
+   "evidence": "SKU DIOR-3348901250153"
+  },
+  {
+   "productId": 2485,
+   "name": "Mặt nạ THE STEM CELL Retinol & Vitamin Essence Mask 30 miếng",
+   "nameJa": "THE STEM CELL レチノール＆ビタミン エッセンスマスク 30枚入",
+   "code": "4571365223213",
+   "source": "description+sku",
+   "evidence": "スマスク 30枚入 JAN: 4571365223213 SKU:"
+  },
+  {
+   "productId": 2486,
+   "name": "Mặt nạ THE STEM CELL BIO Liposome Face Mask 30 miếng",
+   "nameJa": "THE STEM CELL BIO リポソーム フェイスマスク 30枚入",
+   "code": "4571365223107",
+   "source": "description+sku",
+   "evidence": "スマスク 30枚入 JAN: 4571365223107 SKU:"
+  },
+  {
+   "productId": 2489,
+   "name": "Mặt nạ THE STEM CELL NMN Face Mask 30 miếng",
+   "nameJa": "THE STEM CELL NMN フェイスマスク 30枚",
+   "code": "4571365222537",
+   "source": "description+sku",
+   "evidence": "イスマスク 30枚 JAN: 4571365222537 SKU:"
+  },
+  {
+   "productId": 2490,
+   "name": "Mặt nạ THE STEM CELL PDRN Essence Mask 30 miếng",
+   "nameJa": "THE STEM CELL PDRN エッセンスマスク 30枚",
+   "code": "4571365223657",
+   "source": "description+sku",
+   "evidence": "ンスマスク 30枚 JAN: 4571365223657 SKU:"
+  },
+  {
+   "productId": 2491,
+   "name": "Mặt nạ THE STEM CELL Shiratama Suhada Essence Mask 30 miếng",
+   "nameJa": "THE STEM CELL 白玉素肌 エッセンスマスク 30枚",
+   "code": "4571365223558",
+   "source": "description+sku",
+   "evidence": "ンスマスク 30枚 JAN: 4571365223558 SKU:"
+  },
+  {
+   "productId": 2487,
+   "name": "Mặt nạ THE STEM CELL White Face Mask 30 miếng",
+   "nameJa": "THE STEM CELL ホワイトフェイスマスク 30枚",
+   "code": "4571365222315",
+   "source": "description+sku",
+   "evidence": "イスマスク 30枚 JAN: 4571365222315 SKU:"
+  },
+  {
+   "productId": 2488,
+   "name": "Mặt nạ THE STEM CELL Facial Treatment Mask 30 miếng",
+   "nameJa": "THE STEM CELL フェイシャルトリートメントマスク 30枚",
+   "code": "4571365222322",
+   "source": "description+sku",
+   "evidence": "ントマスク 30枚 JAN: 4571365222322 SKU:"
+  },
+  {
+   "productId": 2441,
+   "name": "Súp trứng sấy thăng hoa HOKO 10 gói 64g",
+   "nameJa": "宝幸 たまごスープ 10食入り 64g",
+   "code": "4902431302288",
+   "source": "description+sku",
+   "evidence": "10食入り 64g JAN: 4902431302288 SKU:"
+  },
+  {
+   "productId": 2442,
+   "name": "Súp miso đỏ giảm muối Amano Foods với lá mitsuba 8g 1 gói",
+   "nameJa": "アマノフーズ 減塩いつものおみそ汁 赤だし（三つ葉入り）8g 1食",
+   "code": "4971334208669",
+   "source": "description+sku",
+   "evidence": "葉入り）8g 1食 JAN: 4971334208669 SKU:"
+  },
+  {
+   "productId": 2444,
+   "name": "Viên nhai vitamin C ILDONG MyNi Fresh TokTok VitaC vị chanh 108 viên",
+   "nameJa": "ILDONG MyNi フレッシュトクトクビタC レモン味 108粒入り",
+   "code": "4573585325166",
+   "source": "description+sku",
+   "evidence": "ン味 108粒入り JAN: 4573585325166 SKU:"
+  },
+  {
+   "productId": 2466,
+   "name": "Phấn má KiSS Clearldy Blush 01 Icy Aurora 4g",
+   "nameJa": "キス クリアルディ ブラッシュ 01 アイシーオーロラ 4g",
+   "code": "4901433458382",
+   "source": "description+sku",
+   "evidence": "シーオーロラ 4g JAN: 4901433458382 SKU:"
+  },
+  {
+   "productId": 2467,
+   "name": "Son dưỡng WAKEMAKE Healthy Glow Balm Stick 01 Peach Shower 3.5g",
+   "nameJa": "WAKEMAKE ヘルシーグロウバームスティック 01 シャワーピーチ 3.5g",
+   "code": "8800316291626",
+   "source": "sku",
+   "evidence": "SKU WAKEMAKE-8800316291626"
+  },
+  {
+   "productId": 2471,
+   "name": "Bút kẻ mắt Excel Skinny Rich Liner RL04 Terracotta",
+   "nameJa": "エクセル スキニーリッチライナー RL04 テラコッタ",
+   "code": "4964596488498",
+   "source": "description+sku",
+   "evidence": "L04 テラコッタ JAN: 4964596488498 SKU:"
+  },
+  {
+   "productId": 2472,
+   "name": "Phấn má dạng lỏng nuse Liquid Care Cheek 03 Pale Blossom 16ml",
+   "nameJa": "ヌーズ リキッドケアチーク 03 ペールブロッサム 16ml",
+   "code": "4582356615894",
+   "source": "description+sku",
+   "evidence": "ロッサム 16ml JAN: 4582356615894 SKU:"
+  },
+  {
+   "productId": 2478,
+   "name": "Bảng trang điểm COLORROSE Queen Cameo Multi Palette 02 Margaret 23g",
+   "nameJa": "COLORROSE 女王のカメオマルチパレット 02 マーガレット 23g",
+   "code": "4571501171125",
+   "source": "description+sku",
+   "evidence": "ーガレット 23g JAN: 4571501171125 SKU:"
+  },
+  {
+   "productId": 2479,
+   "name": "Son Coralhaze Dew Drop Tint 201 Fairy 4.5g",
+   "nameJa": "コーラルヘイズ デュードロップティント 201 フェアリー 4.5g",
+   "code": "4570094682285",
+   "source": "description+sku",
+   "evidence": "ェアリー 4.5g JAN: 4570094682285 SKU:"
+  },
+  {
+   "productId": 2474,
+   "name": "Bột tán mày WHOMEE Multi Eyebrow Powder Golden Glow",
+   "nameJa": "フーミー マルチアイブロウパウダー ゴールデングロウ",
+   "code": "4571511774484",
+   "source": "description+sku",
+   "evidence": "ゴールデングロウ JAN: 4571511774484 SKU:"
+  },
+  {
+   "productId": 2476,
+   "name": "Son KiSS Lip Arrow 02 Mokusei Brick",
+   "nameJa": "キス リップアロー 02 木星ブリック",
+   "code": "4901433411493",
+   "source": "description+sku",
+   "evidence": "02 木星ブリック JAN: 4901433411493 SKU:"
+  },
+  {
+   "productId": 2458,
+   "name": "Son KiSS Lip Arrow 04 Risk Taker",
+   "nameJa": "キス リップアロー 04 リスクテイカー",
+   "code": "4901433411516",
+   "source": "description+sku",
+   "evidence": "4 リスクテイカー JAN: 4901433411516 SKU:"
+  },
+  {
+   "productId": 2693,
+   "name": "Bột rửa mặt enzym Vitamin C mờ thâm ngừa mụn C+mania Power Clear C+ (30 gói)",
+   "nameJa": "Bột rửa mặt enzym Vitamin C mờ thâm ngừa mụn C+mania Power Clear C+ (30 gói)",
+   "code": "0457008438012",
+   "source": "description",
+   "evidence": "(30 gói) JAN: 4570084380121 Xuất"
+  },
+  {
+   "productId": 2725,
+   "name": "Kem dưỡng thể săn chắc Retinol & PDRN Premium Firming Cream Nhật Bản 480g",
+   "nameJa": "レチノール＆PDRN プレミアムファーミングクリーム 480g",
+   "code": "4573342843988",
+   "source": "sku",
+   "evidence": "SKU PDRN-RETINOL-4573342843988"
+  },
+  {
+   "productId": 2707,
+   "name": "Thuốc giảm đau hạ sốt đau đầu Eve Quick Nhật Bản (Hộp 40 viên)",
+   "nameJa": "Thuốc giảm đau hạ sốt đau đầu Eve Quick Nhật Bản (Hộp 40 viên)",
+   "code": "0498730005271",
+   "source": "description",
+   "evidence": "40 viên) JAN: 4987300052717 Xuất"
+  },
+  {
+   "productId": 2711,
+   "name": "Dầu dưỡng tóc phục hồi hư tổn Shiseido Fino Premium Touch Hair Oil 70ml",
+   "nameJa": "Fino Premium Touch Penetrating Serum Hair Oil Transparent 70ml 70ml (x1)",
+   "code": "4901872471997",
+   "source": "description+sku",
+   "evidence": "70ml (x1) JAN: 4901872471997 Xuất"
+  },
+  {
+   "productId": 2696,
+   "name": "Viên uống DHC Vitamin C giải phóng chậm 1000mg (60 ngày / 240 viên)",
+   "nameJa": "DHC Lasting Vitamin C 60 Day 240 Tablets (Set of 3)",
+   "code": "4511413407677",
+   "source": "description+sku",
+   "evidence": "Set of 3) JAN: 4511413407677 Xuất"
+  },
+  {
+   "productId": 2421,
+   "name": "Phấn phủ dưỡng sáng Club Suppin Whitening Powder A Compact 12g",
+   "nameJa": "クラブ すっぴんホワイトニングパウダーA コンパクトタイプ 12g",
+   "code": "4901416179983",
+   "source": "description",
+   "evidence": "きで携帯に便利です。JAN：4901416179983。メーカー"
+  },
+  {
+   "productId": 2424,
+   "name": "Phấn phủ dưỡng da làm mát Club Suppin Powder C Fruity Floral 26g",
+   "nameJa": "クラブ すっぴんパウダーC フルーティーフローラルの香り 26g",
+   "code": "4901416182198",
+   "source": "description",
+   "evidence": "を中止してください。JAN：4901416182198。  |"
+  },
+  {
+   "productId": 2621,
+   "name": "Chocolate Lotte Ghana Matcha trà xanh Uji 45g",
+   "nameJa": "ロッテ ガーナ抹茶チョコレート 45g",
+   "code": "4903333239580",
+   "source": "sku",
+   "evidence": "SKU 4903333239580"
+  },
+  {
+   "productId": 2622,
+   "name": "Chocolate Lotte Premium Ghana Chocolat Whip The Vanilla 56g",
+   "nameJa": "プレミアムガーナ ショコラホイップ＜ザ・バニラ＞56g",
+   "code": "4903333228164",
+   "source": "sku",
+   "evidence": "SKU 4903333228164"
+  },
+  {
+   "productId": 2623,
+   "name": "Thạch Orihiro Purunto Konnyaku táo và nho 12 túi 240g",
+   "nameJa": "ぷるんと蒟蒻ゼリーパウチ アップル＋グレープ 240g（12個）",
+   "code": "4571157255408",
+   "source": "sku",
+   "evidence": "SKU 4571157255408"
+  },
+  {
+   "productId": 2624,
+   "name": "Thạch Orihiro Purunto Konnyaku chanh và soda dưa lưới 12 túi 240g",
+   "nameJa": "オリヒロ ぷるんと蒟蒻ゼリーパウチ レモンスカッシュ＋メロンソーダ 20g×12個",
+   "code": "4571157250724",
+   "source": "sku",
+   "evidence": "SKU 4571157250724"
+  },
+  {
+   "productId": 2625,
+   "name": "Kẹo cao su Lotte Xylitol 7 vị trái cây hũ 133g",
+   "nameJa": "ロッテ キシリトールガム 7種アソートボトル 133g",
+   "code": "4903333228577",
+   "source": "sku",
+   "evidence": "SKU 4903333228577"
+  },
+  {
+   "productId": 2626,
+   "name": "Thuốc xịt mũi Sato Nazal Lavender hương oải hương 30ml",
+   "nameJa": "佐藤製薬 ナザールスプレー（ラベンダー）30mL",
+   "code": "4987316018782",
+   "source": "sku",
+   "evidence": "SKU 4987316018782"
+  },
+  {
+   "productId": 2627,
+   "name": "Bộ gội xả Kracie Himawari Smooth & Repair xanh 400ml + 400g",
+   "nameJa": "ディアボーテ お試しペアセット スムース＆リペア 400mL＋400g",
+   "code": "4901417789204",
+   "source": "sku",
+   "evidence": "SKU 4901417789204"
+  },
+  {
+   "productId": 2628,
+   "name": "Bộ gội xả Kracie Himawari Gloss & Repair hồng 400ml + 400g",
+   "nameJa": "ディアボーテ お試しペアセット グロス＆リペア 400mL＋400g",
+   "code": "4901417789198",
+   "source": "sku",
+   "evidence": "SKU 4901417789198"
+  },
+  {
+   "productId": 2632,
+   "name": "Viên bổ sung Dear Natura Canxi Magie Kẽm Vitamin D 180 viên 30 ngày",
+   "nameJa": "ディアナチュラ カルシウム・マグネシウム・亜鉛・ビタミンD 180粒（30日分）",
+   "code": "4946842635948",
+   "source": "sku",
+   "evidence": "SKU 4946842635948"
+  },
+  {
+   "productId": 2633,
+   "name": "Viên uống DHC Bulgarian Rose 30 ngày 60 viên",
+   "nameJa": "DHC 香るブルガリアンローズカプセル 30日分 60粒",
+   "code": "4511413623510",
+   "source": "sku",
+   "evidence": "SKU 4511413623510"
+  },
+  {
+   "productId": 2634,
+   "name": "Viên uống DHC Hatomugi 20 ngày 20 viên",
+   "nameJa": "DHC はとむぎエキス 20日分 20粒",
+   "code": "4511413404874",
+   "source": "sku",
+   "evidence": "SKU 4511413404874"
+  },
+  {
+   "productId": 2636,
+   "name": "Tinh chất chăm sóc lỗ chân lông SQS Deep Concentrate 15ml",
+   "nameJa": "SQS 高浸透ひきしめ液 部分用美容液 15mL",
+   "code": "4992440018898",
+   "source": "sku",
+   "evidence": "SKU 4992440018898"
+  },
+  {
+   "productId": 2430,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Sleepy Moon 26g",
+   "nameJa": "クラブ すっぴんパウダーC スリーピームーンの香り 26g",
+   "code": "4901416181597",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416181597 Cách"
+  },
+  {
+   "productId": 2752,
+   "name": "Dầu tẩy trang Muji Sensitive Skin Oil Cleansing 300ml",
+   "nameJa": "無印良品 敏感肌用オイルクレンジング 300mL",
+   "code": "4550584464843",
+   "source": "description+sku",
+   "evidence": "thực vật. JAN 4550584464843."
+  },
+  {
+   "productId": 2751,
+   "name": "Dầu tẩy trang Muji Mild Oil Cleansing 300ml",
+   "nameJa": "無印良品 マイルドオイルクレンジング 300mL",
+   "code": "4550583941208",
+   "source": "description+sku",
+   "evidence": "no acids. JAN 4550583941208."
+  },
+  {
+   "productId": 2750,
+   "name": "Gel bôi nướu Dent Health R Lion 40g",
+   "nameJa": "デントヘルスR 40g",
+   "code": "4903301136385",
+   "source": "description+sku",
+   "evidence": "ệt miệng. JAN 4903301136385."
+  },
+  {
+   "productId": 2749,
+   "name": "Gel bôi nướu Dent Health R Lion 20g",
+   "nameJa": "デントヘルスR 20g",
+   "code": "4903301136392",
+   "source": "description+sku",
+   "evidence": "ệt miệng. JAN 4903301136392."
+  },
+  {
+   "productId": 2748,
+   "name": "Gel bôi nướu Dent Health R Lion 10g",
+   "nameJa": "デントヘルスR 10g",
+   "code": "4903301136842",
+   "source": "description+sku",
+   "evidence": "ệt miệng. JAN 4903301136842."
+  },
+  {
+   "productId": 2039,
+   "name": "Gel chống nắng dưỡng ẩm Hada Labo Gokujyun UV White Gel SPF50+ PA++++ 90g",
+   "nameJa": "肌ラボ 極潤 UVホワイトゲル 90g",
+   "code": "4987241145676",
+   "source": "description+sku",
+   "evidence": "kem lót. JAN 4987241145676."
+  },
+  {
+   "productId": 2740,
+   "name": "Kem dưỡng nâng tone SANA Suhada Kinenbi Milky Pink 50g",
+   "nameJa": "サナ 素肌記念日 スキンケアトーンアップクリーム ミルキーピンク 50g",
+   "code": "4964596703461",
+   "source": "description+sku",
+   "evidence": "Grey tea JAN: 4964596703461 Kích"
+  },
+  {
+   "productId": 2743,
+   "name": "Kem đánh răng Ora2 Premium Stain Clear Aromatic Mint 100g",
+   "nameJa": "Ora2 プレミアム ステインクリアペースト アロマティックミント 100g",
+   "code": "4901616013148",
+   "source": "description+sku",
+   "evidence": "uýp 100g, JAN 4901616013148."
+  },
+  {
+   "productId": 2516,
+   "name": "Kem đánh răng Ora2 Premium Stain Clear Premium Mint 100g",
+   "nameJa": "Ora2 プレミアム ステインクリアペースト プレミアムミント 100g",
+   "code": "4901616013131",
+   "source": "description+sku",
+   "evidence": "uýp 100g, JAN 4901616013131."
+  },
+  {
+   "productId": 2517,
+   "name": "Kem đánh răng Ora2 Premium Stain Clear Shiny Citrus Mint 100g",
+   "nameJa": "Ora2 プレミアム ステインクリアペースト シャイニーシトラスミント 100g",
+   "code": "4901616013155",
+   "source": "description+sku",
+   "evidence": "uýp 100g, JAN 4901616013155."
+  },
+  {
+   "productId": 2360,
+   "name": "Thuốc nhỏ mắt Rohto Eye Stretch 12ml",
+   "nameJa": "ロート製薬 ロートアイストレッチ 12mL",
+   "code": "4987241100941",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987241100941 Công"
+  },
+  {
+   "productId": 2680,
+   "name": "Sữa rửa mặt ngừa mụn BCL AHA Cleansing Research Medicated Wash Cleansing AC 120g (Xanh dương)",
+   "nameJa": "クレンジングリサーチ 薬用ウォッシュクレンジング AC アクネクレンズ〈医薬部外品〉120g",
+   "code": "4515061013884",
+   "source": "sku",
+   "evidence": "SKU 4515061013884"
+  },
+  {
+   "productId": 2679,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing b 120g (Hồng - Nhạy cảm)",
+   "nameJa": "クレンジングリサーチ ウォッシュクレンジング b 120g（しっとり肌）",
+   "code": "4515061044734",
+   "source": "sku",
+   "evidence": "SKU 4515061044734"
+  },
+  {
+   "productId": 2620,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Medicated Acne Wash 120g (tuýp trắng)",
+   "nameJa": "クレンジングリサーチ 薬用アクネウォッシュ 120g（旧・医薬部外品）",
+   "code": "4515061083801",
+   "source": "description+sku",
+   "evidence": "AHA).  |  JAN 4515061083801の薬用アク"
+  },
+  {
+   "productId": 2619,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing A Retinol 120g (tuýp tím)",
+   "nameJa": "クレンジングリサーチ ウォッシュクレンジング A 120g（うるぷるん肌・レチノール）",
+   "code": "4515061013136",
+   "source": "sku",
+   "evidence": "SKU 4515061013136"
+  },
+  {
+   "productId": 2618,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing N 120g (tuýp xanh)",
+   "nameJa": "クレンジングリサーチ ウォッシュクレンジング N 120g（さっぱり肌）",
+   "code": "4515061042150",
+   "source": "sku",
+   "evidence": "SKU 4515061042150"
+  },
+  {
+   "productId": 2617,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing BLACK 120g (tuýp đen)",
+   "nameJa": "クレンジングリサーチ ウォッシュクレンジング BLACK 120g（毛穴つるん肌）",
+   "code": "4515061012887",
+   "source": "sku",
+   "evidence": "SKU 4515061012887"
+  },
+  {
+   "productId": 2735,
+   "name": "Dung dịch dưỡng tóc Kaminomoto A hương hoa nhài 200ml",
+   "nameJa": "加美乃素A ＜ジャスミン調の香り＞ 200mL",
+   "code": "4987046100368",
+   "source": "description+sku",
+   "evidence": "ch: 200ml JAN: 4987046100368 Mùi:"
+  },
+  {
+   "productId": 2631,
+   "name": "Dầu xả Kaminomoto Medicated Conditioner B&P 300ml",
+   "nameJa": "加美乃素 薬用ヘアコンディショナー B&P（HG）300mL",
+   "code": "4987046870032",
+   "source": "sku",
+   "evidence": "SKU 4987046870032"
+  },
+  {
+   "productId": 2630,
+   "name": "Dầu gội Kaminomoto Medicated Shampoo B&P 300ml",
+   "nameJa": "加美乃素 薬用シャンプー B&P（HG）300mL",
+   "code": "4987046870025",
+   "source": "sku",
+   "evidence": "SKU 4987046870025"
+  },
+  {
+   "productId": 2734,
+   "name": "Viên uống hỗ trợ đau mỏi vai gáy Alinamin EX Plus 180 viên",
+   "nameJa": "アリナミンEXプラス 180錠【第3類医薬品】",
+   "code": "4987123145411",
+   "source": "description+sku",
+   "evidence": "1日1回 2〜3錠 JAN 4987123145411  |  A"
+  },
+  {
+   "productId": 2733,
+   "name": "Viên uống hỗ trợ đau mỏi vai gáy Alinamin EX Plus 120 viên",
+   "nameJa": "アリナミンEXプラス 120錠【第3類医薬品】",
+   "code": "4987123146692",
+   "source": "description+sku",
+   "evidence": "1日1回 2〜3錠 JAN 4987123146692  |  A"
+  },
+  {
+   "productId": 2732,
+   "name": "Viên uống hỗ trợ đau mỏi vai gáy Alinamin EX Plus 60 viên",
+   "nameJa": "アリナミンEXプラス 60錠【第3類医薬品】",
+   "code": "4987123145404",
+   "source": "description+sku",
+   "evidence": "1日1回 2〜3錠 JAN 4987123145404  |  A"
+  },
+  {
+   "productId": 2728,
+   "name": "Viên uống hỗ trợ đau mỏi vai gáy Alinamin EX Plus 270 viên",
+   "nameJa": "アリナミンEXプラス 270錠【第3類医薬品】",
+   "code": "4987123145428",
+   "source": "description+sku",
+   "evidence": "1日1回 2〜3錠 JAN 4987123145428  |  A"
+  },
+  {
+   "productId": 2567,
+   "name": "Sữa tắm bọt Pigeon lá đào chai 450ml",
+   "nameJa": "ピジョン 薬用全身泡ソープ（ももの葉）450ml",
+   "code": "4902508084116",
+   "source": "description",
+   "evidence": "òi 450ml; JAN 4902508084116 Nhà s"
+  },
+  {
+   "productId": 2347,
+   "name": "Sữa chống nắng em bé Pigeon UV Baby Milk Waterproof SPF35 30g",
+   "nameJa": "ピジョン UVベビーミルク ウォータープルーフ SPF35 PA+++ 30g",
+   "code": "4902508084680",
+   "source": "description",
+   "evidence": "ừ 0 tháng Mã vạch (JAN): 4902508084680 Công"
+  },
+  {
+   "productId": 2234,
+   "name": "Gel săn chắc da sau sinh Pigeon (ボディ用ひきしめジェル) 110g — tuýp xanh · sau sinh",
+   "nameJa": "ピジョン ボディ用ひきしめジェル 110g（産後）",
+   "code": "4902508231152",
+   "source": "description+sku",
+   "evidence": "）ではありません。 JAN: 4902508231152 · 110"
+  },
+  {
+   "productId": 2052,
+   "name": "Kem massage dưỡng ẩm bầu Pigeon (ボディマッサージクリーム) 110g — tuýp hồng · trước/trong thai kỳ",
+   "nameJa": "ピジョン ボディマッサージクリーム 110g（マタニティ・妊娠中）",
+   "code": "4902508231138",
+   "source": "description+sku",
+   "evidence": "）ではありません。 JAN: 4902508231138 · 110"
+  },
+  {
+   "productId": 2316,
+   "name": "Kẹo dẻo bổ sung DHA UHA Gummy Supplement KIDS vị cam và chanh 20 ngày",
+   "nameJa": "UHAグミサプリ KIDS DHA みかん＆レモン味 20日分（100粒）",
+   "code": "4902750696846",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750696846 Công"
+  },
+  {
+   "productId": 2671,
+   "name": "Miếng Dán Chăm Sóc Bàn Chân Ashirira Sheet Hương Lavender 2 Miếng",
+   "nameJa": "足リラシート ラベンダー 2枚",
+   "code": "4975729200962",
+   "source": "description+sku",
+   "evidence": "固定粘着シート2枚 JAN：4975729200962 メーカー："
+  },
+  {
+   "productId": 2672,
+   "name": "Miếng Dán Chăm Sóc Bàn Chân Ashirira Sheet Hương Relax Rose 2 Miếng",
+   "nameJa": "足リラシート リラックスローズ 2枚",
+   "code": "4975729201044",
+   "source": "description+sku",
+   "evidence": "固定粘着シート2枚 JAN：4975729201044 メーカー："
+  },
+  {
+   "productId": 2710,
+   "name": "Toner bã rượu dưỡng ẩm PDC Wafood Made 190ml",
+   "nameJa": "ワフードメイド 酒粕化粧水（SK化粧水）190mL",
+   "code": "4961989409139",
+   "source": "description+sku",
+   "evidence": "容量: 190mL JAN: 4961989409139 製造販売:"
+  },
+  {
+   "productId": 2425,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương White Floral Bouquet 26g",
+   "nameJa": "クラブ すっぴんパウダーC ホワイトフローラルブーケの香り 26g",
+   "code": "4901416183737",
+   "source": "description+sku",
+   "evidence": "ouquet Mã JAN: 4901416183737 Đặt h"
+  },
+  {
+   "productId": 2358,
+   "name": "Thuốc nhỏ mắt Santen Sante FX Neo 12ml",
+   "nameJa": "参天製薬 サンテFXネオ 12mL",
+   "code": "4987084410443",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987084410443 Công"
+  },
+  {
+   "productId": 2386,
+   "name": "Dầu dưỡng ẩm Johnson's Baby Oil không hương 300ml",
+   "nameJa": "ジョンソン ベビーオイル 無香料 300ml",
+   "code": "4901730075404",
+   "source": "description",
+   "evidence": "ch: 300ml Mã vạch (JAN): 4901730075404 Công"
+  },
+  {
+   "productId": 2323,
+   "name": "Thuốc xịt mũi Sato Nazal Spray dạng bơm 30ml",
+   "nameJa": "ナザール「スプレー」（ポンプ）30mL",
+   "code": "4987316018775",
+   "source": "description",
+   "evidence": "ích: 30ml Mã vạch (JAN): 4987316018775 Công"
+  },
+  {
+   "productId": 2262,
+   "name": "Thuốc nhỏ mắt Rohto Vita 40α 12mL — Mát vừa 3/5",
+   "nameJa": "ロート製薬 ロートビタ40α 12mL",
+   "code": "4987241100521",
+   "source": "description",
+   "evidence": "kính mềm. JAN 4987241100521."
+  },
+  {
+   "productId": 2263,
+   "name": "Thuốc nhỏ mắt Rohto Cool 40α 12mL — Mát mạnh 5/5",
+   "nameJa": "ロート製薬 ロートクール40α 12mL",
+   "code": "4987241100538",
+   "source": "description",
+   "evidence": "kính mềm. JAN 4987241100538."
+  },
+  {
+   "productId": 2686,
+   "name": "Bộ dưỡng da mini SANA Nameraka Honpo ND 7 ngày",
+   "nameJa": "サナ なめらか本舗 スキンケアセット ＮＤ",
+   "code": "4964596703492",
+   "source": "sku",
+   "evidence": "SKU 4964596703492"
+  },
+  {
+   "productId": 2685,
+   "name": "Sữa rửa mặt dưỡng ẩm SANA Nameraka Honpo ND 150g",
+   "nameJa": "サナ なめらか本舗 しっとりクレンジング洗顔 ＮＤ 150g",
+   "code": "4964596703362",
+   "source": "sku",
+   "evidence": "SKU 4964596703362"
+  },
+  {
+   "productId": 2682,
+   "name": "Sữa dưỡng ẩm SANA Nameraka Honpo ND túi refill 130ml",
+   "nameJa": "サナ なめらか本舗 乳液 ＮＤ（つめかえ用）130mL",
+   "code": "4964596703447",
+   "source": "sku",
+   "evidence": "SKU 4964596703447"
+  },
+  {
+   "productId": 2681,
+   "name": "Nước hoa hồng thanh mát SANA Nameraka Honpo ND túi refill 180ml",
+   "nameJa": "サナ なめらか本舗 化粧水 ＮＤ（つめかえ用）180mL",
+   "code": "4964596703386",
+   "source": "sku",
+   "evidence": "SKU 4964596703386"
+  },
+  {
+   "productId": 2676,
+   "name": "Nước Hoa Hồng Dưỡng Ẩm Sana Nameraka Honpo Moist Skin Lotion 200ml",
+   "nameJa": "サナ なめらか本舗 しっとり化粧水 ＮＤ 200mL",
+   "code": "4964596703393",
+   "source": "sku",
+   "evidence": "SKU SANA-4964596703393"
+  },
+  {
+   "productId": 2684,
+   "name": "Nước hoa hồng thanh mát SANA Nameraka Honpo ND chai 200ml",
+   "nameJa": "サナ なめらか本舗 化粧水 ＮＤ 200mL",
+   "code": "4964596703379",
+   "source": "sku",
+   "evidence": "SKU 4964596703379"
+  },
+  {
+   "productId": 2683,
+   "name": "Sữa dưỡng ẩm SANA Nameraka Honpo ND chai 150ml",
+   "nameJa": "サナ なめらか本舗 乳液 ＮＤ 150mL",
+   "code": "4964596703430",
+   "source": "sku",
+   "evidence": "SKU 4964596703430"
+  },
+  {
+   "productId": 2344,
+   "name": "Son dưỡng có màu Curel Lip Care Cream Bordeaux 4.2g",
+   "nameJa": "キュレル リップケアクリーム 美発色ボルドー 4.2g",
+   "code": "4901301446503",
+   "source": "description",
+   "evidence": "ích: 4.2g Mã vạch (JAN): 4901301446503 Công"
+  },
+  {
+   "productId": 2343,
+   "name": "Son dưỡng có màu Curel Lip Care Cream Beige 4.2g",
+   "nameJa": "キュレル リップケア クリーム 美発色ベージュ 4.2g",
+   "code": "4901301417541",
+   "source": "description",
+   "evidence": "ích: 4.2g Mã vạch (JAN): 4901301417541 Công"
+  },
+  {
+   "productId": 2342,
+   "name": "Son dưỡng có màu Curel Lip Care Cream Pink 4.2g",
+   "nameJa": "キュレル リップケア クリーム 美発色ピンク 4.2g",
+   "code": "4901301417527",
+   "source": "description",
+   "evidence": "ích: 4.2g Mã vạch (JAN): 4901301417527 Công"
+  },
+  {
+   "productId": 2520,
+   "name": "Kem dưỡng ẩm chuyên sâu Curél 40g – viền xanh",
+   "nameJa": "キュレル 潤浸保湿 フェイスクリーム 40g",
+   "code": "4901301236210",
+   "source": "description+sku",
+   "evidence": "iền xanh. JAN: 4901301236210. Phâ"
+  },
+  {
+   "productId": 2673,
+   "name": "Mặt Nạ Gạo Rửa Lại Cogit 150g",
+   "nameJa": "コジット 洗い流すお米のパック 150g",
+   "code": "4969133296383",
+   "source": "description+sku",
+   "evidence": "内容量：150g JAN：4969133296383 販売名：洗"
+  },
+  {
+   "productId": 2657,
+   "name": "Serum chống nắng phục hồi da Curél Intensive Moisture Skin Repair UV Serum SPF50+ PA+++ (60g)",
+   "nameJa": "キュレル 潤浸保湿 色づくベースミルク 60g",
+   "code": "4901301462602",
+   "source": "sku",
+   "evidence": "SKU 4901301462602"
+  },
+  {
+   "productId": 2655,
+   "name": "Sữa chống nắng Curél Intensive Moisture Care UV Lotion SPF50+ PA+++ (60ml)",
+   "nameJa": "キュレル UVローション SPF50+ PA+++ 60ml",
+   "code": "4901301413666",
+   "source": "sku",
+   "evidence": "SKU 4901301413666"
+  },
+  {
+   "productId": 2521,
+   "name": "Kem Dưỡng Sáng Da Curel Brightening Moisture Facial Cream 40g",
+   "nameJa": "キュレル シミ・ソバカス予防ケア フェイスクリーム 40g",
+   "code": "4901301238818",
+   "source": "description+sku",
+   "evidence": "viền bạc. JAN: 4901301238818. Phâ"
+  },
+  {
+   "productId": 2385,
+   "name": "Dầu gội tạo bọt Curél Foaming Shampoo túi thay thế 380ml",
+   "nameJa": "キュレル 泡シャンプー つめかえ用 380ml",
+   "code": "4901301383303",
+   "source": "description",
+   "evidence": "ch: 380ml Mã vạch (JAN): 4901301383303 Công"
+  },
+  {
+   "productId": 2384,
+   "name": "Dầu gội tạo bọt Curél Foaming Shampoo chai vòi 480ml",
+   "nameJa": "キュレル 泡シャンプー ポンプ 480ml",
+   "code": "4901301383013",
+   "source": "description",
+   "evidence": "ch: 480ml Mã vạch (JAN): 4901301383013 Công"
+  },
+  {
+   "productId": 2644,
+   "name": "Viên uống hỗ trợ làm đẹp da Shiseido Pure Bright 30 ngày 240 viên",
+   "nameJa": "資生堂 ピュアブライト ＜タブレット＞ 30日分 240粒",
+   "code": "4909978245696",
+   "source": "description+sku",
+   "evidence": "0粒、約30日分） JAN: 4909978245696 製造元:"
+  },
+  {
+   "productId": 2643,
+   "name": "Nước uống hỗ trợ làm đẹp da Shiseido Pure Bright 10 chai 50mL",
+   "nameJa": "資生堂 ピュアブライト ＜ドリンク＞ 50mL×10本",
+   "code": "4909978245924",
+   "source": "description+sku",
+   "evidence": "50mL×10本 JAN: 4909978245924 製造元:"
+  },
+  {
+   "productId": 2666,
+   "name": "Miếng Dán Thải Độc Chân Nakumara Ashirira Sheet 2 Miếng",
+   "nameJa": "足リラシート よもぎ 2枚",
+   "code": "4975729201396",
+   "source": "sku",
+   "evidence": "SKU 4975729201396"
+  },
+  {
+   "productId": 2668,
+   "name": "Mặt Nạ Lột Tế Bào Chết Bàn Chân Doshisha Every You Ag+ (1 Đôi)",
+   "nameJa": "ドウシシャ EVERYYOU 足裏角質パック Ag+",
+   "code": "4550084366562",
+   "source": "sku",
+   "evidence": "SKU 4550084366562"
+  },
+  {
+   "productId": 2670,
+   "name": "Kem Dưỡng Da Tay Atrix Beauty Charge Hương Xà Phòng Trắng 80g",
+   "nameJa": "アトリックス ビューティーチャージ ホワイトサボンの香り 80g",
+   "code": "4901301468031",
+   "source": "description+sku",
+   "evidence": "ス 内容量：80g JAN：4901301468031 製造元：ニ"
+  },
+  {
+   "productId": 2669,
+   "name": "Kem Dưỡng Da Tay Atrix Beauty Charge Hương Trà Đào 80g",
+   "nameJa": "アトリックス ビューティーチャージ ピーチティーの香り 80g",
+   "code": "4901301272102",
+   "source": "description+sku",
+   "evidence": "ス 内容量：80g JAN：4901301272102 製造元：ニ"
+  },
+  {
+   "productId": 2665,
+   "name": "Sữa Dưỡng Trắng Da Ihada Clear Emulsion 135mL",
+   "nameJa": "イハダ 薬用クリアエマルジョン 135mL",
+   "code": "4909978204136",
+   "source": "sku",
+   "evidence": "SKU 4909978204136"
+  },
+  {
+   "productId": 2664,
+   "name": "Nước Hoa Hồng Dưỡng Trắng Da Ihada Clear Lotion 180mL",
+   "nameJa": "イハダ 薬用クリアローション 180mL",
+   "code": "4909978204112",
+   "source": "sku",
+   "evidence": "SKU 4909978204112"
+  },
+  {
+   "productId": 2663,
+   "name": "Tinh Chất Dưỡng Trắng, Phục Hồi Da Ihada Reset Oil 30mL",
+   "nameJa": "イハダ 薬用リセットオイル 30mL",
+   "code": "4909978261337",
+   "source": "sku",
+   "evidence": "SKU 4909978261337"
+  },
+  {
+   "productId": 2662,
+   "name": "Tẩy Da Chết Nivea Lucent Beauty Body Scrub (190g)",
+   "nameJa": "ニベア ルーセントビューティ 浸透保湿美容クリームスクラブ 190g",
+   "code": "4901301466822",
+   "source": "sku",
+   "evidence": "SKU 4901301466822"
+  },
+  {
+   "productId": 2647,
+   "name": "Kẹo dẻo bổ sung kẽm UHA Gummy Supplement vị dâu 20 ngày",
+   "nameJa": "UHAグミサプリ 亜鉛 いちご味 20日分（40粒）",
+   "code": "4902750746855",
+   "source": "description+sku",
+   "evidence": "40粒（20日分） JAN: 4902750746855 味: いち"
+  },
+  {
+   "productId": 2318,
+   "name": "Viên nhai bổ sung sắt và axit folic ORIHIRO vị berry mix 30 ngày",
+   "nameJa": "かんでおいしいチュアブルサプリ 鉄＋葉酸 60g（120粒）",
+   "code": "4571157256658",
+   "source": "description",
+   "evidence": "n・30 ngày Mã vạch (JAN): 4571157256658 Công"
+  },
+  {
+   "productId": 2319,
+   "name": "Viên nhai bổ sung canxi ORIHIRO vị sữa chua chanh 30 ngày",
+   "nameJa": "かんでおいしいチュアブルサプリ カルシウム レモンヨーグルト味 75g（150粒）",
+   "code": "4571157259352",
+   "source": "description",
+   "evidence": "n・30 ngày Mã vạch (JAN): 4571157259352 Công"
+  },
+  {
+   "productId": 2317,
+   "name": "Viên nhai bổ sung kẽm và Maca ORIHIRO vị cola 30 ngày",
+   "nameJa": "かんでおいしいチュアブルサプリ 亜鉛＋マカ 45g（90粒）",
+   "code": "4571157259482",
+   "source": "description",
+   "evidence": "n・30 ngày Mã vạch (JAN): 4571157259482 Công"
+  },
+  {
+   "productId": 2312,
+   "name": "Kẹo dẻo bổ sung kẽm và Maca UHA Gummy Supplement vị cola 30 ngày",
+   "nameJa": "UHAグミサプリ 亜鉛＆マカ コーラ味 30日分（60粒）",
+   "code": "4902750654365",
+   "source": "description",
+   "evidence": "n・30 ngày Mã vạch (JAN): 4902750654365 Công"
+  },
+  {
+   "productId": 2311,
+   "name": "Kẹo dẻo bổ sung sắt UHA Gummy Supplement vị nho 20 ngày",
+   "nameJa": "UHAグミサプリ 鉄 グレープ味 20日分（40粒）",
+   "code": "4902750695542",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750695542 Công"
+  },
+  {
+   "productId": 2315,
+   "name": "Kẹo dẻo bổ sung Collagen UHA Gummy Supplement vị bưởi 14 ngày",
+   "nameJa": "UHAグミサプリ コラーゲン グレープフルーツ味 14日分（28粒）",
+   "code": "4902750662407",
+   "source": "description",
+   "evidence": "n・14 ngày Mã vạch (JAN): 4902750662407 Công"
+  },
+  {
+   "productId": 2314,
+   "name": "Kẹo dẻo bổ sung Lutein UHA Gummy Supplement vị berry mix 20 ngày",
+   "nameJa": "UHAグミサプリ ルテイン ミックスベリー味 20日分（40粒）",
+   "code": "4902750650107",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750650107 Công"
+  },
+  {
+   "productId": 2646,
+   "name": "Viên uống bổ sung sắt DHC Heme Iron 60 ngày 120 viên",
+   "nameJa": "DHC ヘム鉄 60日分 120粒",
+   "code": "4511413408605",
+   "source": "description+sku",
+   "evidence": "20粒（60日分） JAN: 4511413408605 メーカー:"
+  },
+  {
+   "productId": 2645,
+   "name": "Viên uống bổ sung axit folic DHC 60 ngày 60 viên",
+   "nameJa": "DHC 葉酸 60日分 60粒",
+   "code": "4511413405741",
+   "source": "description+sku",
+   "evidence": "60粒（60日分） JAN: 4511413405741 メーカー:"
+  },
+  {
+   "productId": 2642,
+   "name": "Viên uống DHC Coenzyme Q10 dạng bao bọc 60 ngày 120 viên",
+   "nameJa": "DHC コエンザイムQ10 包接体 60日分 120粒",
+   "code": "4511413403723",
+   "source": "description+sku",
+   "evidence": "120粒／60日分 JAN: 4511413403723 メーカー:"
+  },
+  {
+   "productId": 2641,
+   "name": "Viên uống DHC Alpha Lipoic Acid (α-Lipoic) 60 ngày 120 viên",
+   "nameJa": "DHC α-リポ酸 60日分 120粒",
+   "code": "4511413403570",
+   "source": "description+sku",
+   "evidence": "120粒／60日分 JAN: 4511413403570 メーカー:"
+  },
+  {
+   "productId": 2640,
+   "name": "Viên uống hỗ trợ giảm cân DHC Carnitine 60 ngày 300 viên",
+   "nameJa": "DHC カルニチン 60日分 300粒",
+   "code": "4511413404171",
+   "source": "description+sku",
+   "evidence": "300粒／60日分 JAN: 4511413404171 メーカー:"
+  },
+  {
+   "productId": 2639,
+   "name": "Viên uống bổ khớp DHC Glucosamine 20 ngày 120 viên",
+   "nameJa": "DHC グルコサミン 20日分 120粒",
+   "code": "4511413404386",
+   "source": "description+sku",
+   "evidence": "120粒／20日分 JAN: 4511413404386 メーカー:"
+  },
+  {
+   "productId": 2637,
+   "name": "Viên uống DHC Melilot Plus hỗ trợ thon gọn chân 60 ngày 120 viên",
+   "nameJa": "DHC メリロートPlus 60日分 120粒",
+   "code": "4511413408001",
+   "source": "description+sku",
+   "evidence": "120粒／60日分 JAN: 4511413408001 メーカー:"
+  },
+  {
+   "productId": 2638,
+   "name": "Viên uống giảm cân DHC Forskohlii 20 ngày 80 viên",
+   "nameJa": "DHC フォースコリー 20日分 80粒",
+   "code": "4511413403143",
+   "source": "description+sku",
+   "evidence": "粒／20〜40日分 JAN: 4511413403143 メーカー:"
+  },
+  {
+   "productId": 2514,
+   "name": "Dầu dưỡng tóc fino Premium Touch Airy Smooth 70ml — Mượt nhẹ",
+   "nameJa": "フィーノ プレミアムタッチ 浸透美容液ヘアオイル（エアリースムース）70mL",
+   "code": "4550516483836",
+   "source": "description",
+   "evidence": "tóc khô. JAN 4550516483836."
+  },
+  {
+   "productId": 2500,
+   "name": "Viên uống DHC Biotin 500µg giải phóng chậm 60 ngày 60 viên",
+   "nameJa": "DHC 持続型ビオチン 60日分 60粒",
+   "code": "4511413407684",
+   "source": "description",
+   "evidence": "60粒）／60日分／JAN 4511413407684 メーカー:"
+  },
+  {
+   "productId": 2278,
+   "name": "Bột uống bổ sung Vitamin C DHC vị chanh 30 ngày 48g",
+   "nameJa": "DHC ビタミンCパウダー 30日分 48.0g（1.6g×30本）",
+   "code": "4511413408247",
+   "source": "description",
+   "evidence": "1.6g×30本） Mã vạch (JAN): 4511413408247 Công"
+  },
+  {
+   "productId": 2616,
+   "name": "Dung dịch bôi giảm đau Hisamitsu Salonpas Lotion 85ml",
+   "nameJa": "久光製薬 サロンパスローション 85mL【第3類医薬品】",
+   "code": "4987188155059",
+   "source": "sku",
+   "evidence": "SKU 4987188155059"
+  },
+  {
+   "productId": 2615,
+   "name": "Kem dưỡng sáng Shiseido Aqualabel Special Gel Cream EX Brightening 90g (hũ xanh)",
+   "nameJa": "資生堂 アクアレーベル スペシャルジェルクリームEX（ブライトニング）90g",
+   "code": "4909978164485",
+   "source": "sku",
+   "evidence": "SKU 4909978164485"
+  },
+  {
+   "productId": 2510,
+   "name": "Kem dưỡng 5 trong 1 Shiseido Aqualabel Special Gel Cream EX Oil In 90g (hũ vàng)",
+   "nameJa": "資生堂 アクアレーベル スペシャルジェルクリーム EX（オイルイン）90g 本体",
+   "code": "4909978164478",
+   "source": "description+sku",
+   "evidence": "ールドの90g本体、JAN 4909978164478です。つめ"
+  },
+  {
+   "productId": 2337,
+   "name": "Viên uống bổ sung sắt Nature Made Iron 40 ngày 80 viên",
+   "nameJa": "ネイチャーメイド 鉄（アイアン）80粒（40日分）",
+   "code": "4987035272816",
+   "source": "description",
+   "evidence": "n・40 ngày Mã vạch (JAN): 4987035272816 Công"
+  },
+  {
+   "productId": 2604,
+   "name": "Nước uống Shiseido The Collagen Luxerich 50ml × 10 chai",
+   "nameJa": "資生堂 ザ・コラーゲン リュクスリッチ＜ドリンク＞ 50mL×10本",
+   "code": "4909978206871",
+   "source": "description",
+   "evidence": "ng 500ml. JAN: 4909978206871 Nhà s"
+  },
+  {
+   "productId": 2357,
+   "name": "Thuốc nhỏ mắt Lion Smile 40 EX Cool 13ml",
+   "nameJa": "ライオン スマイル40EX クール 13mL",
+   "code": "4903301116226",
+   "source": "description",
+   "evidence": "ích: 13ml Mã vạch (JAN): 4903301116226 Công"
+  },
+  {
+   "productId": 2300,
+   "name": "Viên uống ORIHIRO Nattokinase 4000 120 viên 60 ngày",
+   "nameJa": "ORIHIRO ナットウキナーゼ4000 徳用 120粒（60日分）",
+   "code": "4571157259529",
+   "source": "description",
+   "evidence": "n・60 ngày Mã vạch (JAN): 4571157259529 Công"
+  },
+  {
+   "productId": 2363,
+   "name": "Kem dưỡng Momopuri Moisture Barrier Cream 80g",
+   "nameJa": "ももぷり 潤いバリアクリーム 80g",
+   "code": "4515061012771",
+   "source": "description",
+   "evidence": "tích: 80g Mã vạch (JAN): 4515061012771 Công"
+  },
+  {
+   "productId": 2362,
+   "name": "Sữa dưỡng Momopuri Moisture Barrier Emulsion 150ml",
+   "nameJa": "ももぷり 潤いバリア乳液 150mL",
+   "code": "4515061012597",
+   "source": "description",
+   "evidence": "ch: 150ml Mã vạch (JAN): 4515061012597 Công"
+  },
+  {
+   "productId": 2365,
+   "name": "Xà phòng trị mụn Meishoku Bigan Medicated Facial Soap 80g",
+   "nameJa": "明色化粧品 薬用 明色美顔石鹸 80g",
+   "code": "4902468113703",
+   "source": "description",
+   "evidence": "tích: 80g Mã vạch (JAN): 4902468113703 Công"
+  },
+  {
+   "productId": 2574,
+   "name": "Xà phòng Minon Medicated Skin Soap 80g",
+   "nameJa": "ミノン薬用スキンソープ 80g",
+   "code": "4987107616081",
+   "source": "description",
+   "evidence": "bánh 80g; JAN 4987107616081 Nhà s"
+  },
+  {
+   "productId": 2573,
+   "name": "Xà phòng dưỡng ẩm Minon Skin Soap 80g",
+   "nameJa": "ミノンスキンソープ 80g",
+   "code": "4987107616111",
+   "source": "description",
+   "evidence": "bánh 80g; JAN 4987107616111 Nhà s"
+  },
+  {
+   "productId": 2571,
+   "name": "Sữa dưỡng ẩm toàn thân Minon chai pump 400ml",
+   "nameJa": "ミノン全身保湿ミルク 400mL",
+   "code": "4987107631053",
+   "source": "description",
+   "evidence": "mp 400ml; JAN 4987107631053 Nhà s"
+  },
+  {
+   "productId": 2572,
+   "name": "Sữa dưỡng ẩm toàn thân Minon túi refill 320ml",
+   "nameJa": "ミノン全身保湿ミルク つめかえ用 320mL",
+   "code": "4987107673688",
+   "source": "description",
+   "evidence": "ng 320ml; JAN 4987107673688 Nhà s"
+  },
+  {
+   "productId": 2570,
+   "name": "Sữa dưỡng ẩm toàn thân Minon chai 200ml",
+   "nameJa": "ミノン全身保湿ミルク 200mL",
+   "code": "4987107627438",
+   "source": "description",
+   "evidence": "ai 200ml; JAN 4987107627438 Nhà s"
+  },
+  {
+   "productId": 2569,
+   "name": "Kem dưỡng ẩm toàn thân Minon tuýp 90g",
+   "nameJa": "ミノン全身保湿クリーム 90g",
+   "code": "4987107627483",
+   "source": "description",
+   "evidence": "Tuýp 90g; JAN 4987107627483 Nhà s"
+  },
+  {
+   "productId": 2565,
+   "name": "Dầu gội bọt Minon Kids không cần dầu xả chai 380ml",
+   "nameJa": "ミノンリンスがいらない薬用ヘアシャンプー 380mL",
+   "code": "4987107640857",
+   "source": "description",
+   "evidence": "òi 380ml; JAN 4987107640857 Nhà s"
+  },
+  {
+   "productId": 2566,
+   "name": "Dầu gội bọt Minon Kids không cần dầu xả túi refill 320ml",
+   "nameJa": "ミノンリンスがいらない薬用ヘアシャンプー つめかえ用 320mL",
+   "code": "4987107640864",
+   "source": "description",
+   "evidence": "ll 320ml; JAN 4987107640864 Nhà s"
+  },
+  {
+   "productId": 2564,
+   "name": "Dầu xả Minon cho da đầu nhạy cảm túi refill 380ml",
+   "nameJa": "ミノン薬用コンディショナー つめかえ用 380mL",
+   "code": "4987107631077",
+   "source": "description",
+   "evidence": "l 380ml · JAN 4987107631077 Nhà s"
+  },
+  {
+   "productId": 2563,
+   "name": "Dầu xả Minon cho da đầu nhạy cảm chai 450ml",
+   "nameJa": "ミノン薬用コンディショナー 450mL",
+   "code": "4987107631060",
+   "source": "description",
+   "evidence": "i 450ml · JAN 4987107631060 Nhà s"
+  },
+  {
+   "productId": 2562,
+   "name": "Dầu gội Minon cho da đầu nhạy cảm túi refill 380ml",
+   "nameJa": "ミノン薬用ヘアシャンプー つめかえ用 380mL",
+   "code": "4987107617378",
+   "source": "description",
+   "evidence": "l 380ml · JAN 4987107617378 Nhà s"
+  },
+  {
+   "productId": 2561,
+   "name": "Dầu gội Minon cho da đầu nhạy cảm chai 450ml",
+   "nameJa": "ミノン薬用ヘアシャンプー 450mL",
+   "code": "4987107617361",
+   "source": "description",
+   "evidence": "i 450ml · JAN 4987107617361 Nhà s"
+  },
+  {
+   "productId": 2560,
+   "name": "Sữa tắm gội Minon Saratto thoáng nhẹ túi refill 380ml",
+   "nameJa": "ミノン全身シャンプー さらっとタイプ つめかえ用 380mL",
+   "code": "4987107622457",
+   "source": "description",
+   "evidence": "l 380ml · JAN 4987107622457 Nhà s"
+  },
+  {
+   "productId": 2559,
+   "name": "Sữa tắm gội Minon Saratto thoáng nhẹ chai 450ml",
+   "nameJa": "ミノン全身シャンプー さらっとタイプ 450mL",
+   "code": "4987107622440",
+   "source": "description",
+   "evidence": "i 450ml · JAN 4987107622440 Nhà s"
+  },
+  {
+   "productId": 2558,
+   "name": "Sữa tắm gội Minon Baby dạng bọt túi refill 300ml",
+   "nameJa": "ミノンベビー全身シャンプー つめかえ用 300mL",
+   "code": "4987107616043",
+   "source": "description",
+   "evidence": "l 300ml · JAN 4987107616043 Nhà s"
+  },
+  {
+   "productId": 2557,
+   "name": "Sữa tắm gội Minon Baby dạng bọt chai 350ml",
+   "nameJa": "ミノンベビー全身シャンプー 350mL",
+   "code": "4987107616036",
+   "source": "description",
+   "evidence": "i 350ml · JAN 4987107616036 Nhà s"
+  },
+  {
+   "productId": 2556,
+   "name": "Sữa tắm gội Minon dạng bọt túi refill 400ml",
+   "nameJa": "ミノン全身シャンプー 泡タイプ つめかえ用 400mL",
+   "code": "4987107622495",
+   "source": "description",
+   "evidence": "l 400ml · JAN 4987107622495 Nhà s"
+  },
+  {
+   "productId": 2555,
+   "name": "Sữa tắm gội Minon dạng bọt chai 500ml",
+   "nameJa": "ミノン全身シャンプー 泡タイプ 500mL",
+   "code": "4987107622488",
+   "source": "description",
+   "evidence": "i 500ml · JAN 4987107622488 Nhà s"
+  },
+  {
+   "productId": 2554,
+   "name": "Sữa tắm gội Minon Shittori dưỡng ẩm túi refill 380ml",
+   "nameJa": "ミノン全身シャンプー しっとりタイプ つめかえ用 380mL",
+   "code": "4987107615930",
+   "source": "description",
+   "evidence": "l 380ml · JAN 4987107615930 Nhà s"
+  },
+  {
+   "productId": 2553,
+   "name": "Sữa tắm gội Minon Shittori dưỡng ẩm chai 450ml",
+   "nameJa": "ミノン全身シャンプー しっとりタイプ 450mL",
+   "code": "4987107615923",
+   "source": "description",
+   "evidence": "i 450ml · JAN 4987107615923 Nhà s"
+  },
+  {
+   "productId": 2534,
+   "name": "Nước dưỡng sáng da Melano CC Men cho nam 170ml",
+   "nameJa": "メラノCC Men 薬用しみ対策美白化粧水 170mL",
+   "code": "4987241171514",
+   "source": "description",
+   "evidence": "n bản cũ, JAN 4987241171514, hươ"
+  },
+  {
+   "productId": 2528,
+   "name": "Kem dưỡng sáng Club Suppin Cream Whitening Innocent Floral 30g",
+   "nameJa": "クラブ すっぴんクリーム ホワイトニング イノセントフローラルの香り 30g",
+   "code": "4901416183775",
+   "source": "sku",
+   "evidence": "SKU CLUB-4901416183775"
+  },
+  {
+   "productId": 2527,
+   "name": "Kem dưỡng da Club Suppin Cream C Pastel Rose 30g",
+   "nameJa": "クラブ すっぴんクリームC パステルローズの香り 30g",
+   "code": "4901416183744",
+   "source": "sku",
+   "evidence": "SKU CLUB-4901416183744"
+  },
+  {
+   "productId": 2526,
+   "name": "Kem dưỡng da Club Suppin Cream C White Floral Bouquet 30g",
+   "nameJa": "クラブ すっぴんクリームC ホワイトフローラルブーケの香り 30g",
+   "code": "4901416183751",
+   "source": "sku",
+   "evidence": "SKU CLUB-4901416183751"
+  },
+  {
+   "productId": 2436,
+   "name": "Phấn phủ mát da Club Suppin Powder C Cool hương Lime Mint 26g",
+   "nameJa": "クラブ すっぴんパウダーC 冷感タイプ ライムミントの香り 26g",
+   "code": "4901416182907",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416182907 Cách"
+  },
+  {
+   "productId": 2435,
+   "name": "Phấn phủ hiệu chỉnh sắc da Club Suppin Glow Fix Powder không hương liệu 4g",
+   "nameJa": "クラブ すっぴんグロウフィックスパウダー 無香料 4g",
+   "code": "4901416182433",
+   "source": "description+sku",
+   "evidence": "nh: 4g Mã JAN: 4901416182433 Cách"
+  },
+  {
+   "productId": 2434,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Tokimeku Kinmokusei 26g",
+   "nameJa": "クラブ すっぴんパウダーC ときめくキンモクセイの香り 26g",
+   "code": "4901416184253",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416184253 Cách"
+  },
+  {
+   "productId": 2433,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Oyasumi Yozakura 26g",
+   "nameJa": "クラブ すっぴんパウダーC おやすみ夜桜の香り 26g",
+   "code": "4901416183782",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416183782 Cách"
+  },
+  {
+   "productId": 2432,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Classic Lavender Hokkaido 26g",
+   "nameJa": "クラブ すっぴんパウダーC クラシックラベンダーの香り 26g",
+   "code": "4901416182174",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416182174 Cách"
+  },
+  {
+   "productId": 2431,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Resort Hibiscus Okinawa 26g",
+   "nameJa": "クラブ すっぴんパウダーC リゾートハイビスカスの香り 26g",
+   "code": "4901416182242",
+   "source": "description+sku",
+   "evidence": "h: 26g Mã JAN: 4901416182242 Cách"
+  },
+  {
+   "productId": 2429,
+   "name": "Phấn phủ bột Club Suppin Loose Powder hương White Floral Bouquet 5g",
+   "nameJa": "クラブ すっぴんルースパウダー ホワイトフローラルブーケの香り 5g",
+   "code": "4901416183379",
+   "source": "description+sku",
+   "evidence": "nh: 5g Mã JAN: 4901416183379 Cách"
+  },
+  {
+   "productId": 2423,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương mộc tê Hatsukoi Kinmokusei 26g",
+   "nameJa": "クラブ すっぴんパウダーC 初恋キンモクセイの香り 26g",
+   "code": "4901416183515",
+   "source": "description",
+   "evidence": "中止してください。 JAN：4901416183515。  |"
+  },
+  {
+   "productId": 2428,
+   "name": "Phấn phủ chống nắng Club Suppin Powder UV SPF50+ PA++++ hương Citrus Mix Tea 26g",
+   "nameJa": "クラブ すっぴんパウダー UV シトラスミックスティーの香り 26g",
+   "code": "4901416182815",
+   "source": "description+sku",
+   "evidence": "ix Tea Mã JAN: 4901416182815 Đặt h"
+  },
+  {
+   "productId": 2427,
+   "name": "Phấn phủ dưỡng sáng Club Suppin Powder Whitening hương Innocent Floral 26g",
+   "nameJa": "クラブ すっぴんパウダー ホワイトニング イノセントフローラルの香り 26g",
+   "code": "4901416183768",
+   "source": "description+sku",
+   "evidence": "Floral Mã JAN: 4901416183768 Đặt h"
+  },
+  {
+   "productId": 2426,
+   "name": "Phấn phủ dưỡng da Club Suppin Powder C hương Pastel Rose 26g",
+   "nameJa": "クラブ すっぴんパウダーC パステルローズの香り 26g",
+   "code": "4901416183720",
+   "source": "description+sku",
+   "evidence": "l Rose Mã JAN: 4901416183720 Đặt h"
+  },
+  {
+   "productId": 2335,
+   "name": "Viên uống Asahi Super Beer Yeast Z hỗ trợ sức sống 660 viên",
+   "nameJa": "アサヒ スーパービール酵母Z 660粒",
+   "code": "4946842606412",
+   "source": "description",
+   "evidence": "660 viên Mã vạch (JAN): 4946842606412 Công"
+  },
+  {
+   "productId": 2522,
+   "name": "Dung dịch vệ sinh Summer’s Eve Sheer Beauty 237ml",
+   "nameJa": "サマーズイブ フェミニンウォッシュ シアービューティ 237mL",
+   "code": "9318670500111",
+   "source": "sku",
+   "evidence": "SKU 9318670500111"
+  },
+  {
+   "productId": 2161,
+   "name": "Kem chống nắng nâng tông Shiseido ELIXIR Day Care Revolution Tone Up BE+ (Pure Beige) SPF50+ PA++++ 35g",
+   "nameJa": "エリクシール デーケアレボリューション トーンアップ BE ＋ ca（ピュアベージュ）35g",
+   "code": "4909978265755",
+   "source": "description",
+   "evidence": "++++ · Mã JAN: 4909978265755 · Kíc"
+  },
+  {
+   "productId": 1735,
+   "name": "Gel tẩy tế bào chết Cure Natural Aqua Gel 250g",
+   "nameJa": "Cure ナチュラルアクアジェル 250g",
+   "code": "4589563520102",
+   "source": "description",
+   "evidence": "vòi 250g, JAN 4589563520102."
+  },
+  {
+   "productId": 2351,
+   "name": "Kẹo vitamin trẻ em Oki Pharmaceutical Papa Jelly 5 vị dâu 120 viên",
+   "nameJa": "大木製薬 パパーゼリー5 120粒",
+   "code": "4987030130265",
+   "source": "description",
+   "evidence": "120 viên Mã vạch (JAN): 4987030130265 Công"
+  },
+  {
+   "productId": 2410,
+   "name": "Kem ủ tóc fino Premium Touch Hair Mask túi thay thế 700g",
+   "nameJa": "フィーノ プレミアムタッチ 濃厚美容液ヘアマスク つめかえ用 700g",
+   "code": "4550516474896",
+   "source": "description",
+   "evidence": "ích: 700g Mã vạch (JAN): 4550516474896 Công"
+  },
+  {
+   "productId": 2301,
+   "name": "Viên dầu cá ORIHIRO Fish Oil Omega-3 EPA & DHA 360 viên 90 ngày",
+   "nameJa": "オリヒロ フィッシュオイル お徳用 360粒（90日分）",
+   "code": "4971493107339",
+   "source": "description",
+   "evidence": "ừ dầu cá. JAN 4971493107339."
+  },
+  {
+   "productId": 2515,
+   "name": "Kem chống nắng Skin Aqua Tone Up UV Essence Lavender 70g SPF50+ PA++++",
+   "nameJa": "スキンアクア トーンアップUVエッセンス ラベンダー（くぎづけラベンダー）70g",
+   "code": "4987241202041",
+   "source": "description",
+   "evidence": "Bản 70g, JAN 4987241202041."
+  },
+  {
+   "productId": 2111,
+   "name": "Thuốc xương khớp Zeria Chondroitin ZS 270 viên",
+   "nameJa": "ゼリア新薬 コンドロイチンZS錠 270錠",
+   "code": "4987103049340",
+   "source": "description",
+   "evidence": "ướng dẫn. JAN 4987103049340."
+  },
+  {
+   "productId": 1564,
+   "name": "Dầu cá Orihiro Fish Oil Omega-3 180 viên (45 ngày)",
+   "nameJa": "オリヒロ フィッシュオイル 180粒（45日分）",
+   "code": "4971493105779",
+   "source": "description",
+   "evidence": "iên/ngày. JAN 4971493105779."
+  },
+  {
+   "productId": 2356,
+   "name": "Thuốc nhỏ mắt dùng với kính áp tròng Rohto Z Contact b 12ml",
+   "nameJa": "ロートジーコンタクトb 12mL",
+   "code": "4987241165117",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987241165117 Công"
+  },
+  {
+   "productId": 2507,
+   "name": "Miếng dán giảm đau huyệt Roihi Tsuboko nóng 156 miếng",
+   "nameJa": "ロイヒつぼ膏 156枚",
+   "code": "4987167007263",
+   "source": "description",
+   "evidence": "）、直径2.8cm／JAN 4987167007263 メーカー:"
+  },
+  {
+   "productId": 2508,
+   "name": "Miếng dán giảm đau huyệt Roihi Tsuboko nóng cỡ lớn 78 miếng",
+   "nameJa": "ロイヒつぼ膏 大判 78枚",
+   "code": "4987167059101",
+   "source": "description",
+   "evidence": "）、直径3.9cm／JAN 4987167059101 メーカー:"
+  },
+  {
+   "productId": 2509,
+   "name": "Miếng dán giảm đau huyệt Roihi Tsuboko Cool lạnh 156 miếng",
+   "nameJa": "ロイヒつぼ膏クール 156枚",
+   "code": "4987167070359",
+   "source": "description",
+   "evidence": "）、直径2.8cm／JAN 4987167070359 メーカー:"
+  },
+  {
+   "productId": 2359,
+   "name": "Thuốc nhỏ mắt Santen Sante FX V Plus 12ml",
+   "nameJa": "参天製薬 サンテFX Vプラス 12mL",
+   "code": "4987084315106",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987084315106 Công"
+  },
+  {
+   "productId": 2506,
+   "name": "Gel bôi giảm đau cơ khớp Vantelin Kowa Gel α 35 g",
+   "nameJa": "バンテリンコーワゲルα 35g",
+   "code": "4987067289202",
+   "source": "description",
+   "evidence": "ーブ1本（箱入り）／JAN：4987067289202 メーカー:"
+  },
+  {
+   "productId": 2499,
+   "name": "Xà phòng tẩy tế bào chết vùng mông Pelican Koisuru Oshiri Hip Care Soap hương đào 80g",
+   "nameJa": "ペリカン石鹸 恋するおしり ヒップケアソープ 80g",
+   "code": "4976631478272",
+   "source": "description",
+   "evidence": "量: 80g×1個／JAN 4976631478272 メーカー:"
+  },
+  {
+   "productId": 2349,
+   "name": "Viên uống Minami Healthy Foods Anserine 240 viên 30 ngày",
+   "nameJa": "ミナミヘルシーフーズ アンセリン 240粒（30日分）",
+   "code": "4945904016138",
+   "source": "description",
+   "evidence": "ngày・60g Mã vạch (JAN): 4945904016138 Công"
+  },
+  {
+   "productId": 2285,
+   "name": "Viên uống khớp Fine Fushibushi no Megumi 545 viên khoảng 36 ngày",
+   "nameJa": "コンドロイチン＆グルコサミン ふしぶしの恵 81.75g（150mg×545粒）",
+   "code": "4976652001879",
+   "source": "description",
+   "evidence": "viên/ngày Mã vạch (JAN): 4976652001879 Công"
+  },
+  {
+   "productId": 2279,
+   "name": "Viên uống bổ sung Vitamin C ORIHIRO 300 viên 30 ngày",
+   "nameJa": "ORIHIRO ビタミンC粒 300粒 87g",
+   "code": "4971493102112",
+   "source": "description",
+   "evidence": "g・30 ngày Mã vạch (JAN): 4971493102112 Công"
+  },
+  {
+   "productId": 2304,
+   "name": "Kem dưỡng ẩm toàn thân ALOINS Eaude Cream S không hương 185g",
+   "nameJa": "アロインス オーデクリームS 無香料 185g",
+   "code": "4956962110805",
+   "source": "description",
+   "evidence": "Mã vạch (JAN): 4956962110805 Thươn"
+  },
+  {
+   "productId": 2412,
+   "name": "Dầu xả Kracie Umi no Uruoiso Moisture Care túi thay thế 400g",
+   "nameJa": "海のうるおい藻 うるおいケアコンディショナー 詰替用 400g",
+   "code": "4901417758088",
+   "source": "description",
+   "evidence": "ích: 400g Mã vạch (JAN): 4901417758088 Công"
+  },
+  {
+   "productId": 2411,
+   "name": "Dầu gội Kracie Umi no Uruoiso Moisture Care túi thay thế 400ml",
+   "nameJa": "海のうるおい藻 うるおいケアシャンプー 詰替用 400ml",
+   "code": "4901417758071",
+   "source": "description",
+   "evidence": "ch: 400ml Mã vạch (JAN): 4901417758071 Công"
+  },
+  {
+   "productId": 2296,
+   "name": "Bột chất xơ Fine Shokutaku no Bannin hỗ trợ đường huyết và mỡ máu 30 gói",
+   "nameJa": "食卓の番人 108g（3.6g×30本）",
+   "code": "4976652018662",
+   "source": "description",
+   "evidence": "g×30 gói） Mã vạch (JAN): 4976652018662 Công"
+  },
+  {
+   "productId": 2306,
+   "name": "Kem dưỡng da Mentholatum Medical Vitamin Cream 145g",
+   "nameJa": "メンソレータム メディカルビタミンクリーム 145g",
+   "code": "4987241118366",
+   "source": "description",
+   "evidence": "ích: 145g Mã vạch (JAN): 4987241118366 Công"
+  },
+  {
+   "productId": 2283,
+   "name": "Thạch bổ sung nhau thai Earth Placenta C Jelly vị xoài 31 thanh",
+   "nameJa": "1ヵ月たっぷりうるおう プラセンタCゼリー マンゴー味 31本入 310g（10g×31本）",
+   "code": "4901080661210",
+   "source": "description",
+   "evidence": "31 thanh） Mã vạch (JAN): 4901080661210 Công"
+  },
+  {
+   "productId": 2417,
+   "name": "Sữa tắm Reihaku Hatomugi túi thay thế 1000ml",
+   "nameJa": "麗白 ハトムギ ボディソープ 詰替用 1000ml",
+   "code": "4513574027121",
+   "source": "description",
+   "evidence": "h: 1000ml Mã vạch (JAN): 4513574027121 Công"
+  },
+  {
+   "productId": 2416,
+   "name": "Sữa tắm Reihaku Hatomugi High Moisture túi thay thế 600ml",
+   "nameJa": "麗白 ハトムギ 高保湿ボディソープ 詰替用 600ml",
+   "code": "4513574031371",
+   "source": "description",
+   "evidence": "ch: 600ml Mã vạch (JAN): 4513574031371 Công"
+  },
+  {
+   "productId": 2415,
+   "name": "Sữa tắm Reihaku Hatomugi High Moisture 800ml",
+   "nameJa": "麗白 ハトムギ 高保湿ボディソープ 800ml",
+   "code": "4513574030305",
+   "source": "description",
+   "evidence": "Mã vạch (JAN): 4513574030305 Công"
+  },
+  {
+   "productId": 2414,
+   "name": "Dầu xả Dear Beauté HIMAWARI Rich & Repair túi thay thế 400g",
+   "nameJa": "ディアボーテ HIMAWARI オイルインコンディショナー リッチ＆リペア 詰替用 400g",
+   "code": "4901417701718",
+   "source": "description",
+   "evidence": "ích: 400g Mã vạch (JAN): 4901417701718 Công"
+  },
+  {
+   "productId": 2409,
+   "name": "Sữa tắm dầu ngựa Kumano Yushi Horse Oil túi thay thế 1000ml",
+   "nameJa": "馬油 ボディソープ 詰替用 1000ml",
+   "code": "4513574024700",
+   "source": "description",
+   "evidence": "h: 1000ml Mã vạch (JAN): 4513574024700 Công"
+  },
+  {
+   "productId": 2408,
+   "name": "Sữa tắm dầu ngựa Kumano Yushi Horse Oil 600ml",
+   "nameJa": "馬油 ボディソープ 600ml",
+   "code": "4513574015951",
+   "source": "description",
+   "evidence": "ch: 600ml Mã vạch (JAN): 4513574015951 Công"
+  },
+  {
+   "productId": 2407,
+   "name": "Xịt khử mùi làm mát cơ thể 8x4 Aroma Switch Manhattan Linen 150g",
+   "nameJa": "８ｘ４ アロマスイッチ 涼感ボディスプレー マンハッタンリネンの香り 150g",
+   "code": "4901301415301",
+   "source": "description",
+   "evidence": "ích: 150g Mã vạch (JAN): 4901301415301 Công"
+  },
+  {
+   "productId": 2406,
+   "name": "Xịt khử mùi làm mát cơ thể 8x4 Aroma Switch Paris Bouquet 150g",
+   "nameJa": "８ｘ４ アロマスイッチ 涼感ボディスプレー パリスブーケの香り 150g",
+   "code": "4901301415288",
+   "source": "description",
+   "evidence": "ích: 150g Mã vạch (JAN): 4901301415288 Công"
+  },
+  {
+   "productId": 2405,
+   "name": "Kem dưỡng chân Bioré Zero Sarasa Foot Cream hương xà phòng 70g",
+   "nameJa": "ビオレZero さらさらフットクリーム せっけんの香り 70g",
+   "code": "4901301433411",
+   "source": "description",
+   "evidence": "tích: 70g Mã vạch (JAN): 4901301433411 Công"
+  },
+  {
+   "productId": 2404,
+   "name": "Kem ủ tóc Kurobara Tsubaki Oil Hair Pack 280g",
+   "nameJa": "ツバキオイル ヘアパック 280g",
+   "code": "4901508972720",
+   "source": "description",
+   "evidence": "ích: 280g Mã vạch (JAN): 4901508972720 Công"
+  },
+  {
+   "productId": 2403,
+   "name": "Dầu xả Kurobara Tsubaki Oil Conditioner 500ml",
+   "nameJa": "ツバキオイル コンディショナー 500ml",
+   "code": "4901508975745",
+   "source": "description",
+   "evidence": "ch: 500ml Mã vạch (JAN): 4901508975745 Công"
+  },
+  {
+   "productId": 2402,
+   "name": "Sữa tắm tạo bọt dược mỹ phẩm Shikioriori Medicated Persimmon Extract túi thay thế 700ml",
+   "nameJa": "四季折々 薬用柿渋 泡タイプボディソープ 詰替用 700ml",
+   "code": "4513574040045",
+   "source": "description",
+   "evidence": "ch: 700ml Mã vạch (JAN): 4513574040045 Công"
+  },
+  {
+   "productId": 2401,
+   "name": "Sữa tắm PHARMAACT Additive-Free túi thay thế 1000ml",
+   "nameJa": "ファーマアクト 無添加ボディソープ 詰替用 1000ml",
+   "code": "4513574018907",
+   "source": "description",
+   "evidence": "h: 1000ml Mã vạch (JAN): 4513574018907 Công"
+  },
+  {
+   "productId": 2400,
+   "name": "Sữa tắm tạo bọt Pax Naturon Body Soap 500ml",
+   "nameJa": "パックスナチュロン ボディーソープ 500ml",
+   "code": "4904735055204",
+   "source": "description",
+   "evidence": "ch: 500ml Mã vạch (JAN): 4904735055204 Công"
+  },
+  {
+   "productId": 2397,
+   "name": "Sáp khử mùi Ag Deo24 Deodorant Stick DX Floral Bouquet 20g",
+   "nameJa": "エージーデオ24 デオドラントスティックDX フローラルブーケ 20g",
+   "code": "4901872446865",
+   "source": "description",
+   "evidence": "tích: 20g Mã vạch (JAN): 4901872446865 Công"
+  },
+  {
+   "productId": 2396,
+   "name": "Sáp khử mùi Deonatulle Soft Stone W 20g",
+   "nameJa": "デオナチュレ ソフトストーンW 20g",
+   "code": "4971825016582",
+   "source": "description",
+   "evidence": "tích: 20g Mã vạch (JAN): 4971825016582 Công"
+  },
+  {
+   "productId": 2395,
+   "name": "Lăn khử mùi Ban Sweat Block Roll-on không hương 30ml",
+   "nameJa": "Ban 汗ブロックロールオン 無香性 30ml",
+   "code": "4903301188711",
+   "source": "description",
+   "evidence": "ích: 30ml Mã vạch (JAN): 4903301188711 Công"
+  },
+  {
+   "productId": 2394,
+   "name": "Dầu gội YOLU Relax Night Repair túi thay thế 370ml",
+   "nameJa": "YOLU リラックスナイトリペアシャンプー 詰替 370ml",
+   "code": "4582521688043",
+   "source": "description",
+   "evidence": "ch: 370ml Mã vạch (JAN): 4582521688043 Công"
+  },
+  {
+   "productId": 2393,
+   "name": "Dầu xả YOLU Deep Night Repair Treatment 400g",
+   "nameJa": "YOLU ディープナイトリペアトリートメント 400g",
+   "code": "4582521685998",
+   "source": "description",
+   "evidence": "ích: 400g Mã vạch (JAN): 4582521685998 Công"
+  },
+  {
+   "productId": 2392,
+   "name": "Dầu gội YOLU Deep Night Repair 400ml",
+   "nameJa": "YOLU ディープナイトリペアシャンプー 400ml",
+   "code": "4582521688074",
+   "source": "description",
+   "evidence": "ch: 400ml Mã vạch (JAN): 4582521688074 Công"
+  },
+  {
+   "productId": 2391,
+   "name": "Dầu gội YOLU Mellow Night Repair 400ml",
+   "nameJa": "YOLU メロウナイトリペアシャンプー 400ml",
+   "code": "4571607693231",
+   "source": "description",
+   "evidence": "ch: 400ml Mã vạch (JAN): 4571607693231 Công"
+  },
+  {
+   "productId": 2390,
+   "name": "Sữa tắm YOLU Calm Night Care 440ml",
+   "nameJa": "YOLU カームナイトケアボディソープ 440ml",
+   "code": "4582521688906",
+   "source": "description",
+   "evidence": "ch: 440ml Mã vạch (JAN): 4582521688906 Công"
+  },
+  {
+   "productId": 2389,
+   "name": "Sữa tắm Bouncia Airy Bouquet túi thay thế 360ml",
+   "nameJa": "バウンシア ボディソープ エアリーブーケの香り 詰替用 360ml",
+   "code": "4901525011075",
+   "source": "description",
+   "evidence": "ch: 360ml Mã vạch (JAN): 4901525011075 Công"
+  },
+  {
+   "productId": 2388,
+   "name": "Sữa tắm Bouncia White Soap túi thay thế 360ml",
+   "nameJa": "バウンシア ボディソープ ホワイトソープの香り 詰替用 360ml",
+   "code": "4901525011068",
+   "source": "description",
+   "evidence": "ch: 360ml Mã vạch (JAN): 4901525011068 Công"
+  },
+  {
+   "productId": 2383,
+   "name": "Sữa dưỡng thể NIVEA Skin Milk Creamy 200g",
+   "nameJa": "ニベア スキンミルク クリーミィ 200g",
+   "code": "4901301291189",
+   "source": "description",
+   "evidence": "ích: 200g Mã vạch (JAN): 4901301291189 Công"
+  },
+  {
+   "productId": 2382,
+   "name": "Sữa dưỡng thể NIVEA Skin Milk Shittori 200g",
+   "nameJa": "ニベア スキンミルク しっとり 200g",
+   "code": "4901301291165",
+   "source": "description",
+   "evidence": "ích: 200g Mã vạch (JAN): 4901301291165 Công"
+  },
+  {
+   "productId": 2381,
+   "name": "Sữa dưỡng thể NIVEA Lucent Beauty Deep Moisture 200g",
+   "nameJa": "ニベア ルーセントビューティ ディープモイスチャー 浸透保湿美容液ボディミルク 200g",
+   "code": "4901301454072",
+   "source": "description",
+   "evidence": "ích: 200g Mã vạch (JAN): 4901301454072 Công"
+  },
+  {
+   "productId": 2380,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 8G màu đen tự nhiên 40g+40g",
+   "nameJa": "パオン クリームカラー 8G 自然な黒色 40g+40g",
+   "code": "4987234130405",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234130405 Công"
+  },
+  {
+   "productId": 2379,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 7G màu nâu đen tự nhiên 40g+40g",
+   "nameJa": "パオン クリームカラー 7G 自然な黒褐色 40g+40g",
+   "code": "4987234130306",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234130306 Công"
+  },
+  {
+   "productId": 2378,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 6G màu nâu tự nhiên 40g+40g",
+   "nameJa": "パオン クリームカラー 6G 自然な褐色 40g+40g",
+   "code": "4987234130207",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234130207 Công"
+  },
+  {
+   "productId": 2377,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 5G màu hạt dẻ trầm 40g+40g",
+   "nameJa": "パオン クリームカラー 5G 深みのある栗色 40g+40g",
+   "code": "4987234130603",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234130603 Công"
+  },
+  {
+   "productId": 2376,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 4.5G màu hạt dẻ ánh ấm 40g+40g",
+   "nameJa": "パオン クリームカラー 4.5G 暖かみのある栗色 40g+40g",
+   "code": "4987234310463",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234310463 Công"
+  },
+  {
+   "productId": 2375,
+   "name": "Kem nhuộm tóc bạc PAON Cream Color 4G màu hạt dẻ tự nhiên 40g+40g",
+   "nameJa": "パオン クリームカラー 4G 自然な栗色 40g+40g",
+   "code": "4987234130504",
+   "source": "description",
+   "evidence": "40g+2剤40g Mã vạch (JAN): 4987234130504 Công"
+  },
+  {
+   "productId": 2374,
+   "name": "Sáp dưỡng ẩm Vaseline Original Pure Skin Jelly 200g",
+   "nameJa": "ヴァセリン オリジナル ピュアスキンジェリー 200g",
+   "code": "4902111721231",
+   "source": "description",
+   "evidence": "ích: 200g Mã vạch (JAN): 4902111721231 Công"
+  },
+  {
+   "productId": 2373,
+   "name": "Sáp dưỡng ẩm Vaseline Original Pure Skin Jelly 80g",
+   "nameJa": "ヴァセリン オリジナル ピュアスキンジェリー 80g",
+   "code": "4902111721224",
+   "source": "description",
+   "evidence": "tích: 80g Mã vạch (JAN): 4902111721224 Công"
+  },
+  {
+   "productId": 2372,
+   "name": "Sáp dưỡng ẩm Vaseline Original Pure Skin Jelly 40g",
+   "nameJa": "ヴァセリン オリジナル ピュアスキンジェリー 40g",
+   "code": "4902111721217",
+   "source": "description",
+   "evidence": "tích: 40g Mã vạch (JAN): 4902111721217 Công"
+  },
+  {
+   "productId": 2371,
+   "name": "Sáp dưỡng ẩm cho bé Kenei Baby Vaseline 60g",
+   "nameJa": "健栄製薬 ベビーワセリン 60g",
+   "code": "4987286413440",
+   "source": "description",
+   "evidence": "tích: 60g Mã vạch (JAN): 4987286413440 Công"
+  },
+  {
+   "productId": 2367,
+   "name": "Nước hoa hồng IPSA The Time R Aqua 200ml",
+   "nameJa": "イプサ ザ・タイムR アクア 200mL",
+   "code": "4931449432526",
+   "source": "description",
+   "evidence": "ch: 200ml Mã vạch (JAN): 4931449432526 Công"
+  },
+  {
+   "productId": 2366,
+   "name": "Tinh chất dưỡng da DECORTÉ Liposome Advanced Repair Serum 100ml",
+   "nameJa": "コスメデコルテ リポソーム アドバンスト リペアセラム 100mL",
+   "code": "4971710569964",
+   "source": "description",
+   "evidence": "ch: 100ml Mã vạch (JAN): 4971710569964 Công"
+  },
+  {
+   "productId": 2364,
+   "name": "Sữa rửa mặt tẩy trang Momopuri Moisture Cleansing Wash 150g",
+   "nameJa": "ももぷり 潤いクレンジング洗顔 150g",
+   "code": "4515061089414",
+   "source": "description",
+   "evidence": "ích: 150g Mã vạch (JAN): 4515061089414 Công"
+  },
+  {
+   "productId": 2361,
+   "name": "Nước hoa hồng Momopuri Moisture Barrier Lotion M 200ml",
+   "nameJa": "ももぷり 潤いバリア化粧水 M（しっとりタイプ）200mL",
+   "code": "4515061012573",
+   "source": "description",
+   "evidence": "ml・loại M Mã vạch (JAN): 4515061012573 Công"
+  },
+  {
+   "productId": 2355,
+   "name": "Thuốc nhỏ mắt Taisho Iris Fon Break T 12ml",
+   "nameJa": "大正製薬 アイリス フォン ブレイクT 12mL",
+   "code": "4987306012417",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987306012417 Công"
+  },
+  {
+   "productId": 2354,
+   "name": "Thuốc nhỏ mắt Taisho Iris Fon Refresh 12ml",
+   "nameJa": "大正製薬 アイリス フォン リフレッシュ 12mL",
+   "code": "4987306012080",
+   "source": "description",
+   "evidence": "ích: 12ml Mã vạch (JAN): 4987306012080 Công"
+  },
+  {
+   "productId": 2353,
+   "name": "Nước uống vitamin Chocola BB Royal 2 hỗ trợ giảm mệt mỏi 50ml x 3 chai",
+   "nameJa": "チョコラBBローヤル2 50mL×3本",
+   "code": "4987028115434",
+   "source": "description",
+   "evidence": "x 3 chai Mã vạch (JAN): 4987028115434 Công"
+  },
+  {
+   "productId": 2350,
+   "name": "Viên uống Yuki Pharmaceutical Omega Three 120 viên 30–40 ngày",
+   "nameJa": "ユウキ製薬 ω3 オメガスリー 120球（30～40日分）",
+   "code": "4524326201898",
+   "source": "description",
+   "evidence": "0–40 ngày Mã vạch (JAN): 4524326201898 Công"
+  },
+  {
+   "productId": 2346,
+   "name": "Kem chống nắng nâng tông Reihaku Hatomugi UV Milky Gel Lavender SPF31 250ml",
+   "nameJa": "麗白 ハトムギ トーンアップUVミルキージェル ラベンダー SPF31 PA+++ 250ml",
+   "code": "4513574036628",
+   "source": "description",
+   "evidence": "ch: 250ml Mã vạch (JAN): 4513574036628 Công"
+  },
+  {
+   "productId": 2345,
+   "name": "Kem chống nắng Reihaku Hatomugi UV Milky Gel SPF50+ 250ml",
+   "nameJa": "麗白 ハトムギ UVミルキージェル SPF50+ PA++++ 250ml",
+   "code": "4513574033351",
+   "source": "description",
+   "evidence": "ch: 250ml Mã vạch (JAN): 4513574033351 Công"
+  },
+  {
+   "productId": 2341,
+   "name": "Gel dưỡng đa năng SANA Nameraka Honpo Medicated Wrinkle Gel Cream White 100g",
+   "nameJa": "なめらか本舗 薬用リンクルジェルクリーム ホワイト 100g",
+   "code": "4964596702754",
+   "source": "description",
+   "evidence": "ích: 100g Mã vạch (JAN): 4964596702754 Công"
+  },
+  {
+   "productId": 2340,
+   "name": "Sữa dưỡng SANA Nameraka Honpo Medicated Wrinkle Milk White 150ml",
+   "nameJa": "なめらか本舗 薬用リンクル乳液 ホワイト 150ml",
+   "code": "4964596701894",
+   "source": "description",
+   "evidence": "ch: 150ml Mã vạch (JAN): 4964596701894 Công"
+  },
+  {
+   "productId": 2339,
+   "name": "Nước hoa hồng SANA Nameraka Honpo Medicated Wrinkle Lotion White 200ml",
+   "nameJa": "なめらか本舗 薬用リンクル化粧水 ホワイト 200ml",
+   "code": "4964596701887",
+   "source": "description",
+   "evidence": "ch: 200ml Mã vạch (JAN): 4964596701887 Công"
+  },
+  {
+   "productId": 2334,
+   "name": "Chiết xuất mận khô cô đặc Tamon Prune Extract California 280g",
+   "nameJa": "タモン プルーン濃縮エキス 280g",
+   "code": "4987656130083",
+   "source": "description",
+   "evidence": "ích: 280g Mã vạch (JAN): 4987656130083 Công"
+  },
+  {
+   "productId": 2330,
+   "name": "Ngũ cốc granola Nissin Goro Granola Earl Grey dâu đào việt quất 280g",
+   "nameJa": "日清シスコ ごろグラ 華やぐアールグレイ 280g",
+   "code": "4901620161842",
+   "source": "description",
+   "evidence": "ích: 280g Mã vạch (JAN): 4901620161842 Công"
+  },
+  {
+   "productId": 2310,
+   "name": "Kẹo dẻo đa vitamin UHA Gummy Supplement Multivitamin vị bưởi hồng 20 ngày",
+   "nameJa": "UHAグミサプリ マルチビタミン ピンクグレープフルーツ味 20日分（40粒）",
+   "code": "4902750709652",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750709652 Công"
+  },
+  {
+   "productId": 2309,
+   "name": "Kẹo dẻo bổ sung Vitamin D3 UHA Gummy Supplement vị Shine Muscat 20 ngày",
+   "nameJa": "UHAグミサプリ ビタミンD3 シャインマスカット味 20日分（40粒）",
+   "code": "4902750650022",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750650022 Công"
+  },
+  {
+   "productId": 2308,
+   "name": "Kẹo dẻo bổ sung Vitamin C UHA Gummy Supplement vị chanh 20 ngày",
+   "nameJa": "UHAグミサプリ ビタミンC レモン味 20日分（40粒）",
+   "code": "4902750649958",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750649958 Công"
+  },
+  {
+   "productId": 2305,
+   "name": "Bộ dưỡng da dùng thử CNP Laboratory Propolis 4 loại 5 món Winnie the Pooh",
+   "nameJa": "CNP Laboratory トライアルセット（くまのプーさん限定デザイン）4種5点",
+   "code": "4560279564222",
+   "source": "description",
+   "evidence": "nce 5ml×2 Mã vạch (JAN): 4560279564222 Công"
+  },
+  {
+   "productId": 2303,
+   "name": "Khăn lạnh Saikyo Pharma Cooling Long Towel 60x30cm 5 gói",
+   "nameJa": "冷却ロングタオル 60×30cm 5枚入",
+   "code": "4562378467206",
+   "source": "description",
+   "evidence": "i・60x30cm Mã vạch (JAN): 4562378467206 Công"
+  },
+  {
+   "productId": 2298,
+   "name": "Trà hồng sâm Koryo Trade Japan Korean Red Ginseng Tea Gold 30 gói",
+   "nameJa": "高麗紅参茶ゴールド 30包（3g×30包）",
+   "code": "8809013358090",
+   "source": "description",
+   "evidence": "g×30 gói） Mã vạch (JAN): 8809013358090 Công"
+  },
+  {
+   "productId": 2297,
+   "name": "Viên uống hồng sâm Koryo Trade Japan Kojinryoku Capsule 32 60 viên",
+   "nameJa": "紅参力 紅参カプセル32 60カプセル",
+   "code": "8809013351411",
+   "source": "description",
+   "evidence": "80mg/viên Mã vạch (JAN): 8809013351411 Công"
+  },
+  {
+   "productId": 2293,
+   "name": "Viên uống tảo xoắn Algae Spirulina 100% pha tảo biển sâu 2200 viên",
+   "nameJa": "海洋深層水スピルリナブレンド スピルリナ100% 2200粒",
+   "code": "4937224925658",
+   "source": "description",
+   "evidence": "・ước 440g Mã vạch (JAN): 4937224925658 Công"
+  },
+  {
+   "productId": 2291,
+   "name": "Viên uống hỗ trợ trí nhớ Kioku no Bannin 120 viên 30 ngày",
+   "nameJa": "記憶の番人 120粒 24g（200mg×120粒）",
+   "code": "4942564000385",
+   "source": "description",
+   "evidence": "g・30 ngày Mã vạch (JAN): 4942564000385 Công"
+  },
+  {
+   "productId": 2290,
+   "name": "Viên uống hỗ trợ đường huyết SBI ALAplus Toudown 30 ngày",
+   "nameJa": "アラプラス 糖ダウン 30日分（30カプセル）",
+   "code": "4560304632124",
+   "source": "description",
+   "evidence": "g・30 ngày Mã vạch (JAN): 4560304632124 Công"
+  },
+  {
+   "productId": 2289,
+   "name": "Viên uống Infinity NMN 200 40 viên 20 ngày",
+   "nameJa": "インフィニティー NMN200 40粒",
+   "code": "4570044000855",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4570044000855 Công"
+  },
+  {
+   "productId": 2288,
+   "name": "Viên uống NMN Yamamoto Kanpo 60 viên 30 ngày",
+   "nameJa": "山本漢方 健康100年サプリ NMN粒 60粒",
+   "code": "4979654027885",
+   "source": "description",
+   "evidence": "n・30 ngày Mã vạch (JAN): 4979654027885 Công"
+  },
+  {
+   "productId": 2332,
+   "name": "Mặt nạ giấy SUHADA Beppin Mask Shiratama Glutathione 30 miếng",
+   "nameJa": "SUHADAべっぴんマスク 白玉グルタチオン 30枚入",
+   "code": "4573342843865",
+   "source": "description",
+   "evidence": "30 miếng Mã vạch (JAN): 4573342843865 Công"
+  },
+  {
+   "productId": 2331,
+   "name": "Mặt nạ giấy SUHADA Beppin Mask Human Stem Cell 30 miếng",
+   "nameJa": "SUHADAべっぴんマスク ヒト幹細胞 30枚入",
+   "code": "4573342841304",
+   "source": "description",
+   "evidence": "30 miếng Mã vạch (JAN): 4573342841304 Công"
+  },
+  {
+   "productId": 2320,
+   "name": "Bột collagen ORIHIRO Dense Collagen Placenta 120g 30 ngày",
+   "nameJa": "濃密コラーゲンプラセンタ 120g（30日分）",
+   "code": "4571157256887",
+   "source": "description",
+   "evidence": "g・30 ngày Mã vạch (JAN): 4571157256887 Công"
+  },
+  {
+   "productId": 2313,
+   "name": "Kẹo dẻo bổ sung sắt và axit folic UHA Gummy Supplement vị acai mix 20 ngày",
+   "nameJa": "UHAグミサプリ 鉄＆葉酸 アサイーミックス味 20日分（40粒）",
+   "code": "4902750650060",
+   "source": "description",
+   "evidence": "n・20 ngày Mã vạch (JAN): 4902750650060 Công"
+  },
+  {
+   "productId": 2292,
+   "name": "Viên uống tảo xoắn Algae SGF tăng cường Spirulina 100% 1500 viên",
+   "nameJa": "Algae SGF強化 スピルリナ100% 1500粒",
+   "code": "4937224924613",
+   "source": "description",
+   "evidence": "oảng 300g Mã vạch (JAN): 4937224924613 Công"
+  }
+ ],
+ "ambiguous": [
+  {
+   "productId": 2730,
+   "name": "Kem chống nẻ / dưỡng ẩm bé Pigeon Baby Cream 50g — tuýp nhỏ",
+   "nameJa": "ピジョン ベビークリーム 50g（ベーシック）",
+   "codes": [
+    {
+     "code": "4902508084598",
+     "evidence": "のみ異なる同一処方。JAN 4902508084598。 ピジョ"
+    },
+    {
+     "code": "4902508084734",
+     "evidence": "bản 110g (JAN 4902508084734) — c"
+    }
+   ]
+  },
+  {
+   "productId": 1427,
+   "name": "Kem chống nẻ / dưỡng ẩm bé Pigeon Baby Cream 110g — tuýp lớn",
+   "nameJa": "ピジョン ベビークリーム 110g（ベーシック）",
+   "codes": [
+    {
+     "code": "4902508084734",
+     "evidence": "のみ異なる同一処方。JAN 4902508084734。 ピジョ"
+    },
+    {
+     "code": "4902508084598",
+     "evidence": "bản 50g (JAN 4902508084598) — c"
+    }
+   ]
+  },
+  {
+   "productId": 2001,
+   "name": "Bình sữa Pigeon Mother’s Milk Real Feel nhựa PPSU 240ml — loại to",
+   "nameJa": "ピジョン 母乳実感 哺乳びん プラスチック製 240ml",
+   "codes": [
+    {
+     "code": "4902508024518",
+     "evidence": "508024501 JAN sản phẩm này: 4902508024518 · Ama"
+    },
+    {
+     "code": "4902508024501",
+     "evidence": "ại nhỏ) — JAN 4902508024501 JAN s"
+    }
+   ]
+  },
+  {
+   "productId": 2731,
+   "name": "Bình sữa Pigeon Mother’s Milk Real Feel nhựa PPSU 160ml — loại nhỏ",
+   "nameJa": "ピジョン 母乳実感 哺乳びん プラスチック製 160ml",
+   "codes": [
+    {
+     "code": "4902508024501",
+     "evidence": "508024518 JAN sản phẩm này: 4902508024501 · Ama"
+    },
+    {
+     "code": "4902508024518",
+     "evidence": "oại to) — JAN 4902508024518 JAN s"
+    }
+   ]
+  }
+ ],
+ "duplicates": [
+  {
+   "code": "4901301413505",
+   "products": [
+    {
+     "productId": 2656,
+     "name": "Kem lót Curel Intensive Moisture Care Tone Up Base Cream SPF30 PA+++ (30g)"
+    },
+    {
+     "productId": 2348,
+     "name": "Tinh chất chống nắng Curel Intensive Moisture Care UV Essence SPF30 50g"
+    }
+   ]
+  }
+ ],
+ "missing": [
+  {
+   "productId": 1650,
+   "name": "Dầu Gội  Trị Gàu LION",
+   "nameJa": "ライオン オクト 薬用シャンプー 320mL",
+   "sku": "LION-CST-2303-1650"
+  },
+  {
+   "productId": 2418,
+   "name": "Mặt nạ bã rượu sake PDC Wafood Made 170g",
+   "nameJa": "ワフードメイド 酒粕パック 170g",
+   "sku": "WAFO-MNM-2609-2418"
+  },
+  {
+   "productId": 2736,
+   "name": "Viên uống bổ máu Kobayashi Faichi 120 viên (60 ngày)",
+   "nameJa": "ファイチ 120錠",
+   "sku": "FAICHI-120"
+  },
+  {
+   "productId": 2629,
+   "name": "Nước giặt đồ lót Kobayashi Sarasaty Lingerie Soap 120ml",
+   "nameJa": "小林製薬 サラサーティ ランジェリー用洗剤 120mL",
+   "sku": "KOB-SARASATY-LINGERIE-120ML"
+  },
+  {
+   "productId": 2737,
+   "name": "Kem bôi mờ sẹo mờ thâm Kobayashi Attonon EX Cream 15g",
+   "nameJa": "アットノンEX クリーム 15g",
+   "sku": "ATTONON-EX-CREAM-15G"
+  },
+  {
+   "productId": 2708,
+   "name": "Kem bôi mờ sẹo mờ thâm Kobayashi Attonon EX Gel 15g",
+   "nameJa": "アットノンEX ジェル 15g",
+   "sku": "KOBAYASHI"
+  },
+  {
+   "productId": 2307,
+   "name": "Dung dịch rửa mũi Kobayashi Hananoa Regular 500ml",
+   "nameJa": "ハナノア専用洗浄液 レギュラータイプ 500mL",
+   "sku": "KOBA-TTGD-2609-2307"
+  },
+  {
+   "productId": 2252,
+   "name": "Viên Uống Bổ Phổi Kobayashi 80 Viên",
+   "nameJa": "小林製薬 ダスモックb 80錠",
+   "sku": "KOBA-TPCN-2609-2252"
+  },
+  {
+   "productId": 1760,
+   "name": "GEL ĐẶC TRỊ HÔI NÁCH KOBAYASHI",
+   "nameJa": "小林製薬 ワキガード 50g",
+   "sku": "KOBA-GCEC-2408-1760"
+  },
+  {
+   "productId": 2130,
+   "name": "Thuốc tiền mãn kinh Kobayashi Inochi no Haha A 840 viên",
+   "nameJa": "小林製薬 命の母A 840錠",
+   "sku": "KOBA-GCEC-2609-2130"
+  },
+  {
+   "productId": 2129,
+   "name": "Thuốc tiền mãn kinh Kobayashi Inochi no Haha A 420 viên",
+   "nameJa": "小林製薬 命の母A 420錠",
+   "sku": "KOBA-GCEC-2609-2129"
+  },
+  {
+   "productId": 2140,
+   "name": "Phấn Nền Chống Nắng Anessa All-In-One Beauty Pact SPF50+",
+   "nameJa": "アネッサ オールインワン ビューティーパクト レフィル 2 10g",
+   "sku": "ANES-CNU-2609-2140"
+  },
+  {
+   "productId": 2496,
+   "name": "Xịt chống nắng Anessa Perfect UV Skincare Spray SPF50+ PA++++ 60g",
+   "nameJa": "アネッサ パーフェクトUV スキンケアスプレー SPF50+・PA++++ 60g",
+   "sku": "ANESSA-PERFECT-UV-SPRAY-60G"
+  },
+  {
+   "productId": 2176,
+   "name": "Kem Chống Nắng Anessa Gel Nâng Tông Trắng Hồng",
+   "nameJa": "アネッサ ブライトニングUV ジェル NA 40g",
+   "sku": "ANES-CNU-2609-2176"
+  },
+  {
+   "productId": 2229,
+   "name": "Kem Chống Nắng Anessa Perfect UV Mild Milk 60ml",
+   "nameJa": "アネッサ パーフェクトUV マイルドミルク NA 60mL",
+   "sku": "ANES-CNU-2609-2229"
+  },
+  {
+   "productId": 2228,
+   "name": "Kem chống nắng Anessa Perfect UV Skincare Milk SPF50+ PA++++ 60ml",
+   "nameJa": "アネッサ パーフェクトUV スキンケアミルク NA 60mL",
+   "sku": "ANES-CNU-2609-2228"
+  },
+  {
+   "productId": 2723,
+   "name": "Bánh quy sô-cô-la hình búp măng Meiji Takenoko no Sato vị kem vani bánh quy Super Cup Pocket Pack 37g",
+   "nameJa": "Bánh quy sô-cô-la hình búp măng Meiji Takenoko no Sato vị kem vani bánh quy Supe",
+   "sku": "MEIJI-4902777123456"
+  },
+  {
+   "productId": 2703,
+   "name": "Bánh snack bắp nướng Doritos vị sốt Taco cay ngọt gói siêu lớn Ultra Size 305g",
+   "nameJa": "Bánh snack bắp nướng Doritos vị sốt Taco cay ngọt gói siêu lớn Ultra Size 305g",
+   "sku": "4902524300305"
+  },
+  {
+   "productId": 2701,
+   "name": "Rong biển tẩm gia vị Hàn Quốc Don Quijote Jonetz (Gói siêu đại)",
+   "nameJa": "Rong biển tẩm gia vị Hàn Quốc Don Quijote Jonetz (Gói siêu đại)",
+   "sku": "4983740101011"
+  },
+  {
+   "productId": 2180,
+   "name": "Viên Uống Bổ Mắt Noguchi Blueberry & Lutein",
+   "nameJa": "野口医学研究所 ブルーベリー&ルテイン 60粒",
+   "sku": "NOGU-TPCN-2609-2180"
+  },
+  {
+   "productId": 1756,
+   "name": "Viên Uống Bổ Mắt Noguchi Lutein EX Hộp 60",
+   "nameJa": "野口医学研究所 ブルーベリー＆ルテインEX 60粒",
+   "sku": "NOGU-ME-2408-1756"
+  },
+  {
+   "productId": 2119,
+   "name": "Viên uống bổ khớp Q&P Kowa Chondroizer 90 viên",
+   "nameJa": "興和 キューピーコーワ コンドロイザーα 90錠",
+   "sku": "KOWA-TPCN-2609-2119"
+  },
+  {
+   "productId": 2203,
+   "name": "Sữa Bean Stalk Sukoyaka M1 Cho Bé 0-1 Tuổi",
+   "nameJa": "雪印ビーンスターク すこやかM1 800g",
+   "sku": "BEAN-MAB-2609-2203"
+  },
+  {
+   "productId": 2196,
+   "name": "Sữa Bột Dinh Dưỡng Người Lớn Bean Stalk Ít Lactose",
+   "nameJa": "雪印ビーンスターク 大人のための粉ミルク おなかにやさしい 300g",
+   "sku": "BEAN-TPDU-2609-2196"
+  },
+  {
+   "productId": 2454,
+   "name": "Bảng phấn má fwee Pocket Cheek Palette CP04 Grape & Berry",
+   "nameJa": "fwee ポケットチークパレット CP04 グレープ＆ベリー",
+   "sku": "FWEE-POCKET-CHEEK-CP04"
+  },
+  {
+   "productId": 2451,
+   "name": "Bảng phấn mắt fwee Pocket Eye Palette EP03 Strawberry Whip",
+   "nameJa": "fwee ポケットアイパレット EP03 ストロベリーホイップ",
+   "sku": "FWEE-POCKET-EYE-EP03"
+  },
+  {
+   "productId": 1594,
+   "name": "Kem Tăng Ngực Maputi",
+   "nameJa": "MAPUTI オーガニックフレグランス バストクリーム 60g",
+   "sku": "MAPU-GCEC-2210-1594"
+  },
+  {
+   "productId": 1592,
+   "name": "Dung Dịch Vệ Sinh Vùng Kín Maputi",
+   "nameJa": "MAPUTI オーガニックフレグランス インティメイトソープ 120mL",
+   "sku": "MAPU-GCEC-2209-1592"
+  },
+  {
+   "productId": 2225,
+   "name": "Combo 10 Mặt Nạ Mitomo",
+   "nameJa": "ミトモ 美友 ツヤ肌 フェイスマスク 個別包装 10枚セット",
+   "sku": "MITO-MNM-2609-2225"
+  },
+  {
+   "productId": 2224,
+   "name": "Mặt Nạ Mitomo 1 Miếng",
+   "nameJa": "MITOMO 美友 フェイシャルエッセンスマスク 1枚",
+   "sku": "MITO-MNM-2609-2224"
+  },
+  {
+   "productId": 2268,
+   "name": "Set 3 Lon Sữa Wakodo Gungun Cho Bé 9 Tháng-3 Tuổi Kèm 10 Thanh",
+   "nameJa": "和光堂 フォローアップミルク ぐんぐん 830g 3缶セット（スティック10本付）",
+   "sku": "WAKO-MAB-2609-2268"
+  },
+  {
+   "productId": 2267,
+   "name": "Set Sữa Wakodo Haihai Cho Bé 0-1 Tuổi Kèm 10 Thanh",
+   "nameJa": "和光堂 レーベンスミルク はいはい 300g＋スティックパック 13g×10本 セット",
+   "sku": "WAKO-MAB-2609-2267"
+  },
+  {
+   "productId": 2217,
+   "name": "Nước Uống ReFa Collagen Enrich",
+   "nameJa": "ReFa コラーゲンエンリッチ 480mL",
+   "sku": "REFA-TPCN-2609-2217"
+  },
+  {
+   "productId": 1269,
+   "name": "Collagen Refa 16 Dạng Nước 480ml",
+   "nameJa": "リファ コラーゲンエンリッチ 480mL",
+   "sku": "REFA-TPCN-2111-1269"
+  },
+  {
+   "productId": 2216,
+   "name": "Nước Uống Fracora Placenta Extract 150000mg 480ml",
+   "nameJa": "フラコラ プラセンタ液150000 480mL",
+   "sku": "FRAC-TPCN-2609-2216"
+  },
+  {
+   "productId": 2066,
+   "name": "Serum nhau thai Fracora Placenta Extract 30ml",
+   "nameJa": "フラコラ プラセンタエキス原液 30mL",
+   "sku": "FRAC-DDM-2609-2066"
+  },
+  {
+   "productId": 2062,
+   "name": "Nước hoa hồng Kose Sekkisei Lotion",
+   "nameJa": "コーセー 薬用 雪肌精 化粧水 200mL",
+   "sku": "SEKK-DDM-2609-2062"
+  },
+  {
+   "productId": 2050,
+   "name": "Kem tẩy trang Kose Sekkisei 140g",
+   "nameJa": "コーセー 雪肌精 クリアウェルネス クレンジングジェル 140g",
+   "sku": "SEKK-SRMT-2609-2050"
+  },
+  {
+   "productId": 2021,
+   "name": "Kem dưỡng mắt Kose Sekkisei",
+   "nameJa": "コーセー 雪肌精 アイクリーム N 20g",
+   "sku": "SEKK-ME-2609-2021"
+  },
+  {
+   "productId": 2727,
+   "name": "Sáp bôi làm lành da trị nứt nẻ bỏng trầy xước Omi Brotherhood Menturm 85g",
+   "nameJa": "【第3類医薬品】近江兄弟社メンターム 85g",
+   "sku": "OMI-4987036450054"
+  },
+  {
+   "productId": 1642,
+   "name": "DẦU CÙ LÀ MENTURM",
+   "nameJa": "近江兄弟社 メンタームQ軟膏",
+   "sku": "MENT-TTGD-2303-1642"
+  },
+  {
+   "productId": 2518,
+   "name": "Son dưỡng môi Mentholatum Medicated Lip Stick XD gói 2 thỏi (4g × 2)",
+   "nameJa": "メンソレータム 薬用リップスティックXD 2本パック",
+   "sku": "MENT-LIP-XD-2PACK"
+  },
+  {
+   "productId": 762,
+   "name": "Son Dưỡng Trị Thâm Môi Mentholatum 5g",
+   "nameJa": "メンソレータム 薬用リップスティック 4.5g",
+   "sku": "MENT-TDM-2010-0762"
+  },
+  {
+   "productId": 2272,
+   "name": "Bộ Aqualabel Treatment Brightening Lotion Và Sữa Dưỡng",
+   "nameJa": "アクアレーベル トリートメントローション・ミルク（ブライトニング）2点セット",
+   "sku": "AQUA-DDM-2609-2272"
+  },
+  {
+   "productId": 2271,
+   "name": "Bộ Aqualabel Treatment Lotion Và Sữa Dưỡng Chống Lão Hóa",
+   "nameJa": "アクアレーベル トリートメントローション・ミルク（オイルイン）しっとり 2点セット",
+   "sku": "AQUA-DDM-2609-2271"
+  },
+  {
+   "productId": 1590,
+   "name": "Nước Hoa Hồng CC Melano",
+   "nameJa": "ロート製薬 メラノCC 薬用しみ対策 美白化粧水 170mL",
+   "sku": "MELA-DDM-2209-1590"
+  },
+  {
+   "productId": 1531,
+   "name": "Kem Dưỡng Trắng Da CC Melano Brightening Gel 100g",
+   "nameJa": "メラノCC 薬用しみ対策 美白ジェル 100g",
+   "sku": "MELA-DDM-2206-1531"
+  },
+  {
+   "productId": 2164,
+   "name": "Viên Uống Bổ Gan Hepalyse GX 360 Viên",
+   "nameJa": "ゼリア新薬 ヘパリーゼGX 360錠",
+   "sku": "HEPA-TPCN-2609-2164"
+  },
+  {
+   "productId": 2150,
+   "name": "Nước Uống Bổ Gan Hepalyse Hi Plus 50ml X 10 Chai",
+   "nameJa": "ゼリア新薬 ヘパリーゼHiプラス 50mL 10本入",
+   "sku": "HEPA-TPCN-2609-2150"
+  },
+  {
+   "productId": 2399,
+   "name": "Kem ủ đêm làm sáng ngón tay himecoto White Finger Night Pack 30g",
+   "nameJa": "himecoto 白ゆび姫ナイトパック 30g",
+   "sku": "HIME-CSB-2609-2399"
+  },
+  {
+   "productId": 2076,
+   "name": "Sữa rửa mặt Kose Softymo (mẫu 2018)",
+   "nameJa": "コーセー ソフティモ 洗顔フォーム セラミド 150g",
+   "sku": "SOFT-SRMT-2609-2076"
+  },
+  {
+   "productId": 2075,
+   "name": "Sữa rửa mặt Kose Softymo White 150g",
+   "nameJa": "コーセー ソフティモ ホワイト 薬用洗顔フォーム 150g",
+   "sku": "SOFT-SRMT-2609-2075"
+  },
+  {
+   "productId": 2261,
+   "name": "Xịt Chống Nắng Biore UV Aqua Rich Aqua Protect Mist SPF50+ PA++++",
+   "nameJa": "ビオレUV アクアリッチ アクアプロテクトミスト 60mL",
+   "sku": "BIOR-CNU-2609-2261"
+  },
+  {
+   "productId": 2025,
+   "name": "Kem chống nắng Biore UV Aqua Rich Watery Gel 70ml",
+   "nameJa": "花王 ビオレUV アクアリッチ ウォータリージェル 70g",
+   "sku": "BIOR-CNU-2609-2025"
+  },
+  {
+   "productId": 1431,
+   "name": "Thuốc Đặc Trị Ho Cảm Cúm PABRON S NHẬT BẢN Dạng Gói",
+   "nameJa": "大正製薬 パブロンSゴールドW微粒",
+   "sku": "PABR-TTGD-2203-1431"
+  },
+  {
+   "productId": 1429,
+   "name": "Thuốc Đặc Trị Ho Cảm Cúm PABRON S NHẬT BẢN Dạng Viên",
+   "nameJa": "大正製薬 パブロンSゴールドW錠",
+   "sku": "PABR-TTGD-2203-1429"
+  },
+  {
+   "productId": 2219,
+   "name": "Viên Uống Baby Support For Girl 90 Viên",
+   "nameJa": "ベイビーサポート BSクランベリー 女の子用 90粒",
+   "sku": "BABY-TPCN-2609-2219"
+  },
+  {
+   "productId": 2218,
+   "name": "Viên Uống Baby Support For Boy 90 Viên",
+   "nameJa": "ベイビーサポート BSリンカル 男の子用 90粒",
+   "sku": "BABY-TPCN-2609-2218"
+  },
+  {
+   "productId": 2519,
+   "name": "Viên uống đa vitamin Nature Made Multi Vitamin 120 viên",
+   "nameJa": "ネイチャーメイド マルチビタミン 120粒",
+   "sku": "NATURE MADE"
+  },
+  {
+   "productId": 2047,
+   "name": "Kem đánh răng trẻ em Lion",
+   "nameJa": "ライオン こどもハミガキ いちご 40g",
+   "sku": "LION-CSRM-2609-2047"
+  },
+  {
+   "productId": 2695,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 7G – Nâu đen thuần đen 40g+40g",
+   "nameJa": "ビゲン クリームトーン 7G 自然な褐色 40g+40g",
+   "sku": "KEM-NHUOM-TOC-BAC-BI-2695"
+  },
+  {
+   "productId": 2729,
+   "name": "BỘT HỖ TRỢ HẠN CHẾ HẤP THU ĐƯỜNG VÀ CALORIES NHẬT - THE WISE MAN’S DINING",
+   "nameJa": "糖質・カロリー吸収を抑えるサポート粉末",
+   "sku": "BOT-HO-TRO-HAN-CHE-H-2729"
+  },
+  {
+   "productId": 2755,
+   "name": "Viên uống DHC Pycnogenol-PB",
+   "nameJa": "DHC ピクノジェノール-PB",
+   "sku": "DHC"
+  },
+  {
+   "productId": 2635,
+   "name": "Gel dưỡng ẩm Naturie Hatomugi 180g",
+   "nameJa": "ナチュリエ ハトムギ保湿ジェル 180g",
+   "sku": "GEL-DUONG-AM-NATURIE-2635"
+  },
+  {
+   "productId": 2756,
+   "name": "Nước rửa bình sữa Arau baby 500ml",
+   "nameJa": "アラウ.ベビー泡ほ乳ビン食器洗い 500mL",
+   "sku": "NUOC-RUA-BINH-SUA-AR-2756"
+  },
+  {
+   "productId": 2757,
+   "name": "Nước rửa bình sữa Arau baby refill 450ml",
+   "nameJa": "アラウ.ベビー泡ほ乳ビン食器洗い refill 450ml",
+   "sku": "NUOC-RUA-BINH-SUA-AR-2757"
+  },
+  {
+   "productId": 2760,
+   "name": "Bàn chải đánh răng người lớn Ebisu mềm",
+   "nameJa": "エビス 大人歯ブラシ やわらかめ",
+   "sku": "EBISU-ADULT-SOFT"
+  },
+  {
+   "productId": 2761,
+   "name": "Bàn chải đánh răng người lớn Ebisu thường",
+   "nameJa": "エビス 大人歯ブラシ ふつう",
+   "sku": "EBISU-ADULT-NORMAL"
+  },
+  {
+   "productId": 2704,
+   "name": "Bánh que nướng giòn cay vị trứng cá tuyết Karashi Mentaiko Nhật Bản",
+   "nameJa": "おからりんとう からし明太子",
+   "sku": "SNACK-MENTAIKO-JPN"
+  },
+  {
+   "productId": 2758,
+   "name": "Giày Onitsuka Tiger Mexico 66 SD Birch/Silver 1183A592.200",
+   "nameJa": "オニツカタイガー MEXICO 66 SD（メキシコ 66 SD） BIRCH/SILVER 1183A592.200",
+   "sku": "GIAY-ONITSUKA-TIGER-MEXI-2758"
+  },
+  {
+   "productId": 2721,
+   "name": "Dung dịch lăn xoa bóp giảm đau vai gáy mỏi cơ Hisamitsu Salonpas Lotion 85ml",
+   "nameJa": "Dung dịch lăn xoa bóp giảm đau vai gáy mỏi cơ Hisamitsu Salonpas Lotion 85ml",
+   "sku": "HISAMITSU-4987188155050"
+  },
+  {
+   "productId": 2719,
+   "name": "Nước hoa Byredo Blanche Eau de Parfum 50ml",
+   "nameJa": "Byredo",
+   "sku": "BYREDO-7340032806037"
+  },
+  {
+   "productId": 2020,
+   "name": "Trà giảm cân Night Diet Tea Orihiro Nhật Bản",
+   "nameJa": "オリヒロ ナイトダイエットティー 2g×20包",
+   "sku": "ORIH-GCD-2609-2020"
+  },
+  {
+   "productId": 303,
+   "name": "Skina Babe Sữa Tắm Trị Rôm Sẩy Cho Bé",
+   "nameJa": "持田ヘルスケア スキナベーブ 沐浴剤 500mL",
+   "sku": "SKIN-MAB-2006-0303"
+  },
+  {
+   "productId": 2480,
+   "name": "Son MAQuillAGE Dramatic Rouge N BE771 Styler Beige 2.2g",
+   "nameJa": "マキアージュ ドラマティックルージュN BE771 スタイラーベージュ 2.2g",
+   "sku": "MAQUILLAGE-ROUGEN-BE771-2.2G"
+  },
+  {
+   "productId": 2482,
+   "name": "Son MAQuillAGE Dramatic Rouge N RD582 Chic Urban 2.2g",
+   "nameJa": "マキアージュ ドラマティックルージュN RD582 シックアーバン 2.2g",
+   "sku": "MAQUILLAGE-ROUGEN-RD582-2.2G"
+  },
+  {
+   "productId": 2483,
+   "name": "Son MAQuillAGE Dramatic Rouge N RD300 Good Mood Red 2.2g",
+   "nameJa": "マキアージュ ドラマティックルージュN RD300 グッドムードレッド 2.2g",
+   "sku": "MAQUILLAGE-ROUGEN-RD300-2.2G"
+  },
+  {
+   "productId": 2484,
+   "name": "Son MAQuillAGE Dramatic Rouge N PK340 Pure Charming 2.2g",
+   "nameJa": "マキアージュ ドラマティックルージュN PK340 ピュアチャーミング 2.2g",
+   "sku": "MAQUILLAGE-ROUGEN-PK340-2.2G"
+  },
+  {
+   "productId": 2457,
+   "name": "Son tint rom&nd Juicy Lasting Tint 06 Figfig 5.5g",
+   "nameJa": "rom&nd ジューシーラスティングティント 06 フィグフィグ 5.5g",
+   "sku": "ROMAND-JLT-06-5.5G"
+  },
+  {
+   "productId": 2465,
+   "name": "Bảng phấn mắt KiSS Cocktail Days 02 Mandarin Shaker 6.4g",
+   "nameJa": "キス カクテルデイズ 02 マンダリンシェイカー 6.4g",
+   "sku": "KISS-COCKTAIL-02-6.4G"
+  },
+  {
+   "productId": 2742,
+   "name": "Mặt nạ mắt hydrogel Cosparade Collagen 60 miếng (30 cặp)",
+   "nameJa": "cosparade ゴールド・ハイドロゲルアイマスク 60枚入（コラーゲン）",
+   "sku": "COSPARADE-EYE-COLLAGEN-60"
+  },
+  {
+   "productId": 2741,
+   "name": "Mặt nạ mắt hydrogel Cosparade CICA Botanical 60 miếng (30 cặp)",
+   "nameJa": "cosparade ハイドロゲルアイマスク ボタニカル CICA 60枚入",
+   "sku": "COSPARADE-EYE-CICA-60"
+  },
+  {
+   "productId": 2720,
+   "name": "Mặt nạ mắt hydrogel Cosparade Niacinamide & NMN 60 miếng (30 cặp)",
+   "nameJa": "cosparade ハイドロゲルアイマスク ナイアシンアミド＆NMN 60枚入",
+   "sku": "COSPARADE-4573402364023"
+  },
+  {
+   "productId": 2439,
+   "name": "Ngũ cốc Calbee Mygra Protein đậu nành và hạnh nhân 360g",
+   "nameJa": "カルビー マイグラ プロテイン 2種の大豆＆アーモンド 360g",
+   "sku": "NGU-TPDU-2609-2439"
+  },
+  {
+   "productId": 2611,
+   "name": "Lotion dưỡng ẩm Hada Labo Gokujyun Premium Hyaluronic 170ml – Chai vàng",
+   "nameJa": "肌ラボ 極潤プレミアム ヒアルロン液 170mL",
+   "sku": "HADALABO-GOKUJYUN-PREMIUM-170ML"
+  },
+  {
+   "productId": 2452,
+   "name": "Phấn má fwee Mellow Dual Blush MV01 No More Cupid",
+   "nameJa": "fwee デュアルチークメロウ MV01 ノーモアキューピット",
+   "sku": "FWEE-MELLOW-MV01"
+  },
+  {
+   "productId": 2453,
+   "name": "Son tint fwee Pink Obsession Stay-Fit M10 Heart Pink 3.8g",
+   "nameJa": "fwee ピンクオブセッション ステイフィットティント M10 ハートピンク 3.8g",
+   "sku": "FWEE-PINK-M10-3.8G"
+  },
+  {
+   "productId": 2455,
+   "name": "Son má fwee Lip & Cheek Glowy Jelly Pot JC01 Honey Peach 4g",
+   "nameJa": "fwee リップアンドチーク グローイジェリーポット JC01 ハニーピーチ 4g",
+   "sku": "FWEE-JELLY-JC01-4G"
+  },
+  {
+   "productId": 2456,
+   "name": "Son má fwee Lip & Cheek Glowy Jelly Pot JN03 Custard 4g",
+   "nameJa": "fwee リップアンドチーク グローイジェリーポット JN03 カスタード 4g",
+   "sku": "FWEE-JELLY-JN03-4G"
+  },
+  {
+   "productId": 2459,
+   "name": "Gel nhũ Miche Bloomin Idol Glitter Gel 01 Tutu White 6g",
+   "nameJa": "ミッシュブルーミン アイドルグリッタージェル 01 チュチュホワイト 6g",
+   "sku": "MICHE-GLITTER-01-6G"
+  },
+  {
+   "productId": 2460,
+   "name": "Gel nhũ Miche Bloomin Idol Glitter Gel 03 Night Out 6g",
+   "nameJa": "ミッシュブルーミン アイドルグリッタージェル 03 ナイトアウト 6g",
+   "sku": "MICHE-GLITTER-03-6G"
+  },
+  {
+   "productId": 2461,
+   "name": "Gel nhũ Miche Bloomin Idol Glitter Gel 04 Sunset Dream 6g",
+   "nameJa": "ミッシュブルーミン アイドルグリッタージェル 04 サンセットドリーム 6g",
+   "sku": "MICHE-GLITTER-04-6G"
+  },
+  {
+   "productId": 2469,
+   "name": "Mascara Excel Long & Colored Lash LC02 Cranberry",
+   "nameJa": "エクセル ロング＆カラード ラッシュ LC02 クランベリー",
+   "sku": "EXCEL-LASH-LC02"
+  },
+  {
+   "productId": 2470,
+   "name": "Mascara Excel Long & Colored Lash LC03 Prune",
+   "nameJa": "エクセル ロング＆カラード ラッシュ LC03 プルーン",
+   "sku": "EXCEL-LASH-LC03"
+  },
+  {
+   "productId": 2473,
+   "name": "Gel bắt sáng fwee Glowy Jelly Pot JH00 Sugar Powder 4g",
+   "nameJa": "フィー リップアンドチーク グローイジェリーポット JH00 シュガーパウダー 4g",
+   "sku": "FWEE-JH00-4G"
+  },
+  {
+   "productId": 2477,
+   "name": "Bảng phấn mắt Twinkle Pop Glitter Layering Eye Palette 04 Apricot Layer 5.4g",
+   "nameJa": "トゥインクルポップ グリッターレイヤリングアイパレット 04 APRICOT LAYER 5.4g",
+   "sku": "TWINKLE-EYE-04-5.4G"
+  },
+  {
+   "productId": 2481,
+   "name": "Son MAQuillAGE Dramatic Rouge N RS571 Classy Rose 2.2g",
+   "nameJa": "マキアージュ ドラマティックルージュN RS571 クラッシーローズ 2.2g",
+   "sku": "MAQUILLAGE-ROUGEN-RS571-2.2G"
+  },
+  {
+   "productId": 2443,
+   "name": "Bột collagen Lotte Uru Up Collagen Powder 185g 28 ngày",
+   "nameJa": "ロッテ うるアップコラーゲンパウダー 185g 約28日分",
+   "sku": "LOTTE-URUUP-185G"
+  },
+  {
+   "productId": 2468,
+   "name": "Phấn má PERIPERA Pure Blushed Sunshine Cheek 07 Milky Peach 4.2g",
+   "nameJa": "PERIPERA ピュア ブラッシュド サンシャイン チーク 07 ミルキーピーチ 4.2g",
+   "sku": "PERIPERA-SUNSHINE-07-4.2G"
+  },
+  {
+   "productId": 2464,
+   "name": "Gel nhũ Glint by VDIVOV Glitter Gel 01 Rum N Sugar 3.8g",
+   "nameJa": "Glint ビディボブ グリッタージェル 01 ラム＆シュガー 3.8g",
+   "sku": "GLINT-GLITTER-01-3.8G"
+  },
+  {
+   "productId": 2462,
+   "name": "Son dưỡng Glint Lipcerin 02 Pink Sparkle 15ml",
+   "nameJa": "Glint リップセリン 02 ピンクスパークル 15ml",
+   "sku": "GLINT-LIPCERIN-02-15ML"
+  },
+  {
+   "productId": 2463,
+   "name": "Son dưỡng Glint Lipcerin 03 Icy Blue 15ml",
+   "nameJa": "Glint リップセリン 03 アイシーブルー 15ml",
+   "sku": "GLINT-LIPCERIN-03-15ML"
+  },
+  {
+   "productId": 2475,
+   "name": "Son KiSS Lip Arrow 01 Tamayura Beige",
+   "nameJa": "キス リップアロー 01 たまゆらベージュ",
+   "sku": "KISS-LIPARROW-01"
+  },
+  {
+   "productId": 2449,
+   "name": "Dầu xả myO2 Water Coat Deep Moist túi thay thế 380g",
+   "nameJa": "myO2 ウォーターコートトリートメント ディープモイスト 詰替 380g",
+   "sku": "MYO2-DM-TR-380"
+  },
+  {
+   "productId": 2450,
+   "name": "Dầu gội myO2 Water Coat Sleek Moist túi thay thế 380ml",
+   "nameJa": "myO2 ウォーターコートシャンプー スリークモイスト 詰替 380mL",
+   "sku": "MYO2-SM-SH-380"
+  },
+  {
+   "productId": 2447,
+   "name": "Dầu xả myO2 Water Coat Sleek Moist chai 450g",
+   "nameJa": "myO2 ウォーターコートトリートメント スリークモイスト 本体 450g",
+   "sku": "MYO2-SM-TR-450"
+  },
+  {
+   "productId": 2448,
+   "name": "Dầu gội myO2 Water Coat Deep Moist túi thay thế 380ml",
+   "nameJa": "myO2 ウォーターコートシャンプー ディープモイスト 詰替 380mL",
+   "sku": "MYO2-DM-SH-380"
+  },
+  {
+   "productId": 2446,
+   "name": "Dầu xả myO2 Water Coat Deep Moist chai 450g",
+   "nameJa": "myO2 ウォーターコートトリートメント ディープモイスト 本体 450g",
+   "sku": "MYO2-DM-TR-450"
+  },
+  {
+   "productId": 2445,
+   "name": "Dầu gội myO2 Water Coat Deep Moist chai 450ml",
+   "nameJa": "myO2 ウォーターコートシャンプー ディープモイスト 本体 450mL",
+   "sku": "MYO2-DM-SH-450"
+  },
+  {
+   "productId": 2660,
+   "name": "Viên Uống Bổ Não ITOH DHA 1000s (120 Viên)",
+   "nameJa": "井藤漢方製薬 DHA1000 120粒",
+   "sku": "VIEN-UONG-BO-NAO-ITOH-DH-2660"
+  },
+  {
+   "productId": 2687,
+   "name": "Lưới tạo bọt rửa mặt  4 lớp",
+   "nameJa": "Lưới tạo bọt rửa mặt  4 lớp",
+   "sku": "4582697840131"
+  },
+  {
+   "productId": 2440,
+   "name": "Ngũ cốc Calbee Mygra hạnh nhân và caramel cháy 350g",
+   "nameJa": "カルビー マイグラ 香ばしアーモンド＆焦がしキャラメルテイスト 350g",
+   "sku": "NGU-TPDU-2609-2440"
+  },
+  {
+   "productId": 2109,
+   "name": "Thuốc Tramal OD 50mg (Tramadol) — giảm đau ung thư/mạn tính",
+   "nameJa": "トラマールOD錠50mg（がん疼痛・慢性疼痛治療剤）",
+   "sku": "CHUA-TTGD-2609-2109"
+  },
+  {
+   "productId": 2258,
+   "name": "Nước Uống Collagen THE HI-UFU 100000mg (Hộp 10 gói)",
+   "nameJa": "THE HI-UFU Collagen Perfect 10x コラーゲンリキッド 100,000mg",
+   "sku": "CHUA-TPCN-2609-2258"
+  },
+  {
+   "productId": 2207,
+   "name": "Khẩu Trang Nhật Bản Hộp 53 Cái",
+   "nameJa": "日本製 不織布マスク 53枚入",
+   "sku": "KHAU-TTGD-2609-2207"
+  },
+  {
+   "productId": 2072,
+   "name": "Bộ đôi sản phẩm trị mụn trong và ngoài",
+   "nameJa": "ライオン ペアA錠＋ペアアクネクリームW ニキビケアセット",
+   "sku": "PAIR-TMAT-2609-2072"
+  },
+  {
+   "productId": 2250,
+   "name": "Nước Uống Nhau Thai Collagen DR Placen 40000",
+   "nameJa": "プラセンタ本舖 プラセンタ40000 ドリンク 100mL×10本",
+   "sku": "DR-TPCN-2609-2250"
+  },
+  {
+   "productId": 2222,
+   "name": "Kem Ủ Dưỡng Trắng Revita White EX Pack",
+   "nameJa": "Revita ホワイトEXパック ボディ用クリームパック",
+   "sku": "REVI-CSB-2609-2222"
+  },
+  {
+   "productId": 2032,
+   "name": "Kem dưỡng chống lão hoá Collana La Avenir Cream EX",
+   "nameJa": "コラーナ ラ・アヴェニール クリームEX 50g",
+   "sku": "COLL-DDM-2609-2032"
+  },
+  {
+   "productId": 2043,
+   "name": "Kem dưỡng mắt Kose Hadakiwami",
+   "nameJa": "コーセー 肌極 目もとふっくらアイクリーム 20g",
+   "sku": "KOSE-ME-2609-2043"
+  },
+  {
+   "productId": 2255,
+   "name": "Viên Uống Đông Trùng Hạ Thảo Royal Gold Cordyceps 420 Viên",
+   "nameJa": "冬虫夏草 ROYAL GOLD 420粒",
+   "sku": "ROYA-TPCN-2609-2255"
+  },
+  {
+   "productId": 2260,
+   "name": "Thuốc Tsumura Seihaito Số 90 Hộp 42 Gói",
+   "nameJa": "ツムラ漢方 清肺湯エキス顆粒 42包",
+   "sku": "TSUM-TTGD-2609-2260"
+  },
+  {
+   "productId": 2590,
+   "name": "Serum VT Reedle S PDRN+ 30ml",
+   "nameJa": "VT リードルS PDRN+ セラム 30mL",
+   "sku": "VT-REEDLE-PDRN-SERUM-30"
+  },
+  {
+   "productId": 2128,
+   "name": "Viên uống sụn vi cá mập Orihiro 360 viên",
+   "nameJa": "オリヒロ 深海ザメエキスカプセル 徳用 360粒",
+   "sku": "ORIH-TPCN-2609-2128"
+  },
+  {
+   "productId": 2172,
+   "name": "Sữa Dinh Dưỡng Người Lớn Nhật Bản",
+   "nameJa": "大人用 栄養補助ミルク",
+   "sku": "THUC-TPDU-2609-2172"
+  },
+  {
+   "productId": 2603,
+   "name": "Thuốc nhỏ mắt trẻ em Taisho Kodomo Iris 14ml",
+   "nameJa": "こどもアイリス 14mL",
+   "sku": "TAISHO-KODOMO-IRIS-14"
+  },
+  {
+   "productId": 1753,
+   "name": "THUỐC XỊT XOANG NAZAL NHẬT BẢN 30ml",
+   "nameJa": "佐藤製薬 ナザール スプレー ポンプ 30mL",
+   "sku": "NAZA-TTGD-2408-1753"
+  },
+  {
+   "productId": 1433,
+   "name": "Thuốc Trị Cảm Cúm Cho Trẻ Taisho Pabron Gold A 46 gói",
+   "nameJa": "大正製薬 パブロンゴールドA 微粒 44包",
+   "sku": "PABR-MAB-2203-1433"
+  },
+  {
+   "productId": 1671,
+   "name": "Xịt Chống Nắng Skin Aqua",
+   "nameJa": "ロート製薬 スキンアクア トーンアップUVスプレー ラベンダー 70g",
+   "sku": "SKIN-CNU-2304-1671"
+  },
+  {
+   "productId": 2144,
+   "name": "Viên Uống Xương Khớp Glucosamine MSM 1500mg 480 Viên",
+   "nameJa": "グルコサミン＆MSM 1500mg 480粒",
+   "sku": "THUC-TPCN-2609-2144"
+  },
+  {
+   "productId": 2138,
+   "name": "Xà phòng trị thâm mông Pelican For Back 135g",
+   "nameJa": "ペリカン石鹸 薬用石鹸 ForBack 135g",
+   "sku": "PELI-TMAT-2609-2138"
+  },
+  {
+   "productId": 2137,
+   "name": "Viên uống Vitamin D và Calcium hỗ trợ hấp thụ canxi",
+   "nameJa": "Ostelin カルシウム＆ビタミンD3 タブレット",
+   "sku": "OSTE-TPCN-2609-2137"
+  },
+  {
+   "productId": 2094,
+   "name": "Viên uống vitamin cho bà bầu và phụ nữ sau sinh",
+   "nameJa": "ネイチャーメイド プレナタル マルチ＋DHA 妊娠・授乳期用",
+   "sku": "NATU-GCEC-2609-2094"
+  },
+  {
+   "productId": 2118,
+   "name": "Viên uống trị mụn Pair A Nhật Bản 120 viên",
+   "nameJa": "ライオン ペアA錠 120錠",
+   "sku": "LION-TMAT-2609-2118"
+  },
+  {
+   "productId": 1668,
+   "name": "Viên Uống Trị Đau Cơ Kurema",
+   "nameJa": "オール薬品工業 クレマエースEXP 270錠",
+   "sku": "KURE-TPCN-2304-1668"
+  },
+  {
+   "productId": 2132,
+   "name": "Viên uống trắng da Vita White Plus C.E.B2 240 viên",
+   "nameJa": "皇漢堂製薬 ビタホワイトプラス「クニヒロ」 240錠",
+   "sku": "VITA-DDM-2609-2132"
+  },
+  {
+   "productId": 2131,
+   "name": "Viên uống trắng da Transino White C",
+   "nameJa": "トランシーノ ホワイトCクリア 240錠",
+   "sku": "TRAN-DDM-2609-2131"
+  },
+  {
+   "productId": 1281,
+   "name": "Viên Uống Tinh Chất Hàu Tươi Orihiro",
+   "nameJa": "オリヒロ 牡蠣エキス粒 120粒",
+   "sku": "ORIH-TPCN-2111-1281"
+  },
+  {
+   "productId": 2145,
+   "name": "Viên Uống Tinh Bột Nghệ Noguchi 60 Viên",
+   "nameJa": "野口医学研究所 濃縮秋ウコン＋春ウコン 60粒",
+   "sku": "NOGU-TPCN-2609-2145"
+  },
+  {
+   "productId": 1632,
+   "name": "Viên Uống Tiểu Đường Mayado Tokaijyo",
+   "nameJa": "摩耶堂製薬 糖解錠 170錠",
+   "sku": "MAYA-TPCN-2303-1632"
+  },
+  {
+   "productId": 2107,
+   "name": "Viên uống tiền đình Ginkgo Leaf DHA-EPA chiết xuất bạch quả",
+   "nameJa": "野口医学研究所 イチョウ葉&DHA・EPA 60粒",
+   "sku": "NOGU-TTGD-2609-2107"
+  },
+  {
+   "productId": 2091,
+   "name": "Viên uống The Collagen Shiseido Nhật Bản",
+   "nameJa": "資生堂 ザ・コラーゲン リュクスリッチ タブレット 126粒",
+   "sku": "SHIS-TPCN-2609-2091"
+  },
+  {
+   "productId": 2269,
+   "name": "Viên Uống NOW Magtein Magnesium L-Threonate 180 Viên",
+   "nameJa": "NOW Foods マグテイン マグネシウムL-スレオネート 180粒",
+   "sku": "NOW-TPCN-2609-2269"
+  },
+  {
+   "productId": 2201,
+   "name": "Viên Uống NMN 68000 Plus 170 Viên",
+   "nameJa": "JT-LAB NMN 68000 Plus サプリメント 170粒",
+   "sku": "JTLA-TPCN-2609-2201"
+  },
+  {
+   "productId": 2126,
+   "name": "Viên uống nhau thai cừu EX Placenta 120 viên",
+   "nameJa": "ムコ・サルースEX 120粒",
+   "sku": "MUCO-TPCN-2609-2126"
+  },
+  {
+   "productId": 2095,
+   "name": "Viên uống Nattokinase 2000FU Noguchi 60 viên",
+   "nameJa": "野口医学研究所 納豆キナーゼ 2000FU 60粒",
+   "sku": "NOGU-TTGD-2609-2095"
+  },
+  {
+   "productId": 2018,
+   "name": "Viên uống King Fucoidan & Agaricus 120 viên",
+   "nameJa": "キングフコイダン＆アガリクス 120粒",
+   "sku": "KING-TTGD-2609-2018"
+  },
+  {
+   "productId": 2055,
+   "name": "Viên uống IQ No.1 Nhật Bản",
+   "nameJa": "IQ No.1 サプリメント",
+   "sku": "IQ-TPCN-2609-2055"
+  },
+  {
+   "productId": 2097,
+   "name": "Viên uống hỗ trợ phòng ngừa ung thư Nhật Bản",
+   "nameJa": "海の精命 高濃度フコイダンサプリメント 180粒",
+   "sku": "UMI-TTGD-2609-2097"
+  },
+  {
+   "productId": 2104,
+   "name": "Viên uống hỗ trợ phòng ngừa đột quỵ, tai biến",
+   "nameJa": "日本製薬工業 牛黄清心元 日薬金丹",
+   "sku": "GOO-TTGD-2609-2104"
+  },
+  {
+   "productId": 2105,
+   "name": "Viên uống hỗ trợ ổn định huyết áp Nhật Bản",
+   "nameJa": "摩耶堂製薬 マヤ養命錠 170錠",
+   "sku": "MAYA-TTGD-2609-2105"
+  },
+  {
+   "productId": 2183,
+   "name": "Viên Uống Hỗ Trợ Nám Và Làm Sáng Da Nhật Bản",
+   "nameJa": "シミ・肝斑ケア 美容サプリメント",
+   "sku": "THUC-DDM-2609-2183"
+  },
+  {
+   "productId": 2103,
+   "name": "Viên uống hỗ trợ điều trị gout",
+   "nameJa": "ミナミヘルシーフーズ アンセリン 240粒",
+   "sku": "MINA-TTGD-2609-2103"
+  },
+  {
+   "productId": 2239,
+   "name": "Viên Uống Hapycom Motionact EX 270 Viên",
+   "nameJa": "ハピコム マージョンアクトEX 270錠",
+   "sku": "HAPY-TPCN-2609-2239"
+  },
+  {
+   "productId": 2248,
+   "name": "Viên Uống Giảm Mỡ Bụng Onaka",
+   "nameJa": "大正製薬 おなかの脂肪対策タブレット 90粒",
+   "sku": "TAIS-GCD-2609-2248"
+  },
+  {
+   "productId": 2151,
+   "name": "Viên Uống Chống Nắng UV Plus Block 100",
+   "nameJa": "UV Plus＋ Block100 飲む日焼け対策サプリメント",
+   "sku": "UV-CNU-2609-2151"
+  },
+  {
+   "productId": 2254,
+   "name": "Viên Uống Chống Nắng Fine Japan UV 30 Viên",
+   "nameJa": "ファイン UV気にならないサプリ 20粒",
+   "sku": "FINE-CNU-2609-2254"
+  },
+  {
+   "productId": 2143,
+   "name": "Viên Uống Canxi Tăng Chiều Cao Kokando CBP",
+   "nameJa": "カルシウム＋CBP サプリメント",
+   "sku": "KOKA-TPCN-2609-2143"
+  },
+  {
+   "productId": 2093,
+   "name": "Viên uống bổ tim Healthy Care Coenzyme Q10 150mg 100 viên",
+   "nameJa": "ヘルシーケア コエンザイムQ10 150mg 100カプセル",
+   "sku": "HEAL-TTGD-2609-2093"
+  },
+  {
+   "productId": 2170,
+   "name": "Viên Uống Bổ Não Maruman Ginkgo Biloba",
+   "nameJa": "マルマン イチョウ葉エキス 200粒",
+   "sku": "MARU-TPCN-2609-2170"
+  },
+  {
+   "productId": 1630,
+   "name": "Viên Uống Bổ Não DHA ITOH 1000",
+   "nameJa": "井藤漢方製薬 DHA1000S 120粒",
+   "sku": "ITOH-TPCN-2303-1630"
+  },
+  {
+   "productId": 2147,
+   "name": "Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract",
+   "nameJa": "アサヒグループ食品 シュワーベギンコ 120 EX 60粒",
+   "sku": "SCHW-TPCN-2609-2147"
+  },
+  {
+   "productId": 2149,
+   "name": "Viên Uống Bổ Gan Liver Extract Ornithine 90 Viên",
+   "nameJa": "ファイン 金のしじみウコン 肝臓エキス 90粒",
+   "sku": "FINE-TPCN-2609-2149"
+  },
+  {
+   "productId": 2178,
+   "name": "Viên Uống Blackmores Sugar Balance 90 Viên",
+   "nameJa": "ブラックモアズ シュガーバランス 90錠",
+   "sku": "BLAC-TPCN-2609-2178"
+  },
+  {
+   "productId": 2114,
+   "name": "Viên tỏi đen Orihiro Nhật Bản 180 viên",
+   "nameJa": "オリヒロ 醗酵黒にんにく香醋 180粒",
+   "sku": "ORIH-TPCN-2609-2114"
+  },
+  {
+   "productId": 1648,
+   "name": "VIÊN NHAI BỔ SUNG CANXI VỊ SỮA CHUA MOST",
+   "nameJa": "オリヒロ MOSTチュアブル カルシウム 180粒",
+   "sku": "ORIH-MAB-2303-1648"
+  },
+  {
+   "productId": 1358,
+   "name": "Viên Ngăn Ngừa Đột Quỵ An Cung Ngưu Hoàn Nhật Bản",
+   "nameJa": "安宮牛黄丸 丸剤",
+   "sku": "AN-TPCN-2201-1358"
+  },
+  {
+   "productId": 2235,
+   "name": "Viên Nang Fucoidan Okinawa Kanehide Bio 180 Viên",
+   "nameJa": "金秀バイオ 沖縄フコイダン カプセル 180粒",
+   "sku": "KANE-TPCN-2609-2235"
+  },
+  {
+   "productId": 2096,
+   "name": "Viên chống say tàu xe Anerol Nhật Bản",
+   "nameJa": "アネロン ニスキャップ 9カプセル",
+   "sku": "ANER-TTGD-2609-2096"
+  },
+  {
+   "productId": 2117,
+   "name": "Viên bổ sung nội tiết tố nữ Equelle Nhật Bản",
+   "nameJa": "大塚製薬 エクエル エクオール含有食品 112粒",
+   "sku": "OTSU-GCEC-2609-2117"
+  },
+  {
+   "productId": 1646,
+   "name": "VIÊN BỔ NÃO TRỊ CHỨNG MẤT NGỦ TIỀN ĐÌNH",
+   "nameJa": "脳・睡眠ケア サプリメント（日本製）",
+   "sku": "NAO-TPCN-2303-1646"
+  },
+  {
+   "productId": 2199,
+   "name": "Túi Charles & Keith Bản Nhật",
+   "nameJa": "CHARLES & KEITH レディースバッグ",
+   "sku": "CHAR-TTF-2609-2199"
+  },
+  {
+   "productId": 320,
+   "name": "Transino Trị Nám 240 Viên",
+   "nameJa": "トランシーノEX 240錠",
+   "sku": "TRAN-DDM-2011-0320"
+  },
+  {
+   "productId": 1742,
+   "name": "Trà Ổi Orihiro Nhật Bản 60 Gói Giảm Cân Thanh Lọc Cơ Thể",
+   "nameJa": "オリヒロ 徳用グァバ茶 2g×60袋",
+   "sku": "ORIH-GCD-2310-1742"
+  },
+  {
+   "productId": 2116,
+   "name": "Trà lúa mạch Itoen Mugicha 54 gói",
+   "nameJa": "伊藤園 香り薫るむぎ茶 ティーバッグ 7.5g×54袋",
+   "sku": "ITOE-TPDU-2609-2116"
+  },
+  {
+   "productId": 1767,
+   "name": "Tinh Chất Trị Nám – Sáng Da – Transino Whitening Essence Ex II  50g",
+   "nameJa": "トランシーノ 薬用ホワイトニングエッセンスEXII 50g",
+   "sku": "TRAN-DDM-2408-1767"
+  },
+  {
+   "productId": 2113,
+   "name": "Tinh chất nâng cơ chống nhăn Shiseido Elixir Enriched Serum",
+   "nameJa": "資生堂 エリクシール シュペリエル エンリッチドセラム CB 35mL",
+   "sku": "SHIS-DDM-2609-2113"
+  },
+  {
+   "productId": 2221,
+   "name": "Tinh Chất Estée Lauder Advanced Night Repair 50ml",
+   "nameJa": "エスティ ローダー アドバンス ナイト リペア SMR コンプレックス 50mL",
+   "sku": "ESTE-DDM-2609-2221"
+  },
+  {
+   "productId": 2019,
+   "name": "Tinh chất dưỡng sáng da Genoptics Aura Essence",
+   "nameJa": "SK-II ジェノプティクス インフィニットオーラ エッセンス 50mL",
+   "sku": "SKII-DDM-2609-2019"
+  },
+  {
+   "productId": 1414,
+   "name": "Thực Phẩm Bảo Vệ Sức Khỏe PLACENTA 82X 450000 SAKURA PREMIUM",
+   "nameJa": "82X プラセンタ サクラプレミアム 500g",
+   "sku": "82X-TPCN-2203-1414"
+  },
+  {
+   "productId": 1419,
+   "name": "Thực Phẩm Bảo Vệ Sức Khỏe PLACENTA 82X 450000 CLASSIC",
+   "nameJa": "82X プラセンタ クラッシック 500g",
+   "sku": "82X-TPCN-2203-1419"
+  },
+  {
+   "productId": 1423,
+   "name": "Thực Phẩm Bảo Vệ Sức Khỏe COLLAGEN 82X 120000 SAKURA PREMIUM",
+   "nameJa": "82X コラーゲン サクラプレミアム 500g",
+   "sku": "82X-TPCN-2203-1423"
+  },
+  {
+   "productId": 1425,
+   "name": "THực Phẩm Bảo Vệ Sức Khỏe 82X THE PINK COLLAGEN",
+   "nameJa": "82X ザ ピンク コラーゲン 100mL×10本",
+   "sku": "82X-TPCN-2203-1425"
+  },
+  {
+   "productId": 1416,
+   "name": "Thực Phẩm Bảo Vệ Sức Khỏe COLLAGEN 82X 120000 CLASSIC",
+   "nameJa": "82X コラーゲン クラッシック 500g",
+   "sku": "82X-TPCN-2203-1416"
+  },
+  {
+   "productId": 2110,
+   "name": "Thuốc xịt mũi Nhật Bản",
+   "nameJa": "点鼻スプレー（アレルギー性鼻炎・急性鼻炎用）",
+   "sku": "CHUA-TTGD-2609-2110"
+  },
+  {
+   "productId": 2101,
+   "name": "Thuốc đặc trị vi khuẩn HP Rabecure 400",
+   "nameJa": "エーザイ ラベキュアパック400 7シート（7日分）",
+   "sku": "RABE-TTGD-2609-2101"
+  },
+  {
+   "productId": 2233,
+   "name": "Thẻ bài Pokémon TCG bản Nhật (hàng order theo yêu cầu)",
+   "nameJa": "ポケモンカードゲーム 日本語版 お取り寄せ注文",
+   "sku": "POKE-ORDER"
+  },
+  {
+   "productId": 1567,
+   "name": "Tẩy Tế Bào Chết White Conc Vitamin C",
+   "nameJa": "WHITE CONC ホワイトコンク ボディゴマージュCII 180g",
+   "sku": "WHIT-SRMT-2206-1567"
+  },
+  {
+   "productId": 2168,
+   "name": "Tẩy Tế Bào Chết Botanical Nhật Bản",
+   "nameJa": "BOTANICAL PEEL ボタニカルピール Level3 ハーブピーリング 1個",
+   "sku": "BOTA-SRMT-2609-2168"
+  },
+  {
+   "productId": 2088,
+   "name": "Tẩy tế bào chết Apatheia 300g",
+   "nameJa": "アパティア 薬用美白ピーリングゲル プラチナム 300g",
+   "sku": "APAT-SRMT-2609-2088"
+  },
+  {
+   "productId": 1744,
+   "name": "TẢO VÀNG EX 2000 Viên",
+   "nameJa": "金秀バイオ スピルリナEX 2000粒（1000粒×2本）",
+   "sku": "SPIR-TPCN-2310-1744"
+  },
+  {
+   "productId": 1652,
+   "name": "TẢO LỤC HOÀNG GIA",
+   "nameJa": "ユウキ製薬 クロレラロイヤルDX 1550粒",
+   "sku": "YUUK-TPCN-2303-1652"
+  },
+  {
+   "productId": 2085,
+   "name": "Sữa tắm trắng da White Conc Vitamin C Nhật Bản",
+   "nameJa": "ホワイトコンク ボディシャンプーCII 150mL",
+   "sku": "WHIT-CSB-2609-2085"
+  },
+  {
+   "productId": 2084,
+   "name": "Sữa tắm Shiseido Senka Perfect Whip Bubble",
+   "nameJa": "専科 パーフェクトバブル フォーボディー 500mL",
+   "sku": "SENK-CSB-2609-2084"
+  },
+  {
+   "productId": 2087,
+   "name": "Sữa tắm Nhật Bản 380g",
+   "nameJa": "ダヴ ボディソープ・シャンプー・コンディショナー 3点セット",
+   "sku": "DOVE-CSB-2609-2087"
+  },
+  {
+   "productId": 2166,
+   "name": "Sữa Tắm Lux Celestial Escape 300g",
+   "nameJa": "ラックス セレスティアル エスケープ ボディソープ 300g 3個セット",
+   "sku": "LUX-CSB-2609-2166"
+  },
+  {
+   "productId": 2022,
+   "name": "Sữa tắm dưỡng trắng Manis White Body Soap 450ml",
+   "nameJa": "マニス ホワイトボディシャンプー 450mL",
+   "sku": "MANI-CSB-2609-2022"
+  },
+  {
+   "productId": 1584,
+   "name": "Sữa Tắm Cool Cho Nam 600ml",
+   "nameJa": "熊野油脂 ファーマアクト クールボディソープ 600mL",
+   "sku": "PHAR-SPDC-2209-1584"
+  },
+  {
+   "productId": 2079,
+   "name": "Sữa rửa mặt Transino dưỡng mịn da, bổ sung collagen",
+   "nameJa": "トランシーノ 薬用クリアウォッシュEX 100g",
+   "sku": "TRAN-SRMT-2609-2079"
+  },
+  {
+   "productId": 2251,
+   "name": "Sữa Rửa Mặt Shiseido Aqualabel",
+   "nameJa": "資生堂 アクアレーベル ホワイトクリアフォーム 130g",
+   "sku": "SHIS-SRMT-2609-2251"
+  },
+  {
+   "productId": 1640,
+   "name": "SỮA RỬA MẶT PHARMAACT COOL",
+   "nameJa": "熊野油脂 ファーマアクト クール洗顔フォーム 130g",
+   "sku": "PHAR-SPDC-2303-1640"
+  },
+  {
+   "productId": 915,
+   "name": "Sữa Rửa Mặt Oxy Màu Xanh 130g",
+   "nameJa": "ロート製薬 オキシー ディープウォッシュ 130g",
+   "sku": "OXY-SRMT-2012-0915"
+  },
+  {
+   "productId": 2074,
+   "name": "Sữa rửa mặt Nhật Bản 20g",
+   "nameJa": "日本製 スキンケア ミニ6点セット(洗顔料20g入り)",
+   "sku": "NHAT-SRMT-2609-2074"
+  },
+  {
+   "productId": 2080,
+   "name": "Sữa rửa mặt chiết xuất hạt ý dĩ Hatomugi",
+   "nameJa": "麗白 ハトムギ 薬用洗顔フォーム 130g",
+   "sku": "REIH-SRMT-2609-2080"
+  },
+  {
+   "productId": 2257,
+   "name": "Sữa Morinaga Kodomilk Dạng Gói",
+   "nameJa": "森永 こどミル スティックタイプ 18g×12本",
+   "sku": "MORI-MAB-2609-2257"
+  },
+  {
+   "productId": 1539,
+   "name": "Sữa Meji Cho Bé Từ 0-1 Tuổi Dạng Lon 800g",
+   "nameJa": "明治ほほえみ 大缶 800g",
+   "sku": "MEIJ-MAB-2206-1539"
+  },
+  {
+   "productId": 1311,
+   "name": "Sữa Dưỡng Thể Hatomugi Chống Nắng SPF31 PA+++",
+   "nameJa": "麗白 ハトムギ UVミルキージェル SPF31 PA+++ 250mL",
+   "sku": "REIH-CSB-2112-1311"
+  },
+  {
+   "productId": 187,
+   "name": "Spirulina Tảo Xoắn 2400 Viên",
+   "nameJa": "スピルリナ普及会 スピルリナ100% 2400粒",
+   "sku": "SPIR-TPCN-2009-0187"
+  },
+  {
+   "productId": 2154,
+   "name": "Son Shu Uemura Màu 580 Fullsize",
+   "nameJa": "シュウ ウエムラ キヌ ルージュ マット OR 580 3.2mL",
+   "sku": "SHU-TDM-2609-2154"
+  },
+  {
+   "productId": 2173,
+   "name": "Socola Tươi Nama Nhật Bản",
+   "nameJa": "チュベ・ド・ショコラ くちどけ生ショコラ 500g",
+   "sku": "CHUV-TPDU-2609-2173"
+  },
+  {
+   "productId": 2067,
+   "name": "Son dưỡng có màu DHC Color Tone",
+   "nameJa": "DHC 濃密うるみカラーリップ アプリコット 1.5g",
+   "sku": "DHC-TDM-2609-2067"
+  },
+  {
+   "productId": 1717,
+   "name": "Skin Aqua Tone Up Kem Chống Nắng 80g (Dành cho da nhạy cảm)",
+   "nameJa": "ロート製薬 スキンアクア トーンアップUVエッセンス ラベンダー 80g",
+   "sku": "SKIN-CNU-2306-1717"
+  },
+  {
+   "productId": 2198,
+   "name": "Set Kẹo Mochi Nhật Bản 3 Vị 60 Cái",
+   "nameJa": "共親製菓 テトラもちあめミックス 3種アソート 500g",
+   "sku": "KYOU-TPDU-2609-2198"
+  },
+  {
+   "productId": 2194,
+   "name": "Set Dao Dĩa Thìa Nội Địa Nhật",
+   "nameJa": "MGOXO カトラリーセット 北欧風 ステンレス製 30本",
+   "sku": "MGOX-NCDS-2609-2194"
+  },
+  {
+   "productId": 2158,
+   "name": "Set Dao Inox Global Nhật Bản",
+   "nameJa": "グローバル 三徳 包丁3点セット GST-B46",
+   "sku": "GLOB-NCDS-2609-2158"
+  },
+  {
+   "productId": 2237,
+   "name": "Serum NMN Deep Moist Essence",
+   "nameJa": "NMN配合 ディープモイストエッセンス 30mL",
+   "sku": "DEEP-DDM-2609-2237"
+  },
+  {
+   "productId": 2152,
+   "name": "Serum NMN Bạc 60ml",
+   "nameJa": "CAPITOLO NMN美容液 Luxury Serum 60mL",
+   "sku": "CAPI-DDM-2609-2152"
+  },
+  {
+   "productId": 2065,
+   "name": "Serum Hyaluronic Acid dùng cho lăn kim và dưỡng da Nhật Bản",
+   "nameJa": "ヒアルロン酸美容液 ダーマローラー・スキンケア用 100mL",
+   "sku": "HYAL-DDM-2609-2065"
+  },
+  {
+   "productId": 2064,
+   "name": "Serum HA Cosme dưỡng ẩm - hàng nội địa Nhật",
+   "nameJa": "太陽のアロエ社 ヒアルロン酸 80mL",
+   "sku": "TAIY-DDM-2609-2064"
+  },
+  {
+   "productId": 2089,
+   "name": "Serum dạng thanh lăn dưỡng da Nhật Bản",
+   "nameJa": "カントリー&ストリーム ナチュラルアイロールオン 15mL",
+   "sku": "COUN-DDM-2609-2089"
+  },
+  {
+   "productId": 2276,
+   "name": "Sen Vòi Sanei TOH Bọc Gốm",
+   "nameJa": "SANEI 水栓補修部品 セラミック上部 R37-26X-S",
+   "sku": "SANE-NCDS-2609-2276"
+  },
+  {
+   "productId": 2204,
+   "name": "Rượu Mơ Takachiho Umeshu 1,8L Tặng 720ml",
+   "nameJa": "高千穂酒造 熟成高千穂梅酒 14度 1800mL",
+   "sku": "TAKA-TPDU-2609-2204"
+  },
+  {
+   "productId": 2226,
+   "name": "Rượu Gin Suntory Roku Select Edition 700ml",
+   "nameJa": "サントリー ROKU〈六〉 ジャパニーズクラフトジン 700mL",
+   "sku": "SUNT-TPDU-2609-2226"
+  },
+  {
+   "productId": 232,
+   "name": "Perfect White Clay Sữa Rửa Mặt – Trắng",
+   "nameJa": "洗顔専科 パーフェクトホワイトクレイ 120g",
+   "sku": "SENK-SRMT-2011-0232"
+  },
+  {
+   "productId": 278,
+   "name": "Perfect Whip Sữa Rửa Mặt – Hồng",
+   "nameJa": "洗顔専科 パーフェクトホイップ コラーゲンin 120g",
+   "sku": "SENK-SRMT-2006-0278"
+  },
+  {
+   "productId": 274,
+   "name": "Perfect Whip Sữa Rửa Mặt – Xanh",
+   "nameJa": "洗顔専科 パーフェクトホイップ 120g",
+   "sku": "SENK-SRMT-2006-0274"
+  },
+  {
+   "productId": 197,
+   "name": "Orihiro Ukon Tea Trà Nghệ 60 Gói",
+   "nameJa": "オリヒロ 徳用ウコン茶 60包",
+   "sku": "ORIH-TPCN-2005-0197"
+  },
+  {
+   "productId": 2244,
+   "name": "Nước Uống Trắng Da Shiseido Pure White",
+   "nameJa": "資生堂 ピュアホワイト ドリンク 50mL×30本",
+   "sku": "SHIS-TPCN-2609-2244"
+  },
+  {
+   "productId": 2209,
+   "name": "Nước Uống Melsmon Platinum Liquid Placenta",
+   "nameJa": "メルスモン プラチナリキッド 10mL×30本",
+   "sku": "MELS-TPCN-2609-2209"
+  },
+  {
+   "productId": 2061,
+   "name": "Nước thần SK-II Facial Treatment Essence",
+   "nameJa": "SK-II フェイシャル トリートメント エッセンス 230mL",
+   "sku": "SKII-DDM-2609-2061"
+  },
+  {
+   "productId": 2063,
+   "name": "Nước súc miệng Propolinse 600ml",
+   "nameJa": "プロポリンス マウスウォッシュ ゴールド 600mL",
+   "sku": "PROP-CSRM-2609-2063"
+  },
+  {
+   "productId": 2227,
+   "name": "Nước Nhỏ Mắt Sancoba 0,02% 5ml",
+   "nameJa": "参天製薬 サンコバ点眼液0.02% 5mL",
+   "sku": "SANC-TTGD-2609-2227"
+  },
+  {
+   "productId": 1765,
+   "name": "NƯỚC NGHỆ GIẢI RƯỢU-BỔ GAN-ĐẸP DA TURMERIC DRINK",
+   "nameJa": "ハウスウェルネスフーズ ウコンの力 ウコンエキスドリンク 100ml×6本",
+   "sku": "UKON-TPCN-2408-1765"
+  },
+  {
+   "productId": 2153,
+   "name": "Nước Hồng Sâm Hong Sam Won",
+   "nameJa": "正官庄 ホンサムウォン 紅参ドリンク 50ml×30袋",
+   "sku": "CHEO-TPDU-2609-2153"
+  },
+  {
+   "productId": 2238,
+   "name": "Nước Hoa Hồng The Stem Cell Skin Lotion 150ml",
+   "nameJa": "美粧AKARI THE STEM CELL スキンローション 150mL",
+   "sku": "AKAR-DDM-2609-2238"
+  },
+  {
+   "productId": 1588,
+   "name": "Nước Hoa Hồng Tía Tô 500ml",
+   "nameJa": "地の塩社 しそ化粧水 500mL",
+   "sku": "CHIN-DDM-2209-1588"
+  },
+  {
+   "productId": 1586,
+   "name": "Nước Hoa Hồng Diếp Cá 500ml",
+   "nameJa": "地の塩社 モイスチャライジング どくだみ化粧水 500mL",
+   "sku": "CHIN-DDM-2209-1586"
+  },
+  {
+   "productId": 2146,
+   "name": "Nước Hoa Hồng Aqualabel Shiseido",
+   "nameJa": "資生堂 アクアレーベル トリートメントローション ブライトニング しっとり 170mL",
+   "sku": "AQUA-DDM-2609-2146"
+  },
+  {
+   "productId": 1481,
+   "name": "Ngũ Cốc Trắng Calbee Nhật Bản 600g",
+   "nameJa": "カルビー フルグラ 糖質オフ 600g",
+   "sku": "FRUG-TPCN-2203-1481"
+  },
+  {
+   "productId": 1478,
+   "name": "Ngũ Cốc Đỏ Calbee Nhật Bản 750g",
+   "nameJa": "カルビー フルグラ 750g",
+   "sku": "FRUG-TPCN-2203-1478"
+  },
+  {
+   "productId": 2187,
+   "name": "Nến Thơm Jo Malone",
+   "nameJa": "ジョー マローン イングリッシュペアー&フリージア ホームキャンドル 200g",
+   "sku": "JO-NCDS-2609-2187"
+  },
+  {
+   "productId": 2191,
+   "name": "Nama Socola Matcha Nhật Bản",
+   "nameJa": "サロンドロワイヤル 抹茶ボールチョコレート 170g",
+   "sku": "SALO-TPDU-2609-2191"
+  },
+  {
+   "productId": 2192,
+   "name": "Nama Socola Au Lait Nhật Bản",
+   "nameJa": "明治 チョコレート効果 カカオ86% 大袋 210g",
+   "sku": "MEIJ-TPDU-2609-2192"
+  },
+  {
+   "productId": 2188,
+   "name": "Mũ Bucket Chống Thấm Nước Uniqlo",
+   "nameJa": "ユニクロ 撥水バケットハット",
+   "sku": "UNIQ-TTF-2609-2188"
+  },
+  {
+   "productId": 2245,
+   "name": "Miếng Dán Chân Kenko Nhật Bản",
+   "nameJa": "ビヴォーネ 遠赤足裏シート アシメグ 20枚（10回分）",
+   "sku": "BIVO-TTGD-2609-2245"
+  },
+  {
+   "productId": 2240,
+   "name": "Men Vi Sinh Health Aid Bifina S 30 Gói",
+   "nameJa": "森下仁丹 ヘルスエイド ビフィーナS 30袋",
+   "sku": "MORI-TPCN-2609-2240"
+  },
+  {
+   "productId": 2058,
+   "name": "Mặt nạ Kose Clear Turn Essence Mask 32 miếng",
+   "nameJa": "コーセー クリアターン 肌ふっくら アイゾーンマスク 32枚",
+   "sku": "CLEA-MNM-2609-2058"
+  },
+  {
+   "productId": 753,
+   "name": "Mặt Nạ Dưỡng Trị Thâm Môi Choosy",
+   "nameJa": "チューシー リップパック ピーチ／ブラックパール／ハニー",
+   "sku": "N/A"
+  },
+  {
+   "productId": 258,
+   "name": "Mask Keana Rice Mặt Nạ Gạo 10 Miếng",
+   "nameJa": "毛穴撫子 お米のマスク 10枚入",
+   "sku": "KEAN-MNM-2010-0258"
+  },
+  {
+   "productId": 2057,
+   "name": "Lotion trị mụn Meishoku Bigansui",
+   "nameJa": "明色 美顔水 薬用化粧水 90mL",
+   "sku": "MEIS-TMAT-2609-2057"
+  },
+  {
+   "productId": 2056,
+   "name": "Lotion se khít lỗ chân lông Labo Labo",
+   "nameJa": "ラボラボ スーパーKEANAローション 200mL",
+   "sku": "LABO-DDM-2609-2056"
+  },
+  {
+   "productId": 245,
+   "name": "Lion Pair Acne Cream W Kem Trị Mụn 24g",
+   "nameJa": "ライオン ペアアクネクリームW 24g",
+   "sku": "PAIR-TMAT-2006-0245"
+  },
+  {
+   "productId": 173,
+   "name": "Lion Pair Acne Cream W Kem Trị Mụn 14g",
+   "nameJa": "ライオン ペアアクネクリームW 14g",
+   "sku": "PAIR-TMAT-2005-0173"
+  },
+  {
+   "productId": 1299,
+   "name": "KÍNH CHỐNG CÁC TIA ĐỘC HẠI CHO BÉ FREESE",
+   "nameJa": "FREESE こども用 ブルーライトカット メガネ 3〜12歳",
+   "sku": "FREE-MAB-2111-1299"
+  },
+  {
+   "productId": 2214,
+   "name": "Khăn Che Mặt Và Cổ Chống Nắng Delling UPF50+",
+   "nameJa": "デリング 日本製 フェイスカバー ネックカバー UPF50+",
+   "sku": "DELL-CNU-2609-2214"
+  },
+  {
+   "productId": 2189,
+   "name": "Kẹp Mi Shiseido",
+   "nameJa": "資生堂 アイラッシュカーラー 本体 1個",
+   "sku": "SHIS-DCLD-2609-2189"
+  },
+  {
+   "productId": 1634,
+   "name": "KẸO CHO TRẺ BIẾNG ĂN MAMA RAMUNE",
+   "nameJa": "エムアンドエム ママラムネ いちごミルク風味 200粒",
+   "sku": "MAMA-MAB-2303-1634"
+  },
+  {
+   "productId": 2241,
+   "name": "Kẹo Bổ Sung Canxi Cho Bé Bone Kids Calcium",
+   "nameJa": "ファイン 骨キッズ カルシウム イチゴ風味 140g",
+   "sku": "FINE-MAB-2609-2241"
+  },
+  {
+   "productId": 1370,
+   "name": "Kem Ủ Trắng Hasuko Cô Gái Nhật Bản 300g",
+   "nameJa": "HASUKO オールインワンクリーム 300g",
+   "sku": "HASU-CSB-2201-1370"
+  },
+  {
+   "productId": 1582,
+   "name": "Kem Trị Sẹo Gentacin 1%",
+   "nameJa": "高田製薬 ゲンタシンクリーム 0.1%",
+   "sku": "GENT-TTGD-2209-1582"
+  },
+  {
+   "productId": 1644,
+   "name": "KEM TRỊ NỨT NẺ TAY CHÂN SHSEIDO UREA CREAM 100gr",
+   "nameJa": "資生堂 尿素10%クリーム 100g",
+   "sku": "SHIS-CSB-2303-1644"
+  },
+  {
+   "productId": 2247,
+   "name": "Kem Tẩy Lông Veet Nhật Bản 150g",
+   "nameJa": "ヴィート ピュア バスタイム 除毛クリーム 敏感肌用 150g",
+   "sku": "VEET-CSB-2609-2247"
+  },
+  {
+   "productId": 2220,
+   "name": "Kem Nền Meishoku Moist Labo BB Essence Cream SPF50+",
+   "nameJa": "明色化粧品 モイストラボ BBエッセンスクリーム ベージュ 30g",
+   "sku": "MEIS-TDM-2609-2220"
+  },
+  {
+   "productId": 2157,
+   "name": "Kem Mắt Elixir Shiseido Retinol 22g",
+   "nameJa": "資生堂 エリクシール レチノパワー リンクルクリーム L 22g",
+   "sku": "ELIX-ME-2609-2157"
+  },
+  {
+   "productId": 2112,
+   "name": "Kem đánh răng muối Sunstar 170g",
+   "nameJa": "サンスター 薬用メディカ つぶつぶ塩 170g",
+   "sku": "SUNS-TPCN-2609-2112"
+  },
+  {
+   "productId": 2045,
+   "name": "Kem dưỡng trắng da nhau thai Meishoku Placenta Whitening Cream 55g",
+   "nameJa": "明色 プラセホワイター 薬用美白エッセンスクリーム 55g",
+   "sku": "PLAC-DDM-2609-2045"
+  },
+  {
+   "productId": 2044,
+   "name": "Kem dưỡng trắng da Instawhite",
+   "nameJa": "明色化粧品 インスタホワイト トーンアップクリーム 50g",
+   "sku": "INST-DDM-2609-2044"
+  },
+  {
+   "productId": 2051,
+   "name": "Kem dưỡng trắng body Silky Veil 100g",
+   "nameJa": "シルキーヴェイル ボディ用トーンアップクリーム 100g",
+   "sku": "SILK-CSB-2609-2051"
+  },
+  {
+   "productId": 1569,
+   "name": "Kem Dưỡng Trắng Ban Đêm White Conc",
+   "nameJa": "WHITE CONC ホワイトコンク ウォータリークリームII 90g",
+   "sku": "WHIT-CSB-2206-1569"
+  },
+  {
+   "productId": 911,
+   "name": "Kem Dưỡng Thoa Tay – Hand Cream Kose",
+   "nameJa": "コーセー プレシャスガーデン ハンドクリーム 70g 全5種の香り",
+   "sku": "N/A"
+  },
+  {
+   "productId": 2210,
+   "name": "Kem Dưỡng NMN Cao Cấp Màu Đen 270g",
+   "nameJa": "NMN オールインワンゲル ブラック 270g",
+   "sku": "NMN-DDM-2609-2210"
+  },
+  {
+   "productId": 2038,
+   "name": "Kem dưỡng SK-II Cellumination Deep Surge EX 50g",
+   "nameJa": "SK-II セルミネーション ディープ サージ EX 50g",
+   "sku": "SKII-DDM-2609-2038"
+  },
+  {
+   "productId": 2053,
+   "name": "Kem dưỡng mắt Meishoku Placenta Whitening Eye Cream 30g",
+   "nameJa": "明色化粧品 プラセホワイター 薬用美白アイクリーム 30g",
+   "sku": "MEIS-ME-2609-2053"
+  },
+  {
+   "productId": 2042,
+   "name": "Kem dưỡng mắt chống lão hoá SK-II R.N.A. Power Eye Cream",
+   "nameJa": "SK-II スキンパワー アイプラス ラインフィラー クリーム 15g",
+   "sku": "SKII-ME-2609-2042"
+  },
+  {
+   "productId": 2041,
+   "name": "Kem dưỡng làm trắng One Day Brightener",
+   "nameJa": "セラ ワンデイブライトナー 120mL",
+   "sku": "CERA-DDM-2609-2041"
+  },
+  {
+   "productId": 2036,
+   "name": "Kem dưỡng Kose Grace One Repair Gel (50+) 100g",
+   "nameJa": "コーセー グレイスワン 濃潤リペアジェル EX 100g",
+   "sku": "GRAC-GCEC-2609-2036"
+  },
+  {
+   "productId": 2040,
+   "name": "Kem dưỡng Kanebo Freshel 5 in 1 dạng gel",
+   "nameJa": "フレッシェル アクアモイスチャージェル モイスト N 80g",
+   "sku": "FRES-DDM-2609-2040"
+  },
+  {
+   "productId": 2037,
+   "name": "Kem dưỡng đêm Shiseido Elixir White Reset Brightenist",
+   "nameJa": "資生堂 エリクシール ホワイト リセット ブライトニスト 40g",
+   "sku": "ELIX-DDM-2609-2037"
+  },
+  {
+   "productId": 2243,
+   "name": "Kem Dưỡng Da Whitening Skincare Cream Hộp Xanh",
+   "nameJa": "ブレーンコスモス 薬用 美白乃美人 ホワイトニングピーリングジェル 150g",
+   "sku": "BRAI-DDM-2609-2243"
+  },
+  {
+   "productId": 2033,
+   "name": "Kem dưỡng da SK-II LXP Ultimate Perfecting Cream",
+   "nameJa": "SK-II LXP アルティメイト パーフェクティング クリーム 50g",
+   "sku": "SKII-DDM-2609-2033"
+  },
+  {
+   "productId": 2031,
+   "name": "Kem dưỡng da ban đêm Shiseido Elixir Enriched Cream",
+   "nameJa": "資生堂 エリクシール シュペリエル エンリッチドクリーム TB 45g",
+   "sku": "ELIX-DDM-2609-2031"
+  },
+  {
+   "productId": 2242,
+   "name": "Kem Dưỡng Ẩm Shiseido Aqualabel All-In-One Màu Đỏ",
+   "nameJa": "資生堂 アクアレーベル スペシャルジェルクリームEX ブライトニング つめかえ用 81g",
+   "sku": "SHIS-DDM-2609-2242"
+  },
+  {
+   "productId": 730,
+   "name": "Kem Dưỡng -Trị Thâm Mắt Meishoku 30g",
+   "nameJa": "明色 プラセホワイター 薬用美白アイクリーム 30g",
+   "sku": "MEIS-DDM-2009-0730"
+  },
+  {
+   "productId": 2028,
+   "name": "Kem chống nắng SK-II Cellumination Day Surge UV SPF30 50g",
+   "nameJa": "SK-II セルミネーション デイサージ UV SPF30 50g",
+   "sku": "SKII-CNU-2609-2028"
+  },
+  {
+   "productId": 2027,
+   "name": "Kem chống nắng Shiseido Hada Senka",
+   "nameJa": "資生堂 専科 ミネラルウォーターでつくったUVジェル SPF50 40mL",
+   "sku": "SENK-CNU-2609-2027"
+  },
+  {
+   "productId": 2026,
+   "name": "Kem chống nắng Kanebo Allie Chrono Beauty Gel UV EX 90g",
+   "nameJa": "アリィー クロノビューティ ジェルUV EX 90g",
+   "sku": "ALLI-CNU-2609-2026"
+  },
+  {
+   "productId": 223,
+   "name": "Kem chấm Ngừa Trị Mụn Pair Acne Lotion  160g",
+   "nameJa": "ライオン ペアアクネ クリーンローション 160g",
+   "sku": "PAIR-DDM-2006-0223"
+  },
+  {
+   "productId": 226,
+   "name": "Kem chấm  Ngừa-Trị Mụn Pair Acne 80g",
+   "nameJa": "ライオン ペアアクネ クリーミーフォーム 80g",
+   "sku": "PAIR-TMAT-2006-0226"
+  },
+  {
+   "productId": 2212,
+   "name": "Kem Bôi Da Oronine H Ointment",
+   "nameJa": "大塚製薬 オロナインH軟膏 250g",
+   "sku": "ORON-TTGD-2609-2212"
+  },
+  {
+   "productId": 2205,
+   "name": "Giày Nữ First Contact Made In Japan",
+   "nameJa": "ファーストコンタクト 厚底パンプス IM49605 レディース",
+   "sku": "FIRS-TTF-2609-2205"
+  },
+  {
+   "productId": 1228,
+   "name": "Giảm Cân 12kg Deru Deru Diet Supplement Nhật Bản",
+   "nameJa": "ミナミヘルシーフーズ 超実感なんでこんなにでるでるダイエット粒 75袋",
+   "sku": "MINA-GCD-2110-1228"
+  },
+  {
+   "productId": 2236,
+   "name": "Gel Dưỡng Trắng NMN White All In One Gel 245g",
+   "nameJa": "エービーエル NMN ホワイト オールインワンゲル 245g",
+   "sku": "ABL-DDM-2609-2236"
+  },
+  {
+   "productId": 2171,
+   "name": "Đồng Hồ Nữ Casio Dây Nhựa 42,8mm",
+   "nameJa": "カシオ 腕時計 カシオコレクション LRW-200H-7BJF レディース",
+   "sku": "CASI-DHW-2609-2171"
+  },
+  {
+   "productId": 2160,
+   "name": "Đồng Hồ Nữ Casio Collection LTP-1177A-4A1JH Màu Hồng",
+   "nameJa": "カシオ コレクション LTP-1177A-4A1JH レディース腕時計",
+   "sku": "CASI-DHW-2609-2160"
+  },
+  {
+   "productId": 2159,
+   "name": "Đồng Hồ Nữ Casio Collection LTP-1177A-2AJH Màu Xanh",
+   "nameJa": "カシオ 腕時計 カシオコレクション LTP-1177A-2AJH レディース",
+   "sku": "CASI-DHW-2609-2159"
+  },
+  {
+   "productId": 2186,
+   "name": "Đồng Hồ Casio Standard LRW-200H Màu Đen",
+   "nameJa": "カシオ スタンダード LRW-200H-1B レディース腕時計 ブラック",
+   "sku": "CASI-DHW-2609-2186"
+  },
+  {
+   "productId": 2165,
+   "name": "DHA Koplina Kids Vị Cam",
+   "nameJa": "コプリナ キッズDHA オレンジ風味 180粒",
+   "sku": "KOPL-MAB-2609-2165"
+  },
+  {
+   "productId": 2017,
+   "name": "Dung dịch vệ sinh phụ nữ pH Japan Premium 150ml",
+   "nameJa": "pH JAPAN プレミアム フェミニンウォッシュ 150mL",
+   "sku": "PH-GCEC-2609-2017"
+  },
+  {
+   "productId": 2206,
+   "name": "Dầu Tẩy Trang Fancl",
+   "nameJa": "ファンケル マイルドクレンジングオイル 詰め替え用 115mL",
+   "sku": "FANC-SRMT-2609-2206"
+  },
+  {
+   "productId": 2014,
+   "name": "Dầu tẩy trang DHC Deep Cleansing Oil 70ml",
+   "nameJa": "DHC ディープクレンジングオイル 70mL",
+   "sku": "DHC-SRMT-2609-2014"
+  },
+  {
+   "productId": 1603,
+   "name": "Dầu Gội Tonic Cho Nam",
+   "nameJa": "メンズ トニックシャンプー（清涼タイプ）",
+   "sku": "TONI-SPDC-2210-1603"
+  },
+  {
+   "productId": 2059,
+   "name": "Dầu gội Ichikami Kracie Smooth Care 480ml",
+   "nameJa": "クラシエ いち髪 なめらかスムースケア シャンプー 480mL",
+   "sku": "ICHI-DDM-2609-2059"
+  },
+  {
+   "productId": 2009,
+   "name": "Cọ rửa mặt lông mềm Nhật Bản",
+   "nameJa": "洗顔ブラシ やわらか毛 日本製",
+   "sku": "KHON-DCLD-2609-2009"
+  },
+  {
+   "productId": 2163,
+   "name": "Chì Kẻ Lông Mày 3 Trong 1 Picomonte 3 Way Eye Brow",
+   "nameJa": "ピコモンテ・ジャパン 3WAYアイブロウ ダークブラウン",
+   "sku": "PICO-TDM-2609-2163"
+  },
+  {
+   "productId": 2162,
+   "name": "Chăn Lông Muji Xuất Nhật 2,2 X 2,3m",
+   "nameJa": "無印良品 毛布 220×230cm",
+   "sku": "MUJI-NCDS-2609-2162"
+  },
+  {
+   "productId": 2215,
+   "name": "Cặp Chống Gù Randoseru Nhật Bản Cho Học Sinh",
+   "nameJa": "協和 ランドセル みんなのともだち 2027年度モデル 05-71700",
+   "sku": "KYOW-TTF-2609-2215"
+  },
+  {
+   "productId": 2175,
+   "name": "Bột Matcha Gokugoku Nhật Bản",
+   "nameJa": "天然生活 有機宇治緑茶パウダー 100g",
+   "sku": "TENN-TPDU-2609-2175"
+  },
+  {
+   "productId": 1623,
+   "name": "BỘT MẦM LÚA MẠCH – BỘT TRÀ LÚA NON NHẬT BẢN",
+   "nameJa": "大麦若葉 青汁 粉末（国産大麦若葉100%）",
+   "sku": "MAM-TPCN-2303-1623"
+  },
+  {
+   "productId": 2102,
+   "name": "Bột hỗ trợ tiêu hoá dạ dày Taisho Kampo 48 gói",
+   "nameJa": "大正製薬 大正漢方胃腸薬 48包",
+   "sku": "TAIS-TTGD-2609-2102"
+  },
+  {
+   "productId": 2004,
+   "name": "Bột canxi cá tuyết Nhật Bản",
+   "nameJa": "ファイン 骨キッズカルシウム チョコ風味 140g",
+   "sku": "FINE-TPCN-2609-2004"
+  },
+  {
+   "productId": 2179,
+   "name": "Bộ sản phẩm dùng thử Elixir White (Dòng dưỡng ẩm & làm sáng da) - CB (30ml + 30ml + 30ml)",
+   "nameJa": "資生堂 エリクシール ブライトニング トライアルセット 30mL+30mL",
+   "sku": "ELIX-DDM-2609-2179"
+  },
+  {
+   "productId": 2256,
+   "name": "Bộ Dầu Gội Xả Tigi Đỏ 750ml x 2 Chai",
+   "nameJa": "TIGI キャットウォーク オートミール＆ハニー シャンプー＆コンディショナー 750mL×2",
+   "sku": "TIGI-CST-2609-2256"
+  },
+  {
+   "productId": 2223,
+   "name": "Bao Cao Su Sagami Original 0.01 Hộp 5 Cái",
+   "nameJa": "サガミオリジナル001 コンドーム 5個入",
+   "sku": "SAGA-TTGD-2609-2223"
+  },
+  {
+   "productId": 2200,
+   "name": "Bình Giữ Nhiệt Thermos",
+   "nameJa": "サーモス 真空断熱ケータイマグ 500mL JNL-S500 オリーブグリーン",
+   "sku": "THER-NCDS-2609-2200"
+  },
+  {
+   "productId": 2264,
+   "name": "Bánh Xốp Healthy Club",
+   "nameJa": "ヘルシークラブ 食物繊維と全粒粉ウエハース メープル味 36枚",
+   "sku": "HEAL-TPDU-2609-2264"
+  },
+  {
+   "productId": 2184,
+   "name": "Áo Phông Uniqlo Size M",
+   "nameJa": "ユニクロ UT ドラゴンボール Tシャツ Mサイズ",
+   "sku": "UNIQ-TTF-2609-2184"
+  },
+  {
+   "productId": 2195,
+   "name": "Áo Parka Lông Vũ Dáng Dài Uniqlo Cho Trẻ Em",
+   "nameJa": "Kayiyasu キッズ ダウンジャケット ロング丈 120-160",
+   "sku": "KAYI-TTF-2609-2195"
+  },
+  {
+   "productId": 2193,
+   "name": "Áo Lông Cừu Uniqlo",
+   "nameJa": "ユニクロ フリースフルジップジャケット",
+   "sku": "UNIQ-TTF-2609-2193"
+  },
+  {
+   "productId": 1313,
+   "name": "Sữa Dưỡng Thể Hatomugi Lotion Ban Đêm",
+   "nameJa": "麗白 ハトムギ ボディローション 無香料 250g",
+   "sku": "REIH-CSB-2112-1313"
+  },
+  {
+   "productId": 2213,
+   "name": "Viên Uống Purelab NMN 21000mg 90 Viên",
+   "nameJa": "PURELAB NMN サプリメント 21,000mg 90粒",
+   "sku": "PURE-TPCN-2609-2213"
+  },
+  {
+   "productId": 193,
+   "name": "BB Chocola Trị Mụn 170 Viên",
+   "nameJa": "エーザイ チョコラBBピュア 170錠",
+   "sku": "CHOC-TPCN-2005-0193"
+  },
+  {
+   "productId": 2270,
+   "name": "Dầu Cá Nordic Naturals Children’s DHA 530mg Omega-3 237ml",
+   "nameJa": "ノルディックナチュラルズ チルドレンズDHA 液体 237mL",
+   "sku": "NORD-MAB-2609-2270"
+  },
+  {
+   "productId": 916,
+   "name": "Dầu Tẩy Trang Oliu Naive  Kracie Natural Deep Cleansing",
+   "nameJa": "クラシエ ナイーブ ディープクリア オイルクレンジング 170mL",
+   "sku": "NAIV-SRMT-2012-0916"
+  },
+  {
+   "productId": 250,
+   "name": "LuLuLun Face Mask Pink Mặt Nạ-Cân Bằng Ẩm",
+   "nameJa": "ルルルン ピンクのルルルン（ピュア バランス）32枚入",
+   "sku": "LULU-MNM-2006-0250"
+  },
+  {
+   "productId": 247,
+   "name": "LuLuLun Face Mask White Mặt Nạ-Dưỡng Trắng",
+   "nameJa": "ルルルン 白のルルルン（ピュア クリア）32枚入",
+   "sku": "LULU-MNM-2006-0247"
+  },
+  {
+   "productId": 256,
+   "name": "Mask Moritaya Tofu Mặt Nạ Đậu Phụ 150g",
+   "nameJa": "豆腐の盛田屋 豆乳よーぐるとぱっく 玉の輿 150g",
+   "sku": "TOFU-MNM-2006-0256"
+  },
+  {
+   "productId": 2006,
+   "name": "Bột trà sữa Matcha Milk Nhật Bản",
+   "nameJa": "抹茶ミルク 粉末 200g",
+   "sku": "THUO-TPDU-2609-2006"
+  },
+  {
+   "productId": 1229,
+   "name": "Lululun Face Mask Blue Mặt Nạ- Dưỡng Ẩm Sâu",
+   "nameJa": "ルルルン 青のルルルン フェイスマスク 32枚",
+   "sku": "LULU-MNM-2110-1229"
+  },
+  {
+   "productId": 2002,
+   "name": "Bình xịt ngăn ngừa sâu răng Hamikea Tampei 25g",
+   "nameJa": "丹平製薬 ハミケア グレープ風味 25g",
+   "sku": "TAMP-CSRM-2609-2002"
+  },
+  {
+   "productId": 301,
+   "name": "Arau Baby Sữa Tắm Gội Cho Bé 450ml",
+   "nameJa": "アラウ.ベビー 泡全身ソープ 本体 450mL",
+   "sku": "ARAU-MAB-2006-0301"
+  },
+  {
+   "productId": 2012,
+   "name": "Set dầu gội, dầu xả và sữa tắm Dove Nhật Bản",
+   "nameJa": "ダヴ モイスチャーケア コンディショナー ポンプ 500g",
+   "sku": "DOVE-CST-2609-2012"
+  },
+  {
+   "productId": 2005,
+   "name": "Ngũ cốc trái cây Calbee Frugra 700g",
+   "nameJa": "カルビー フルグラ 700g",
+   "sku": "CALB-TPDU-2609-2005"
+  },
+  {
+   "productId": 2048,
+   "name": "Kem dưỡng mắt Sana Nameraka Honpo 20g",
+   "nameJa": "なめらか本舗 目元ふっくらクリーム NC 20g",
+   "sku": "NAME-ME-2609-2048"
+  },
+  {
+   "productId": 2011,
+   "name": "Dầu gội Head Spa (HS) cho tóc dầu, da đầu ngứa",
+   "nameJa": "h&s for men 薬用シャンプー ボリュームアップ 370mL",
+   "sku": "HS-CST-2609-2011"
+  },
+  {
+   "productId": 912,
+   "name": "Sữa Rửa Mặt Oxy Màu Đen 130g",
+   "nameJa": "オキシー ディープウォッシュ 130g",
+   "sku": "OXY-SRMT-2012-0912"
+  },
+  {
+   "productId": 2504,
+   "name": "Sữa Meiji Hohoemi dạng thanh 0–1 tuổi 540g (20 thanh)",
+   "nameJa": "明治ほほえみ らくらくキューブ 540g（27g×20袋）",
+   "sku": "MEIJI-HOHOEMI-540G-20"
+  },
+  {
+   "productId": 2505,
+   "name": "Sữa Meiji Step dạng thanh 1–3 tuổi 560g (20 thanh)",
+   "nameJa": "明治ステップ らくらくキューブ 560g（28g×20袋）",
+   "sku": "MEIJI-STEP-560G-20"
+  },
+  {
+   "productId": 2007,
+   "name": "Bột uống Collagen Meiji Amino Collagen 196g",
+   "nameJa": "明治 アミノコラーゲン プレミアム 196g",
+   "sku": "MEIJ-TPCN-2609-2007"
+  },
+  {
+   "productId": 2182,
+   "name": "Sữa Tăng Cơ Meiji Savas Protein 100 các vị",
+   "nameJa": "明治 ザバス ソイプロテイン100 ココア味 920g",
+   "sku": "SAVA-TPDU-2609-2182"
+  },
+  {
+   "productId": 2073,
+   "name": "Sữa Meiji số 9 800g",
+   "nameJa": "明治 ステップ 800g",
+   "sku": "MEIJ-MAB-2609-2073"
+  },
+  {
+   "productId": 1536,
+   "name": "Sữa Meiji Cho Bé Từ 1-3 Tuổi Dạng Lon 800g",
+   "nameJa": "明治ステップ 大缶 800g",
+   "sku": "MEIJ-MAB-2206-1536"
+  },
+  {
+   "productId": 2265,
+   "name": "Set 2 Lon Sữa Meiji Hohoemi Cho Bé 0-1 Tuổi 800g x 2",
+   "nameJa": "明治 ほほえみ 800g×2缶",
+   "sku": "MEIJ-MAB-2609-2265"
+  },
+  {
+   "productId": 1363,
+   "name": "Sữa Meiji Cho Bé Từ 0-1 Tuổi Dạng Thanh (48 Thanh)",
+   "nameJa": "明治ほほえみ らくらくキューブ 27g×48袋",
+   "sku": "MEIJ-MAB-2201-1363"
+  },
+  {
+   "productId": 2266,
+   "name": "Set 2 Lon Sữa Meiji Step Cho Bé 1-3 Tuổi 800g x 2",
+   "nameJa": "明治 ステップ 800g×2缶",
+   "sku": "MEIJ-MAB-2609-2266"
+  },
+  {
+   "productId": 1368,
+   "name": "Sữa Meiji Cho Bé Từ 1-3 Tuổi Dạng Thanh (48 Thanh)",
+   "nameJa": "明治ステップ らくらくキューブ 28g×48袋",
+   "sku": "MEIJ-MAB-2201-1368"
+  },
+  {
+   "productId": 280,
+   "name": "Skin Aqua Tone Up Kem Chống Nắng 80g",
+   "nameJa": "スキンアクア トーンアップUVエッセンス ラベンダー 80g",
+   "sku": "ROHT-CNU-2011-0280"
+  },
+  {
+   "productId": 791,
+   "name": "Sữa Rửa Mặt Trà Xanh Rohto",
+   "nameJa": "ロート製薬 白茶爽 白茶練り石鹸洗顔 120g",
+   "sku": "ROHT-SRMT-2010-0791"
+  },
+  {
+   "productId": 2108,
+   "name": "Viên uống giảm mỡ bụng Rohto Bofutsushosan 372 viên",
+   "nameJa": "ロート製薬 ロート防風通聖散錠満量a 372錠",
+   "sku": "ROHT-GCD-2609-2108"
+  },
+  {
+   "productId": 2054,
+   "name": "Kem trị viêm nang lông Rohto Zaraporo A 35g",
+   "nameJa": "ロート製薬 メンソレータム ザラプロA 35g",
+   "sku": "MENT-CSB-2609-2054"
+  },
+  {
+   "productId": 2420,
+   "name": "Phấn phủ dưỡng sáng Club Suppin Whitening Powder A hương Innocent Floral 26g",
+   "nameJa": "クラブ すっぴんホワイトニングパウダーA イノセントフローラルの香り 26g",
+   "sku": "CLUB-SUPPIN-WHITENING-26G"
+  },
+  {
+   "productId": 2422,
+   "name": "Phấn phủ dưỡng da Club Suppin Acne Care hương bưởi 26g",
+   "nameJa": "クラブ すっぴんパウダー アクネケア ピュアグレープフルーツの香り 26g",
+   "sku": "CLUB-SUPPIN-ACNE-26G"
+  },
+  {
+   "productId": 2581,
+   "name": "Serum Numbuzin No.5 Glutathione C dưỡng sáng da 30ml",
+   "nameJa": "ナンバーズイン 5番白玉グルタチオンC美容液 30ml",
+   "sku": "NUMBUZIN-NO5-GC-SERUM-30"
+  },
+  {
+   "productId": 2608,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 5NA – Nâu tự nhiên trầm 40g+40g",
+   "nameJa": "ビゲン クリームトーン 5NA 深いナチュラリーブラウン 40g+40g",
+   "sku": "BIGEN-CREAMTONE-5NA-80G"
+  },
+  {
+   "productId": 2008,
+   "name": "Chai xịt giảm đau Air Salonpas Nhật Bản",
+   "nameJa": "久光製薬 エアーサロンパスジェットα 300mL",
+   "sku": "AIR-TTGD-2609-2008"
+  },
+  {
+   "productId": 1758,
+   "name": "Viên bổ sung Dear Natura Canxi Magie Kẽm Vitamin D 540 viên 90 ngày",
+   "nameJa": "ディアナチュラ カルシウム・マグネシウム・亜鉛・ビタミンD 540粒",
+   "sku": "DEAR-TPCN-2408-1758"
+  },
+  {
+   "productId": 1317,
+   "name": "Viên Uống Trắng Da DHC Hatomugi 60 ngày",
+   "nameJa": "DHC はとむぎエキス 60日分 60粒",
+   "sku": "DHC-TPCN-2112-1317"
+  },
+  {
+   "productId": 1234,
+   "name": "Viên Uống Vitamin Tổng Hợp DHC Multi Vitamins",
+   "nameJa": "DHC マルチビタミン 徳用90日分 90粒",
+   "sku": "DHC-TPCN-2110-1234"
+  },
+  {
+   "productId": 2122,
+   "name": "Viên uống bổ sung canxi CBP tăng chiều cao DHC vị sữa",
+   "nameJa": "DHC コツプレミアムCBP 30粒",
+   "sku": "DHC-TPCN-2609-2122"
+  },
+  {
+   "productId": 2134,
+   "name": "Viên uống vitamin tổng hợp DHC Multi Vitamin 60 ngày",
+   "nameJa": "DHC マルチビタミン 60粒",
+   "sku": "DHC-TPCN-2609-2134"
+  },
+  {
+   "productId": 2123,
+   "name": "Viên uống hỗ trợ giảm cân DHC 20 ngày",
+   "nameJa": "DHC カルニチン 20日分 100粒",
+   "sku": "DHC-GCD-2609-2123"
+  },
+  {
+   "productId": 1529,
+   "name": "Viên Uống Bổ Sung Vitamin E 60 Ngày",
+   "nameJa": "DHC 天然ビタミンE［大豆］ 60日分",
+   "sku": "DHC-TPCN-2206-1529"
+  },
+  {
+   "productId": 2099,
+   "name": "Thuốc dạ dày Kowa Cabagin α 300 viên",
+   "nameJa": "興和 キャベジンコーワα 300錠",
+   "sku": "KOWA-TTGD-2609-2099"
+  },
+  {
+   "productId": 228,
+   "name": "Transino White C Clear 120 Viên",
+   "nameJa": "トランシーノ ホワイトCクリア 120錠",
+   "sku": "TRAN-TPCN-2006-0228"
+  },
+  {
+   "productId": 2069,
+   "name": "Son dưỡng môi DHC Lip Cream 1.5g",
+   "nameJa": "DHC 薬用リップクリーム 1.5g",
+   "sku": "DHC-TDM-2609-2069"
+  },
+  {
+   "productId": 1737,
+   "name": "Tẩy tế bào chết Detclear Bright And Peel Nhật Bản 180ml",
+   "nameJa": "明色化粧品 DETクリア ブライト＆ピール ピーリングジェリー 180mL",
+   "sku": "DETC-SRMT-2307-1737"
+  },
+  {
+   "productId": 1731,
+   "name": "Gel tẩy tế bào chết Rosette Than Clear Peel Nhật Bản",
+   "nameJa": "ロゼットゴマージュ クリアピール",
+   "sku": "ROSE-SRMT-2307-1731"
+  },
+  {
+   "productId": 2197,
+   "name": "Set Túi Phúc SK-II 5 Món",
+   "nameJa": "SK-II ニューイヤー スペシャル トライアルキット 5点セット",
+   "sku": "SKII-DDM-2609-2197"
+  },
+  {
+   "productId": 1734,
+   "name": "Gel tẩy tế bào chết Rosette Hồng Nhật Bản",
+   "nameJa": "ロゼット ゴマージュ モイスト 120g",
+   "sku": "ROSE-SRMT-2307-1734"
+  },
+  {
+   "productId": 2754,
+   "name": "Viên uống đông trùng hạ thảo Seedcoms Cordyceps 30 viên (1 tháng)",
+   "nameJa": "シードコムス 冬虫夏草 約1ヶ月分（30粒）",
+   "sku": "SEEDCOMS-4589724451383"
+  },
+  {
+   "productId": 2724,
+   "name": "Viên uống đông trùng hạ thảo Seedcoms Cordyceps 90 viên (3 tháng)",
+   "nameJa": "シードコムス 冬虫夏草 約3ヶ月分（90粒）",
+   "sku": "SEEDCOMS-4589724451390"
+  },
+  {
+   "productId": 2015,
+   "name": "[TRÙNG Mild — giữ nháp] Dầu tẩy trang Muji Cleansing Oil",
+   "nameJa": "無印良品 マイルドオイルクレンジング 200mL",
+   "sku": "MUJI-SRMT-2609-2015"
+  },
+  {
+   "productId": 1249,
+   "name": "[TRÙNG Mild — giữ nháp] Tẩy Trang Muji Oil Cleansing 200ml",
+   "nameJa": "無印良品 マイルドオイルクレンジング 200mL",
+   "sku": "MUJI-SRMT-2110-1249"
+  },
+  {
+   "productId": 1493,
+   "name": "Sữa Rửa Mặt Tạo Bọt Màu Xanh HADA LABO",
+   "nameJa": "肌ラボ 泡洗顔料 ブルーボトル（混合肌・脂性肌用）",
+   "sku": "HADA-SRMT-2203-1493"
+  },
+  {
+   "productId": 1490,
+   "name": "Sữa Rửa Mặt Tạo Bọt Màu Trắng HADA LABO",
+   "nameJa": "肌ラボ 極潤ヒアルロン泡洗顔 160mL",
+   "sku": "HADA-SRMT-2203-1490"
+  },
+  {
+   "productId": 1578,
+   "name": "[TRÙNG UV White Gel — ẩn] Kem Dưỡng Ngày Hadalabo Xanh 7in1",
+   "nameJa": "肌ラボ 極潤 UVホワイトゲル 90g",
+   "sku": "HADA-DDM-2209-1578"
+  },
+  {
+   "productId": 2029,
+   "name": "Kem chống nhăn vùng mắt và khoé miệng Hada Labo",
+   "nameJa": "肌ラボ 極潤プレミアム ヒアルロンアイクリーム 20g",
+   "sku": "HADA-ME-2609-2029"
+  },
+  {
+   "productId": 1315,
+   "name": "Thuốc nhuận tràng detox Kokando Byurakku 400 viên",
+   "nameJa": "ビューラック 400錠",
+   "sku": "BYUR-GCD-2112-1315"
+  },
+  {
+   "productId": 2692,
+   "name": "Xà phòng rửa mặt tẩy tế bào chết BCL AHA Cleansing Research Soap AP 100g",
+   "nameJa": "クレンジングリサーチ ソープ AP 100g",
+   "sku": "SP-SRMT-2610-2692"
+  },
+  {
+   "productId": 2691,
+   "name": "Dầu tẩy trang sạch sâu lỗ chân lông BCL AHA Cleansing Research Oil Cleansing 200ml",
+   "nameJa": "クレンジングリサーチ オイルクレンジング ポアクリア 200mL",
+   "sku": "SP-SRMT-2610-2691"
+  },
+  {
+   "productId": 2690,
+   "name": "Sữa rửa mặt tạo bọt BCL AHA Cleansing Research Whip Clear Cleansing b 150ml (Cấp ẩm)",
+   "nameJa": "クレンジングリサーチ ホイップクリアクレンジング b 150mL",
+   "sku": "BCL-SRMT-2610-2690"
+  },
+  {
+   "productId": 2688,
+   "name": "Khăn giấy tẩy trang tế bào chết BCL AHA Cleansing Research Sheet Cleansing 60 miếng",
+   "nameJa": "クレンジングリサーチ シートクレンジング 60枚入",
+   "sku": "SP-SRMT-2610-2688"
+  },
+  {
+   "productId": 2576,
+   "name": "Sữa tắm tẩy da chết AHA Cleansing Research C hương citrus 480ml",
+   "nameJa": "クレンジングリサーチ ボディピールソープ C 480mL（シトラス）",
+   "sku": "BCL-CR-BODYPEEL-C480"
+  },
+  {
+   "productId": 2575,
+   "name": "Sữa tắm tẩy da chết AHA Cleansing Research hương táo 480ml",
+   "nameJa": "クレンジングリサーチ ボディピールソープ 480mL（フレッシュアップル）",
+   "sku": "BCL-CR-BODYPEEL-APPLE480"
+  },
+  {
+   "productId": 2523,
+   "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing C 120g (tuýp vàng)",
+   "nameJa": "クレンジングリサーチ ウォッシュクレンジング C 120g（透明感肌）",
+   "sku": "BCL-CR-C-120G"
+  },
+  {
+   "productId": 2739,
+   "name": "Viên uống hỗ trợ chiều cao Shin Shin Kakumei 300 viên",
+   "nameJa": "身伸革命 300粒",
+   "sku": "SHINSHIN-KAKUMEI-300"
+  },
+  {
+   "productId": 2614,
+   "name": "Viên bổ sung dinh dưỡng Growth Height Ex Plus 300 viên",
+   "nameJa": "Growth Height Ex Plus 300粒（300mg×300粒）",
+   "sku": "GROWTH-HEIGHT-EXPLUS-300"
+  },
+  {
+   "productId": 2106,
+   "name": "Viên uống tăng chiều cao GH Creation EX+ 270 viên",
+   "nameJa": "エターナル GHクリエーションEX＋ 270粒",
+   "sku": "GH-TPCN-2609-2106"
+  },
+  {
+   "productId": 2532,
+   "name": "Dung dịch dưỡng tóc và làm mờ tóc bạc Kaminomoto Black NEO không mùi 150ml",
+   "nameJa": "ブラック加美乃素NEO 無香料 150mL",
+   "sku": "KAMI-BLACK-NEO-150ML"
+  },
+  {
+   "productId": 2531,
+   "name": "Dung dịch dưỡng tóc Kaminomoto A không mùi 200ml",
+   "nameJa": "加美乃素A 無香料 200mL",
+   "sku": "KAMI-A-N-200ML"
+  },
+  {
+   "productId": 2530,
+   "name": "Dung dịch dưỡng tóc Kaminomoto Herb AD hương bạc hà lavender 200ml",
+   "nameJa": "ハーブ加美乃素AD ペパーミント・ラベンダー調の香り 200mL",
+   "sku": "KAMI-HERB-AD-200ML"
+  },
+  {
+   "productId": 2529,
+   "name": "Dung dịch dưỡng tóc Kaminomoto Strong A hương hoa nhài 200ml",
+   "nameJa": "強力加美乃素A ジャスミン調の香り 200mL",
+   "sku": "KAMI-STRONG-A-J-200ML"
+  },
+  {
+   "productId": 2524,
+   "name": "Dung dịch dưỡng tóc Kaminomoto Strong A không mùi 200ml",
+   "nameJa": "強力加美乃素A 無香料 200mL",
+   "sku": "KAMI-STRONG-A-N-200ML"
+  },
+  {
+   "productId": 2607,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 6G – Nâu đen tự nhiên 40g+40g",
+   "nameJa": "ビゲン クリームトーン 6G 自然な褐色 40g+40g",
+   "sku": "BIGEN-CREAMTONE-6G-80G"
+  },
+  {
+   "productId": 2167,
+   "name": "Viên Uống Vitamin Tổng Hợp Cho Bà Bầu Pigeon 60 Viên",
+   "nameJa": "ピジョン 葉酸プラス 60粒",
+   "sku": "PIGE-MAB-2609-2167"
+  },
+  {
+   "productId": 2135,
+   "name": "Viên uống bầu Pigeon Folic + Canxi (葉酸カルシウムプラス) 60 viên — 1 ngày 2 viên",
+   "nameJa": "ピジョン 葉酸カルシウムプラス 60粒",
+   "sku": "PIGE-MAB-2609-2135"
+  },
+  {
+   "productId": 2568,
+   "name": "Sữa tắm bọt Pigeon lá đào túi refill 400ml",
+   "nameJa": "ピジョン 薬用全身泡ソープ（ももの葉）つめかえ用 400ml",
+   "sku": "PIGEON-MOMONOHA400ML"
+  },
+  {
+   "productId": 1283,
+   "name": "Viên Xương Khớp Glucosamine Orihiro 900 viên",
+   "nameJa": "オリヒロ 高純度グルコサミン 徳用 900粒",
+   "sku": "ORIH-TPCN-2111-1283"
+  },
+  {
+   "productId": 2511,
+   "name": "Viên Xương Khớp Glucosamine Orihiro 900 viên + 50 viên (bản giới hạn)",
+   "nameJa": "オリヒロ 高純度グルコサミン 徳用 950粒",
+   "sku": "ORIH-TPCN-2609-2511"
+  },
+  {
+   "productId": 2494,
+   "name": "Thuốc nhỏ mắt Santen Sante PC 12 ml",
+   "nameJa": "参天製薬 サンテPC 12mL【第2類医薬品】",
+   "sku": "SANTEN-PC-12ML"
+  },
+  {
+   "productId": 2328,
+   "name": "Miếng dán hạ nhiệt Cooling Sheet 10 giờ dùng cho người lớn và trẻ em 16 miếng",
+   "nameJa": "熱とりタックん 大人用 16枚入",
+   "sku": "COOL-TTGD-2609-2328"
+  },
+  {
+   "productId": 2609,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 4G – Nâu hạt dẻ tự nhiên 40g+40g",
+   "nameJa": "ビゲン クリームトーン 4G 自然な栗色 40g+40g",
+   "sku": "BIGEN-CREAMTONE-4G-80G"
+  },
+  {
+   "productId": 2324,
+   "name": "Nước mắt nhân tạo Santen Soft Santear bản thường 5ml x 4 chai",
+   "nameJa": "ソフトサンティア 5mL×4本",
+   "sku": "SANT-TTGD-2609-2324"
+  },
+  {
+   "productId": 2525,
+   "name": "Viên dầu cá DHC DHA 60 ngày 240 viên",
+   "nameJa": "DHC DHA 60日分 240粒",
+   "sku": "DHC-DHA-60D-240"
+  },
+  {
+   "productId": 2503,
+   "name": "Viên uống kẽm DHC Zinc 15mg 60 ngày 60 viên",
+   "nameJa": "DHC 亜鉛 60日分 60粒（亜鉛15mg）",
+   "sku": "DHC-ZINC-15MG-60D-60"
+  },
+  {
+   "productId": 2419,
+   "name": "Thuốc cảm cúm của Nhật Taisho Pabron Gold A 210 viên",
+   "nameJa": "パブロンゴールドA〈錠〉 210錠",
+   "sku": "TAIS-SK-2609-2419"
+  },
+  {
+   "productId": 1656,
+   "name": "Viên Uống Bổ Sung Canxi DHC 60 Ngày",
+   "nameJa": "DHC カルシウム／マグ 60日分 180粒",
+   "sku": "DHC-TPCN-2304-1656"
+  },
+  {
+   "productId": 1274,
+   "name": "Vitamin C DHC 60 Ngày 120 viên",
+   "nameJa": "DHC ビタミンC ハードカプセル 60日分 120粒",
+   "sku": "DHC-TPCN-2111-1274"
+  },
+  {
+   "productId": 2030,
+   "name": "Kem dưỡng ẩm da lô hội Aloins Eaudé Cream S dùng cho mặt và toàn thân (180g)",
+   "nameJa": "アロインス オーデクリームS 180g 【オーデ】 ボディミルク・クリーム・オイル",
+   "sku": "ALOI-DDM-2609-2030"
+  },
+  {
+   "productId": 2501,
+   "name": "Viên uống DHC Vitamin D 25mcg 60 ngày 60 viên",
+   "nameJa": "DHC ビタミンD 60日分 60粒（25μg）",
+   "sku": "DHC-VITAMIND-25MCG-60D"
+  },
+  {
+   "productId": 1533,
+   "name": "Viên uống Collagen DHC 60 Ngày",
+   "nameJa": "DHC コラーゲン 60日分 360粒",
+   "sku": "DHC-TPCN-2206-1533"
+  },
+  {
+   "productId": 1525,
+   "name": "Viên Uống Rau Củ DHC 60 Ngày",
+   "nameJa": "DHC 国産パーフェクト野菜プレミアム 60日分 240粒",
+   "sku": "DHC-TPCN-2206-1525"
+  },
+  {
+   "productId": 2174,
+   "name": "Sữa Milk Seikatsu Plus 300 Morinaga",
+   "nameJa": "森永乳業 大人の粉ミルク ミルク生活プラス 300g",
+   "sku": "MORI-TPDU-2609-2174"
+  },
+  {
+   "productId": 2600,
+   "name": "Viên uống Orihiro Nattokinase 4000FU 60 viên 30 ngày",
+   "nameJa": "オリヒロ ナットウキナーゼ4000 60粒（30日分）",
+   "sku": "ORIHIRO-NATTO4000-60"
+  },
+  {
+   "productId": 2202,
+   "name": "Viên Uống Hỗ Trợ Tuần Hoàn Orihiro Nattokinase 2000FU",
+   "nameJa": "オリヒロ ナットウキナーゼ 60粒",
+   "sku": "ORIH-TPCN-2609-2202"
+  },
+  {
+   "productId": 2181,
+   "name": "Viên Uống Hỗ Trợ Tuần Hoàn Maruman Nattokinase 4200FU DHA EPA",
+   "nameJa": "マルマン 納豆キナーゼ4200FU 120粒",
+   "sku": "MARU-TPCN-2609-2181"
+  },
+  {
+   "productId": 1599,
+   "name": "Kem Hâp và Ủ Tóc Fino ShiSeiDo",
+   "nameJa": "フィーノ プレミアムタッチ 浸透美容液ヘアマスク 230g",
+   "sku": "FINO-CST-2210-1599"
+  },
+  {
+   "productId": 2502,
+   "name": "Viên uống canxi DHC Calcium + CBP 60 ngày 240 viên",
+   "nameJa": "DHC カルシウム＋CBP 60日分 240粒",
+   "sku": "DHC-CALCIUM-CBP-60D-240"
+  },
+  {
+   "productId": 1527,
+   "name": "Viên Uống Thơm Cơ Thể DHC 20 Ngày",
+   "nameJa": "DHC 香るブルガリアンローズカプセル 20日分 40粒",
+   "sku": "DHC-TPCN-2206-1527"
+  },
+  {
+   "productId": 2542,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Wild Shake 80g",
+   "nameJa": "ギャツビー ムービングラバー ワイルドシェイク 80g",
+   "sku": "GATSBY-MR-WILD-SHAKE-80G"
+  },
+  {
+   "productId": 2545,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Aero Motion 80g",
+   "nameJa": "ギャツビー ムービングラバー エアロモーション 80g",
+   "sku": "GATSBY-MR-AERO-MOTION-80G"
+  },
+  {
+   "productId": 2541,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Spiky Edge 80g",
+   "nameJa": "ギャツビー ムービングラバー スパイキーエッジ 80g",
+   "sku": "GATSBY-MR-SPIKY-EDGE-80G"
+  },
+  {
+   "productId": 2549,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Playful Move 80g",
+   "nameJa": "ギャツビー ムービングラバー プレイフルムーブ 80g",
+   "sku": "GATSBY-MR-PLAYFUL-MOVE-80G"
+  },
+  {
+   "productId": 2544,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Loose Shuffle 80g",
+   "nameJa": "ギャツビー ムービングラバー ルーズシャッフル 80g",
+   "sku": "GATSBY-MR-LOOSE-SHUFFLE-80G"
+  },
+  {
+   "productId": 2546,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Gloss Rise 80g",
+   "nameJa": "ギャツビー ムービングラバー グロスライズ 80g",
+   "sku": "GATSBY-MR-GLOSS-RISE-80G"
+  },
+  {
+   "productId": 2543,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Feather Active 80g",
+   "nameJa": "ギャツビー ムービングラバー フェザーアクティブ 80g",
+   "sku": "GATSBY-MR-FEATHER-ACTIVE-80G"
+  },
+  {
+   "productId": 2551,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Extreme Mat 80g",
+   "nameJa": "ギャツビー ムービングラバー エクストリームマット 80g",
+   "sku": "GATSBY-MR-EXTREME-MAT-80G"
+  },
+  {
+   "productId": 2550,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Cool Wet 80g",
+   "nameJa": "ギャツビー ムービングラバー クールウェット 80g",
+   "sku": "GATSBY-MR-COOL-WET-80G"
+  },
+  {
+   "productId": 2552,
+   "name": "Sáp tạo kiểu tóc Gatsby Moving Rubber Casual Mat 80g",
+   "nameJa": "ギャツビー ムービングラバー カジュアルマット 80g",
+   "sku": "GATSBY-MR-CASUAL-MAT-80G"
+  },
+  {
+   "productId": 2035,
+   "name": "Kem dưỡng da tay Kose Q10 Extra Guard",
+   "nameJa": "コーセー コエンリッチQ10 薬用エクストラガード ハンドクリーム 80g",
+   "sku": "COEN-CSB-2609-2035"
+  },
+  {
+   "productId": 2034,
+   "name": "Kem dưỡng da tay Kose Coenrich Q10 Whitening Deep Moisture 80g",
+   "nameJa": "コーセー コエンリッチQ10 薬用ホワイトニング ハンドクリーム ディープモイスチュア 80g",
+   "sku": "COEN-CSB-2609-2034"
+  },
+  {
+   "productId": 2253,
+   "name": "Kem Dưỡng Shiseido Aqualabel 5 Trong 1",
+   "nameJa": "資生堂 アクアレーベル スペシャルジェルクリームEX モイスト 90g",
+   "sku": "SHIS-DDM-2609-2253"
+  },
+  {
+   "productId": 2598,
+   "name": "Dầu dưỡng tóc Lucido-L Argan Rich Sheer Hair Oil Gloss 60ml",
+   "nameJa": "ルシードエル オイルトリートメント ＃EXヘアオイル シアーグロス 60ml",
+   "sku": "LUCIDOL-GLOSS-60"
+  },
+  {
+   "productId": 2612,
+   "name": "Kẹo dẻo bổ sung canxi và sắt UHA Gummy Supplement KIDS Minions vị dứa và xoài 20 ngày",
+   "nameJa": "UHAグミサプリ KIDS Ca・鉄 ミニオン 20日分",
+   "sku": "UHA-KIDS-CA-FE-MINIONS-20D"
+  },
+  {
+   "productId": 1769,
+   "name": "Kem Dưỡng Trắng Da Transino Whitening Repair Cream EX",
+   "nameJa": "トランシーノ 薬用ホワイトニングリペアクリームEX 35g",
+   "sku": "TRAN-DDM-2408-1769"
+  },
+  {
+   "productId": 2606,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 5MA – Nâu hạt dẻ trầm 40g+40g",
+   "nameJa": "ビゲン クリームトーン 5MA 深いマロンブラウン 40g+40g",
+   "sku": "BIGEN-CREAMTONE-5MA-80G"
+  },
+  {
+   "productId": 2610,
+   "name": "Kem nhuộm tóc bạc Bigen Cream Tone 4NA – Nâu tự nhiên 40g+40g",
+   "nameJa": "ビゲン クリームトーン 4NA ナチュラリーブラウン 40g+40g",
+   "sku": "BIGEN-CREAMTONE-4NA-80G"
+  },
+  {
+   "productId": 2155,
+   "name": "Viên Uống Levante NMN22050",
+   "nameJa": "レバンテプレミアム NMN サプリメント 22050mg 90粒",
+   "sku": "LEVA-TPCN-2609-2155"
+  },
+  {
+   "productId": 2605,
+   "name": "Viên dầu cá Nature Made Super Fish Oil 90 viên – EPA 162mg DHA 108mg",
+   "nameJa": "大塚製薬 ネイチャーメイド スーパーフィッシュオイル 90粒（EPA162mg・DHA108mg）",
+   "sku": "NATUREMADE-FISHOIL-90-162108"
+  },
+  {
+   "productId": 2338,
+   "name": "Viên uống đa vitamin Nature Made Multi Vitamin 50 ngày 50 viên",
+   "nameJa": "ネイチャーメイド マルチビタミン 50粒（50日分）",
+   "sku": "NATU-TPCN-2609-2338"
+  },
+  {
+   "productId": 2336,
+   "name": "Viên uống kẽm Nature Made Zinc 60 ngày 60 viên",
+   "nameJa": "ネイチャーメイド 亜鉛 60粒（60日分）",
+   "sku": "NATU-TPCN-2609-2336"
+  },
+  {
+   "productId": 2142,
+   "name": "Viên Uống Nature Made Super Calcium 600mg Với Vitamin D3 120 Viên",
+   "nameJa": "大塚製薬 ネイチャーメイド スーパーカルシウム 120粒",
+   "sku": "NATU-TPCN-2609-2142"
+  },
+  {
+   "productId": 2090,
+   "name": "Nước uống The Collagen Shiseido",
+   "nameJa": "資生堂 ザ・コラーゲン ドリンク 50mL×10本",
+   "sku": "SHIS-TPCN-2609-2090"
+  },
+  {
+   "productId": 1438,
+   "name": "Sữa Tắm Trắng Da White Conc Body 360ml",
+   "nameJa": "ホワイトコンク ボディシャンプーCII 360mL",
+   "sku": "WHIT-CSB-2203-1438"
+  },
+  {
+   "productId": 2601,
+   "name": "Thuốc nhỏ mắt V Rohto Gold 40 20ml",
+   "nameJa": "Vロートゴールド40 20mL",
+   "sku": "ROHTO-GOLD40-20"
+  },
+  {
+   "productId": 2368,
+   "name": "Nước hoa Chloé Eau de Parfum 30ml",
+   "nameJa": "クロエ オードパルファム 30mL",
+   "sku": "CHLO-MP-2609-2368"
+  },
+  {
+   "productId": 2599,
+   "name": "Dầu dưỡng tóc Lucido-L Re: Repair Hair Oil 90ml",
+   "nameJa": "ルシードエル アールイー リペアヘアオイル 90ml",
+   "sku": "LUCIDOL-RE-OIL-90"
+  },
+  {
+   "productId": 2597,
+   "name": "Dầu dưỡng tóc Lucido-L Argan Rich Repair 60ml",
+   "nameJa": "ルシードエル オイルトリートメント ＃EXヘアリペアオイル 60ml",
+   "sku": "LUCIDOL-REPAIR-60"
+  },
+  {
+   "productId": 2596,
+   "name": "Dầu dưỡng tóc Lucido-L Argan Rich Frizz Care 60ml",
+   "nameJa": "ルシードエル オイルトリートメント ＃EXヘアオイル うねり・くせケア 60ml",
+   "sku": "LUCIDOL-FRIZZ-60"
+  },
+  {
+   "productId": 2595,
+   "name": "Dầu dưỡng tóc Lucido-L Argan Rich Smooth 60ml",
+   "nameJa": "ルシードエル オイルトリートメント ＃EXヘアオイル 60ml",
+   "sku": "LUCIDOL-SMOOTH-60"
+  },
+  {
+   "productId": 2594,
+   "name": "Serum dưỡng sáng Kracie Hadabisei Medicated Whitening 30ml",
+   "nameJa": "クラシエ 肌美精 薬用美白美容液 30mL",
+   "sku": "KRACIE-HADABISEI-WHITENING-30"
+  },
+  {
+   "productId": 2593,
+   "name": "Serum dưỡng mi Lashaddict Eyelash Conditioning Serum Advance 5ml",
+   "nameJa": "ラッシュアディクト アイラッシュ コンディショニング セラム アドバンス 5mL",
+   "sku": "LASHADDICT-ADVANCE-SERUM-5"
+  },
+  {
+   "productId": 2592,
+   "name": "Toner pad SKINFOOD Carrot Carotene Calming Water Pad 60 miếng 250g",
+   "nameJa": "スキンフード キャロットカロテン カーミングウォーターパッド 60枚 250g",
+   "sku": "SKINFOOD-CARROT-PAD-60"
+  },
+  {
+   "productId": 2591,
+   "name": "Mặt nạ VT Reedle S PDRN+ 1 miếng 25g",
+   "nameJa": "VT リードルS PDRN+ マスク 1枚入 25g",
+   "sku": "VT-REEDLE-PDRN-MASK-1"
+  },
+  {
+   "productId": 2589,
+   "name": "Serum vitamin C Fru:C All-in-One 28ml",
+   "nameJa": "フルーシー 美容液 28mL",
+   "sku": "FRUC-VITAMINC-SERUM-28"
+  },
+  {
+   "productId": 2588,
+   "name": "Lotion Quality 1st Derma Laser Super VC100 Moist 240ml",
+   "nameJa": "クオリティファースト ダーマレーザー スーパーVC100ローション しっとり 240mL",
+   "sku": "Q1ST-DERMA-VC100-MOIST-240"
+  },
+  {
+   "productId": 2587,
+   "name": "Nước tẩy trang Bioderma Sensibio H2O 500ml",
+   "nameJa": "ビオデルマ サンシビオ H2O 500mL",
+   "sku": "BIODERMA-SENSIBIO-H2O-500"
+  },
+  {
+   "productId": 2585,
+   "name": "Gel rửa mặt Kracie Hadabisei CHOI chăm sóc lỗ chân lông 110g",
+   "nameJa": "肌美精 CHOI薬用フェイスウォッシュ 肌・毛穴ケア 110g",
+   "sku": "KRACIE-CHOI-PORE-WASH-110"
+  },
+  {
+   "productId": 1638,
+   "name": "Nước Hoa Hồng Trị Mụn Meishoku Bigansui Medicated Skin Lotion 90ml",
+   "nameJa": "明色化粧品 明色美顔水 薬用化粧水 90mL",
+   "sku": "MEIS-DDM-2303-1638"
+  },
+  {
+   "productId": 2586,
+   "name": "Gel dưỡng da HITO-KAN Premium All-in-One 270g",
+   "nameJa": "HITO-KAN プレミアム オールインワンゲル 270g",
+   "sku": "HITOKAN-PREMIUM-GEL-270"
+  },
+  {
+   "productId": 2583,
+   "name": "Mặt nạ VT Reedle S EFI-GF EX 25 miếng",
+   "nameJa": "VT リードルS EFI-GF EXマスク 25枚入",
+   "sku": "VT-REEDLE-EFIGF-EX-MASK-25"
+  },
+  {
+   "productId": 2584,
+   "name": "Mặt nạ VT CICA Vital vitamin C 30 miếng",
+   "nameJa": "VT シカバイタル マスク 30枚入",
+   "sku": "VT-CICA-VITAL-MASK-30"
+  },
+  {
+   "productId": 2582,
+   "name": "Mặt nạ VT Reedle S Vita-Light Daily Mask 30 miếng",
+   "nameJa": "VT リードルS ビタライトデイリーマスク 30枚入",
+   "sku": "VT-REEDLE-VITALIGHT-MASK-30"
+  },
+  {
+   "productId": 2580,
+   "name": "Tẩy da chết toàn thân BOTANIST Dewy 250g",
+   "nameJa": "ボタニスト ボタニカルボディースクラブ デューイー 250g",
+   "sku": "BOTANIST-DEWY-SCRUB-250"
+  },
+  {
+   "productId": 2579,
+   "name": "Tẩy da chết toàn thân BOTANIST Bright Care 250g",
+   "nameJa": "ボタニスト ボタニカルボディースクラブ ブライトケア 250g",
+   "sku": "BOTANIST-BRIGHT-SCRUB-250"
+  },
+  {
+   "productId": 2578,
+   "name": "Tẩy da chết toàn thân YOLU Calm Night Care 250g",
+   "nameJa": "ヨル カームナイトケアボディスクラブ 250g",
+   "sku": "YOLU-CALM-SCRUB-250"
+  },
+  {
+   "productId": 2577,
+   "name": "Tẩy da chết toàn thân YOLU Relax Night Care 250g",
+   "nameJa": "ヨル リラックスナイトケアボディスクラブ 250g",
+   "sku": "YOLU-RELAX-SCRUB-250"
+  },
+  {
+   "productId": 2548,
+   "name": "Gel tạo kiểu tóc Gatsby Gel Water Super Hard 200ml",
+   "nameJa": "ギャツビー ジェルウォーター スーパーハード 200ml",
+   "sku": "GATSBY-GEL-WATER-SH-200ML"
+  },
+  {
+   "productId": 2547,
+   "name": "Bọt tạo kiểu tóc Gatsby Styling Foam Wet & Hard 185g",
+   "nameJa": "ギャツビー スタイリングフォーム ウェット＆ハード 185g",
+   "sku": "GATSBY-FOAM-WET-HARD-185G"
+  },
+  {
+   "productId": 2537,
+   "name": "Sáp tạo kiểu tóc UNO Hybrid Hard 80g",
+   "nameJa": "ウーノ ハイブリッドハード 80g",
+   "sku": "UNO-HYBRID-HARD-80G"
+  },
+  {
+   "productId": 2538,
+   "name": "Sáp tạo kiểu tóc UNO Matte Effector 80g",
+   "nameJa": "ウーノ マットエフェクター 80g",
+   "sku": "UNO-MATTE-EFFECTOR-80G"
+  },
+  {
+   "productId": 2539,
+   "name": "Sáp tạo kiểu tóc UNO Wet Effector 80g",
+   "nameJa": "ウーノ ウェットエフェクター 80g",
+   "sku": "UNO-WET-EFFECTOR-80G"
+  },
+  {
+   "productId": 2540,
+   "name": "Gôm xịt tóc VO5 for MEN Super Hard không mùi 355g",
+   "nameJa": "ＶＯ５ for MEN ヘアスプレイ＜スーパーハード＞ 無香料 355g",
+   "sku": "VO5-MEN-SH-UNSCENTED-355G"
+  },
+  {
+   "productId": 2533,
+   "name": "Tinh chất dưỡng sáng da Melano CC Men cho nam 20ml",
+   "nameJa": "メラノCC Men 薬用しみ集中対策美容液 20mL",
+   "sku": "ROHTO-MELANO-MEN-SERUM-20ML"
+  },
+  {
+   "productId": 2535,
+   "name": "Kem dưỡng sáng da MEN’S Keshimin cho nam 20g",
+   "nameJa": "メンズケシミンクリーム ca 20g",
+   "sku": "KOBA-MENS-KESHIMIN-CREAM-20G"
+  },
+  {
+   "productId": 2536,
+   "name": "Nước dưỡng sáng da MEN’S Keshimin cho nam 160ml",
+   "nameJa": "メンズケシミン化粧水 c 160mL",
+   "sku": "KOBA-MENS-KESHIMIN-LOTION-160ML"
+  },
+  {
+   "productId": 1476,
+   "name": "Lăn Trị Muỗi Đốt – Côn Trùng Cắn Muhi S2a 50mL",
+   "nameJa": "池田模範堂 液体ムヒS2a 50mL",
+   "sku": "MUHI-MAB-2203-1476"
+  },
+  {
+   "productId": 2284,
+   "name": "Viên uống chiết xuất lá bạch quả Asahi Schwabe Ginkgo 120mg EX 60 viên",
+   "nameJa": "シュワーベ・ギンコ120mg EX 60粒",
+   "sku": "ASAH-TPCN-2609-2284"
+  },
+  {
+   "productId": 2282,
+   "name": "Thạch collagen Earth Collagen C Jelly vị acai & berry 31 thanh",
+   "nameJa": "1ヵ月もっちりうるおう コラーゲンCゼリー アサイー・ベリー味 31本入 310g（10g×31本）",
+   "sku": "EART-TPCN-2609-2282"
+  },
+  {
+   "productId": 2281,
+   "name": "Thạch bổ sung nhau thai Earth Placenta C Jelly Premium Rich vị nho Kyoho 15 thanh",
+   "nameJa": "プラセンタCゼリー プレミアムリッチ 巨峰味 15本入 150g（10g×15本）",
+   "sku": "EART-TPCN-2609-2281"
+  },
+  {
+   "productId": 2280,
+   "name": "Thạch bổ sung collagen Earth Collagen C Jelly Premium Rich vị dứa vàng 15 thanh",
+   "nameJa": "コラーゲンCゼリー プレミアムリッチ ゴールデンパイン味 15本入 150g（10g×15本）",
+   "sku": "EART-TPCN-2609-2280"
+  },
+  {
+   "productId": 2231,
+   "name": "Viên uống Magie hấp thu cao Doctor's Best High Absorption Magnesium 100mg 120 viên",
+   "nameJa": "Doctor's Best 高吸収マグネシウム 100mg 120錠",
+   "sku": "DRB-00025"
+  },
+  {
+   "productId": 2512,
+   "name": "Thuốc nhỏ mắt Santen Soft Santear Hitomi Stretch giảm mỏi mắt 5ml x 4 chai",
+   "nameJa": "ソフトサンティア ひとみストレッチ 5mL×4本",
+   "sku": "SANT-SK-2609-2512"
+  },
+  {
+   "productId": 1412,
+   "name": "Thuốc Trị Cảm Sốt Cho Bé Pabron Dạng Gói",
+   "nameJa": "大正製薬 パブロンキッズかぜ微粒 12包",
+   "sku": "PABR-MAB-2203-1412"
+  },
+  {
+   "productId": 1410,
+   "name": "Siro Pabron – Siro Con Hổ Trị Cảm Sốt Cho Bé",
+   "nameJa": "大正製薬 パブロンキッズかぜシロップ 120mL",
+   "sku": "PABR-MAB-2203-1410"
+  },
+  {
+   "productId": 2141,
+   "name": "Viên Nhai Canxi Takeda New Calcium D3 Vị Sữa Chua 100 Viên",
+   "nameJa": "アリナミン製薬 新カルシチュウD3 ヨーグルト味 100錠",
+   "sku": "SHIN-TPCN-2609-2141"
+  },
+  {
+   "productId": 659,
+   "name": "Spirulina Tảo Xoắn Chai 2200 Viên",
+   "nameJa": "ジャパンアルジェ 海洋深層水スピルリナブレンド 2200粒",
+   "sku": "JAPA-TPCN-2009-0659"
+  },
+  {
+   "productId": 2437,
+   "name": "Viên Xương Khớp Glucosamine Orihiro 360 Viên",
+   "nameJa": "オリヒロ 高純度グルコサミン 徳用 360粒",
+   "sku": "ORIH-TPCN-2609-2437"
+  },
+  {
+   "productId": 2003,
+   "name": "Bộ dầu gội và dầu xả mỡ ngựa Nhật Bản 600ml",
+   "nameJa": "熊野油脂 馬油シャンプー・コンディショナー 600mL",
+   "sku": "KUMA-CST-2609-2003"
+  },
+  {
+   "productId": 2249,
+   "name": "Kẹo Canxi Và Lợi Khuẩn Unimat Riken 90 Viên",
+   "nameJa": "ユニマットリケン こども乳酸菌＆カルシウム チュアブル 90粒",
+   "sku": "UNIM-MAB-2609-2249"
+  },
+  {
+   "productId": 2493,
+   "name": "Kẹo DHA Unimat Riken Kodomo vị quýt 90 viên",
+   "nameJa": "ユニマットリケン こどもDHAドロップグミ みかん風味 90粒",
+   "sku": "UNIM-MAB-2609-2493"
+  },
+  {
+   "productId": 2492,
+   "name": "Kẹo vitamin Unimat Riken Kodomo Kanyu vị chuối 100 viên",
+   "nameJa": "ユニマットリケン こども肝油ドロップグミ バナナ風味 100粒",
+   "sku": "UNIM-MAB-2609-2492"
+  },
+  {
+   "productId": 2139,
+   "name": "Bột canxi Fine Bone Kids vị chocolate 140g",
+   "nameJa": "ファイン 骨キッズ カルシウム チョコレート風味 140g",
+   "sku": "FINE-TPCN-2609-2139"
+  },
+  {
+   "productId": 2259,
+   "name": "Mặt Nạ The Stem Cell Nhật Bản 30 Miếng",
+   "nameJa": "美粧AKARI THE STEM CELL フェイスマスク 30枚",
+   "sku": "BISH-MNM-2609-2259"
+  },
+  {
+   "productId": 2438,
+   "name": "Ngũ cốc trái cây Calbee Frugra 330g",
+   "nameJa": "カルビー フルグラ 330g",
+   "sku": "CALB-TPDU-2609-2438"
+  },
+  {
+   "productId": 2333,
+   "name": "Bột rau xanh Yamamoto Kanpo Kale 100% 88 gói 264g",
+   "nameJa": "山本漢方製薬 ケール粉末100％ 3g×88包",
+   "sku": "YAMA-TPCN-2609-2333"
+  },
+  {
+   "productId": 2302,
+   "name": "Miếng dán giảm đau Hisamitsu Loxoprofen Na Tape Alpha 7 miếng 7x10cm",
+   "nameJa": "Hisamitsu ロキソプロフェンNaテープα 7枚入（7cm×10cm）",
+   "sku": "HISA-TTGD-2609-2302"
+  },
+  {
+   "productId": 2370,
+   "name": "Nước hoa Calvin Klein CK One Eau de Toilette 100ml",
+   "nameJa": "カルバン クライン シーケーワン オードトワレ 100mL",
+   "sku": "CALV-MP-2609-2370"
+  },
+  {
+   "productId": 2369,
+   "name": "Nước hoa Lanvin Éclat d'Arpège Eau de Parfum 30ml",
+   "nameJa": "ランバン エクラ・ドゥ・アルページュ オード パルファム 30mL",
+   "sku": "LANV-MP-2609-2369"
+  },
+  {
+   "productId": 2327,
+   "name": "Kem đánh răng Camtect Gum Care 1400ppm 115g x 2 tuýp",
+   "nameJa": "カムテクト 歯ぐきケア〈1400ppm〉115g×2本",
+   "sku": "CAMT-CSRM-2609-2327"
+  },
+  {
+   "productId": 2326,
+   "name": "Xịt khoáng dưỡng ẩm CNP Laboratory ProP V Propolis Vitamin Ampule Mist 100g phiên bản giới hạn",
+   "nameJa": "CNP Laboratory プロP V ミスト 100g（限定デザイン）",
+   "sku": "CNP-DDM-2609-2326"
+  },
+  {
+   "productId": 2321,
+   "name": "Tinh dầu bạc hà Stayfree Hakka Oil 30ml",
+   "nameJa": "ハッカ油 30ml",
+   "sku": "STAY-NCDS-2609-2321"
+  },
+  {
+   "productId": 2232,
+   "name": "Dầu cá Omega-3 Nordic Naturals Ultimate Omega-D3 1280mg vị chanh 120 viên",
+   "nameJa": "Nordic Naturals アルティメットオメガ-D3 レモン 120粒",
+   "sku": "NOR-01793"
+  },
+  {
+   "productId": 2230,
+   "name": "Viên uống Vitamin D3 5000 IU + K2 MK-7 Micro Ingredients 300 viên",
+   "nameJa": "Micro Ingredients ビタミンD3 5000IU + ビタミンK2 MK-7 100mcg 300粒",
+   "sku": "MII-61694"
+  },
+  {
+   "productId": 2121,
+   "name": "Viên uống bổ não DHA EPA Orihiro Nhật Bản 180 viên",
+   "nameJa": "オリヒロ DHA・EPA 180粒",
+   "sku": "ORIH-TPCN-2609-2121"
+  },
+  {
+   "productId": 2294,
+   "name": "Viên uống tảo lục Yuuki Pharmaceutical Chlorella Royal DX 1550 viên",
+   "nameJa": "ユウキ製薬 クロレラロイヤルDX 1550粒 310g",
+   "sku": "YUUK-TPCN-2609-2294"
+  }
+ ]
+}
