@@ -39,7 +39,7 @@ export interface DocView {
   version: number;
   note: string;
   shipment: { id: number; code: string; status: string } | null;
-  order: { id: string; number: number; customer: string; shipStage: string } | null;
+  order: { id: string; number: number; customer: string; shipStage: string; carrier: string; carrierValue: string; tracking: string } | null;
   lines: LineView[];
   totals: { lines: number; qty: number; expected: number | null; uncounted?: number; drift?: number };
   blockers: string[];
@@ -164,7 +164,7 @@ export function DraftList({ kind, warehouse, onOpen }: { kind: DocKind; warehous
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-export function DocPanel({ kind, docId, onClose, registerScanHandler, online }: { kind: DocKind; docId: number; onClose: () => void; registerScanHandler: (h: ScanHandler | null) => void; online: boolean }) {
+export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTrackingSetter, online }: { kind: DocKind; docId: number; onClose: () => void; registerScanHandler: (h: ScanHandler | null) => void; registerTrackingSetter?: (f: ((code: string) => void) | null) => void; online: boolean }) {
   const [doc, setDoc] = useState<DocView | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -173,6 +173,19 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, online }: 
   const [confirming, setConfirming] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const base = `${FAMILY[kind]}/${docId}`;
+  // pick: carrier + tracking recorded on the VN-domestic leg when the pick completes (as ⑦ Giao hàng VN does)
+  const [carriers, setCarriers] = useState<Array<{ value: string; label: string }>>([]);
+  const [method, setMethod] = useState<string | null>(null);
+  const [tracking, setTracking] = useState<string | null>(null);
+  useEffect(() => {
+    if (kind !== "pick") return;
+    void api<Array<{ value: string; label: string }>>("GET", "picks/carriers").then((r) => r.ok && setCarriers(r.data));
+  }, [kind]);
+  useEffect(() => {
+    if (kind !== "pick" || !registerTrackingSetter) return;
+    registerTrackingSetter((code) => setTracking(code));
+    return () => registerTrackingSetter(null);
+  }, [kind, registerTrackingSetter]);
   const multRef = useRef(1);
   useEffect(() => {
     multRef.current = mult;
@@ -247,7 +260,8 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, online }: 
     if (!doc) return;
     setConfirming(false);
     setBusy(true);
-    const r = await api<{ doc: DocView; alreadyConfirmed: boolean }>("POST", `${base}/${CONFIRM_PATH[kind]}`, { body: { version: doc.version }, idempotencyKey: `confirm-${doc.id}-${doc.version}` });
+    const extra = kind === "pick" ? { method: method ?? doc.order?.carrierValue ?? "", tracking: tracking ?? doc.order?.tracking ?? "" } : {};
+    const r = await api<{ doc: DocView; alreadyConfirmed: boolean }>("POST", `${base}/${CONFIRM_PATH[kind]}`, { body: { version: doc.version, ...extra }, idempotencyKey: `confirm-${doc.id}-${doc.version}${kind === "pick" ? `-${extra.method}-${extra.tracking}`.replace(/[^A-Za-z0-9._:-]/g, "_").slice(0, 80) : ""}` });
     setBusy(false);
     if (r.ok) {
       setDoc(r.data.doc);
@@ -449,6 +463,23 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, online }: 
         </div>
       ) : null}
 
+      {draft && kind === "pick" ? (
+        <div className="grid grid-cols-1 gap-2 rounded-lg border border-[#e5e7eb] bg-white p-3 text-[14px]" data-testid="pick-carrier">
+          <label className="font-semibold" htmlFor="pick-method">
+            Đơn vị vận chuyển
+          </label>
+          <select id="pick-method" value={method ?? doc.order?.carrierValue ?? ""} onChange={(e) => setMethod(e.target.value)} className="min-h-11 rounded-md border border-[#d1d5db] px-2" data-testid="pick-method">
+            <option value="">— chọn —</option>
+            {carriers.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <input value={tracking ?? doc.order?.tracking ?? ""} onChange={(e) => setTracking(e.target.value)} placeholder="Mã vận đơn (gõ hoặc quét)" className="min-h-11 rounded-md border border-[#d1d5db] px-2 font-mono" data-testid="pick-tracking" />
+        </div>
+      ) : null}
+
       {draft ? (
         <div className="sticky bottom-0 z-10 space-y-2 rounded-t-lg border border-[#e5e7eb] bg-white p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
           <div className="flex justify-between text-[13px]">
@@ -478,7 +509,7 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, online }: 
               <button type="button" className={`${btn} bg-gray-100`} disabled={!editable} onClick={() => void undo()} data-testid="undo">
                 Hoàn tác lần quét
               </button>
-              <button type="button" className={`${btn} flex-1 bg-green-700 text-white`} disabled={!editable || doc.blockers.length > 0} onClick={() => setConfirming(true)} data-testid="confirm">
+              <button type="button" className={`${btn} flex-1 bg-green-700 text-white`} disabled={!editable || doc.blockers.length > 0 || (kind === "pick" && !(method ?? doc.order?.carrierValue))} onClick={() => setConfirming(true)} data-testid="confirm">
                 {CONFIRM_LABEL[kind]}
               </button>
             </div>
@@ -515,5 +546,10 @@ function ResultSummary({ kind, result }: { kind: DocKind; result: Record<string,
   }
   if (kind === "receive") return <p className="text-[13px]">Đã nhận {String(result.units)} cái vào Kho VN{result.shipmentDone ? " · chuyến đã về đủ" : ` · còn ${String(result.stillPending)} cái chờ nhận`}.</p>;
   if (kind === "count") return <p className="text-[13px]">Thêm {String(result.added)} cái (bill KK), loại {String(result.removed)} cái (thất lạc){result.uncountedIgnored ? ` · ${String(result.uncountedIgnored)} dòng chưa đếm không điều chỉnh` : ""}.</p>;
-  return <p className="text-[13px]">Đơn #{String(result.orderNumber)}: {String(result.units)} cái đã rời kho · đơn chuyển sang Đang giao.</p>;
+  return (
+    <p className="text-[13px]">
+      Đơn #{String(result.orderNumber)}: {String(result.units)} cái đã rời kho · đơn chuyển sang Đang giao{result.carrier ? ` · ${String(result.carrier)}` : ""}
+      {result.tracking ? ` · mã ${String(result.tracking)}` : ""}.
+    </p>
+  );
 }

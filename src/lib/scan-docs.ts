@@ -10,6 +10,7 @@ import { listOrdersReadyToShip } from "@/lib/lots-db";
 import { receiptIdForCode } from "@/lib/purchase-batches-db";
 import { requireDelivery, requireWarehouse, type ShopWarehouse } from "@/lib/scan-access";
 import { DomainError } from "@/lib/service-error";
+import { applyLegMethodSync, legMethodOptions } from "@/lib/leg-method";
 import { setShipmentStatusSync } from "@/lib/shipments-db";
 import { getDb, withTransaction } from "@/lib/sqlite";
 import { sortUnits } from "@/lib/units";
@@ -101,7 +102,7 @@ export interface DocView {
   version: number;
   note: string;
   shipment: { id: number; code: string; status: string } | null;
-  order: { id: string; number: number; customer: string; shipStage: string } | null;
+  order: { id: string; number: number; customer: string; shipStage: string; carrier: string; carrierValue: string; tracking: string } | null;
   lines: LineView[];
   totals: { lines: number; qty: number; expected: number | null; uncounted?: number; drift?: number };
   /** Why confirming is not possible right now (empty = ready). */
@@ -196,7 +197,8 @@ function viewOf(db: DatabaseSync, d: DocRow): DocView {
   }
   if (d.order_id) {
     const o = db.prepare("SELECT id, number, first_name, last_name, ship_stage FROM orders WHERE id = ?").get(d.order_id) as { id: string; number: number; first_name: string; last_name: string; ship_stage: string | null } | undefined;
-    if (o) order = { id: o.id, number: o.number, customer: `${o.last_name} ${o.first_name}`.trim(), shipStage: o.ship_stage ?? "ordered" };
+    const leg = db.prepare("SELECT method_id, label, tracking FROM order_legs WHERE order_id = ? AND leg = 'vn_domestic'").get(d.order_id) as { method_id: number | null; label: string; tracking: string } | undefined;
+    if (o) order = { id: o.id, number: o.number, customer: `${o.last_name} ${o.first_name}`.trim(), shipStage: o.ship_stage ?? "ordered", carrier: leg?.label ?? "", carrierValue: leg?.method_id ? String(leg.method_id) : leg?.label ? "pickup" : "", tracking: leg?.tracking ?? "" };
   }
   if (d.status === "draft") {
     if (d.kind === "receive" && !lines.some((l) => (l.qty ?? 0) > 0)) blockers.push("Chưa có dòng nào có số lượng.");
@@ -611,7 +613,7 @@ export function cancelDoc(kind: DocKind, docId: number, ctx: DocCtx): DocView {
 // ---------------------------------------------------------------------------------------------------------------------
 // confirm (nhập kho / chốt kiểm kê / hoàn tất soạn & bắt đầu giao) — one transaction, at most once
 
-export function confirmDoc(kind: DocKind, docId: number, input: { version?: unknown }, ctx: DocCtx): { doc: DocView; result: unknown; alreadyConfirmed: boolean } {
+export function confirmDoc(kind: DocKind, docId: number, input: { version?: unknown; method?: unknown; tracking?: unknown }, ctx: DocCtx): { doc: DocView; result: unknown; alreadyConfirmed: boolean } {
   const db = getDb();
   return withTransaction(db, () => {
     const d = docRow(db, docId, kind);
@@ -694,8 +696,17 @@ export function confirmDoc(kind: DocKind, docId: number, input: { version?: unkn
       if (!o || !ready || o.ship_stage === "delivering" || o.ship_stage === "delivered") throw new DomainError(409, "ORDER_NOT_READY", `Đơn #${o?.number ?? "?"} không còn ở trạng thái chờ giao — không xuất lần nữa.`);
       const held = orderUnits(db, d.order_id!);
       for (const l of rows) for (const c of parseCodes(l.unit_codes)) if (!held.some((h) => h.code === c && h.status === "at_shop")) throw new DomainError(409, "STOCK_CHANGED", `${c} không còn giữ cho đơn ở Kho VN — tải lại phiếu.`);
-      setOrderLegStatusSync(db, d.order_id!, "vn_domestic", "sent", { actor: ctx.actor, note });
-      result = { kind, orderId: d.order_id, orderNumber: o.number, units: held.length, codes: held.map((h) => h.code) };
+      // carrier + tracking of the VN-domestic leg, as ⑦ Giao hàng VN records them
+      const method = input.method === undefined || input.method === null ? "" : String(input.method);
+      if (input.tracking !== undefined && input.tracking !== null && (typeof input.tracking !== "string" || input.tracking.length > 60)) throw new DomainError(422, "VALIDATION_FAILED", "Mã vận đơn: chuỗi ≤ 60 ký tự.", { fields: { tracking: "≤ 60" } });
+      const tracking = typeof input.tracking === "string" && input.tracking.trim() ? input.tracking.trim() : undefined;
+      const leg = db.prepare("SELECT method_id, label FROM order_legs WHERE order_id = ? AND leg = 'vn_domestic'").get(d.order_id) as { method_id: number | null; label: string } | undefined;
+      if (!method && !leg?.method_id && !leg?.label) throw new DomainError(422, "CARRIER_REQUIRED", "Chọn đơn vị vận chuyển (hoặc khách tự lấy) trước khi bắt đầu giao.", { fields: { method: "required" } });
+      const label = applyLegMethodSync(db, d.order_id!, "vn_domestic", method, tracking);
+      if (label === "invalid") throw new DomainError(422, "VALIDATION_FAILED", "Đơn vị vận chuyển không hợp lệ.", { fields: { method: "unknown" } });
+      setOrderLegStatusSync(db, d.order_id!, "vn_domestic", "sent", { actor: ctx.actor, note, tracking });
+      const legNow = db.prepare("SELECT label, tracking FROM order_legs WHERE order_id = ? AND leg = 'vn_domestic'").get(d.order_id) as { label: string; tracking: string } | undefined;
+      result = { kind, orderId: d.order_id, orderNumber: o.number, units: held.length, codes: held.map((h) => h.code), carrier: legNow?.label ?? "", tracking: legNow?.tracking ?? "" };
     }
     const ts = now();
     db.prepare("UPDATE scan_docs SET status = 'confirmed', result = ?, confirmed_by = ?, confirmed_at = ?, version = version + 1, updated_at = ? WHERE id = ?").run(JSON.stringify(result), ctx.actor.slice(0, 120), ts, ts, docId);
@@ -709,6 +720,11 @@ export function receivableShipments(): Array<{ id: number; code: string; label: 
   const db = getDb();
   const rows = db.prepare("SELECT id, code, label, status FROM shipments WHERE status IN ('handed','flying','arrived') ORDER BY id DESC LIMIT 30").all() as Array<{ id: number; code: string; label: string; status: string }>;
   return rows.map((r) => ({ ...r, pending: shipmentPending(db, r.id).length })).filter((r) => r.pending > 0);
+}
+
+/** Carriers of the VN-domestic leg for completing a pick ("pickup" = khách tự lấy). */
+export function pickCarriers(): Array<{ value: string; label: string }> {
+  return legMethodOptions(getDb(), "vn_domestic");
 }
 
 /** Orders ready to leave Kho VN (for the pick screen). */

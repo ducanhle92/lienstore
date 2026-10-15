@@ -53,6 +53,7 @@ const HELP = `lienstore — Admin API v1 CLI (JSON out). Docs: docs/ADMIN_API.md
   receipts|counts|picks set-line <docId> <lineId> --rev R [--qty N|null] [--expiry 2027-03] [--cost-jpy N] [--bill X] [--recount] [--accept-drift]
   receipts|counts|picks undo <docId> [--op-id X]
   receipts|counts|picks confirm <docId> --version V      (counts: close, picks: complete — same command)
+  picks carriers                             carriers for the VN leg; picks confirm … --method <id|pickup> [--tracking <mã vận đơn>]
   receipts|counts|picks cancel <docId>
 
 Global: --profile <name>  --yes (required for writes when the target is production)  --timeout <ms>
@@ -442,6 +443,8 @@ async function docCommand(cfg, opts, fam, confirmPath, action, rest) {
       return finish(cfg, await call(cfg, "GET", "stock-receipts/shipments"));
     case "orders":
       return finish(cfg, await call(cfg, "GET", "picks/orders"));
+    case "carriers":
+      return finish(cfg, await call(cfg, "GET", "picks/carriers"));
     case "get":
       needId();
       return finish(cfg, await call(cfg, "GET", `${fam}/${id}`));
@@ -484,7 +487,8 @@ async function docCommand(cfg, opts, fam, confirmPath, action, rest) {
       if (opts.version === undefined) usage("--version (lấy từ get, sau khi đã xem lại phiếu) là bắt buộc");
       guardWrite(cfg, opts);
       const version = int(opts.version, "version");
-      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/${confirmPath}`, { json: { version }, idempotencyKey: `confirm-${fam}-${id}-${version}` }));
+      const json = fam === "picks" ? { version, method: opts.method, tracking: opts.tracking } : { version };
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/${confirmPath}`, { json, idempotencyKey: `confirm-${fam}-${id}-${version}-${stableHash(JSON.stringify(json)).slice(0, 12)}` }));
     }
     case "cancel":
       needId();

@@ -7,6 +7,8 @@ import { getOrderById, getOrderChargeableWeightG, getOrderLegs, getShippingMetho
 import { parseAmount } from "@/lib/format";
 import { isLegStatus, LEG_STATUS_LABEL } from "@/lib/leg-status";
 import { isShippingLeg, LEG_LABEL, type ShippingLeg, zoneFeeForWeight } from "@/lib/shipping";
+import { applyLegMethodSync } from "@/lib/leg-method";
+import { getDb } from "@/lib/sqlite";
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -82,19 +84,8 @@ export async function saveOrderLegAction(formData: FormData): Promise<void> {
  */
 async function applyMethodChoice(orderId: string, leg: ShippingLeg, choice: string, tracking?: string): Promise<string | null> {
   if (!choice) return null;
-  const cur = (await getOrderLegs([orderId])).get(orderId)?.find((l) => l.leg === leg);
-  let methodId: number | null = null;
-  let label = "";
-  if (choice === "pickup") label = "Khách tự tới kho lấy";
-  else {
-    const method = (await getShippingMethods(false)).find((x) => String(x.id) === choice && x.leg === leg);
-    if (!method) return null;
-    methodId = method.id;
-    label = `${method.name}${method.carrierName && !method.name.includes(method.carrierName) ? ` (${method.carrierName})` : ""}`;
-  }
-  if (cur && cur.methodId === methodId && cur.label === label && (tracking === undefined || tracking === cur.tracking)) return null;
-  await saveOrderLeg({ orderId, leg, methodId, zoneId: methodId && cur?.methodId === methodId ? (cur.zoneId ?? null) : null, label, fee: cur?.fee ?? 0, tracking: tracking ?? cur?.tracking ?? "", note: cur?.note ?? "" });
-  return label;
+  const r = applyLegMethodSync(getDb(), orderId, leg, choice, tracking);
+  return r === "invalid" ? null : r;
 }
 
 /** Quick status change of one leg (Vận chuyển › sheet của từng chặng): status + optional tracking / note. */

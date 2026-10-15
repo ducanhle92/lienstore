@@ -209,7 +209,8 @@ chính các endpoint này bằng phiên đăng nhập (+ `X-Lien-Csrf: 1`); agen
 | POST | `/{family}/{id}/lines/` | inventory:write | `{ productId }` |
 | PATCH / DELETE | `/{family}/{id}/lines/{lineId}/` | inventory:write | `{ rev, qty?, expiry?, unitCostJpy?, billCode?, recount?, acceptDrift? }` |
 | POST | `/{family}/{id}/undo/` | inventory:write | hoàn tác lần quét gần nhất |
-| POST | `/stock-receipts/{id}/confirm/` · `/stock-counts/{id}/close/` · `/picks/{id}/complete/` | inventory:write | `{ version }` — một transaction, gọi lại trả kết quả cũ |
+| POST | `/stock-receipts/{id}/confirm/` · `/stock-counts/{id}/close/` · `/picks/{id}/complete/` | inventory:write | `{ version }` — một transaction, gọi lại trả kết quả cũ. Picks thêm `method` (id ĐVVC hoặc `"pickup"`, bắt buộc nếu đơn chưa có ĐVVC) và `tracking` (mã vận đơn), ghi như ⑦ Giao hàng VN |
+| GET | `/picks/carriers/` | inventory:read | ĐVVC chặng nội địa VN (`value`, `label`) |
 | POST | `/{family}/{id}/cancel/` | inventory:write | huỷ nháp |
 
 CLI:
@@ -222,9 +223,10 @@ lienstore receipts scan <docId> 4961989409139 --qty 2
 lienstore receipts get <docId>                          # xem lại, lấy "version"
 lienstore receipts confirm <docId> --version <v>
 lienstore counts create --warehouse vn · counts scan … · counts set-line <docId> <lineId> --rev R --qty 0 · counts confirm …
-lienstore picks orders · picks create --order-number 1234 · picks scan … · picks confirm <docId> --version <v>
+lienstore picks orders · picks carriers · picks create --order-number 1234 · picks scan …
+lienstore picks confirm <docId> --version <v> --method <id|pickup> [--tracking GHN123]
 ```
 Mã lỗi thêm: `INVALID_CODE`, `UNKNOWN_CODE`, `CODE_CONFLICT`, `CODE_LINKED_ELSEWHERE`, `CODE_IS_SKU_OF_OTHER`,
 `WAREHOUSE_FORBIDDEN`, `DOC_EXISTS`, `DOC_NOT_DRAFT`, `DOC_CHANGED`, `LINE_CHANGED`, `OP_ID_REUSED`, `OVER_QUANTITY`,
 `WRONG_PRODUCT`, `WRONG_UNIT`, `UNIT_NOT_IN_SHIPMENT`, `COUNT_DRIFT`, `COUNT_SHORT_HELD`, `PICK_INCOMPLETE`,
-`ORDER_NOT_READY`, `STOCK_CHANGED`.
+`ORDER_NOT_READY`, `STOCK_CHANGED`, `CARRIER_REQUIRED`.

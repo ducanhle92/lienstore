@@ -75,6 +75,7 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
   const [sound, setSound] = useState(true);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const docHandler = useRef<((r: Resolution, raw: string) => Promise<{ ok: boolean; message: string; stage?: Stage }>) | null>(null);
+  const trackingSetter = useRef<((code: string) => void) | null>(null);
   const modeRef = useRef<Mode>(mode);
   useEffect(() => {
     modeRef.current = mode;
@@ -324,6 +325,20 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
             </div>
           ) : null}
 
+          {linking && mode === "pick" && docId ? (
+            <button
+              type="button"
+              className="min-h-12 w-full rounded-lg border-2 border-sky-600 bg-sky-50 px-3 font-semibold text-sky-900"
+              onClick={() => {
+                trackingSetter.current?.("code" in linking.resolution ? linking.resolution.code : linking.raw);
+                setLinking(null);
+                setLast((l) => (l ? { ...l, stage: "identified", message: "Đã điền làm mã vận đơn (lưu khi bấm Hoàn tất)." } : l));
+              }}
+              data-testid="use-as-tracking"
+            >
+              Dùng mã này làm mã vận đơn
+            </button>
+          ) : null}
           {linking ? (
             <LinkCodePanel
               code={"code" in linking.resolution ? linking.resolution.code : linking.raw}
@@ -346,7 +361,7 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
 
           {mode !== "lookup" ? (
             docId ? (
-              <DocPanel kind={mode} docId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} online={online} />
+              <DocPanel kind={mode} docId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} registerTrackingSetter={(f) => (trackingSetter.current = f)} online={online} />
             ) : (
               <DraftList kind={mode} warehouse={warehouse || null} onOpen={(id) => setDocId(id)} />
             )

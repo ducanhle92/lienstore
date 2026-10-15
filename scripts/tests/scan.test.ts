@@ -504,8 +504,13 @@ describe("pick — order check before delivery", () => {
     docs.scanIntoDoc("pick", doc.id, { code: o.ean, opId: op(), qty: 2 }, owner);
     const v = docs.scanIntoDoc("pick", doc.id, { code: unitCode(o.bUnits[0]), opId: op() }, owner).doc;
     assert.deepEqual(v.blockers, []);
-    const r = docs.confirmDoc("pick", doc.id, { version: v.version }, owner);
+    assert.throws(() => docs.confirmDoc("pick", doc.id, { version: v.version }, owner), errCode("CARRIER_REQUIRED"));
+    assert.throws(() => docs.confirmDoc("pick", doc.id, { version: v.version, method: "999999" }, owner), errCode("VALIDATION_FAILED"));
+    const r = docs.confirmDoc("pick", doc.id, { version: v.version, method: "pickup", tracking: "GHN-TEST-1" }, owner);
     assert.equal((r.result as { units: number }).units, 3);
+    assert.equal((r.result as { carrier: string }).carrier, "Khách tự tới kho lấy");
+    const legRow = sqlite.getDb().prepare("SELECT label, tracking, status FROM order_legs WHERE order_id = ? AND leg = 'vn_domestic'").get(o.id) as { label: string; tracking: string; status: string };
+    assert.deepEqual({ ...legRow }, { label: "Khách tự tới kho lấy", tracking: "GHN-TEST-1", status: "sent" });
     assert.equal(total(o.a.id, "shipped_to_customer"), 2);
     assert.equal(total(o.b.id, "shipped_to_customer"), 1);
     const order = sqlite.getDb().prepare("SELECT ship_stage FROM orders WHERE id = ?").get(o.id) as { ship_stage: string };
