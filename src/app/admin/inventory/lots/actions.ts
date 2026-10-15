@@ -85,6 +85,8 @@ export async function removeUnitsAction(formData: FormData): Promise<void> {
   const ids = ints(formData, "uids");
   if (!ids.length) back(productId, "error", "Chưa tick cái nào.");
   const reason = text(formData, "reason");
+  // a removal must say why (kept on the unit's history, listed under "Đã xoá / loại" on Kho Nhật / VN)
+  if (reason !== "restore" && text(formData, "note").length < 3) back(productId, "error", "Ghi lý do xoá / loại (ít nhất vài chữ) để admin / chủ shop kiểm tra được.");
   const who = await actor();
   const db = getDb();
   const n = withTransaction(db, () => {

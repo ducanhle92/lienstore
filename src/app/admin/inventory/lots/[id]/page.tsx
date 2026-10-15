@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { addUnitsAction, removeUnitsAction, saveProductUnitsAction, uploadUnitsBillFilesAction } from "@/app/admin/inventory/lots/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
+import { RemoveTickedButton } from "@/components/sites/lienstore/admin/RemoveTickedButton";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { listAllocationViews } from "@/lib/allocations-db";
@@ -99,17 +100,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               <input type="hidden" name="productId" value={pid} />
             </form>
             {groups.length ? (
-              <BulkBar scope={removeId}>
-                <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Lý do">
-                  {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 disabled:opacity-50")}>
-                  Loại khỏi tồn kho
-                </button>
+              <BulkBar scope={removeId} compact>
+                {/* same "Xoá" as on Kho Nhật / VN: reason + required note, kept on each unit's history */}
+                <RemoveTickedButton formId={removeId} action={removeUnitsAction} defaultReason="mistake" label="Xoá / loại khỏi tồn kho" />
               </BulkBar>
             ) : null}
             <div className="overflow-x-auto">

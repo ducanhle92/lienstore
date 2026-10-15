@@ -67,10 +67,11 @@ export function unitDelivered(s: PurchaseStatus): boolean {
   return purchaseIndex(s) >= purchaseIndex("shipped_to_customer");
 }
 
-export type UnitRemoved = "lost" | "damaged" | "written_off";
-export const UNIT_REMOVED_LABEL: Record<UnitRemoved, string> = { lost: "Thất lạc", damaged: "Hỏng / vỡ", written_off: "Loại bỏ (hết hạn…)" };
+/** Why a unit left the stock without reaching a customer; "mistake" = entered by mistake (Xoá on Kho Nhật / VN). */
+export type UnitRemoved = "mistake" | "lost" | "damaged" | "written_off";
+export const UNIT_REMOVED_LABEL: Record<UnitRemoved, string> = { mistake: "Nhập nhầm", lost: "Thất lạc", damaged: "Hỏng / vỡ", written_off: "Loại bỏ (hết hạn…)" };
 export function isUnitRemoved(v: unknown): v is UnitRemoved {
-  return v === "lost" || v === "damaged" || v === "written_off";
+  return v === "mistake" || v === "lost" || v === "damaged" || v === "written_off";
 }
 
 export type UnitOrigin = "bill" | "order" | "count" | "manual" | "return" | "legacy";

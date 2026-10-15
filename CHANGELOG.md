@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **③ Kho Nhật / ⑥ Kho VN · nút "Xoá" trên thanh dưới** khi tick dòng: mở hộp chọn **lý do** (Nhập nhầm · Thất lạc · Hỏng / vỡ · Loại bỏ hết hạn) và **ghi chú bắt buộc**. Không xoá mất: mỗi mã ghi người xoá, giờ, lý do. Các màn khác cập nhật theo: đơn đang giữ cái đó tự tìm hàng khác, tồn kho / đợt / bill tính lại. Cuối trang Kho có mục **"Đã xoá / loại gần đây"** (mã, sản phẩm, lý do, ghi chú, người xoá, lúc) để admin / chủ shop kiểm tra; khôi phục ở trang hàng của sản phẩm.
+- Trang hàng của sản phẩm: "Loại khỏi tồn kho" dùng cùng hộp đó (lý do + ghi chú bắt buộc); thêm lý do "Nhập nhầm".
+
+### Changed
+- **Thanh dưới của Kho Nhật / Kho VN gọn hơn** (cùng đủ chức năng): số dòng đã tick là một chấm tròn, chọn trạng thái dùng tên ngắn ("→ Tới ĐVVC Nhật"; rê chuột xem tên đầy đủ), "Đóng vào chuyến" → chọn mã chuyến + "Đóng", "Mở chuyến đóng hàng" → "Mở chuyến", "Bỏ tick" → ✕. Khoảng một nửa chiều dài cũ, chừa chỗ cho nút khác.
+
 ## [2.33.0] - 2026-10-14
 
 ### Changed

@@ -1,13 +1,15 @@
 import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
-import { moveUnitsAction, packUnitsAction } from "@/app/admin/inventory/lot-actions";
+import { moveUnitsAction, packUnitsAction, removeTickedUnitsAction } from "@/app/admin/inventory/lot-actions";
+import { RemoveTickedButton } from "./RemoveTickedButton";
+import type { RemovedUnit } from "@/lib/units-db";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
-import { formatAmount, formatDate, formatPrice } from "@/lib/format";
+import { formatAmount, formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { daysToExpiry, expiryState } from "@/lib/lots";
 import { groupTotals, type OrderReadyToShip, type StockGroup } from "@/lib/lots-db";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { UNIT_ORIGIN_LABEL } from "@/lib/units";
+import { UNIT_ORIGIN_LABEL, UNIT_REMOVED_LABEL } from "@/lib/units";
 import { cn } from "@/lib/utils";
 import type { PurchaseSource } from "@/types/shop";
 import { BulkBar } from "./BulkBar";
@@ -38,6 +40,8 @@ interface Props {
   /** see_cost: the "Vốn" tile and the ¥/cái column. */
   showCost?: boolean;
   backUrl: string;
+  /** Units removed from this side's stock (Xoá / Loại), newest first — the review list at the bottom. */
+  removed?: RemovedUnit[];
 }
 
 const EXP_CLS = { expired: "bg-red-100 text-red-800", soon: "bg-amber-100 text-amber-800", ok: "", none: "" } as const;
@@ -90,7 +94,7 @@ const MOVE_STAGES = PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) > purchas
  * Tồn kho by bill line (every row expands to its unit codes): two tabs (Kho Nhật / Kho Việt Nam), each with "Tại kho
  * shop" (actions) and "Tại kho ĐVVC" (read-only), the NB→VN flight strip in between. FEFO order everywhere.
  */
-export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl, tabQuery = "", showCost = true }: Props) {
+export function LotsBoard({ side, groups, filter, sources, shipments = [], readyOrders, backUrl, tabQuery = "", showCost = true, removed = [] }: Props) {
   // Tồn kho = what is physically at the shop; goods with the carrier / in the air are under ⑤ Vận chuyển
   const shopStatus = side === "jp" ? "bought" : "at_shop";
   const atShop = groups.filter((g) => g.status === shopStatus);
@@ -135,41 +139,41 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
         <form id={formId} action={moveUnitsAction}>
           <input type="hidden" name="back" value={backUrl} />
         </form>
-        <BulkBar scope={formId}>
-          <select name="status" form={formId} defaultValue={side === "jp" ? "to_carrier_jp" : "shipped_to_customer"} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyển tới">
+        {/* compact bar: count badge · move (short stage names) · pack into a run · Xoá (with a reason) · ✕ */}
+        <BulkBar scope={formId} compact>
+          <select name="status" form={formId} defaultValue={side === "jp" ? "to_carrier_jp" : "shipped_to_customer"} className={cn(adminInput, "!mb-0 !w-auto !px-1.5 !py-0.5 !text-[12px]")} aria-label="Chuyển tới" title="Chuyển các cái đã tick tới…">
             {(side === "jp" ? MOVE_STAGES : PURCHASE_STAGES.filter((s) => purchaseIndex(s.key) >= purchaseIndex("bought"))).map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
+              <option key={s.key} value={s.key} title={s.label}>
+                → {s.short}
               </option>
             ))}
           </select>
-          <button type="submit" form={formId} className={cn(btnPrimary, "!py-1")} title="Chuyển các cái đã tick (ô SL nhỏ hơn = chỉ bấy nhiêu cái) sang trạng thái đã chọn; đơn hàng và đợt mua đổi theo">
+          <button type="submit" form={formId} className={cn(btnPrimary, "!px-2 !py-1 !text-[12px]")} title="Chuyển các cái đã tick (ô SL nhỏ hơn = chỉ bấy nhiêu cái) sang trạng thái đã chọn; đơn hàng và đợt mua đổi theo" data-testid={`move-${side}`}>
             <Fa name="truck" /> Chuyển
           </button>
           {side === "jp" ? (
-            <>
-              <span className="mx-1 text-lien-muted">|</span>
-              {shipments.length ? (
-                <>
-                  <select name="shipmentId" form={formId} defaultValue={shipments[0].id} className={cn(adminInput, "!mb-0 !w-auto !py-1")} aria-label="Chuyến đóng hàng">
-                    {shipments.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.code}
-                        {s.label ? ` · ${s.label}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" form={formId} formAction={packUnitsAction} className={cn(btnSecondary, "!py-1")} title="Đóng các cái đã tick vào chuyến; hàng rời kệ, chờ xuất ĐVVC">
-                    <Fa name="cube" /> Đóng vào chuyến
-                  </button>
-                </>
-              ) : (
-                <Link href="/admin/inventory/shipments/" className="text-[12px] text-lien-blue hover:underline">
-                  <Fa name="cube" /> Mở chuyến đóng hàng
-                </Link>
-              )}
-            </>
+            shipments.length ? (
+              <span className="inline-flex items-center gap-1 border-l border-lien-blue/30 pl-1.5">
+                <select name="shipmentId" form={formId} defaultValue={shipments[0].id} className={cn(adminInput, "!mb-0 !w-auto !px-1.5 !py-0.5 font-mono !text-[12px]")} aria-label="Chuyến đóng hàng" title="Chuyến đóng hàng">
+                  {shipments.map((s) => (
+                    <option key={s.id} value={s.id} title={s.label || undefined}>
+                      {s.code}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" form={formId} formAction={packUnitsAction} className={cn(btnSecondary, "!px-2 !py-1 !text-[12px]")} title="Đóng các cái đã tick vào chuyến đã chọn; hàng rời kệ, chờ xuất ĐVVC" data-testid="pack-jp">
+                  <Fa name="cube" /> Đóng
+                </button>
+              </span>
+            ) : (
+              <Link href="/admin/inventory/shipments/" className="inline-flex items-center gap-1 border-l border-lien-blue/30 pl-1.5 text-[12px] text-lien-blue hover:underline" title="Chưa có chuyến đang đóng — mở ④ Đóng hàng JP để tạo chuyến">
+                <Fa name="cube" /> Mở chuyến
+              </Link>
+            )
           ) : null}
+          <span className="border-l border-lien-blue/30 pl-1.5">
+            <RemoveTickedButton formId={formId} action={removeTickedUnitsAction} />
+          </span>
         </BulkBar>
         {filter.mode === "boxed" ? null : <LiveTotals target={`[data-sheet="lots-shop-${side}"] table`} />}
         {filter.mode === "boxed" ? null : <GroupTable showCost={showCost} rows={splitByHolder(shelf).filter((r) => (filter.mode === "free" ? !r.holder : filter.mode === "orders" ? !!r.holder : true))} sources={sources} scope={`shop-${side}`} formId={formId} />}
@@ -214,9 +218,55 @@ export function LotsBoard({ side, groups, filter, sources, shipments = [], ready
             })}
           </div>
         ) : null}
+        {removed.length ? <RemovedList items={removed} side={side} /> : null}
       </Card>
 
     </div>
+  );
+}
+
+/** "Đã xoá / loại": units taken out of this side's stock — who, when, why — so admin / owner can review (and restore). */
+function RemovedList({ items, side }: { items: RemovedUnit[]; side: "jp" | "vn" }) {
+  return (
+    <details className="mt-4 rounded-md border border-[#e5e7eb] bg-[#fafafa] px-3 py-2 text-[12px]" data-testid={`removed-${side}`}>
+      <summary className="cursor-pointer text-[13px] font-semibold text-lien-heading">
+        <Fa name="trash" /> Đã xoá / loại gần đây ({items.length}) <span className="font-normal text-lien-muted">— ai xoá, lúc nào, lý do; khôi phục ở trang hàng của sản phẩm</span>
+      </summary>
+      <div className="mt-2 overflow-x-auto">
+        <table className={tableClass}>
+          <thead>
+            <tr>
+              <th className={thClass}>Mã</th>
+              <th className={thClass}>Sản phẩm</th>
+              <th className={thClass}>Lý do</th>
+              <th className={thClass}>Ghi chú</th>
+              <th className={thClass}>Người xoá</th>
+              <th className={thClass}>Lúc</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((u) => (
+              <tr key={u.id}>
+                <td className={cn(tdClass, "font-mono text-[11px]")}>
+                  <Link href={`/admin/inventory/units/${u.code}/`} className="text-lien-blue hover:underline">
+                    {u.code}
+                  </Link>
+                </td>
+                <td className={cn(tdClass, "text-[12px]")}>
+                  <Link href={`/admin/inventory/lots/${u.productId}/`} className="text-lien-heading hover:text-lien-blue">
+                    {u.productName}
+                  </Link>
+                </td>
+                <td className={cn(tdClass, "whitespace-nowrap text-[12px] font-semibold")}>{UNIT_REMOVED_LABEL[u.reason]}</td>
+                <td className={cn(tdClass, "text-[12px]")}>{u.note || <span className="text-lien-muted">—</span>}</td>
+                <td className={cn(tdClass, "whitespace-nowrap text-[12px]")}>{u.actor || "—"}</td>
+                <td className={cn(tdClass, "whitespace-nowrap text-[12px]")}>{formatDateTime(u.at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
 
