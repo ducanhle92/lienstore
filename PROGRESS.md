@@ -46,7 +46,7 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
   của nhánh đổi thành 75 (admin-api-tokens) & 76 (scan-codes-and-documents); `migrate()` khớp cả tên để DB dev đã chạy
   số cũ vẫn nhận 73/74 của main (đã thử 2 kịch bản). Giữ quy tắc "không xoá ảnh đơn hàng còn dùng" của main trong
   product-service.cleanupRemovedUploads; trang nhãn dùng PrintOnLoad (AutoPrint của main giờ là thanh in hoá đơn).
-- CHỜ USER DUYỆT deploy (quy trình: xung đột khi merge → hỏi). Sau duyệt: merge main, push, CI, release patch.
+- User đã duyệt deploy (2026-10-15): merge main, push, chờ CI, release patch, smoke chỉ-đọc prod.
 
 ## Đề xuất sau rà soát (Fable 5.1, 2026-10-15) — USER ĐÃ DUYỆT "làm đủ R1–R10 rồi mới deploy" → Opus làm tiếp từ R1
 Kiến trúc lõi ổn (dùng lại stock_units, idempotency theo opId, version/rev, chốt 1 transaction; test 76 pass).
