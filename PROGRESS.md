@@ -34,9 +34,10 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
 - [x] eslint src+scripts 0 lỗi; typecheck OK; build OK.
 
 ## Đang làm
-- (không)
+- Đợt hoàn thiện R1–R10 (xem mục Đề xuất bên dưới). Bắt đầu từ R1; mỗi mục: sửa → test liên quan → commit → tick.
+  Khi xong R10 mới merge + deploy (quy trình CLAUDE.md) và smoke chỉ-đọc trên prod.
 
-## Đề xuất sau rà soát (Fable 5.1, 2026-10-15 — CHỜ USER DUYỆT, Opus làm tiếp)
+## Đề xuất sau rà soát (Fable 5.1, 2026-10-15) — USER ĐÃ DUYỆT "làm đủ R1–R10 rồi mới deploy" → Opus làm tiếp từ R1
 Kiến trúc lõi ổn (dùng lại stock_units, idempotency theo opId, version/rev, chốt 1 transaction; test 76 pass).
 Lưu ý quan trọng: DB local là seed catalogue (0 đơn, 0 cái, 0 chuyến) → mọi test dùng dữ liệu tự tạo; chưa đối
 chiếu với dữ liệu vận hành thật của prod. Các việc cần làm TRƯỚC khi merge/deploy (thứ tự ưu tiên):
