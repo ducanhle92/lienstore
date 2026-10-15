@@ -5,6 +5,9 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Fixed
+- CSV cần mua: chỉ xuất phần thiếu của đơn hiện tại và hàng lưu kho dự định mua; không xuất lại hàng đã đặt, đã mua hoặc đã giao, không cộng đề xuất tồn tối thiểu.
+
 ## [2.34.1] - 2026-10-15
 
 ### Fixed
