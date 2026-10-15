@@ -1,7 +1,7 @@
 import "server-only";
 import { ApiError, type ApiContext, apiRoute, apiRouteWithParams, parseId, readJson } from "@/lib/api-http";
 import { isShopWarehouse } from "@/lib/scan-access";
-import { addLine, cancelDoc, confirmDoc, createDoc, type DocCtx, type DocKind, type DocStatus, getDoc, listDocs, removeLine, scanIntoDoc, undoScan, updateLine } from "@/lib/scan-docs";
+import { addLine, cancelDoc, confirmDoc, redactDocCost, createDoc, type DocCtx, type DocKind, type DocStatus, getDoc, listDocs, removeLine, scanIntoDoc, undoScan, updateLine } from "@/lib/scan-docs";
 
 /**
  * Route handlers shared by the three scan document families (thin: parse → lib/scan-docs → envelope):
@@ -20,6 +20,9 @@ const optObj = async (c: ApiContext): Promise<Record<string, unknown>> => ((c.re
 type IdP = { id: string };
 type LineP = { id: string; lineId: string };
 
+/** Every document payload goes through the cost filter of the caller's account. */
+const out = (c: ApiContext, data: unknown, status?: number) => ({ ...(status ? { status } : {}), data: redactDocCost(data, c.principal.permissions) });
+
 export function docRoutes(kind: DocKind) {
   return {
     list: apiRoute({ scope: "inventory:read" }, async ({ req }) => {
@@ -30,17 +33,17 @@ export function docRoutes(kind: DocKind) {
       if (wh && !isShopWarehouse(wh)) throw new ApiError(400, "BAD_REQUEST", "warehouse: vn | jp.");
       return { data: listDocs(kind, { status, warehouse: wh ? (wh as "vn" | "jp") : undefined, limit: Number.parseInt(sp.get("limit") ?? "30", 10) || 30 }) };
     }),
-    create: apiRoute({ scope: "inventory:write", write: true, idempotent: true }, async (c) => ({ status: 201, data: createDoc(kind, await obj(c), ctxOf(c)) })),
-    get: apiRouteWithParams<IdP>({ scope: "inventory:read" }, async (_c, { id }) => ({ data: getDoc(kind, parseId(id)) })),
+    create: apiRoute({ scope: "inventory:write", write: true, idempotent: true }, async (c) => out(c, createDoc(kind, await obj(c), ctxOf(c)), 201)),
+    get: apiRouteWithParams<IdP>({ scope: "inventory:read" }, async (c, { id }) => out(c, getDoc(kind, parseId(id)))),
     scan: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true }, async (c, { id }) => {
       const b = await obj(c);
-      return { data: scanIntoDoc(kind, parseId(id), { code: b.code, opId: b.opId, qty: b.qty }, ctxOf(c)) };
+      return out(c, scanIntoDoc(kind, parseId(id), { code: b.code, opId: b.opId, qty: b.qty }, ctxOf(c)));
     }),
-    addLine: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => ({ status: 201, data: addLine(kind, parseId(id), await obj(c), ctxOf(c)) })),
-    updateLine: apiRouteWithParams<LineP>({ scope: "inventory:write", write: true }, async (c, { id, lineId }) => ({ data: updateLine(kind, parseId(id), parseId(lineId), await obj(c), ctxOf(c)) })),
-    removeLine: apiRouteWithParams<LineP>({ scope: "inventory:write", write: true }, async (c, { id, lineId }) => ({ data: removeLine(kind, parseId(id), parseId(lineId), ctxOf(c)) })),
-    undo: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true }, async (c, { id }) => ({ data: undoScan(kind, parseId(id), await optObj(c), ctxOf(c)) })),
-    confirm: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => ({ data: confirmDoc(kind, parseId(id), await obj(c), ctxOf(c)) })),
-    cancel: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => ({ data: cancelDoc(kind, parseId(id), ctxOf(c)) })),
+    addLine: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => out(c, addLine(kind, parseId(id), await obj(c), ctxOf(c)), 201)),
+    updateLine: apiRouteWithParams<LineP>({ scope: "inventory:write", write: true }, async (c, { id, lineId }) => out(c, updateLine(kind, parseId(id), parseId(lineId), await obj(c), ctxOf(c)))),
+    removeLine: apiRouteWithParams<LineP>({ scope: "inventory:write", write: true }, async (c, { id, lineId }) => out(c, removeLine(kind, parseId(id), parseId(lineId), ctxOf(c)))),
+    undo: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true }, async (c, { id }) => out(c, undoScan(kind, parseId(id), await optObj(c), ctxOf(c)))),
+    confirm: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => out(c, confirmDoc(kind, parseId(id), await obj(c), ctxOf(c)))),
+    cancel: apiRouteWithParams<IdP>({ scope: "inventory:write", write: true, idempotent: true }, async (c, { id }) => out(c, cancelDoc(kind, parseId(id), ctxOf(c)))),
   };
 }

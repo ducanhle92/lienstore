@@ -59,10 +59,12 @@ export interface ScanAppProps {
   warehouses: Array<"vn" | "jp">;
   canPick: boolean;
   canLink: boolean;
+  /** "Xem giá vốn": the ¥ cost of new goods can be seen / typed. */
+  seeCost?: boolean;
   userLabel: string;
 }
 
-export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProps) {
+export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLabel }: ScanAppProps) {
   const [mode, setMode] = useState<Mode>("home");
   const [warehouse, setWarehouse] = useState<"vn" | "jp" | "">(warehouses.length === 1 ? warehouses[0] : "");
   const [docId, setDocId] = useState<number | null>(null);
@@ -361,7 +363,7 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
 
           {mode !== "lookup" ? (
             docId ? (
-              <DocPanel kind={mode} docId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} registerTrackingSetter={(f) => (trackingSetter.current = f)} online={online} />
+              <DocPanel kind={mode} docId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} registerTrackingSetter={(f) => (trackingSetter.current = f)} seeCost={seeCost} online={online} />
             ) : (
               <DraftList kind={mode} warehouse={warehouse || null} onOpen={(id) => setDocId(id)} />
             )

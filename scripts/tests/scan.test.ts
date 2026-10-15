@@ -353,6 +353,19 @@ describe("receive — new goods (direct)", () => {
     assert.throws(() => docs.scanIntoDoc("receive", docs.createDoc("receive", { warehouse: "jp", mode: "direct" }, owner).id, { code: "4911111111119", opId: op() }, vnOnly), errCode("WAREHOUSE_FORBIDDEN"));
     assert.throws(() => docs.confirmDoc("receive", doc.id, { version: docs.getDoc("receive", doc.id).version }, owner), errCode("NOTHING_TO_CONFIRM"));
   });
+  it("the ¥ cost is hidden from and refused to accounts without “Xem giá vốn”", async () => {
+    const [a] = await twoProducts("cost");
+    const ean = freshEan();
+    await db.updateProductSku(a.id, ean);
+    const staff = { actor: "kho vn", permissions: ["kho_vn", "inventory"] };
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    const v = docs.scanIntoDoc("receive", doc.id, { code: ean, opId: op() }, owner).doc;
+    const withCost = docs.updateLine("receive", doc.id, v.lines[0].id, { rev: v.lines[0].rev, unitCostJpy: 777 }, owner);
+    assert.equal(withCost.lines[0].unitCostJpy, 777);
+    assert.equal(docs.redactDocCost(withCost, staff.permissions).lines[0].unitCostJpy, null);
+    assert.equal(docs.redactDocCost({ doc: withCost }, owner.permissions).doc.lines[0].unitCostJpy, 777);
+    assert.throws(() => docs.updateLine("receive", doc.id, withCost.lines[0].id, { rev: withCost.lines[0].rev, unitCostJpy: 1 }, staff), errCode("FORBIDDEN"));
+  });
   it("a failing confirm leaves stock and document untouched (one transaction)", async () => {
     const [a] = await twoProducts("atomic");
     await db.updateProductSku(a.id, "4999999999999");

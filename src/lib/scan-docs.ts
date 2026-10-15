@@ -541,6 +541,7 @@ export function updateLine(kind: DocKind, docId: number, lineId: number, input: 
       }
     }
     if (input.unitCostJpy !== undefined) {
+      if (!ctx.permissions.includes("see_cost")) throw new DomainError(403, "FORBIDDEN", "Cần quyền “Xem giá vốn” để ghi giá ¥.");
       if (kind !== "receive" || d.mode !== "direct") fields.unitCostJpy = "Chỉ phiếu nhập hàng mới.";
       else if (input.unitCostJpy !== null && (typeof input.unitCostJpy !== "number" || !Number.isInteger(input.unitCostJpy) || input.unitCostJpy < 0)) fields.unitCostJpy = "Số nguyên ¥ ≥ 0 hoặc null.";
       else set.unit_cost_jpy = input.unitCostJpy;
@@ -713,6 +714,21 @@ export function confirmDoc(kind: DocKind, docId: number, input: { version?: unkn
     recordAudit({ actor: ctx.actor, tokenId: ctx.tokenId, action: `scan.${kind}.confirm`, target: `scan:${d.code}`, changes: result, requestId: ctx.requestId, ip: ctx.ip });
     return { doc: viewOf(db, docRow(db, docId)), result, alreadyConfirmed: false };
   });
+}
+
+/** Cost is shown only to accounts with "see_cost" (Xem giá vốn & lãi / lỗ); everyone else gets null. */
+export function redactDocCost<T>(data: T, permissions: string[]): T {
+  if (permissions.includes("see_cost")) return data;
+  const strip = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(strip);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, x] of Object.entries(v)) out[k] = k === "unitCostJpy" ? null : strip(x);
+      return out;
+    }
+    return v;
+  };
+  return strip(data) as T;
 }
 
 /** Packing runs that can be received at Kho VN (handed to the carrier, not done). */

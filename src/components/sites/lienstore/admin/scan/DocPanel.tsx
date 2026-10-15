@@ -164,7 +164,7 @@ export function DraftList({ kind, warehouse, onOpen }: { kind: DocKind; warehous
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTrackingSetter, online }: { kind: DocKind; docId: number; onClose: () => void; registerScanHandler: (h: ScanHandler | null) => void; registerTrackingSetter?: (f: ((code: string) => void) | null) => void; online: boolean }) {
+export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTrackingSetter, seeCost = false, online }: { kind: DocKind; docId: number; onClose: () => void; registerScanHandler: (h: ScanHandler | null) => void; registerTrackingSetter?: (f: ((code: string) => void) | null) => void; seeCost?: boolean; online: boolean }) {
   const [doc, setDoc] = useState<DocView | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -389,7 +389,7 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
                 ) : null}
                 {isDirect ? (
                   <button type="button" className="text-[13px] text-lien-blue underline" onClick={() => setOpen(open === l.id ? null : l.id)}>
-                    HSD / giá / bill
+                    {seeCost ? "HSD / giá / bill" : "HSD / bill"}
                   </button>
                 ) : null}
                 {isDirect || kind === "count" ? (
@@ -406,11 +406,11 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
                   e.preventDefault();
                   const f = new FormData(e.currentTarget);
                   const cost = String(f.get("cost") ?? "").trim();
-                  void setLine(l, { expiry: String(f.get("expiry") ?? "").trim() || null, unitCostJpy: cost ? Number.parseInt(cost, 10) : null, billCode: String(f.get("bill") ?? "").trim() }).then((r) => r.ok && setOpen(null));
+                  void setLine(l, { expiry: String(f.get("expiry") ?? "").trim() || null, ...(seeCost ? { unitCostJpy: cost ? Number.parseInt(cost, 10) : null } : {}), billCode: String(f.get("bill") ?? "").trim() }).then((r) => r.ok && setOpen(null));
                 }}
               >
                 <input name="expiry" defaultValue={l.expiry ?? ""} placeholder="HSD 2027-03" className="min-h-11 rounded-md border border-[#d1d5db] px-2" />
-                <input name="cost" defaultValue={l.unitCostJpy ?? ""} placeholder="Giá ¥ / cái" inputMode="numeric" className="min-h-11 rounded-md border border-[#d1d5db] px-2" />
+                {seeCost ? <input name="cost" defaultValue={l.unitCostJpy ?? ""} placeholder="Giá ¥ / cái" inputMode="numeric" className="min-h-11 rounded-md border border-[#d1d5db] px-2" /> : null}
                 <input name="bill" defaultValue={l.billCode} placeholder="Mã bill (tuỳ chọn)" className="min-h-11 rounded-md border border-[#d1d5db] px-2" />
                 <button type="submit" className={`${btn} bg-lien-blue text-white`} disabled={!editable}>
                   Lưu dòng
