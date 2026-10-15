@@ -64,6 +64,19 @@ docs/
 scripts/            # Asset download scripts
 ```
 
+## Managing lienstore data (agents: use the CLI, not the browser)
+- Product / image admin work (search, price changes, create, bulk edits, uploads) goes through the CLI
+  `npm run -s lienstore -- <command>` (= `node scripts/lienstore.mjs`) → Admin API v1 (`/api/admin/v1`). Guide:
+  `docs/ADMIN_API.md`. Examples: `products list --search "Hada Labo"`, `products get 2710`,
+  `products update 2710 --set price=185000`, `products create --file p.json`, `products bulk-update --file c.json --dry-run --out plan.json`,
+  `media upload ./a.jpg`, `categories list`, `whoami`.
+- Config comes from `.env.lienstore.local` (or `--profile prod` → `.env.lienstore.prod.local`); never print, pass on the
+  command line, or commit the token. Check the `[lienstore] → <url> [ENV]` banner before writing; production writes:
+  `--dry-run` first, then `--yes` only when the user asked for a production change.
+- Do not open the web preview / puppeteer for data changes; if the API fails, report the JSON error (exit code ≠ 0)
+  instead of falling back to the browser. The preview is only for checking the UI when asked.
+- Never edit the SQLite file directly for catalogue changes — the API keeps validation, history, cache and audit.
+
 ## MOST IMPORTANT NOTES
 - When launching Claude Code agent teams, ALWAYS have each teammate work in their own worktree branch and merge everyone's work at the end, resolving any merge conflicts smartly since you are basically serving the orchestrator role and have full context to our goals, work given, work achieved, and desired outcomes.
 - After editing `AGENTS.md`, run `bash scripts/sync-agent-rules.sh` to regenerate platform-specific instruction files.

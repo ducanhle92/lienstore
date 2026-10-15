@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Admin API v1** (`/api/admin/v1/`) + **CLI `lienstore`** (`npm run -s lienstore -- …`) để agent quản trị sản phẩm không cần mở trình duyệt: tìm/lọc/phân trang/chọn trường, xem, tạo, sửa từng phần (PATCH chỉ đổi trường gửi lên), sửa hàng loạt **nguyên tử** có dry-run trước/sau, upload ảnh (server tự thu nhỏ + thumb 300×300), danh mục, nhật ký. Chống ghi đè bằng `version`/`If-Match`, chống tạo trùng bằng `Idempotency-Key` + kiểm tra slug/SKU. Hướng dẫn: `docs/ADMIN_API.md`.
+- **API tokens** (Cài đặt web › API tokens, chỉ owner/admin; hoặc `npm run api-token`): Bearer token theo quyền đọc/ghi/upload, có hạn dùng, thu hồi ngay; chỉ lưu hash; token hoạt động theo quyền hiện tại của tài khoản cấp. Mọi thao tác ghi qua API vào nhật ký `api_audit_log` (migration 73).
+
+### Changed
+- Form sửa sản phẩm và API dùng chung luật kiểm tra giá / khối lượng / kích thước (`lib/product-rules.ts`) và dịch vụ sản phẩm (`lib/product-service.ts`); upload ảnh admin dùng chung `lib/media-service.ts` (kiểm tra thêm nội dung file đúng là ảnh).
+
 ## [2.28.0] - 2026-10-08
 
 ### Added
