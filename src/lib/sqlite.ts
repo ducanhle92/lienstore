@@ -1554,6 +1554,53 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_expenses_day ON expenses(spent_at)`,
     ],
   },
+  {
+    // Admin API v1 (/api/admin/v1, CLI `lienstore`): Bearer tokens (only the SHA-256 of the raw token is kept), the audit
+    // trail of every write made with a token, and idempotency records so a retried create / update is not applied twice.
+    version: 73,
+    name: "admin-api-tokens",
+    up: [
+      `CREATE TABLE IF NOT EXISTS api_tokens (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        name         TEXT NOT NULL,
+        prefix       TEXT NOT NULL,
+        token_hash   TEXT NOT NULL UNIQUE,
+        scopes       TEXT NOT NULL DEFAULT '[]',
+        owner_id     TEXT NOT NULL,
+        owner_label  TEXT NOT NULL DEFAULT '',
+        created_by   TEXT NOT NULL DEFAULT '',
+        created_at   TEXT NOT NULL,
+        expires_at   TEXT,
+        revoked_at   TEXT,
+        revoked_by   TEXT NOT NULL DEFAULT '',
+        last_used_at TEXT,
+        last_used_ip TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE TABLE IF NOT EXISTS api_audit_log (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        at         TEXT NOT NULL,
+        actor      TEXT NOT NULL,
+        token_id   INTEGER,
+        action     TEXT NOT NULL,
+        target     TEXT NOT NULL DEFAULT '',
+        changes    TEXT NOT NULL DEFAULT '{}',
+        status     TEXT NOT NULL DEFAULT 'ok',
+        request_id TEXT NOT NULL DEFAULT '',
+        ip         TEXT NOT NULL DEFAULT ''
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_api_audit_at ON api_audit_log(at)`,
+      `CREATE INDEX IF NOT EXISTS idx_api_audit_target ON api_audit_log(target)`,
+      `CREATE TABLE IF NOT EXISTS api_idempotency (
+        token_id     INTEGER NOT NULL,
+        key          TEXT NOT NULL,
+        request_hash TEXT NOT NULL,
+        status       INTEGER,
+        response     TEXT,
+        created_at   TEXT NOT NULL,
+        PRIMARY KEY (token_id, key)
+      )`,
+    ],
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -1604,7 +1651,26 @@ export function getDb(): DatabaseSync {
   return globalRef.__lienDb;
 }
 
+let savepointSeq = 0;
+
+/**
+ * Runs `fn` atomically. Nested calls (e.g. `saveProduct` inside a bulk update) become SAVEPOINTs of the outer
+ * transaction, so the outer caller decides whether everything commits.
+ */
 export function withTransaction<T>(db: DatabaseSync, fn: () => T): T {
+  if (db.isTransaction) {
+    const sp = `lien_sp_${++savepointSeq}`;
+    db.exec(`SAVEPOINT ${sp}`);
+    try {
+      const result = fn();
+      db.exec(`RELEASE ${sp}`);
+      return result;
+    } catch (e) {
+      db.exec(`ROLLBACK TO ${sp}`);
+      db.exec(`RELEASE ${sp}`);
+      throw e;
+    }
+  }
   db.exec("BEGIN IMMEDIATE");
   try {
     const result = fn();

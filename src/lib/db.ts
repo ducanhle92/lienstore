@@ -65,6 +65,7 @@ import { collapseVariants, groupSlug, normalizeAttrLabels, parseVariantAttrs, so
 import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purchase-sources";
 import { todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
+import { ProductVersionConflictError, productVersion } from "./product-version";
 
 /** Synchronous category list for use inside transactions. */
 function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
@@ -549,7 +550,16 @@ export async function getRelatedProducts(product: CatalogProduct, limit = 4): Pr
   return [...explicit, ...sameCat].slice(0, limit);
 }
 
-export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary" | "stockVn"> & { id?: number; groupId?: number | null; variantAttrs?: Record<string, string>; variantPosition?: number; /** Who is saving (for the change history). */ changedBy?: string };
+export type ProductInput = Omit<CatalogProduct, "id" | "createdAt" | "updatedAt" | "groupId" | "variantAttrs" | "variantPosition" | "variantSummary" | "stockVn"> & {
+  id?: number;
+  groupId?: number | null;
+  variantAttrs?: Record<string, string>;
+  variantPosition?: number;
+  /** Who is saving (for the change history). */
+  changedBy?: string;
+  /** Update only when the stored row still has this `productVersion` (else ProductVersionConflictError, nothing written). */
+  expectedVersion?: string;
+};
 
 // ---------- Change history (lịch sử thay đổi) ----------
 
@@ -584,6 +594,10 @@ export async function saveProduct(input: ProductInput): Promise<CatalogProduct> 
     if (id) {
       const before = db.prepare(`${PRODUCT_SELECT} WHERE p.id = ?`).get(id) as ProductRow | undefined;
       if (!before) throw new Error(`Product ${id} not found`);
+      if (input.expectedVersion) {
+        const current = productVersion(rowToProduct(before));
+        if (current !== input.expectedVersion) throw new ProductVersionConflictError(id, input.expectedVersion, current);
+      }
       logProductChanges(db, id, diffProductChanges(snapshotOf(rowToProduct(before)), snapshotOf({ ...input, status: input.status })), input.changedBy ?? "admin", now);
       db.prepare(`UPDATE products SET slug = ?, name = ?, price = ?, regular_price = ?, market_price = ?, cost_price = ?, supplier_url = ?, min_stock = ?, currency = ?, sku = ?, stock = ?, stock_status = ?, fulfillment = ?,
         cost_jpy = ?, cost_source = ?, cost_url = ?, cost_checked_at = ?, margin_pct = ?,
