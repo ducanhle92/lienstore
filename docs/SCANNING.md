@@ -7,8 +7,9 @@ Thiết kế: `docs/architecture/mobile-scanning.md`. API/CLI: `docs/ADMIN_API.m
 - Admin › **Vận hành › Quét mã (điện thoại)** → `/admin/scan/`. Đăng nhập như admin bình thường (cookie phiên).
 - Camera chỉ chạy trên **HTTPS** (hoặc `localhost`). Trên mạng LAN bằng `http://192.168…` camera bị trình duyệt chặn —
   vẫn nhập tay / dùng máy quét Bluetooth được.
-- Thêm vào màn hình chính: Safari › Chia sẻ › *Thêm vào MH chính*; Chrome › ⋮ › *Thêm vào màn hình chính*. Không có
-  chế độ offline (không service worker) — mất mạng thì màn hình báo đỏ và khoá các nút ghi.
+- Thêm vào màn hình chính **từ trang /admin/scan/**: Safari › Chia sẻ › *Thêm vào MH chính*; Chrome › ⋮ › *Thêm vào màn
+  hình chính* — biểu tượng "Quét mã" mở thẳng màn quét (manifest riêng `/api/scan-manifest/`). Không có chế độ offline
+  (không service worker) — mất mạng thì màn hình báo đỏ và khoá các nút ghi.
 
 ## 2. Chế độ
 
@@ -17,7 +18,7 @@ Thiết kế: `docs/architecture/mobile-scanning.md`. API/CLI: `docs/ADMIN_API.m
 | Tra cứu | mọi tài khoản có Kho / Sản phẩm / Đơn / Giao hàng | Không ghi. Tồn khả dụng (rảnh) · giữ cho đơn · thực tế trong tay, theo kho + hạn dùng, đang về; giá nếu có quyền "Xem giá bán". Nút *In nhãn mã H* |
 | Nhập hàng | quyền ③ Kho Nhật (Kho Nhật) / ⑥ Kho VN (Kho VN) | *Hàng mới*: tạo mã từng cái khi **Xác nhận nhập kho**. *Nhận chuyến hàng về* (Kho VN): chuyển đúng các cái đã quét của chuyến `CH-…` vào Kho VN, nhận một phần được |
 | Kiểm kho | như trên | Chỉ khi **Chốt kiểm kê**: thừa → thêm cái (bill `KK-yymmdd`), thiếu → loại cái rảnh gần hết hạn nhất ("thất lạc") |
-| Xuất hàng | quyền ⑦ Giao hàng VN | Đối chiếu đơn đã sẵn sàng; **Hoàn tất & bắt đầu giao** = bước "đã gửi" của chặng giao nội địa (hàng rời kho, đơn → Đang giao) |
+| Xuất hàng | quyền ⑦ Giao hàng VN | Đối chiếu đơn đã sẵn sàng; chọn **ĐVVC** (hoặc khách tự lấy) + **mã vận đơn** (gõ, hoặc quét nhãn vận đơn → *Dùng mã này làm mã vận đơn*); **Hoàn tất & bắt đầu giao** = bước "đã gửi" của chặng giao nội địa như ⑦ (hàng rời kho, đơn → Đang giao) |
 
 Trạng thái dòng trên cùng: **Đã đọc mã → Đã nhận diện → Đã lưu nháp** (máy chủ đã nhận) **→ Đã chốt**. Chỉ "Đã lưu
 nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
@@ -25,8 +26,8 @@ nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
 ### Quét
 - **Camera**: bấm *Camera* → *Bật camera* (camera sau). *Quét lại* = nhận lại mã đang ở trước camera. Giữ một mã trước
   camera chỉ tính **một lần**; muốn tính thêm thì đưa ra khỏi khung (> 1 giây) rồi đưa lại, hoặc sửa số lượng.
-- **Máy quét Bluetooth/USB** (kiểu bàn phím, kết thúc Enter): chỉ cần quét, không cần bấm vào ô nào. Khi đang gõ trong
-  một ô, máy quét gõ vào ô đó (ô "Nhập / quét mã" xử lý như quét).
+- **Máy quét Bluetooth/USB** (kiểu bàn phím, kết thúc Enter): chỉ cần quét, không cần bấm vào ô nào. Kể cả khi một ô
+  khác đang được chọn (ô số lượng…), mã ≥ 8 ký tự gõ nhanh + Enter vẫn được nhận là lần quét và ô đó giữ nguyên giá trị.
 - **Nhập tay**: gõ mã → OK.
 - *Mỗi lần quét =* N: một lần quét mã sản phẩm cộng N × quy cách (ví dụ thùng 12). Mã từng cái `H…` luôn là 1 cái và
   chỉ tính một lần trong một phiếu. **Mỗi món chỉ quét một lần** — bằng mã H *hoặc* mã JAN, không cả hai.
@@ -46,6 +47,10 @@ nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
 - Hai điện thoại cùng một phiếu: cùng quét được (cộng dồn); sửa số tuyệt đối cùng một dòng → máy chậm hơn được báo tải
   lại; chốt khi phiếu vừa đổi ở máy khác → báo "xem lại rồi chốt".
 - Mất mạng giữa chừng một lần quét → khung đỏ *Gửi lại* (cùng mã thao tác, không cộng trùng).
+- Mã JAN nằm trong SKU có tiền tố (ví dụ SKU `AHA-4515061013884`) vẫn quét được bằng JAN.
+- Giá ¥ của phiếu nhập chỉ hiện / sửa được với tài khoản có quyền "Xem giá vốn".
+- Nhiều dòng cùng sản phẩm (HSD khác): lần quét cộng vào dòng mới nhất, có dấu ● trên dòng đó.
+- Kiểm kê: dòng ghi rõ "sổ gồm X rảnh + Y giữ cho đơn + Z đã đóng thùng — đếm cả".
 - Kiểm kê: chưa đếm ≠ đếm 0 (dòng chưa đếm không bị điều chỉnh). Nếu tồn thay đổi trong lúc đếm (nhập/xuất) → dòng đỏ
   "biến động", phải *Đếm lại* hoặc *Số đếm vẫn đúng* mới chốt được. Thiếu cả hàng đang giữ cho đơn → không chốt, xử lý
   tay ở trang tồn kho sản phẩm.
