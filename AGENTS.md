@@ -77,9 +77,16 @@ scripts/            # Asset download scripts
   CLI (`codes resolve`, `stock`, `barcodes`, `receipts|counts|picks …`, see `docs/ADMIN_API.md` §9) — never change
   `products.stock` or `stock_units` directly. Phone scanning screen: `/admin/scan/` (`docs/SCANNING.md`).
 
+## Variant groups (nhóm biến thể) — bắt buộc
+- **Một hãng = một nhóm biến thể.** Không tách nhiều nhóm con theo từng dòng (Shoyo / Attonon / Netsusama…).
+  Phân loại bằng cấp thuộc tính trong cùng một nhóm, mẫu: DHC, BCL AHA.
+- Cấp điển hình: **Dòng** → **Loại** → **Quy cách** (size / số viên). Chi tiết: `docs/VARIANT_GROUPS.md`.
+- Khi được yêu cầu “gom / sửa nhóm biến thể”: gộp hết SP cùng hãng vào một nhóm, điền đủ cấp, xoá nhóm trống thừa.
+
 ## MOST IMPORTANT NOTES
 - When launching Claude Code agent teams, ALWAYS have each teammate work in their own worktree branch and merge everyone's work at the end, resolving any merge conflicts smartly since you are basically serving the orchestrator role and have full context to our goals, work given, work achieved, and desired outcomes.
 - After editing `AGENTS.md`, run `bash scripts/sync-agent-rules.sh` to regenerate platform-specific instruction files.
 - After editing `.claude/skills/clone-website/SKILL.md`, run `node scripts/sync-skills.mjs` to regenerate the skill for all platforms.
 
 @docs/research/INSPECTION_GUIDE.md
+@docs/VARIANT_GROUPS.md
