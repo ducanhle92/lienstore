@@ -141,6 +141,11 @@ export function ProductStockCard({ stock }: { stock: StockView }) {
         <Link href={stock.product.adminUrl} className="text-lien-blue underline">
           Trang sản phẩm
         </Link>
+        {stock.inHand ? (
+          <a href={`/print/units/?product=${stock.product.id}`} target="_blank" rel="noopener" className="text-lien-blue underline">
+            In nhãn mã H ({stock.inHand})
+          </a>
+        ) : null}
       </div>
     </div>
   );
