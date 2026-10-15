@@ -36,6 +36,42 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
 ## Đang làm
 - (không)
 
+## Đề xuất sau rà soát (Fable 5.1, 2026-10-15 — CHỜ USER DUYỆT, Opus làm tiếp)
+Kiến trúc lõi ổn (dùng lại stock_units, idempotency theo opId, version/rev, chốt 1 transaction; test 76 pass).
+Lưu ý quan trọng: DB local là seed catalogue (0 đơn, 0 cái, 0 chuyến) → mọi test dùng dữ liệu tự tạo; chưa đối
+chiếu với dữ liệu vận hành thật của prod. Các việc cần làm TRƯỚC khi merge/deploy (thứ tự ưu tiên):
+- [ ] R1 Camera kẹt khi id camera lưu trong localStorage không còn đúng (đổi máy/trình duyệt): `getUserMedia({deviceId:{exact}})`
+      ném OverconstrainedError/NotFound → chỉ báo "không tìm thấy camera". Sửa: thất bại với exact id → xoá
+      `lienstore:scan:camera`, thử lại `facingMode: environment` (CameraView.tsx `start`). Test tay.
+- [ ] R2 Máy quét Bluetooth kiểu bàn phím: ngưỡng 60 ms/ký tự (scan-input.ts WedgeBuffer) quá chặt với HID qua
+      Bluetooth (iOS thường 30–100 ms) → nới ~150 ms; và khi một ô số lượng đang focus thì mã bị gõ vào ô đó
+      (ScanApp.tsx listener bỏ qua khi isTypingTarget). Sửa: lắng nghe ở capture phase mọi keydown; burst nhanh +
+      Enter → coi là quét, chặn ký tự vào ô không phải ô mã (hoặc khôi phục giá trị ô). Thêm test cho WedgeBuffer.
+- [ ] R3 Xuất hàng thiếu ĐVVC + mã vận đơn: `confirmDoc(pick)` gọi setOrderLegStatusSync(vn_domestic, sent) nhưng không
+      ghi method/tracking như ⑦ (`applyMethodChoice` trong app/admin/shipping/order-actions.ts) → đơn "Đang giao" với
+      ĐVVC "—". Sửa: `picks/{id}/complete` nhận `{ version, methodId?|"pickup", tracking? }`; UI pick: chọn ĐVVC (danh
+      sách `getShippingMethods` leg vn_domestic) và quét/nhập mã vận đơn (mã quét không phải sản phẩm/cái trong chế độ
+      pick → gợi ý "Dùng làm mã vận đơn"). CLI `picks confirm --method <id> --tracking <mã>`. Test.
+- [ ] R4 Mã JAN nằm trong SKU có tiền tố (3/9 SKU thật dạng `AHA-4515061013884`) → quét JAN ra "chưa liên kết".
+      Sửa: resolver thêm bước khớp `sku` kết thúc bằng `-<gtin>` (COLLATE NOCASE), vẫn báo xung đột nếu >1; backfill
+      migration (hoặc job một lần) liên kết GTIN nhúng khi duy nhất. Test.
+- [ ] R5 Lộ giá vốn ¥ trên phiếu nhập cho tài khoản không có `see_cost`: `viewOf` trả `unitCostJpy` cho mọi người.
+      Sửa: truyền permissions vào view, null hoá unitCostJpy (và không cho sửa) khi thiếu see_cost; CLI/DocPanel ẩn.
+- [ ] R6 Kiểm kê: dòng chỉ ghi "sổ N"; N gồm cả cái giữ cho đơn và đã đóng thùng → người đếm dễ bỏ sót → COUNT_SHORT_HELD.
+      Sửa: LineView.count thêm breakdown `{ free, held, boxed }` và thông điệp "sổ 12 = 8 rảnh + 3 giữ đơn + 1 đóng
+      thùng (đếm cả)"; DocPanel hiển thị.
+- [ ] R7 Nhập hàng mới có nhiều dòng cùng sản phẩm (HSD khác): lần quét cộng vào dòng "sửa gần nhất" → mơ hồ.
+      Sửa: cộng vào dòng mới nhất (id lớn nhất) và UI đánh dấu "đang nhận quét" trên dòng đó; hoặc nút "Quét vào dòng này".
+- [ ] R8 PWA: manifest start_url "/" → "Thêm vào màn hình chính" từ /admin/scan mở storefront. Sửa: route
+      `/admin/scan/manifest.webmanifest` riêng (start_url /admin/scan/, display standalone) + `<link rel=manifest>` trong
+      page scan; ghi docs/SCANNING.md.
+- [ ] R9 Giảm 2 vòng mạng mỗi lần quét trong chế độ phiếu (resolve rồi scans): khi đang mở phiếu, gửi thẳng /scans
+      (server tự resolve) và chỉ gọi resolve khi lỗi UNKNOWN_CODE/CODE_CONFLICT để mở panel liên kết.
+- [ ] R10 Sau khi sửa: chạy lại test:scan, test:admin-api, test:admin-api:e2e, lint/typecheck/build; cập nhật
+      docs/SCANNING.md + ADMIN_API.md §9; rồi mới merge + deploy; sau deploy chạy smoke chỉ-đọc trên prod bằng CLI
+      (`whoami`, `codes resolve` một JAN thật, `stock <id>`, `receipts shipments`, `picks orders`) để đối chiếu dữ liệu thật.
+Không chặn (để sau): tạo sản phẩm tối thiểu ngay từ mã lạ; xuất một phần; rate limit API (Cloudflare).
+
 ## Tiếp theo
 - [ ] Người dùng thử trên điện thoại thật theo checklist docs/SCANNING.md §5 (camera iOS/Android, BT scanner, mất mạng).
 - [ ] Khi user yêu cầu: merge + deploy theo quy trình CLAUDE.md (migration 73, 74 tự chạy).
