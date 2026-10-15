@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.34.5] - 2026-10-15
+
 ### Changed
 - **CSV cần mua · 3 cột số lượng rõ nghĩa hơn**: "**Cần mua theo đơn**" (đơn đang mở còn thiếu) · "**Cần mua lưu kho**" (dự định mua để lưu kho) · "**Còn thiếu**" = tổng hai cột trên (số phải mua; "Tổng vốn" = Còn thiếu × giá vốn).
 
