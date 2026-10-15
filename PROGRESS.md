@@ -14,6 +14,9 @@
   trong catalogue, 3 mô tả ghi 2 mã — Pigeon), `data/jan/link-amazon-sai.csv` (51 link Amazon trỏ sai sản phẩm).
 - Xung đột: #2348 (Curel UV Essence) và #2656 (Curel Tone Up Base) cùng ghi JAN 4901301413505 trong mô tả — mã đang
   gắn #2656; cần sửa mô tả sản phẩm sai.
+- [x] Trang sản phẩm: ô "Mã SKU & trạng thái" hiện/thêm/gỡ JAN (app/admin/products/barcode-actions.ts, ProductForm);
+      quyết định GIỮ SKU làm mã nội bộ (485/819 SKU theo quy ước, dùng khắp CSV/đợt mua/từng cái), JAN là mã bao bì
+      (172 SP không có, nhiều SP có 2) → không thay SKU bằng JAN.
 - Token prod đã được dán vào chat → nên thu hồi và cấp lại sau khi xong việc này.
 
 ## Mục tiêu

@@ -5,6 +5,10 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- Trang sản phẩm › ô **Mã SKU & trạng thái** hiện các **mã JAN / mã vạch** đã liên kết, thêm mã (nhập hoặc quét, kèm quy cách hộp/thùng) và gỡ mã ngay tại chỗ; dòng dưới tên sản phẩm ghi `SKU … · JAN …`. Mã trùng với sản phẩm khác bị từ chối. Lệnh CLI `barcodes import --file … [--dry-run]` để liên kết hàng loạt.
+- Đã gắn mã JAN cho 647/819 sản phẩm trên cửa hàng (từ mô tả sản phẩm và tra cứu có kiểm chứng), để màn Quét mã nhận ra sản phẩm qua mã in trên bao bì.
+
 ## [2.34.5] - 2026-10-15
 
 ### Changed

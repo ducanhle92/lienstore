@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { deleteProductAction, saveProductAction, type ProductFormState } from "@/app/admin/products/actions";
+import { addBarcodeAction, removeBarcodeAction } from "@/app/admin/products/barcode-actions";
+import type { BarcodeLink } from "@/lib/barcodes-db";
 import { DEFAULT_PRICING, effectiveMarginPct, type PricingConfig, suggestPrice } from "@/lib/pricing";
 import { costSourceLabel, landedFeeJpy, type SourceFees, sourceFeeLines, sourceFromUrl } from "@/lib/cost-sources";
 import { htmlToPlain, isSimpleHtml } from "@/lib/plain-html";
@@ -35,6 +37,8 @@ interface ProductFormProps {
   pricing?: PricingConfig;
   /** SKU proposed by the convention (existing products only). */
   skuSuggestion?: string;
+  /** JAN / barcodes linked to the product (existing products) — see lib/barcodes-db.ts. */
+  barcodes?: BarcodeLink[];
   /** Label set (Sales › Nhãn sản phẩm) for the "Nhãn" picker. */
   labels?: ProductLabel[];
   /** `product` is a template for a NEW product (Nhân bản): fields are pre-filled, but no id, no pictures, draft. */
@@ -106,7 +110,7 @@ function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-[12px] leading-4 text-red-600">{msg}</p> : null;
 }
 
-export function ProductForm({ product, categories, quote, pricing, skuSuggestion, labels = [], clone = false, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, quote, pricing, skuSuggestion, barcodes = [], labels = [], clone = false, costSources = [], defaultSource = "amazon", groups = [], sources = [], monthlySales = [], changes = [] }: ProductFormProps) {
   const isEdit = !!product && !clone;
   const [groupSel, setGroupSel] = useState<string>(product?.groupId ? String(product.groupId) : "");
   const [editSlug, setEditSlug] = useState(false);
@@ -720,7 +724,7 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
             </div>
           </FoldCard>
 
-          <FoldCard title="Mã SKU & trạng thái" summary={`${skuText || "chưa có SKU"} · ${product?.stockStatus === "discontinued" ? "Hết hàng" : "Còn bán"} · ${product?.status === "draft" ? "Bản nháp" : "Đang bán"}`} open={!product} testId="fold-status">
+          <FoldCard title="Mã SKU & trạng thái" summary={`${skuText || "chưa có SKU"} · ${barcodes.length ? `JAN ${barcodes[0].code}${barcodes.length > 1 ? ` +${barcodes.length - 1}` : ""}` : "chưa có JAN"} · ${product?.stockStatus === "discontinued" ? "Hết hàng" : "Còn bán"} · ${product?.status === "draft" ? "Bản nháp" : "Đang bán"}`} open={!product} testId="fold-status">
             <div className="grid gap-4">
               <div>
                 <label className={adminLabel} htmlFor="sku">
@@ -732,6 +736,46 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                     Dùng mã đề xuất {skuSuggestion}
                   </button>
                 ) : null}
+              </div>
+              <div id="fold-status" data-testid="product-barcodes">
+                <div className={adminLabel}>
+                  Mã JAN / mã vạch <InfoPopover>Mã in trên bao bì (EAN-13/JAN, 13 số). Màn Quét mã nhận ra sản phẩm qua các mã này. Một sản phẩm có thể có nhiều mã (bao bì cũ/mới, thùng/hộp); một mã chỉ thuộc một sản phẩm. Thêm / gỡ mã ở đây lưu ngay, không cần bấm Lưu sản phẩm.</InfoPopover>
+                </div>
+                {!isEdit ? (
+                  <p className="text-[12px] text-lien-muted">Lưu sản phẩm trước, rồi thêm mã JAN ở đây (hoặc quét ở Vận hành › Quét mã).</p>
+                ) : (
+                  <>
+                    {barcodes.length ? (
+                      <ul className="mb-2 divide-y rounded-md border border-[#e5e7eb]">
+                        {barcodes.map((b) => (
+                          <li key={b.id} className="flex items-center gap-2 px-2.5 py-1.5 text-[13px]" data-testid="barcode-row">
+                            <code className="font-mono text-[14px]">{b.code}</code>
+                            <span className="text-lien-muted">
+                              {b.packQty > 1 ? `${b.packLabel || "gói"} ${b.packQty} cái · ` : ""}
+                              {b.source === "sku" ? "từ SKU" : b.source === "api" ? "qua API" : "thêm tay"}
+                            </span>
+                            <ConfirmSubmit form="barcode-remove" name="id" value={String(b.id)} message={`Gỡ mã ${b.code} khỏi sản phẩm? Quét mã này sẽ không nhận ra sản phẩm nữa.`} className="ml-auto text-[12px] text-lien-heart hover:underline">
+                              Gỡ
+                            </ConfirmSubmit>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mb-2 text-[12px] text-amber-800">Chưa có mã JAN — quét mã trên bao bì sẽ báo “chưa liên kết sản phẩm”.</p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input form="barcode-add" name="code" placeholder="Nhập / quét mã JAN" inputMode="numeric" autoComplete="off" className={cn(adminInput, "!mb-0 w-[200px] font-mono")} data-testid="barcode-code" />
+                      <input form="barcode-add" name="packQty" type="number" min={1} max={1000} defaultValue={1} title="Số cái mỗi mã (hộp/thùng)" className={cn(adminInput, "!mb-0 w-[72px]")} />
+                      <input form="barcode-add" name="packLabel" placeholder="hộp / thùng" className={cn(adminInput, "!mb-0 w-[110px]")} />
+                      <label className="flex items-center gap-1 text-[12px] text-lien-muted" title="Chỉ tick khi mã này đang là SKU của sản phẩm khác mà bạn chắc chắn nó thuộc sản phẩm này">
+                        <input form="barcode-add" type="checkbox" name="force" value="1" /> Vẫn liên kết
+                      </label>
+                      <button form="barcode-add" type="submit" className={btnSecondary} data-testid="barcode-add">
+                        + Thêm mã
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
               <div>
                 <label className={adminLabel} htmlFor="sale_status">
@@ -829,9 +873,18 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
       </form>
 
       {isEdit ? (
-        <form id="delete-product" action={deleteProductAction}>
-          <input type="hidden" name="id" value={product.id} />
-        </form>
+        <>
+          <form id="delete-product" action={deleteProductAction}>
+            <input type="hidden" name="id" value={product.id} />
+          </form>
+          {/* JAN links save on their own (not part of the product form): inputs above point here via form="…" */}
+          <form id="barcode-add" action={addBarcodeAction}>
+            <input type="hidden" name="productId" value={product.id} />
+          </form>
+          <form id="barcode-remove" action={removeBarcodeAction}>
+            <input type="hidden" name="productId" value={product.id} />
+          </form>
+        </>
       ) : null}
     </>
   );
