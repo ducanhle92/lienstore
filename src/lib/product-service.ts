@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { costPriceFromJpy } from "@/lib/cost-sources";
 import { NO_IMAGE } from "@/lib/contact-links";
 import { descendantSlugs } from "@/lib/categories";
-import { getAllProducts, getCategories, getJpyRate, getPricingConfig, getProductById, getProductBySlug, getSourceFeeMap, type ProductInput, saveProductSync, slugExists } from "@/lib/db";
+import { getAllProducts, getCategories, getJpyRate, imageUsedByOrders, getPricingConfig, getProductById, getProductBySlug, getSourceFeeMap, type ProductInput, saveProductSync, slugExists } from "@/lib/db";
 import { slugify } from "@/lib/format";
 import { plainToHtml } from "@/lib/plain-html";
 import { expectedPriceOf, promoPriceOf } from "@/lib/price-display";
@@ -324,13 +324,17 @@ export async function deriveCostPrice(p: Pick<CatalogProduct, "costJpy" | "costS
   return costPriceFromJpy(p.costJpy, p.costSource, await getJpyRate(), getSourceFeeMap(), billableProductWeightG(p.weightG, p.dimsCm, p.dimsConfidence), (await getPricingConfig()).lotWeightG);
 }
 
-/** Delete uploaded files that were removed from a product and are not referenced by any other product. */
+/**
+ * Delete uploaded files that were removed from a product and are not referenced by any other product — nor by an
+ * order line, which keeps the photo the customer ordered (deleting it broke the image on old orders).
+ */
 export async function cleanupRemovedUploads(before: string[], after: string[], productId: number): Promise<void> {
   const removed = before.filter((u) => !after.includes(u) && relFromUrl(u));
   if (removed.length === 0) return;
   const others = (await getAllProducts(true)).filter((p) => p.id !== productId);
   for (const url of removed) {
     if (others.some((p) => p.images.includes(url) || p.thumb === url)) continue;
+    if (imageUsedByOrders(url)) continue;
     const rel = relFromUrl(url);
     if (!rel) continue;
     await deleteUpload(rel);

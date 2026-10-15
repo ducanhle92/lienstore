@@ -9,8 +9,8 @@ import { absolutePath, MIME_BY_EXT, verifyOrderFileToken } from "@/lib/uploads";
 export const dynamic = "force-dynamic";
 
 const PUBLIC_DIRS = new Set(["products", "categories", "banners", "theme", "avatars", "posts", "badges"]);
-/** Bill photos (phiếu mua hàng, hoá đơn đồ tiêu hao): any logged-in admin, never public. */
-const ADMIN_DIRS = new Set(["receipts", "expenses"]);
+/** Bill photos (phiếu mua hàng, hoá đơn đồ tiêu hao, bill phí ship ĐVVC → shop của chuyến): any logged-in admin, never public. */
+const ADMIN_DIRS = new Set(["receipts", "expenses", "shipments"]);
 
 /**
  * Serves admin uploads stored outside `public/`:

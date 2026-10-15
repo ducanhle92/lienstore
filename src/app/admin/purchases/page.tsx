@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { bulkPurchaseAction, setPurchaseAction } from "@/app/admin/purchases/actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";
@@ -126,7 +126,7 @@ export default async function AdminPurchases({ searchParams }: Props) {
       />
       <BarTools end>
         <OpenDetailsButton target="expenses" label="+ Hoá đơn đồ tiêu hao" className={btnSecondary} />
-        <Link href="/admin/inventory/export/" className={btnSecondary} data-testid="bar-csv">
+        <Link href="/admin/purchases/export/" className={btnSecondary} data-testid="bar-csv" title="Phần còn thiếu theo đơn và hàng dự định mua chưa mua">
           <Fa name="download" /> CSV cần mua
         </Link>
       </BarTools>
@@ -168,4 +168,3 @@ export default async function AdminPurchases({ searchParams }: Props) {
     </>
   );
 }
-

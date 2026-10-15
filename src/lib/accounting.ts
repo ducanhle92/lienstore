@@ -4,12 +4,14 @@ import "server-only";
 import { getAllProducts, getOrderLegs, getOrders } from "./db";
 import { expectedPriceOf } from "./price-display";
 import { IMPORT_LEGS } from "./shipping";
+import { orderShopFees, stockShopFees } from "./shipment-fee-db";
 import type { CatalogProduct, Order, OrderLeg } from "@/types/shop";
 
 /**
  * Kế toán › lãi/lỗ theo đơn: revenue (items − discount) + shipping collected from the customer, minus cost of goods
  * (current cost price × qty), the three import legs recorded on the order, and the Vietnam delivery fee paid to the
- * carrier. Cancelled orders are excluded. Pure arithmetic on data the admin already maintains (order legs, cost prices).
+ * carrier. When ⑤ recorded the real "phí ship ĐVVC → shop VN" of the runs carrying the order, the order's share of it
+ * replaces the estimated ③ leg fee. Cancelled orders are excluded. Pure arithmetic on data the admin already maintains (order legs, cost prices).
  */
 export interface AccountingRow {
   id: string;
@@ -30,6 +32,8 @@ export interface AccountingRow {
   /** Lines whose product has no cost price (COGS incomplete). */
   missingCost: number;
   importFees: number;
+  /** ③ actually paid (Σ the order's shares of recorded run fees), null = still the estimate on the order's leg. */
+  shopFeeActual: number | null;
   vnCarrierFee: number;
   profit: number;
   /** Voucher taken off this order (orders.discount). */
@@ -53,13 +57,15 @@ export interface AccountingTotals {
   promoDiscount: number;
   /** Chi phí vận hành (đồ tiêu hao…) booked in the period — subtracted from `profit`. */
   expenses: number;
+  /** Share of the recorded ⑤ "ĐVVC → shop" fees carried by units with no order (stock), by the day paid — subtracted from `profit`. */
+  stockShopFee: number;
 }
 
 export interface MonthRow extends AccountingTotals {
   month: string;
 }
 
-export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, goods: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0, expenses: 0 });
+export const emptyTotals = (): AccountingTotals => ({ orders: 0, paidOrders: 0, goods: 0, revenue: 0, shipCollected: 0, cogs: 0, importFees: 0, vnCarrierFee: 0, profit: 0, missingCost: 0, voucher: 0, promoDiscount: 0, expenses: 0, stockShopFee: 0 });
 
 function add(t: AccountingTotals, r: AccountingRow): void {
   t.orders++;
@@ -81,9 +87,11 @@ export const monthKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA
 export const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 /** One order → its P&L line (pure given the products and the order's legs). */
-export function accountingRow(o: Order, products: Map<number, CatalogProduct>, legs: OrderLeg[]): AccountingRow {
+export function accountingRow(o: Order, products: Map<number, CatalogProduct>, legs: OrderLeg[], shopFee?: number | null): AccountingRow {
   {
-    const importFees = legs.filter((l) => (IMPORT_LEGS as string[]).includes(l.leg)).reduce((s, l) => s + l.fee, 0);
+    const actual = shopFee === undefined || shopFee === null ? null : shopFee;
+    // ③ kho ĐVVC → kho shop: the real share once ⑤ recorded what was paid, else the estimate on the order's leg
+    const importFees = legs.filter((l) => (IMPORT_LEGS as string[]).includes(l.leg) && !(actual !== null && l.leg === "vn_transfer")).reduce((s, l) => s + l.fee, 0) + (actual ?? 0);
     const vnCarrierFee = legs.find((l) => l.leg === "vn_domestic")?.fee ?? 0;
     let cogs = 0;
     let missingCost = 0;
@@ -117,6 +125,7 @@ export function accountingRow(o: Order, products: Map<number, CatalogProduct>, l
       cogs,
       missingCost,
       importFees,
+      shopFeeActual: actual,
       vnCarrierFee: vnPaid,
       profit: revenue + shipCollected - cogs - importFees - vnPaid,
       voucher: o.discount,
@@ -130,7 +139,8 @@ export async function accountingRowsFor(orders: Order[]): Promise<Map<string, Ac
   const live = orders.filter((o) => o.status !== "cancelled");
   const [products, legMap] = await Promise.all([getAllProducts(true), getOrderLegs(live.map((o) => o.id))]);
   const byId = new Map(products.map((p) => [p.id, p]));
-  return new Map(live.map((o) => [o.id, accountingRow(o, byId, legMap.get(o.id) ?? [])]));
+  const shop = orderShopFees(live.map((o) => o.id));
+  return new Map(live.map((o) => [o.id, accountingRow(o, byId, legMap.get(o.id) ?? [], shop.get(o.id)?.fee)]));
 }
 
 export async function getAccounting(fromDay: string, toDay: string): Promise<{ rows: AccountingRow[]; totals: AccountingTotals; byMonth: MonthRow[] }> {
@@ -138,7 +148,8 @@ export async function getAccounting(fromDay: string, toDay: string): Promise<{ r
   const byId = new Map(products.map((p) => [p.id, p]));
   const inRange = orders.filter((o) => o.status !== "cancelled" && dayKey(o.createdAt) >= fromDay && dayKey(o.createdAt) <= toDay);
   const legMap = await getOrderLegs(inRange.map((o) => o.id));
-  const rows: AccountingRow[] = inRange.map((o) => accountingRow(o, byId, legMap.get(o.id) ?? []));
+  const shop = orderShopFees(inRange.map((o) => o.id));
+  const rows: AccountingRow[] = inRange.map((o) => accountingRow(o, byId, legMap.get(o.id) ?? [], shop.get(o.id)?.fee));
   const totals = emptyTotals();
   const months = new Map<string, MonthRow>();
   for (const r of rows) {
@@ -155,6 +166,16 @@ export async function getAccounting(fromDay: string, toDay: string): Promise<{ r
   for (const [k, v] of spent.byMonth) {
     const m = months.get(k) ?? { month: k, ...emptyTotals() };
     m.expenses += v;
+    m.profit -= v;
+    months.set(k, m);
+  }
+  // ⑤ phí ĐVVC → shop carried by stock (units no order holds), by the day it was paid
+  const stock = stockShopFees(fromDay, toDay);
+  totals.stockShopFee = stock.total;
+  totals.profit -= stock.total;
+  for (const [k, v] of stock.byMonth) {
+    const m = months.get(k) ?? { month: k, ...emptyTotals() };
+    m.stockShopFee += v;
     m.profit -= v;
     months.set(k, m);
   }

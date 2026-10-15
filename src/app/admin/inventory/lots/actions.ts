@@ -6,7 +6,7 @@ import { getAdminSession, requireAdmin } from "@/lib/auth";
 import { parseExpiry } from "@/lib/lots";
 import { isPurchaseStatus, type PurchaseStatus } from "@/lib/purchase";
 import { ensureUnitsReceipt, receiptIdForCode } from "@/lib/purchase-batches-db";
-import { addReceiptFiles } from "@/lib/receipts-db";
+import { addReceiptFiles, createManualReceipt } from "@/lib/receipts-db";
 import { getDb, withTransaction } from "@/lib/sqlite";
 import { applyUnitRowEdits, readUnitRowFields } from "@/lib/unit-rows";
 import { isUnitRemoved } from "@/lib/units";
@@ -35,14 +35,19 @@ export async function addUnitsAction(formData: FormData): Promise<void> {
   const boughtRaw = text(formData, "boughtAt");
   const boughtAt = boughtRaw ? parseExpiry(boughtRaw) : null;
   if (boughtRaw && !boughtAt) back(productId, "error", "Ngày mua không hợp lệ.");
+  // no "Đang ở" on the form any more: bought directly → Kho Nhật (shop); a customer return → Kho VN (an explicit
+  // status still wins, for older forms / scripts)
+  const origin = text(formData, "origin") === "return" ? "return" : "manual";
   const statusRaw = text(formData, "status");
-  const status: PurchaseStatus = isPurchaseStatus(statusRaw) ? statusRaw : "at_shop";
+  const status: PurchaseStatus = isPurchaseStatus(statusRaw) ? statusRaw : origin === "return" ? "at_shop" : "bought";
+  const sourceKey = text(formData, "sourceKey") || "manual";
+  // every unit sits on a bill: the typed code, else a new one NT-YYMMDD-NN (NT = entered here, "Nhập hàng trực tiếp")
   const code = text(formData, "billCode");
-  const receiptId = code ? receiptIdForCode(code, null) : null;
+  const receiptId = code ? receiptIdForCode(code, null) : (createManualReceipt({ sourceKey, boughtAt: boughtAt ?? new Date().toISOString().slice(0, 10), prefix: "NT", note: origin === "return" ? "Khách trả lại — nhập ở trang hàng của sản phẩm" : "Nhập hàng trực tiếp ở trang hàng của sản phẩm" })?.id ?? null);
   const who = await actor();
   const db = getDb();
   const ids = withTransaction(db, () => {
-    const made = createUnitsSync(db, { productId, qty, status, receiptId, sourceKey: text(formData, "sourceKey") || "manual", store: text(formData, "store").slice(0, 80), boughtAt, expiry, unitCostJpy: num(text(formData, "unitCostJpy"), null), origin: text(formData, "origin") === "return" ? "return" : "manual", note: text(formData, "note").slice(0, 200), actor: who });
+    const made = createUnitsSync(db, { productId, qty, status, receiptId, sourceKey, store: text(formData, "store").slice(0, 80), boughtAt, expiry, unitCostJpy: num(text(formData, "unitCostJpy"), null), origin, note: text(formData, "note").slice(0, 200), actor: who });
     touchSync(db, { unitIds: made });
     return made;
   });
@@ -80,6 +85,8 @@ export async function removeUnitsAction(formData: FormData): Promise<void> {
   const ids = ints(formData, "uids");
   if (!ids.length) back(productId, "error", "Chưa tick cái nào.");
   const reason = text(formData, "reason");
+  // a removal must say why (kept on the unit's history, listed under "Đã xoá / loại" on Kho Nhật / VN)
+  if (reason !== "restore" && text(formData, "note").length < 3) back(productId, "error", "Ghi lý do xoá / loại (ít nhất vài chữ) để admin / chủ shop kiểm tra được.");
   const who = await actor();
   const db = getDb();
   const n = withTransaction(db, () => {

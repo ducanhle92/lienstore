@@ -1556,9 +1556,49 @@ export const MIGRATIONS: Migration[] = [
     ],
   },
   {
+    // BIDV gave the shop's account (LE THI LIEN) its new short number 2600748323 in place of 26010000748323 — same
+    // account, so the row is updated in place (old and new orders all print / QR the new number). The old number is
+    // kept as an inactive row: checkout never shows it, but a SePay webhook still reporting it is accepted.
+    version: 73,
+    name: "bidv-short-account-number",
+    up: [
+      `UPDATE bank_accounts SET account_number = '2600748323' WHERE account_number = '26010000748323'
+         AND NOT EXISTS (SELECT 1 FROM bank_accounts WHERE account_number = '2600748323')`,
+      `INSERT INTO bank_accounts (bank_code, bin, account_number, account_name, branch, is_default, active, created_at)
+         SELECT bank_code, bin, '26010000748323', account_name, branch, 0, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         FROM bank_accounts WHERE account_number = '2600748323'
+           AND NOT EXISTS (SELECT 1 FROM bank_accounts WHERE account_number = '26010000748323') LIMIT 1`,
+    ],
+  },
+  {
+    // ⑤ "Phí ship ĐVVC → shop VN": what the shop actually paid for one run's carrier VN warehouse → shop leg (one
+    // transfer per run), when, a note and the transfer receipt (uploads/shipments/<id>/). The fee is split over the
+    // run's units by billable weight and frozen in shipment_fee_shares: one row per order holding units of the run,
+    // order_id '' = units with no order (stock) — booked as a cost of the month it was paid. Accounting uses the
+    // orders' shares in place of their estimated ③ leg fee.
+    version: 74,
+    name: "shipment-shop-fee",
+    up: [
+      `ALTER TABLE shipments ADD COLUMN shop_fee INTEGER`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_at TEXT`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_note TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_files TEXT NOT NULL DEFAULT '[]'`,
+      `ALTER TABLE shipments ADD COLUMN shop_fee_by TEXT NOT NULL DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS shipment_fee_shares (
+        shipment_id INTEGER NOT NULL,
+        order_id    TEXT NOT NULL DEFAULT '',
+        units       INTEGER NOT NULL DEFAULT 0,
+        grams       INTEGER NOT NULL DEFAULT 0,
+        fee         INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (shipment_id, order_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_shipment_fee_shares_order ON shipment_fee_shares(order_id)`,
+    ],
+  },
+  {
     // Admin API v1 (/api/admin/v1, CLI `lienstore`): Bearer tokens (only the SHA-256 of the raw token is kept), the audit
     // trail of every write made with a token, and idempotency records so a retried create / update is not applied twice.
-    version: 73,
+    version: 75,
     name: "admin-api-tokens",
     up: [
       `CREATE TABLE IF NOT EXISTS api_tokens (
@@ -1606,7 +1646,7 @@ export const MIGRATIONS: Migration[] = [
     // Quét mã (docs/architecture/mobile-scanning.md): barcodes linked to products (several per product, an optional pack
     // size), and the scan documents of the phone screen — receipts (nhập), stock counts (kiểm kê), picks (soạn/xuất) —
     // with their lines and the journal of scan operations (op_id = idempotency key of one deliberate scan).
-    version: 74,
+    version: 76,
     name: "scan-codes-and-documents",
     up: [
       `CREATE TABLE IF NOT EXISTS product_barcodes (
@@ -1690,7 +1730,7 @@ export const MIGRATIONS: Migration[] = [
         byCode.set(g.code, [...(byCode.get(g.code) ?? []), r.id]);
       }
       const ts = new Date().toISOString();
-      const ins = db.prepare("INSERT INTO product_barcodes (code, symbology, product_id, pack_qty, pack_label, active, source, note, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, '', 1, 'sku', 'Từ SKU', 'migration', ?, ?)");
+      const ins = db.prepare("INSERT OR IGNORE INTO product_barcodes (code, symbology, product_id, pack_qty, pack_label, active, source, note, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, '', 1, 'sku', 'Từ SKU', 'migration', ?, ?)");
       for (const [code, ids] of byCode) if (ids.length === 1) ins.run(code, code.length === 8 ? "ean8" : code.length === 14 ? "itf14" : "ean13", ids[0], ts, ts);
     },
   },
@@ -1781,15 +1821,21 @@ function migrate(db: DatabaseSync) {
     name       TEXT NOT NULL,
     applied_at TEXT NOT NULL
   )`);
-  const applied = new Set(
-    (db.prepare("SELECT version FROM schema_migrations").all() as Array<{ version: number }>).map((r) => r.version),
+  // version → name: a dev database that ran a branch's migration under a number main later used for another one
+  // (same version, other name) still gets main's migration; the branch's own one runs again under its new number,
+  // which is why migrations stay idempotent (IF NOT EXISTS / OR IGNORE).
+  const applied = new Map(
+    (db.prepare("SELECT version, name FROM schema_migrations").all() as Array<{ version: number; name: string }>).map((r) => [r.version, r.name]),
   );
+  const renumbered = (name: string | undefined, version: number) => !!name && MIGRATIONS.some((x) => x.name === name && x.version !== version);
   for (const m of MIGRATIONS) {
-    if (applied.has(m.version)) continue;
+    const recorded = applied.get(m.version);
+    // recorded under this number: done — unless what was recorded is ANOTHER migration that has since moved to a new number
+    if (recorded !== undefined && !renumbered(recorded, m.version)) continue;
     withTransaction(db, () => {
       for (const sql of m.up) db.exec(sql);
       m.run?.(db);
-      db.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)").run(
+      db.prepare("INSERT OR REPLACE INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)").run(
         m.version,
         m.name,
         new Date().toISOString(),

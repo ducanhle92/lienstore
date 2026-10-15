@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type MouseEvent } from "react";
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { cn } from "@/lib/utils";
 
 interface ProductGalleryProps {

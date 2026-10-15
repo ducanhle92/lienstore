@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { addProductAction, bulkBatchRowsAction, createBatchAction, createBillAction, deleteBatchAction, importBillsAction, renameBillAction, saveBatchRowsAction, syncBatchOrdersAction, updateBatchAction } from "@/app/admin/purchases/batch-actions";
@@ -258,16 +258,21 @@ function BatchCard({ batch: b, products, sources, billsOpen, view, q }: { view: 
   return (
     <div id={`batch-${b.id}`} data-testid={`batch-${b.id}`} className="min-w-0">
       <Card
-        title={`${b.code}${b.label ? ` · ${b.label}` : ""}`}
         actions={
-          <span className="flex items-center gap-3">
-            <span className="flex flex-wrap items-center gap-1.5" data-testid={`batch-head-${b.id}`}>
-              <StatChip icon="cube" value={b.units.length} label="cái đã mua" />
+          // title, chips and buttons share one row: a long title + every chip used to push the whole block onto a
+          // second, left-aligned line; now the title and the chips both give way (wrap) and the buttons never break
+          <span className="flex min-w-0 flex-1 items-center gap-3 whitespace-nowrap [&>:nth-child(n+3)]:shrink-0" data-testid={`batch-actions-${b.id}`}>
+            <h2 className="min-w-[140px] shrink whitespace-normal text-[15px] font-semibold leading-6 text-lien-heading">
+              {b.code}
+              {b.label ? ` · ${b.label}` : ""}
+            </h2>
+            <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5" data-testid={`batch-head-${b.id}`}>
+              <StatChip icon="cube" value={b.units.length} label="đã mua" title="Số cái đã mua trong đợt" />
               <StatChip icon="shopping-cart" value={held} label="cho đơn" tone="amber" hidden={!held} />
               <StatChip icon="archive" value={b.units.length - held} label="lưu kho" tone="gray" hidden={!(b.units.length - held)} />
               <StatChip icon="cart-plus" value={needUnits} label="cần mua" tone="red" hidden={!needUnits} />
-              <StatChip icon="money" value={`≈ ¥${formatAmount(jpy)}`} label="tiền hàng" tone="green" hidden={!jpy} />
-              <StatChip icon="balance-scale" value={`≈ ${kgText}`} label={noWeight ? `hàng · ${noWeight} cái chưa rõ cân` : "hàng"} tone="blue" hidden={!b.units.length} title="Cân nặng sản phẩm × số cái, chưa gồm thùng, lót" />
+              <StatChip icon="money" value={`≈ ¥${formatAmount(jpy)}`} tone="green" hidden={!jpy} title="Tiền hàng (giá mua ¥) của đợt" />
+              <StatChip icon="balance-scale" value={`≈ ${kgText}`} label={noWeight ? `· ${noWeight} cái chưa rõ cân` : undefined} tone="blue" hidden={!b.units.length} title="Cân nặng hàng: cân nặng sản phẩm × số cái, chưa gồm thùng, lót" />
             </span>
             {b.units.some((u) => u.status === "bought" && !u.shipmentId) ? (
               <Link href={`/admin/inventory/shipments/?batch=${b.id}`} className={cn(btnSecondary, "!px-2 !py-0.5 !text-[12px]")} title="Mở ④ Đóng hàng JP, lọc sẵn hàng của đợt này (gồm hàng theo đơn), tick sẵn — bỏ tick cái không đóng" data-testid={`pack-batch-${b.id}`}>

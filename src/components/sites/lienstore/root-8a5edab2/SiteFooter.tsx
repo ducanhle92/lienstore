@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import type { ContactInfo, FooterColumn } from "@/types/lienstore";
 import { cn } from "@/lib/utils";

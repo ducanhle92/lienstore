@@ -48,7 +48,7 @@ xác nhận) → Đã chốt**. Mất mạng: banner đỏ, khoá nút ghi.
 - **Mã lạ**: hiện mã + "Chưa liên kết sản phẩm" → tìm sản phẩm → **Liên kết mã** (quyền `products`) → quay lại đúng
   phiếu và áp dụng lần quét đó. Không bao giờ tự tạo sản phẩm; nút "Tạo sản phẩm" mở form admin hiện có trong tab mới.
 
-## 3. Mô hình dữ liệu (migration 74, mới)
+## 3. Mô hình dữ liệu (migration 76, mới)
 
 ```
 product_barcodes  id, code TEXT (chuẩn hoá, giữ số 0 đầu), symbology TEXT (ean13|ean8|upca→ean13|itf14|code128|qr|other),

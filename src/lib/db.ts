@@ -66,6 +66,7 @@ import { isPurchaseSourceKind, sourceKeyFromName, UNKNOWN_SOURCE } from "./purch
 import { todayIso } from "./lots";
 import { makePayCode } from "./pay-code";
 import { ProductVersionConflictError, productVersion } from "./product-version";
+import { orderLineImage } from "./uploads";
 
 /** Synchronous category list for use inside transactions. */
 function await0(db: ReturnType<typeof getDb>): ShopCategory[] {
@@ -257,6 +258,8 @@ interface OrderItemRow {
   name: string;
   price: number;
   image: string;
+  /** The product's current thumbnail (fallback when the line's saved photo file is gone). */
+  product_thumb: string | null;
   quantity: number;
   list_price: number | null;
 }
@@ -266,12 +269,12 @@ function hydrateOrders(rows: OrderRow[]): Order[] {
   const db = getDb();
   const placeholders = rows.map(() => "?").join(",");
   const items = db
-    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, quantity, purchase_status, purchase_note, list_price FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
+    .prepare(`SELECT id, order_id, product_id, slug, name, price, image, (SELECT p.thumb FROM products p WHERE p.id = order_items.product_id) AS product_thumb, quantity, purchase_status, purchase_note, list_price FROM order_items WHERE order_id IN (${placeholders}) ORDER BY id`)
     .all(...rows.map((r) => r.id)) as unknown as OrderItemRow[];
   const byOrder = new Map<string, CartItem[]>();
   for (const it of items) {
     const list = byOrder.get(it.order_id) ?? [];
-    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: it.image, quantity: it.quantity, listPrice: it.list_price ?? null, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
+    list.push({ productId: it.product_id, slug: it.slug, name: it.name, price: it.price, image: orderLineImage(it.image, it.product_thumb), quantity: it.quantity, listPrice: it.list_price ?? null, itemId: it.id, purchaseStatus: isPurchaseStatus(it.purchase_status) ? it.purchase_status : "not_bought", purchaseNote: it.purchase_note ?? "" });
     byOrder.set(it.order_id, list);
   }
   return rows.map((r) => ({
@@ -1419,6 +1422,75 @@ export interface OrderItemsEdit {
   add: Array<{ productId: number; quantity: number; price: number | null }>;
 }
 
+/** Chargeable weight of an order (Σ billable product weight × qty) — the sync twin of getOrderChargeableWeightG. */
+function orderChargeableWeightSync(db: DatabaseSync, orderId: string): number {
+  const rows = db
+    .prepare("SELECT oi.quantity, p.weight_g, p.dims_cm, p.dims_confidence FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?")
+    .all(orderId) as unknown as Array<{ quantity: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
+  return rows.reduce((s, r) => s + billableProductWeightG(r.weight_g ?? null, r.dims_cm ?? null, isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null) * r.quantity, 0);
+}
+
+const DEFAULT_LEG_NOTE = "Mặc định theo luồng nhập hàng";
+
+/** The default import legs (lot tariff shared per gram, as the price formula does) for a chargeable weight. */
+function defaultImportQuotesSync(db: DatabaseSync, weightG: number) {
+  const rateRaw = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
+  const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
+  const cfg = buildQuoteConfig(loadShippingMethods(db, true), "included", jpyRate, loadQuoteDefaults(db));
+  const lotWeightG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
+  return { lotWeightG, quotes: quoteImportLegsProRata(cfg, weightG || 1000, lotWeightG) };
+}
+
+/**
+ * Re-price an order's default import legs (①②③ still "Mặc định theo luồng nhập hàng…" — the cost recorded for
+ * Kế toán, not what the customer paid) for the order's current weight. Legs the admin chose or typed are left alone.
+ * Called when the order's products change: a quantity typed as 444 then corrected to 4 used to keep the legs of 444.
+ */
+export function repriceDefaultImportLegsSync(db: DatabaseSync, orderId: string): number {
+  const legs = (db.prepare(`SELECT leg FROM order_legs WHERE order_id = ? AND note LIKE '${DEFAULT_LEG_NOTE}%' AND leg IN ('jp_domestic','jp_vn','vn_transfer')`).all(orderId) as Array<{ leg: string }>).map((r) => r.leg);
+  if (!legs.length) return 0;
+  const { lotWeightG, quotes } = defaultImportQuotesSync(db, Math.max(1, orderChargeableWeightSync(db, orderId)));
+  const upd = db.prepare("UPDATE order_legs SET fee = ?, note = ?, updated_at = ? WHERE order_id = ? AND leg = ?");
+  const now = new Date().toISOString();
+  let n = 0;
+  for (const leg of legs) {
+    const q = quotes.find((x) => x.leg === leg);
+    if (!q) continue;
+    upd.run(q.fee, `${DEFAULT_LEG_NOTE} (đã gồm trong giá bán; chia theo lô ${lotWeightG / 1000} kg): ${q.feeRaw.toLocaleString("vi-VN")}${q.currency}`, now, orderId, leg);
+    n++;
+  }
+  return n;
+}
+
+/**
+ * One-time repair (setting legs_stale_fix_rev): orders whose default import legs no longer match their products —
+ * Σ of those legs more than twice (or under half) what the current weight gives — get them re-priced. Returns the
+ * order numbers changed.
+ */
+export function fixStaleImportLegsOnce(): number[] | null {
+  const db = getDb();
+  if (getSetting(db, "legs_stale_fix_rev") === "1") return null;
+  const rows = db
+    .prepare(`SELECT l.order_id, o.number, SUM(l.fee) AS fee FROM order_legs l JOIN orders o ON o.id = l.order_id WHERE l.note LIKE '${DEFAULT_LEG_NOTE}%' AND l.leg IN ('jp_domestic','jp_vn','vn_transfer') GROUP BY l.order_id`)
+    .all() as Array<{ order_id: string; number: number; fee: number }>;
+  const fixed: number[] = [];
+  withTransaction(db, () => {
+    for (const r of rows) {
+      const legs = (db.prepare(`SELECT leg FROM order_legs WHERE order_id = ? AND note LIKE '${DEFAULT_LEG_NOTE}%' AND leg IN ('jp_domestic','jp_vn','vn_transfer')`).all(r.order_id) as Array<{ leg: string }>).map((x) => x.leg);
+      const { quotes } = defaultImportQuotesSync(db, Math.max(1, orderChargeableWeightSync(db, r.order_id)));
+      const expected = quotes.filter((q) => legs.includes(q.leg)).reduce((s, q) => s + q.fee, 0);
+      if (expected <= 0) continue;
+      const ratio = Number(r.fee) / expected;
+      if (ratio > 2 || ratio < 0.5) {
+        repriceDefaultImportLegsSync(db, r.order_id);
+        fixed.push(r.number);
+      }
+    }
+    setSetting(db, "legs_stale_fix_rev", "1");
+  });
+  return fixed;
+}
+
 /**
  * Admin "Sửa" of the product table of an order: quantity / unit price per line, remove lines, add products.
  * Subtotal and total follow (the discount is capped to the new subtotal; shipping already in the total stays);
@@ -1473,6 +1545,8 @@ export async function updateOrderItems(orderId: string, edit: OrderItemsEdit, ac
     const other = o.total - Math.max(0, o.subtotal - (o.discount ?? 0));
     const total = Math.max(0, subtotal - discount + other);
     db.prepare("UPDATE orders SET subtotal = ?, discount = ?, total = ?, updated_at = ? WHERE id = ?").run(subtotal, discount, total, new Date().toISOString(), orderId);
+    // the default import-leg costs follow the new weight (the ones the admin set by hand stay)
+    repriceDefaultImportLegsSync(db, orderId);
     touchSync(db, { orderIds: [orderId], productIds: [...touched] });
     return { ok: true, message: `Đã sửa sản phẩm của đơn — tạm tính ${subtotal.toLocaleString("vi-VN")}đ, tổng ${total.toLocaleString("vi-VN")}đ.` };
   });
@@ -2489,16 +2563,22 @@ export interface RecentPurchase {
   createdAt: string;
 }
 
+/** Whether any order line still shows this photo (or its -300x300 thumbnail) — such files must not be deleted. */
+export function imageUsedByOrders(url: string): boolean {
+  const thumb = url.replace(/(\.[a-z0-9]+)$/i, "-300x300$1");
+  return !!getDb().prepare("SELECT 1 FROM order_items WHERE image IN (?, ?) LIMIT 1").get(url, thumb);
+}
+
 /** Most recent confirmed order lines (processing / completed), one per product, for the "khách vừa mua" popup. */
 export async function getRecentPurchases(limit = 12): Promise<RecentPurchase[]> {
   const rows = getDb()
     .prepare(
-      `SELECT oi.slug, oi.name, oi.image, o.address, o.status, o.created_at
+      `SELECT oi.slug, oi.name, oi.image, (SELECT p.thumb FROM products p WHERE p.id = oi.product_id) AS product_thumb, o.address, o.status, o.created_at
          FROM order_items oi JOIN orders o ON o.id = oi.order_id
         WHERE o.status IN ('processing', 'completed')
         ORDER BY o.created_at DESC, oi.id DESC LIMIT ?`,
     )
-    .all(limit * 3) as unknown as Array<{ slug: string; name: string; image: string; address: string; status: OrderStatus; created_at: string }>;
+    .all(limit * 3) as unknown as Array<{ slug: string; name: string; image: string; product_thumb: string | null; address: string; status: OrderStatus; created_at: string }>;
   const seen = new Set<string>();
   const out: RecentPurchase[] = [];
   for (const r of rows) {
@@ -2506,7 +2586,7 @@ export async function getRecentPurchases(limit = 12): Promise<RecentPurchase[]> 
     seen.add(r.slug);
     const parts = r.address.split(",").map((s) => s.trim()).filter(Boolean);
     const city = (parts[parts.length - 1] ?? "").replace(/^(tỉnh|tp\.?|thành phố|t\.p\.?)\s+/i, "").trim();
-    out.push({ slug: r.slug, name: r.name, image: r.image, city, status: r.status, createdAt: r.created_at });
+    out.push({ slug: r.slug, name: r.name, image: orderLineImage(r.image, r.product_thumb), city, status: r.status, createdAt: r.created_at });
     if (out.length >= limit) break;
   }
   return out;

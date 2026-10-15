@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { StoreSidebar } from "@/components/sites/lienstore/shop/cart/StoreSidebar";
 import { SiteChrome, TwoColumnShell } from "@/components/sites/lienstore/shop/SiteChrome";

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { T } from "@/components/sites/lienstore/shared/LangProvider";
 import Link from "next/link";
 import { Fa } from "@/components/sites/lienstore/shared/icons";

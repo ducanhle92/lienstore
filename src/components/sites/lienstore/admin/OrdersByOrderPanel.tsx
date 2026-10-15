@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { addLinesToBatchAction } from "@/app/admin/purchases/batch-actions";
 import { createReceiptFromLinesAction } from "@/app/admin/purchases/receipt-actions";

@@ -101,11 +101,11 @@ export default async function AdminAccounting({ searchParams }: Props) {
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" data-testid="acc-kpis">
         <Kpi label="Doanh thu" value={money(totals.revenue)} hint={`${totals.orders} đơn · ${totals.paidOrders} đã thanh toán · phí ship khách trả ${money(totals.shipCollected)}`} tone="blue" />
         <Kpi label="Giá vốn hàng bán" value={money(totals.cogs)} hint={totals.missingCost ? `${totals.missingCost} dòng chưa có giá vốn` : "Theo giá vốn hiện tại của sản phẩm"} tone="gray" />
-        <Kpi label="Chi phí vận chuyển" value={money(totals.importFees + totals.vnCarrierFee)} hint={`Nhập hàng 3 chặng ${money(totals.importFees)} · giao nội địa trả hãng ${money(totals.vnCarrierFee)}`} tone="amber" />
+        <Kpi label="Chi phí vận chuyển" value={money(totals.importFees + totals.vnCarrierFee + totals.stockShopFee)} hint={`Nhập hàng 3 chặng ${money(totals.importFees)} · giao nội địa trả hãng ${money(totals.vnCarrierFee)}${totals.stockShopFee ? ` · phí ĐVVC → shop của hàng lưu kho ${money(totals.stockShopFee)}` : ""} — chặng ③ dùng phí thực trả ở ⑤ khi đã nhập`} tone="amber" />
         <Kpi label="Chi phí voucher" value={money(totals.voucher)} hint={totals.voucher ? "Mã giảm giá khách nhập ở thanh toán — đã trừ khỏi doanh thu" : "Chưa có đơn dùng voucher"} tone={totals.voucher ? "amber" : "gray"} />
         <Kpi label="Chi phí giảm giá sản phẩm" value={money(totals.promoDiscount)} hint={totals.promoDiscount ? "Σ (giá kỳ vọng − giá khuyến mại) × SL — đã nằm trong doanh thu thấp hơn" : "Không bán dưới giá kỳ vọng"} tone={totals.promoDiscount ? "amber" : "gray"} />
         <Kpi label="Chi phí đồ tiêu hao" value={money(totals.expenses)} hint={totals.expenses ? "Hoá đơn băng keo, xốp, thùng… ghi ở Quản lý mua hàng — đã trừ khỏi lợi nhuận" : "Chưa có hoá đơn trong khoảng này (ghi ở Quản lý mua hàng)"} tone={totals.expenses ? "amber" : "gray"} />
-        <Kpi label="Lợi nhuận" value={`${totals.profit < 0 ? "−" : ""}${money(Math.abs(totals.profit))}`} hint={`${marginPct}% doanh thu · sau đồ tiêu hao`} tone={totals.profit >= 0 ? "green" : "red"} />
+        <Kpi label="Lợi nhuận" value={`${totals.profit < 0 ? "−" : ""}${money(Math.abs(totals.profit))}`} hint={`${marginPct}% doanh thu · sau đồ tiêu hao${totals.stockShopFee ? " và phí về kho của hàng lưu kho" : ""}`} tone={totals.profit >= 0 ? "green" : "red"} />
       </div>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -118,7 +118,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
                 <th className={`${thClass} text-right`}>Đơn</th>
                 <th className={`${thClass} text-right`} title="Tiền hàng − voucher + ship khách trả">Doanh thu</th>
                 <th className={`${thClass} text-right`}>Giá vốn</th>
-                <th className={`${thClass} text-right`}>Vận chuyển</th>
+                <th className={`${thClass} text-right`} title="Nhập 3 chặng + giao VN trả hãng + phí ĐVVC → shop của hàng lưu kho (theo ngày trả ở ⑤)">Vận chuyển</th>
                 <th className={`${thClass} text-right`} title="Mã giảm giá khách dùng — đã trừ trong Doanh thu và Lợi nhuận">Voucher (đã trừ)</th>
                 <th className={`${thClass} text-right`} title="Giá kỳ vọng − giá khuyến mại, nhân số lượng">Giảm giá SP</th>
                 <th className={`${thClass} text-right`} title="Hoá đơn đồ tiêu hao (băng keo, xốp…) theo ngày mua — đã trừ khỏi Lợi nhuận">Đồ tiêu hao</th>
@@ -132,7 +132,7 @@ export default async function AdminAccounting({ searchParams }: Props) {
                   <td className={`${tdClass} text-right`}>{m.orders}</td>
                   <td className={`${tdClass} text-right`}>{money(m.revenue + m.shipCollected)}</td>
                   <td className={`${tdClass} text-right`}>{money(m.cogs)}</td>
-                  <td className={`${tdClass} text-right`}>{money(m.importFees + m.vnCarrierFee)}</td>
+                  <td className={`${tdClass} text-right`} title={m.stockShopFee ? `gồm ${money(m.stockShopFee)} phí ĐVVC → shop của hàng lưu kho` : undefined}>{money(m.importFees + m.vnCarrierFee + m.stockShopFee)}</td>
                   <td className={`${tdClass} text-right text-amber-700`}>{m.voucher ? money(m.voucher) : "—"}</td>
                   <td className={`${tdClass} text-right text-amber-700`}>{m.promoDiscount ? money(m.promoDiscount) : "—"}</td>
                   <td className={`${tdClass} text-right text-amber-700`} data-testid={`acc-exp-${m.month}`}>{m.expenses ? `−${money(m.expenses)}` : "—"}</td>
@@ -222,8 +222,9 @@ export default async function AdminAccounting({ searchParams }: Props) {
                     {money(r.cogs)}
                     {r.missingCost ? <span className="block text-[11px] text-amber-700">{r.missingCost} dòng thiếu giá vốn</span> : null}
                   </td>
-                  <td className={`${tdClass} text-right whitespace-nowrap`} title={`Nhập 3 chặng ${money(r.importFees)} + giao VN trả hãng ${money(r.vnCarrierFee)} − khách trả shop ${money(r.shipCollected)}`}>
+                  <td className={`${tdClass} text-right whitespace-nowrap`} title={`Nhập 3 chặng ${money(r.importFees)}${r.shopFeeActual !== null ? ` (③ thực trả ${money(r.shopFeeActual)})` : ""} + giao VN trả hãng ${money(r.vnCarrierFee)} − khách trả shop ${money(r.shipCollected)}`}>
                     {signedCost(r.importFees + r.vnCarrierFee - r.shipCollected)}
+                    {r.shopFeeActual !== null ? <span className="block text-[11px] text-sky-700">③ thực trả {money(r.shopFeeActual)}</span> : null}
                     {r.shipOnDelivery ? <span className="block text-[11px] text-lien-muted">khách trả shipper</span> : r.shipCollected ? <span className="block text-[11px] text-lien-muted">khách trả {money(r.shipCollected)}</span> : null}
                   </td>
                   <td className={`${tdClass} text-right whitespace-nowrap font-semibold`}>{signed(r.profit)}</td>

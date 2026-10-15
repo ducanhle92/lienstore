@@ -80,11 +80,14 @@ export function VnOrdersPanel({ buckets, tab, unitsByItem, legs }: { buckets: Re
         ))}
         <StatTile label="Giao hàng VN" value="Sang ⑦ →" accent="gray" href="/admin/inventory/delivery/" title="Màn ⑦: chọn ĐVVC, nhập mã vận đơn, bấm Bắt đầu giao / Đã giao" />
       </StatTiles>
-      {/* ticked orders → "In hoá đơn" in the bottom bar: one A5 sheet per order in a new tab (/print/orders/) */}
+      {/* ticked orders → "In hoá đơn" in the bottom bar: A5 or A4 (2 per sheet) in a new tab (/print/orders/) */}
       <form id="vn-print" method="get" action="/print/orders/" target="_blank" />
       <BulkBar scope="vn-print" label="đơn">
-        <button type="submit" form="vn-print" className={cn(btnPrimary, "!py-1")} data-testid="bulk-print">
-          <Fa name="print" /> In hoá đơn
+        <button type="submit" form="vn-print" name="paper" value="a5" className={cn(btnPrimary, "!py-1")} data-testid="bulk-print" title="Mỗi trang hoá đơn một tờ A5">
+          <Fa name="print" /> In hoá đơn A5
+        </button>
+        <button type="submit" form="vn-print" name="paper" value="a4" className={cn(btnPrimary, "!py-1")} data-testid="bulk-print-a4" title="Tờ A4 ngang, 2 hoá đơn A5 cạnh nhau — in xong cắt đôi">
+          <Fa name="print" /> In A4 (2 đơn/tờ)
         </button>
       </BulkBar>
       <Card>

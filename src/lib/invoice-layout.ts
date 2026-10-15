@@ -2,7 +2,7 @@
  * Paper invoice (A5) pagination — pure, so it is unit-tested. Every page repeats the shop header; page 1 has the
  * customer block; item rows flow over as many pages as needed (the table head repeats); the totals and then the
  * payment block (QR + bank) go where they still fit, else onto the next page — the payment block always sits at the
- * bottom of the last page. Heights are millimetres measured on the printed sheet (Roboto 10 pt).
+ * bottom of the last page. Orders already paid or cancelled have no payment block (`payment: false`). Heights are millimetres measured on the printed sheet (Roboto 10 pt).
  */
 export const A5 = { height: 210, padTop: 9, padBottom: 8 };
 export const BLOCK = {
@@ -33,7 +33,7 @@ export interface InvoicePage {
 
 export const rowHeight = (name: string) => BLOCK.rowPad + Math.max(1, Math.ceil(name.trim().length / NAME_CHARS_PER_LINE)) * BLOCK.rowLine;
 
-export function paginateInvoice(items: Array<{ name: string }>, opts: { address?: string; totalsLines?: number } = {}): InvoicePage[] {
+export function paginateInvoice(items: Array<{ name: string }>, opts: { address?: string; totalsLines?: number; payment?: boolean } = {}): InvoicePage[] {
   const usable = A5.height - A5.padTop - A5.padBottom;
   const addressLines = Math.max(1, Math.ceil((opts.address ?? "").length / ADDRESS_CHARS_PER_LINE));
   const customer = BLOCK.customer + (addressLines - 1) * BLOCK.addressLine;
@@ -56,8 +56,10 @@ export function paginateInvoice(items: Array<{ name: string }>, opts: { address?
   if (totals > left) next(false);
   page.totals = true;
   left -= totals;
-  if (BLOCK.payment > left) next(false);
-  page.payment = true;
+  if (opts.payment !== false) {
+    if (BLOCK.payment > left) next(false);
+    page.payment = true;
+  }
   pages.push(page);
   return pages;
 }

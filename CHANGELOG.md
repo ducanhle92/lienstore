@@ -7,12 +7,113 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ### Added
 - **Admin API v1** (`/api/admin/v1/`) + **CLI `lienstore`** (`npm run -s lienstore -- …`) để agent quản trị sản phẩm không cần mở trình duyệt: tìm/lọc/phân trang/chọn trường, xem, tạo, sửa từng phần (PATCH chỉ đổi trường gửi lên), sửa hàng loạt **nguyên tử** có dry-run trước/sau, upload ảnh (server tự thu nhỏ + thumb 300×300), danh mục, nhật ký. Chống ghi đè bằng `version`/`If-Match`, chống tạo trùng bằng `Idempotency-Key` + kiểm tra slug/SKU. Hướng dẫn: `docs/ADMIN_API.md`.
-- **API tokens** (Cài đặt web › API tokens, chỉ owner/admin; hoặc `npm run api-token`): Bearer token theo quyền đọc/ghi/upload, có hạn dùng, thu hồi ngay; chỉ lưu hash; token hoạt động theo quyền hiện tại của tài khoản cấp. Mọi thao tác ghi qua API vào nhật ký `api_audit_log` (migration 73).
+- **API tokens** (Cài đặt web › API tokens, chỉ owner/admin; hoặc `npm run api-token`): Bearer token theo quyền đọc/ghi/upload, có hạn dùng, thu hồi ngay; chỉ lưu hash; token hoạt động theo quyền hiện tại của tài khoản cấp. Mọi thao tác ghi qua API vào nhật ký `api_audit_log` (migration 75).
 
-- **Quét mã bằng điện thoại** (Vận hành › Quét mã, `/admin/scan/`): camera (bộ đọc của trình duyệt hoặc ZXing WASM tự host — chạy cả Safari iOS), máy quét Bluetooth kiểu bàn phím, nhập tay. Bốn chế độ: **Tra cứu** (tồn khả dụng / giữ cho đơn / thực tế theo kho và hạn dùng), **Nhập hàng** (hàng mới hoặc nhận chuyến về Kho VN, nhận một phần), **Kiểm kho** (chưa đếm ≠ đếm 0, chặn chốt khi tồn biến động trong lúc đếm), **Xuất hàng** (đối chiếu đơn, hoàn tất = bắt đầu giao). Phiếu nháp không đổi tồn; chốt một lần trong một transaction, chống quét lặp và gửi trùng. Mã vạch liên kết với sản phẩm (nhiều mã, quy cách hộp/thùng; SKU trùng báo xung đột). In nhãn QR mã từng cái `/print/units/`. API `/api/admin/v1/codes|stock|barcodes|stock-receipts|stock-counts|picks` và lệnh CLI tương ứng. Hướng dẫn: `docs/SCANNING.md` (migration 74).
+- **Quét mã bằng điện thoại** (Vận hành › Quét mã, `/admin/scan/`): camera (bộ đọc của trình duyệt hoặc ZXing WASM tự host — chạy cả Safari iOS), máy quét Bluetooth kiểu bàn phím, nhập tay. Bốn chế độ: **Tra cứu** (tồn khả dụng / giữ cho đơn / thực tế theo kho và hạn dùng), **Nhập hàng** (hàng mới hoặc nhận chuyến về Kho VN, nhận một phần), **Kiểm kho** (chưa đếm ≠ đếm 0, chặn chốt khi tồn biến động trong lúc đếm), **Xuất hàng** (đối chiếu đơn, hoàn tất = bắt đầu giao). Phiếu nháp không đổi tồn; chốt một lần trong một transaction, chống quét lặp và gửi trùng. Mã vạch liên kết với sản phẩm (nhiều mã, quy cách hộp/thùng; SKU trùng báo xung đột). In nhãn QR mã từng cái `/print/units/`. API `/api/admin/v1/codes|stock|barcodes|stock-receipts|stock-counts|picks` và lệnh CLI tương ứng. Hướng dẫn: `docs/SCANNING.md` (migration 76).
 
 ### Changed
 - Form sửa sản phẩm và API dùng chung luật kiểm tra giá / khối lượng / kích thước (`lib/product-rules.ts`) và dịch vụ sản phẩm (`lib/product-service.ts`); upload ảnh admin dùng chung `lib/media-service.ts` (kiểm tra thêm nội dung file đúng là ảnh).
+
+## [2.34.3] - 2026-10-15
+
+### Fixed
+- **Sửa sản phẩm · "Lợi nhuận/sp" tính cả phí ship về VN**: trước đây ô này chỉ lấy giá bán − giá vốn ở Nhật (VD #2757 Arau baby refill: bán 200.000đ, vốn ¥800 = 136.000đ → báo "+64.000đ (32%)"), trong khi Kế toán còn trừ phí 3 chặng nhập (~151.000đ cho 720 g) → thực tế lỗ ~89.000đ/sp, đơn #1086 lỗ −177.424đ. Giờ ô này tính theo **giá vốn về tới VN** (vốn Nhật + ship 3 chặng), cập nhật ngay khi gõ giá, ghi rõ cách tính; bán dưới giá vốn về VN thì hiện "⚠ Bán lỗ/sp" màu đỏ kèm giá kỳ vọng theo công thức.
+
+## [2.34.2] - 2026-10-15
+
+### Fixed
+- CSV cần mua: chỉ xuất phần thiếu của đơn hiện tại và hàng lưu kho dự định mua; không xuất lại hàng đã đặt, đã mua hoặc đã giao, không cộng đề xuất tồn tối thiểu.
+
+## [2.34.1] - 2026-10-15
+
+### Fixed
+- **Chi phí vận chuyển (shop chịu) sai hàng chục triệu khi sửa số lượng sau khi tạo đơn** (VD #1085: tạo với SL 444, một phút sau sửa còn 4 → 3 chặng nhập vẫn tính cho 319,68 kg = 67,8 triệu). Phí chặng ①②③ "mặc định theo luồng nhập hàng" được ghi lúc tạo đơn và trước đây không tính lại khi "Sửa" sản phẩm. Giờ mỗi lần sửa sản phẩm / số lượng của đơn, các chặng mặc định tự tính lại theo khối lượng mới (chặng admin đã chọn / gõ tay giữ nguyên). Lần khởi động đầu tiên sửa một lần các đơn đang lệch (tổng phí 3 chặng gấp hơn 2 lần hoặc dưới một nửa so với khối lượng hiện tại).
+
+## [2.34.0] - 2026-10-15
+
+### Added
+- **③ Kho Nhật / ⑥ Kho VN · nút "Xoá" trên thanh dưới** khi tick dòng: mở hộp chọn **lý do** (Nhập nhầm · Thất lạc · Hỏng / vỡ · Loại bỏ hết hạn) và **ghi chú bắt buộc**. Không xoá mất: mỗi mã ghi người xoá, giờ, lý do. Các màn khác cập nhật theo: đơn đang giữ cái đó tự tìm hàng khác, tồn kho / đợt / bill tính lại. Cuối trang Kho có mục **"Đã xoá / loại gần đây"** (mã, sản phẩm, lý do, ghi chú, người xoá, lúc) để admin / chủ shop kiểm tra; khôi phục ở trang hàng của sản phẩm.
+- Trang hàng của sản phẩm: "Loại khỏi tồn kho" dùng cùng hộp đó (lý do + ghi chú bắt buộc); thêm lý do "Nhập nhầm".
+
+### Changed
+- **Thanh dưới của Kho Nhật / Kho VN gọn hơn** (cùng đủ chức năng): số dòng đã tick là một chấm tròn, chọn trạng thái dùng tên ngắn ("→ Tới ĐVVC Nhật"; rê chuột xem tên đầy đủ), "Đóng vào chuyến" → chọn mã chuyến + "Đóng", "Mở chuyến đóng hàng" → "Mở chuyến", "Bỏ tick" → ✕. Khoảng một nửa chiều dài cũ, chừa chỗ cho nút khác.
+
+## [2.33.0] - 2026-10-14
+
+### Changed
+- **Trang hàng của sản phẩm · "Nhập hàng trực tiếp"**:
+  - **Mã bill tự tạo**: để trống ô Bill thì mỗi lần nhập tạo một bill mới mã **NT-YYMMDD-NN** (NT = nhập trực tiếp ở màn này, khác PM-… của Quản lý mua hàng). Ô Bill hiện sẵn mã sẽ được tạo; gõ mã khác nếu muốn gắn vào bill có sẵn. Hàng nhập ở đây không còn "chưa có bill".
+  - **Bỏ ô "Đang ở"**: mua trực tiếp → vào Kho Nhật (shop); khách trả lại → vào Kho VN (chọn ở ô Loại).
+  - **Cùng bộ ô với "+ Thêm vào đợt"** ở Quản lý mua hàng: Số lượng, ¥/cái, HSD, Ngày mua, Mua ở + cửa hàng / chi nhánh, Bill, Loại, Ghi chú.
+
+## [2.32.2] - 2026-10-14
+
+### Fixed
+- **② Quản lý mua hàng · đầu thẻ đợt không còn bị xô xuống dòng**: đợt có tên dài (VD "DG-261011-01 · DG-261010-01") và đủ 5 chip từng bị đẩy cả cụm chip + nút xuống hàng dưới, lệch trái. Giờ tên đợt, chip và nút nằm chung một hàng; chip gọn hơn ("đã mua"; "tiền hàng" / "hàng" chuyển vào chú thích khi rê chuột), từ màn hình 1500 px trở lên vừa một dòng, hẹp hơn thì chỉ chip tự xuống dòng gọn gàng.
+
+### Added
+- **③ Kho Nhật · hàng "chưa có bill" ghi nguồn gốc**: dưới chữ "chưa có bill" hiện cái đó được tạo thế nào: "Nhập tay", "Mua theo đơn #…", "Kiểm kê (thừa)", "Khách trả lại", "Chuyển từ lô cũ" hoặc "Theo bill" (nghĩa là bill / đợt của nó đã bị xoá sau đó, hàng vẫn ở lại kho).
+
+## [2.32.1] - 2026-10-13
+
+### Changed
+- **Chi tiết đơn · cột "Khối lượng"** trong bảng sản phẩm: mỗi dòng ghi cân nặng × số lượng (ví dụ "240 g", dưới là "120 g × 2"). Dòng chưa có cân nặng hiện "~500 g · chưa có cân nặng" màu cam. Dòng **Tổng** cuối bảng ghi tổng khối lượng hàng ngay cạnh tổng tiền. Khung "Khối lượng dự tính tạo đơn ship VN" (có thêm bao bì, làm tròn) giữ nguyên.
+- Bảng sản phẩm của đơn gọn hơn (lề ô hẹp hơn, ô "đổi nguồn" ngắn hơn) nên vừa khung, không phải cuộn ngang để xem Thành tiền / Khối lượng.
+
+## [2.32.0] - 2026-10-13
+
+### Added
+- **Chi tiết đơn · khối lượng dự tính tạo đơn ship VN**: dưới bảng sản phẩm hiện khối lượng gợi ý để điền khi tạo vận đơn GHN / Viettel / SPX… Cách tính: tổng cân nặng hàng (cân nặng sản phẩm × số lượng), cộng bao bì khoảng 10 % (ít nhất 50 g), làm tròn lên 50 g. Mỗi dòng sản phẩm hiện cân nặng 1 cái. Sản phẩm chưa có cân nặng được đánh dấu "chưa có cân nặng" và tính tạm 500 g/cái.
+
+## [2.31.4] - 2026-10-11
+
+### Fixed
+- **Ảnh lấy từ web ngoài bị vỡ ở trang khách** (ví dụ ô biến thể của SANA Nameraka Honpo ND): bộ tối ưu ảnh chỉ phục vụ ảnh của chính shop và trả lỗi 400 với host khác (netshop.create-sd.co.jp). Giờ mọi ảnh trên web (thẻ sản phẩm, ô biến thể, ảnh trang sản phẩm, giỏ hàng, popup…) đi qua một thành phần chung: ảnh từ web ngoài được trình duyệt tải thẳng, ảnh của shop vẫn được tối ưu. Đã quét 33 trang danh sách và 360 trang sản phẩm trên prod: chỉ 2 ảnh (4 vị trí) bị lỗi, đều do nguyên nhân này.
+
+## [2.31.3] - 2026-10-11
+
+### Fixed
+- **Ảnh sản phẩm bị lỗi trong đơn hàng cũ**: mỗi dòng đơn lưu ảnh sản phẩm lúc đặt, nhưng khi thay ảnh sản phẩm, tệp ảnh cũ bị xoá. Bước xoá chỉ kiểm tra sản phẩm khác, không kiểm tra đơn hàng. Giờ nếu tệp ảnh đã lưu của dòng đơn không còn, đơn hiện ảnh hiện tại của sản phẩm. Áp dụng ở chi tiết đơn admin, trang khách hàng, trang đơn của khách, Tài khoản của tôi và popup "khách vừa mua" ngoài web.
+- **Thay hoặc xoá ảnh sản phẩm không còn xoá tệp ảnh mà một đơn hàng vẫn dùng.**
+
+## [2.31.2] - 2026-10-11
+
+### Fixed
+- **Hoá đơn in luôn có địa chỉ khách**: trước đây đơn "Khách tới kho lấy" in chữ đó thay cho địa chỉ. Giờ khối khách in đủ 3 dòng như mẫu Canva (SĐT · Địa chỉ · Thanh toán), dùng địa chỉ của đơn. Đơn nhận tại kho thêm "(nhận tại kho)"; chỉ khi đơn không có địa chỉ mới in "Khách tới kho lấy".
+
+## [2.31.1] - 2026-10-09
+
+### Changed
+- **⑤ Vận chuyển JP-VN · đầu mỗi chuyến nằm trên một dòng** (màn hình rộng từ 1366 px): mã chuyến, bước, trạng thái Kiến, phí, ngày gửi, mã PU, mã KEA và nút Ẩn/Hiện. Ở màn này, chữ "Ngày gửi", "PU…" và "KEA…" đổi thành biểu tượng (rê chuột để xem tên). Ô nhập hẹp lại, và chip trạng thái Kiến tự rút gọn khi thiếu chỗ.
+- **Chip phí ngay trên dòng đầu chuyến**: sau khi nhập, chip hiện "Phí về shop 244.000đ · 09/10" (rê chuột để xem ngày trả và ghi chú, bấm để sửa). Chuyến chưa nhập phí hiện "+ Phí về shop".
+
+## [2.31.0] - 2026-10-09
+
+### Added
+- **① Đơn hàng · lọc theo trạng thái**: ô "Trạng thái" có Tất cả, Tất cả trừ đơn huỷ, 6 bước giao hàng (Đã đặt hàng → … → Đã về kho VN → Đang giao → Đã giao) và Đã huỷ. Ví dụ, chọn "Đã về kho VN" rồi tick tất cả để in hoá đơn, không lẫn đơn đang trên đường hoặc đã huỷ. Có thêm link "✕ Xoá lọc".
+
+### Changed
+- Bộ lọc ở ① Đơn hàng gọn còn một hàng (ô ngắn lại, thấp hơn) nên bảng đơn bên dưới hiện được nhiều hơn.
+
+## [2.30.0] - 2026-10-09
+
+### Added
+- **⑤ Vận chuyển JP-VN · phí ship ĐVVC → shop VN theo chuyến**: bấm vào một chuyến, ở góc phải thanh dưới sẽ hiện nút **Nhập phí ship ĐVVC → shop VN · <mã chuyến>**. Hộp nhập gồm số tiền đã chuyển, ngày chuyển, ghi chú (người nhận, mã giao dịch) và ảnh bill chuyển khoản. Đầu chuyến có chip "Phí ĐVVC → shop …" (bấm để sửa). Trong chuyến hiện phần chia phí cho từng đơn.
+- **Chia phí theo cân nặng** cho các đơn có hàng trong chuyến. Phần của đơn thay cho phí chặng ③ ước tính khi tính lãi/lỗ ở ① Đơn hàng, chi tiết đơn, Kế toán và file CSV. Phần của hàng lưu kho (chưa có đơn) được tính vào chi phí vận chuyển của tháng trả tiền. Xoá phí thì lãi/lỗ quay về số ước tính.
+- **Tab "Đang về kho shop · chi phí"** có bảng tất cả chuyến (kể cả chuyến đã về kho VN): phí đã trả, ngày trả, số đơn được chia, ghi chú, bill và nút Nhập / Sửa.
+
+### Changed
+- Thanh công cụ trang in hoá đơn nhắc bỏ tick "Đầu trang và chân trang" trong hộp thoại in, để giấy in không có dòng địa chỉ trang ở mép dưới.
+
+## [2.29.0] - 2026-10-09
+
+### Added
+- **In hoá đơn khổ A4 (2 đơn/tờ)**: thanh dưới ở ① Đơn hàng, ⑥ Kho VN › Đơn hàng và ⑦ Giao hàng VN có hai nút **In hoá đơn A5** và **In A4 (2 đơn/tờ)**. Khổ A4 in ngang, hai trang A5 nằm cạnh nhau, giữa có đường nét đứt để cắt đôi. Trên trang in có nút chuyển A5 ⇄ A4.
+
+### Changed
+- **Số tài khoản BIDV mới 2600748323** (cùng chủ tài khoản LE THI LIEN, thay cho 26010000748323): migration 73 đổi tại chỗ, nên hoá đơn, QR và trang thanh toán của cả đơn cũ lẫn đơn mới đều dùng số mới. Số cũ được giữ thành tài khoản "ngừng dùng" để giao dịch SePay báo về số cũ vẫn được nhận.
+- **Hoá đơn của đơn đã thanh toán hoặc đã huỷ không in khối "Thông tin thanh toán"** (không có QR, không có thanh đỏ). Đơn huỷ ghi "ĐƠN ĐÃ HUỶ" dưới tổng tiền.
+- **Dòng tên ngân hàng nằm trên một dòng**: "Ngân hàng BIDV - NH TMCP Đầu tư và Phát triển Việt Nam" không còn bị xuống dòng.
 
 ## [2.28.0] - 2026-10-08
 

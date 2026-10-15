@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { bulkMinStockAction, importStocktakeCsvAction, updateStockAction } from "@/app/admin/inventory/actions";
@@ -23,10 +23,10 @@ import { describeByWarehouse, TRANSIT_LABEL, WAREHOUSE_LABEL, WAREHOUSE_SHORT, W
 import { LotsBoard, type LotsFilter } from "@/components/sites/lienstore/admin/LotsBoard";
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
-import { listOrdersReadyToShip, listStockGroups } from "@/lib/lots-db";
+import { listOrdersReadyToShip, listStockGroups, SIDE_STATUSES } from "@/lib/lots-db";
 import { bucketOrders, VnOrdersPanel, type VnOrderBucket, type VnOrderUnits } from "@/components/sites/lienstore/admin/VnOrdersPanel";
 import { getOrderLegs, getOrders } from "@/lib/db";
-import { listUnits } from "@/lib/units-db";
+import { listRemovedUnits, listUnits } from "@/lib/units-db";
 import { listOpenShipments } from "@/lib/shipments-db";
 import { getDb } from "@/lib/sqlite";
 import { SheetTable } from "@/components/sites/lienstore/admin/SheetTable";
@@ -171,7 +171,7 @@ export default async function AdminInventory({ searchParams }: Props) {
         {view === "lots" && side === "jp" && flyingUnits ? <Link href="/admin/inventory/shipments/?stage=transit&at=flying" className="rounded-full bg-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-800 no-underline hover:underline"><Fa name="plane" /> đang bay {flyingUnits} cái →</Link> : null}
       </div>
       {view === "lots" && vnTab === "orders" && vnBuckets ? <VnOrdersPanel buckets={vnBuckets} tab={orderTab} unitsByItem={unitsByItem} legs={vnLegs} /> : null}
-      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} tabQuery={vnTab === "stock" ? "&t=stock" : ""} showCost={seeCost} /> : null}
+      {view === "lots" && vnTab !== "orders" ? <LotsBoard side={lotSide} groups={allGroups} filter={lotFilter} sources={sources} shipments={openShipments} readyOrders={readyOrders} backUrl={lotsBack} tabQuery={vnTab === "stock" ? "&t=stock" : ""} showCost={seeCost} removed={listRemovedUnits(getDb(), { statuses: SIDE_STATUSES[lotSide], limit: 100 })} /> : null}
 
       {/* order-by-default model: what is in the warehouse, what is on its way into it, what still has to be bought */}
       <div className={cn("mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6", view !== "products" && "hidden")}>

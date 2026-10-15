@@ -106,8 +106,11 @@ export default async function DeliveryPage({ searchParams }: Props) {
               <Fa name="truck" /> Bắt đầu giao
             </button>
           ) : null}
-          <button type="submit" form={bulkId} formAction="/print/orders/" formMethod="get" formTarget="_blank" className={cn(btnSecondary, "!py-1")} data-testid="bulk-print">
-            <Fa name="print" /> In hoá đơn
+          <button type="submit" form={bulkId} formAction="/print/orders/" formMethod="get" formTarget="_blank" name="paper" value="a5" className={cn(btnSecondary, "!py-1")} data-testid="bulk-print" title="Mỗi trang hoá đơn một tờ A5">
+            <Fa name="print" /> In hoá đơn A5
+          </button>
+          <button type="submit" form={bulkId} formAction="/print/orders/" formMethod="get" formTarget="_blank" name="paper" value="a4" className={cn(btnSecondary, "!py-1")} data-testid="bulk-print-a4" title="Tờ A4 ngang, 2 hoá đơn A5 cạnh nhau — in xong cắt đôi">
+            <Fa name="print" /> In A4 (2 đơn/tờ)
           </button>
           <button type="submit" form={bulkId} name="status" value="arrived" className={cn(btnSecondary, "!py-1")} data-testid="bulk-delivered">
             <Fa name="check" /> Đã giao

@@ -183,7 +183,7 @@ Test: `npm run test:admin-api` (service, DB tạm) · `npm run test:admin-api:e2
 
 ## 8. Production (khi triển khai — chưa làm tự động)
 
-- Migration 73 tự chạy khi container khởi động (bảng `api_tokens`, `api_audit_log`, `api_idempotency`).
+- Migration 75 tự chạy khi container khởi động (bảng `api_tokens`, `api_audit_log`, `api_idempotency`).
 - Cấp token trên web prod `/admin/api-tokens/` bằng tài khoản owner/admin; chọn quyền tối thiểu và hạn dùng.
 - Máy agent: `.env.lienstore.prod.local` với `LIENSTORE_API_URL=https://<domain>`, `LIENSTORE_ENV=production`,
   token → dùng `--profile prod`, luôn `--dry-run` rồi `--yes`.

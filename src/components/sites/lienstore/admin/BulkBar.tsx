@@ -23,7 +23,7 @@ function rowBoxes(scope: string): HTMLInputElement[] {
  * Actions for the ticked rows of one table (`scope` = id of its bulk form): shown in the fixed bottom bar only while
  * at least one row is ticked, with the count and "Bỏ tick". Children are the buttons / options, bound with form={scope}.
  */
-export function BulkBar({ scope, label, children }: { scope: string; label?: string; children: ReactNode }) {
+export function BulkBar({ scope, label, children, compact = false }: { scope: string; label?: string; children: ReactNode; /** small count badge + ✕ instead of "Đã tick n →" / "Bỏ tick" (busy bars) */ compact?: boolean }) {
   const [n, setN] = useState(0);
   const slot = useSlot(BAR_BULK_ID);
   useEffect(() => {
@@ -49,14 +49,20 @@ export function BulkBar({ scope, label, children }: { scope: string; label?: str
       <span hidden data-tick-scope={scope} />
       {slot && n > 0
         ? createPortal(
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-2 py-1 text-[13px]" data-testid={`bulk-${scope}`}>
-              <span className="font-semibold text-lien-heading">
-                Đã tick {n}
-                {label ? ` · ${label}` : ""} →
-              </span>
+            <div className={compact ? "flex flex-wrap items-center gap-1.5 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-1.5 py-1 text-[12px]" : "flex flex-wrap items-center gap-2 rounded-md border border-lien-blue/30 bg-lien-blue-soft/60 px-2 py-1 text-[13px]"} data-testid={`bulk-${scope}`}>
+              {compact ? (
+                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-lien-blue px-1.5 text-[12px] font-bold text-white" title={`Đã tick ${n}${label ? ` · ${label}` : ""}`} data-testid={`bulk-count-${scope}`}>
+                  {n}
+                </span>
+              ) : (
+                <span className="font-semibold text-lien-heading">
+                  Đã tick {n}
+                  {label ? ` · ${label}` : ""} →
+                </span>
+              )}
               {children}
-              <button type="button" onClick={clear} className="text-[12px] text-lien-muted hover:text-lien-heading hover:underline">
-                Bỏ tick
+              <button type="button" onClick={clear} className={compact ? "inline-flex h-6 w-6 items-center justify-center rounded text-[14px] text-lien-muted hover:bg-white hover:text-lien-heading" : "text-[12px] text-lien-muted hover:text-lien-heading hover:underline"} title="Bỏ tick" aria-label="Bỏ tick">
+                {compact ? "✕" : "Bỏ tick"}
               </button>
             </div>,
             slot,

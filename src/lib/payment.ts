@@ -5,7 +5,7 @@ export const BANK = {
   bank: "BIDV",
   /** Bank code understood by img.vietqr.io (BIN or short code). */
   code: "BIDV",
-  accountNumber: "26010000748323",
+  accountNumber: "2600748323",
   accountName: "LE THI LIEN",
   branch: "BIDV – CN Mỹ Đình",
 };

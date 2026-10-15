@@ -159,6 +159,33 @@ export function removeUnitsSync(db: DatabaseSync, unitIds: number[], reason: Uni
   eventSync(db, unitIds, "removed", { to: reason, actor: opts.actor, note: opts.note });
   return Number(r.changes);
 }
+export interface RemovedUnit {
+  id: number;
+  code: string;
+  productId: number;
+  productName: string;
+  reason: UnitRemoved;
+  status: PurchaseStatus;
+  note: string;
+  actor: string;
+  at: string;
+}
+/** Units taken out of stock (Xoá / Loại khỏi tồn kho), newest first, with who did it, when and why — for review. */
+export function listRemovedUnits(db: DatabaseSync, opts: { statuses?: PurchaseStatus[]; limit?: number } = {}): RemovedUnit[] {
+  const st = opts.statuses ?? [];
+  const rows = db
+    .prepare(
+      `SELECT u.id, u.code, u.product_id, COALESCE(p.name, '') AS name, u.removed, u.status, COALESCE(e.note, '') AS note, COALESCE(e.actor, '') AS actor, COALESCE(e.created_at, u.updated_at) AS at
+         FROM stock_units u
+         LEFT JOIN products p ON p.id = u.product_id
+         LEFT JOIN stock_unit_events e ON e.id = (SELECT MAX(x.id) FROM stock_unit_events x WHERE x.unit_id = u.id AND x.kind = 'removed')
+        WHERE u.removed IS NOT NULL ${st.length ? `AND u.status IN (${ph(st.length)})` : ""}
+        ORDER BY at DESC LIMIT ?`,
+    )
+    .all(...st, opts.limit ?? 100) as Array<{ id: number; code: string; product_id: number; name: string; removed: string; status: string; note: string; actor: string; at: string }>;
+  return rows.map((r) => ({ id: r.id, code: r.code, productId: r.product_id, productName: r.name, reason: isUnitRemoved(r.removed) ? r.removed : "lost", status: isPurchaseStatus(r.status) ? r.status : "bought", note: r.note, actor: r.actor, at: r.at }));
+}
+
 /** Undo a write-off. */
 export function restoreUnitsSync(db: DatabaseSync, unitIds: number[], opts: { actor?: string } = {}): number {
   if (!unitIds.length) return 0;

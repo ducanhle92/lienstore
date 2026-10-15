@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adminSendMessageAction, deleteOrderAction, reallocateOrderAction, setItemSourceAction, setOrderStateAction, updateOrderCustomerAction, updateOrderItemsAction } from "@/app/admin/orders/actions";
@@ -11,7 +11,7 @@ import { TIER_CLASS, TIER_LABEL, isTier } from "@/lib/customer-tiers";
 import { redeemPointsAction, setOrderLoyaltyExcludedAction } from "@/app/admin/loyalty/actions";
 import { getLoyaltyRules, getPointsBalance } from "@/lib/db";
 import { OrderTracker } from "@/components/sites/lienstore/shop/cart/OrderTracker";
-import { orderSteps, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
+import { DEFAULT_ITEM_WEIGHT_G, orderSteps, parcelWeightEstimate, SHIP_STAGES, SHIPPING_LEGS, stageIndex, TRANSIT_SUBSTEPS } from "@/lib/shipping";
 import { LEG_STATUS_CLS, LEG_STATUS_LABEL } from "@/lib/leg-status";
 import { purchaseIndex } from "@/lib/purchase";
 import { deleteOrderFileAction } from "@/app/admin/orders/files-actions";
@@ -25,6 +25,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAllProducts, getCustomerById, getCustomerOverview, listRegularSets, getImportQuoteConfig, getOrderById, getOrderChargeableWeightG, getOrderFiles, getOrderLegs, getOrderMessages, getShippingMethods, getSiteTheme, markOrderMessagesRead } from "@/lib/db";
 import type { TransferQuotesView } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { getDb, getSetting } from "@/lib/sqlite";
+import { orderShopFees } from "@/lib/shipment-fee-db";
 import { OrderLegsEditor } from "@/components/sites/lienstore/admin/OrderLegsEditor";
 import { type PickableProduct, ProductSearchSelect } from "@/components/sites/lienstore/admin/ProductSearchSelect";
 import { formatDateTime, formatPrice } from "@/lib/format";
@@ -69,6 +70,14 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
   }
   const shop = theme.shopName;
   if (!order) notFound();
+  // khối lượng dự tính for the Vietnam delivery label: each product's weight (null = not entered yet)
+  const weightOf = new Map<number, number | null>(
+    order.items.length
+      ? (getDb().prepare(`SELECT id, weight_g FROM products WHERE id IN (${order.items.map(() => "?").join(",")})`).all(...order.items.map((it) => it.productId)) as Array<{ id: number; weight_g: number | null }>).map((r) => [r.id, r.weight_g && r.weight_g > 0 ? r.weight_g : null])
+      : [],
+  );
+  const parcel = parcelWeightEstimate(order.items.map((it) => ({ weightG: weightOf.get(it.productId) ?? null, quantity: it.quantity })));
+  const grams = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg` : `${g.toLocaleString("vi-VN")} g`);
   await markOrderMessagesRead(order.id, "admin");
   const curStage = stageIndex(order.shipStage);
   const nextStage = SHIP_STAGES[curStage + 1];
@@ -197,7 +206,8 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             }
           >
             <SheetTable id="order-items">
-            <table className={tableClass}>
+            {/* tighter cells so the whole table (incl. Khối lượng) fits the card without sideways scrolling */}
+            <table className={cn(tableClass, "[&_td]:!px-2.5 [&_th]:!px-2.5")}>
               <thead>
                 <tr>
                   <th className={thClass} />
@@ -209,6 +219,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     <InfoPopover>Hàng của dòng này lấy từ đâu: lô có sẵn (kho VN / ĐVVC / Nhật, theo hạn dùng gần nhất trước), phiếu mua đang về, đợt đang gom, hay còn phải mua. Tồn kho đã trừ phần giữ chỗ; trừ thật khi xác nhận thanh toán hoặc đổi sang thu khi giao. Chọn nguồn khác trong ô bên dưới nếu muốn ghi đè.</InfoPopover>
                   </th>
                   {seePrices ? <th className={`${thClass} text-right`}>Thành tiền</th> : null}
+                  <th className={`${thClass} text-right`} title="Cân nặng 1 cái × số lượng (cân nặng nhập ở trang sửa sản phẩm)">Khối lượng</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,7 +241,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     </td>
                     {seePrices ? <td className={`${tdClass} whitespace-nowrap`}>{formatPrice(it.price, order.currency)}</td> : null}
                     <td className={tdClass}>{it.quantity}</td>
-                    <td className={`${tdClass} min-w-[260px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
+                    <td className={`${tdClass} min-w-[180px]`} data-testid={`source-${it.itemId ?? it.productId}`}>
                       {it.itemId ? (
                         <>
                           <div className="space-y-1">
@@ -264,7 +275,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                             <form action={setItemSourceAction} className="mt-1.5 flex items-center gap-1">
                               <input type="hidden" name="id" value={order.id} />
                               <input type="hidden" name="itemId" value={it.itemId} />
-                              <select name="source" defaultValue="" className="max-w-[240px] rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Đổi nguồn hàng">
+                              <select name="source" defaultValue="" className="w-[150px] rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[12px]" aria-label="Đổi nguồn hàng">
                                 <option value="" disabled>
                                   — đổi nguồn —
                                 </option>
@@ -284,6 +295,19 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       ) : null}
                     </td>
                     {seePrices ? <td className={`${tdClass} whitespace-nowrap text-right`}>{formatPrice(it.price * it.quantity, order.currency)}</td> : null}
+                    <td className={`${tdClass} whitespace-nowrap text-right`} data-testid={`weight-${it.itemId ?? it.productId}`}>
+                      {weightOf.get(it.productId) ? (
+                        <>
+                          {grams(weightOf.get(it.productId)! * it.quantity)}
+                          {it.quantity > 1 ? <span className="block text-[11px] text-lien-muted">{grams(weightOf.get(it.productId)!)} × {it.quantity}</span> : null}
+                        </>
+                      ) : (
+                        <span className="text-amber-700" title={`Chưa nhập cân nặng ở trang sửa sản phẩm — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái`}>
+                          ~{grams(DEFAULT_ITEM_WEIGHT_G * it.quantity)}
+                          <span className="block text-[11px]">chưa có cân nặng</span>
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -294,6 +318,10 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       {order.paidAt ? "Đã thanh toán" : order.paymentMethod === "cod" ? "Cần thu khi giao (COD)" : "Cần thu"}
                     </td>
                     <td className={`${tdClass} text-right text-[16px] font-bold`}>{order.paidAt ? "—" : formatPrice(order.total, order.currency)}</td>
+                    <td className={`${tdClass} whitespace-nowrap text-right text-[16px] font-bold`} title={parcel.missing ? `${parcel.missing} sản phẩm chưa có cân nặng — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái` : "Tổng khối lượng hàng (chưa gồm bao bì)"} data-testid="order-weight-total">
+                      {parcel.missing ? "~" : ""}
+                      {grams(parcel.goodsG)}
+                    </td>
                   </tr>
                 </tfoot>
               )}
@@ -304,6 +332,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     Tạm tính
                   </td>
                   <td className={`${tdClass} text-right`}>{formatPrice(order.subtotal, order.currency)}</td>
+                  <td className={tdClass} />
                 </tr>
                 {order.discount > 0 ? (
                   <tr>
@@ -316,6 +345,7 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                       ) : null}
                     </td>
                     <td className={`${tdClass} text-right text-lien-success`}>−{formatPrice(order.discount, order.currency)}</td>
+                    <td className={tdClass} />
                   </tr>
                 ) : null}
                 <tr>
@@ -324,17 +354,37 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
                     {order.shipFeePayment === "on_delivery" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">khách trả phí ship cho shipper · không nằm trong Tổng</span> : null}
                   </td>
                   <td className={`${tdClass} text-right`}>{order.shippingFee > 0 ? `${order.shipFeePayment === "on_delivery" ? "≈ " : ""}${formatPrice(order.shippingFee, order.currency)}` : "Miễn phí"}</td>
+                  <td className={tdClass} />
                 </tr>
                 <tr>
                   <td colSpan={5} className={`${tdClass} text-right font-semibold`}>
                     Tổng
                   </td>
                   <td className={`${tdClass} text-right text-[16px] font-bold`}>{formatPrice(order.total, order.currency)}</td>
+                  <td className={`${tdClass} whitespace-nowrap text-right text-[16px] font-bold`} title={parcel.missing ? `${parcel.missing} sản phẩm chưa có cân nặng — tạm tính ${grams(DEFAULT_ITEM_WEIGHT_G)}/cái` : "Tổng khối lượng hàng (chưa gồm bao bì)"} data-testid="order-weight-total">
+                      {parcel.missing ? "~" : ""}
+                      {grams(parcel.goodsG)}
+                    </td>
                 </tr>
               </tfoot>
               ) : null}
             </table>
             </SheetTable>
+            {parcel.totalG ? (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[13px]" data-testid="order-parcel-weight">
+                <span className="font-semibold text-sky-900">
+                  <Fa name="balance-scale" /> Khối lượng dự tính tạo đơn ship VN: <span className="text-[15px]" data-testid="order-parcel-total">{grams(parcel.totalG)}</span>
+                </span>
+                <span className="text-[12px] text-lien-muted">
+                  hàng {grams(parcel.goodsG)} + bao bì ~{grams(parcel.packagingG)} · làm tròn lên 50 g
+                </span>
+                {parcel.missing ? (
+                  <span className="text-[12px] font-semibold text-amber-700" data-testid="order-parcel-missing">
+                    {parcel.missing} sản phẩm chưa có cân nặng (tính tạm {grams(DEFAULT_ITEM_WEIGHT_G)}/cái) — nhập ở “sửa sản phẩm” để chính xác hơn
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </Card>
 
 
@@ -433,6 +483,15 @@ export default async function AdminOrderDetail({ params, searchParams }: Props) 
             </summary>
             <div className="border-t border-[#e5e7eb] p-4 md:p-5">
               <OrderLegsEditor order={order} legs={legMap.get(order.id) ?? []} methods={shippingMethods} back={`/admin/orders/${order.id}/?legs=1`} weightG={orderWeightG} quote={importQuote} transferQuotes={transferQuotes} />
+              {(() => {
+                // ⑤ recorded what the runs carrying this order really cost for kho ĐVVC → kho shop: that replaces ③ in lãi/lỗ
+                const real = orderShopFees([order.id]).get(order.id);
+                return real ? (
+                  <p className="m-0 mt-3 rounded-md bg-green-50 px-3 py-2 text-[12px] text-green-900" data-testid="order-shopfee">
+                    ③ phí thực trả (phần của đơn, chia theo cân nặng): <b>{formatPrice(real.fee, order.currency)}</b> từ chuyến {real.runs.join(", ")} — lãi/lỗ dùng số này thay cho phí ③ ước tính ở trên.
+                  </p>
+                ) : null;
+              })()}
               <p className="mt-3 text-[12px] text-lien-muted">
                 Mỗi chặng: phương thức, phí, mã vận đơn, trạng thái → bấm ✓.
                 <InfoPopover>Để trống phí thì tự tính theo cột và khối lượng đơn. Chặng ③ có thể hỏi cước hãng theo API rồi bấm “Chọn”. Chặng ④ mặc định theo phương án khách đã chọn khi thanh toán; đổi rồi lưu chỉ khi khách yêu cầu (có thể áp lại phí vào tổng tiền khách trả).</InfoPopover>

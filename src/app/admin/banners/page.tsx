@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import { deleteBannerAction, moveBannerAction, saveBannerAction } from "@/app/admin/banners/actions";
 import { adminInput, adminLabel, btnDanger, btnPrimary, btnSecondary, Card, Flash, PageHeader } from "@/components/sites/lienstore/admin/ui";
 import { ConfirmSubmit } from "@/components/sites/lienstore/admin/ConfirmSubmit";

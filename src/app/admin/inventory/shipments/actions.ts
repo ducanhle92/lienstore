@@ -8,6 +8,9 @@ import { isShipmentStatus, shipmentEditable, type ShipmentStatus } from "@/lib/s
 import { createShipment, deleteShipment, getShipment, packCandidates, packProduct, setShipmentStatus, unpackUnits, updateShipment } from "@/lib/shipments-db";
 import { normalizeKienCode } from "@/lib/carriers/kien-express";
 import { syncShipmentKien } from "@/lib/kien-sync";
+import { parseVnd } from "@/lib/shipment-fee";
+import { addShopFeeFiles, clearShopFee, removeShopFeeFile, saveShopFee, type ShopFeeFile } from "@/lib/shipment-fee-db";
+import { deleteUpload, extForMime, MAX_UPLOAD_BYTES, RECEIPT_MIMES, saveUpload, slugifyFileName, uniqueName } from "@/lib/uploads";
 
 const PAGE = "/admin/inventory/shipments/";
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -19,6 +22,8 @@ const intOr = (fd: FormData, k: string) => {
 const go = (key: "saved" | "error", msg: string, shipmentId?: number | null, transit = false): never =>
   redirect(`${PAGE}?${transit ? "stage=transit&" : ""}${key}=${encodeURIComponent(msg)}${shipmentId ? `#shipment-${shipmentId}` : ""}`);
 /** "2026-09-27" / "27/09/2026" → ISO; empty → null; garbage → undefined. */
+/** Today on the shop's clock (Asia/Ho_Chi_Minh), YYYY-MM-DD. */
+const todayVn = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 const dateOrNull = (raw: string): string | null | undefined => (raw ? (parseExpiry(raw) ?? undefined) : null);
 
 export async function createShipmentAction(formData: FormData): Promise<void> {
@@ -125,4 +130,64 @@ export async function packCandidatesAction(formData: FormData): Promise<void> {
   const r = packCandidates(id!, items, await actor());
   revalidatePath("/admin", "layout");
   go(r.ok ? "saved" : "error", r.message, id);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ⑤ "Phí ship ĐVVC → shop VN" of a run: amount + day paid + note + transfer receipt; split over the run's orders by
+// weight (lib/shipment-fee-db.ts) so ① Đơn hàng and Kế toán use the real ③ fee.
+
+const backTo = (fd: FormData, key: "saved" | "error", msg: string, shipmentId?: number | null): never =>
+  redirect(`${PAGE}?stage=transit&${text(fd, "at") === "to_shop" ? "at=to_shop&" : ""}${key}=${encodeURIComponent(msg)}${shipmentId ? `#shipment-${shipmentId}` : ""}`);
+
+export async function saveShopFeeAction(formData: FormData): Promise<void> {
+  const session = await requireAdmin("transit");
+  const id = intOr(formData, "shipmentId");
+  if (!id) backTo(formData, "error", "Yêu cầu không hợp lệ.");
+  const fee = parseVnd(text(formData, "fee"));
+  if (fee === null || fee <= 0) backTo(formData, "error", "Nhập số tiền phí ship đã trả (VD 244.000).", id);
+  const paidAt = text(formData, "paidAt") ? parseExpiry(text(formData, "paidAt")) : todayVn();
+  if (!paidAt) backTo(formData, "error", "Ngày trả không hợp lệ (VD 2026-10-08).", id);
+  const saved = saveShopFee(id!, { fee: fee!, paidAt: paidAt!, note: text(formData, "note"), by: session.label ?? "" });
+  if (!saved) backTo(formData, "error", "Không tìm thấy chuyến.");
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  const stored: ShopFeeFile[] = [];
+  let skipped = 0;
+  for (const file of files) {
+    if (!RECEIPT_MIMES.has(file.type) || file.size > MAX_UPLOAD_BYTES) {
+      skipped++;
+      continue;
+    }
+    const s = await saveUpload(`shipments/${id}`, uniqueName(slugifyFileName(file.name), extForMime(file.type) || ".bin"), Buffer.from(await file.arrayBuffer()));
+    stored.push({ path: s.rel, url: s.url, name: file.name, mime: file.type });
+  }
+  if (stored.length) addShopFeeFiles(id!, stored);
+  const orders = saved!.shares.filter((x) => x.orderId);
+  const stock = saved!.shares.find((x) => !x.orderId);
+  revalidatePath("/admin", "layout");
+  backTo(
+    formData,
+    "saved",
+    `Đã lưu phí ship ĐVVC → shop ${fee!.toLocaleString("vi-VN")}đ cho chuyến ${getShipment(id!)?.code ?? ""}: chia theo cân nặng cho ${orders.length} đơn${stock?.fee ? ` + hàng lưu kho ${stock.fee.toLocaleString("vi-VN")}đ` : ""}. Lãi/lỗ ở ① Đơn hàng và Kế toán đã dùng phí thực này.${stored.length ? ` · ${stored.length} ảnh bill` : ""}${skipped ? ` · bỏ qua ${skipped} tệp (chỉ nhận ảnh / PDF dưới 10 MB)` : ""}`,
+    id,
+  );
+}
+
+export async function clearShopFeeAction(formData: FormData): Promise<void> {
+  await requireAdmin("transit");
+  const id = intOr(formData, "shipmentId");
+  const files = id ? clearShopFee(id) : null;
+  if (!files) backTo(formData, "error", "Không tìm thấy chuyến.");
+  for (const f of files!) await deleteUpload(f.path);
+  revalidatePath("/admin", "layout");
+  backTo(formData, "saved", "Đã xoá phí ship ĐVVC → shop của chuyến — lãi/lỗ các đơn quay về phí ③ ước tính.", id);
+}
+
+export async function deleteShopFeeFileAction(formData: FormData): Promise<void> {
+  await requireAdmin("transit");
+  const id = intOr(formData, "shipmentId");
+  const removed = id ? removeShopFeeFile(id, text(formData, "path")) : null;
+  if (!removed) backTo(formData, "error", "Không tìm thấy tệp.", id);
+  await deleteUpload(removed!.path);
+  revalidatePath("/admin", "layout");
+  backTo(formData, "saved", "Đã gỡ ảnh bill.", id);
 }

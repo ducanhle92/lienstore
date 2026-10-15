@@ -1,4 +1,10 @@
 # Tiến độ
+## Deploy bản sửa CSV cần mua — 2026-10-15
+- User yêu cầu deploy. Nhánh `fix/purchase-csv-release` tách từ origin/main v2.34.1, chỉ lấy bản sửa CSV (không lấy API/CLI đang làm dở).
+- Đã thêm route `/admin/purchases/export/` và kiểm thử hồi quy; không thay đổi dữ liệu kho/đơn.
+- Lint đạt (0 lỗi, 25 warning có sẵn), production build đạt, 26/26 kiểm thử purchase-export/inventory/units đạt.
+- Tiếp theo: merge main, push, chờ CI xanh, `npm run release -- patch`; theo dõi Release và health production.
+
 ## Mục tiêu
 1. (xong) API quản trị `/api/admin/v1/` + CLI `lienstore` cho agent thao tác sản phẩm/ảnh bằng Bearer token.
 2. (xong, chờ thử trên điện thoại thật) Quét mã trên điện thoại (`/admin/scan/`): tra cứu, nhập hàng, kiểm kho, xuất
@@ -8,7 +14,7 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
 
 ## Đã xong
 ### Việc 1 — Admin API v1 + CLI (docs/ADMIN_API.md)
-- [x] Migration 73 (api_tokens hash-only, api_audit_log, api_idempotency); `withTransaction` lồng (SAVEPOINT);
+- [x] Migration 75 (trước là 73, đổi số khi gộp main) (api_tokens hash-only, api_audit_log, api_idempotency); `withTransaction` lồng (SAVEPOINT);
       `saveProduct(Sync)({ expectedVersion })` chống ghi đè (lib/product-version.ts).
 - [x] Token/scope/hạn/thu hồi/audit/idempotency: lib/api-token-format.ts, api-scopes.ts, api-tokens.ts.
 - [x] Nghiệp vụ chung: lib/product-rules.ts, product-service.ts (PATCH merge, bulk NGUYÊN TỬ + dry-run khoá version,
@@ -17,7 +23,7 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
 - [x] /admin/api-tokens (owner/admin) + `npm run api-token -- create|list|revoke [--write-env file]`.
 - [x] CLI scripts/lienstore.mjs (`npm run -s lienstore -- …`), cấu hình `.env.lienstore[.<profile>].local`.
 ### Việc 2 — Quét mã (docs/architecture/mobile-scanning.md, docs/SCANNING.md)
-- [x] GĐ1: lib/barcodes.ts (GTIN/UPC→EAN-13/ITF-14/H/QR `LS1:`), migration 74 (product_barcodes, scan_docs,
+- [x] GĐ1: lib/barcodes.ts (GTIN/UPC→EAN-13/ITF-14/H/QR `LS1:`), migration 76 (trước là 74) (product_barcodes, scan_docs,
       scan_lines, scan_ops; backfill SKU GTIN không trùng), lib/barcodes-db.ts (resolve: link thắng, SKU trùng = xung
       đột; link/unlink; tồn tra cứu), scope inventory:read|write, lib/scan-access.ts (quyền kho).
 - [x] GĐ2–4: lib/scan-docs.ts (phiếu nhập direct/shipment, kiểm kê có snapshot + chặn biến động, soạn hàng →
@@ -35,7 +41,12 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
 
 ## Đang làm
 - R1–R10 xong (2026-10-15): test unit tất cả pass (scan 31), e2e 20/20, lint 0 lỗi, typecheck, build OK; UI kiểm headless
-  (BT 90 ms/phím, quét khi ô số focus, pick + ĐVVC + mã vận đơn quét, manifest riêng). Đang merge + deploy.
+  (BT 90 ms/phím, quét khi ô số focus, pick + ĐVVC + mã vận đơn quét, manifest riêng).
+- Gộp main (v2.34.3, 20 commit) vào nhánh: main đã dùng migration 73 (bidv) & 74 (shipment-shop-fee) → migration
+  của nhánh đổi thành 75 (admin-api-tokens) & 76 (scan-codes-and-documents); `migrate()` khớp cả tên để DB dev đã chạy
+  số cũ vẫn nhận 73/74 của main (đã thử 2 kịch bản). Giữ quy tắc "không xoá ảnh đơn hàng còn dùng" của main trong
+  product-service.cleanupRemovedUploads; trang nhãn dùng PrintOnLoad (AutoPrint của main giờ là thanh in hoá đơn).
+- CHỜ USER DUYỆT deploy (quy trình: xung đột khi merge → hỏi). Sau duyệt: merge main, push, CI, release patch.
 
 ## Đề xuất sau rà soát (Fable 5.1, 2026-10-15) — USER ĐÃ DUYỆT "làm đủ R1–R10 rồi mới deploy" → Opus làm tiếp từ R1
 Kiến trúc lõi ổn (dùng lại stock_units, idempotency theo opId, version/rev, chốt 1 transaction; test 76 pass).

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { savePostAction } from "@/app/admin/posts/actions";
 import type { BlogPost } from "@/types/shop";

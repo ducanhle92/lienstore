@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 import { redirect } from "next/navigation";
-import { AutoPrint } from "@/components/sites/lienstore/admin/AutoPrint";
+import { PrintOnLoad } from "@/components/sites/lienstore/admin/PrintOnLoad";
 import { getAdminSession } from "@/lib/auth";
 import { unitQrPayload } from "@/lib/barcodes";
 import { getDb } from "@/lib/sqlite";
@@ -43,7 +43,7 @@ export default async function PrintUnitLabels({ searchParams }: Props) {
       <div className="no-print mb-3 text-[14px]">
         {labels.length} nhãn. In khổ A4, cắt theo viền (50 × 30 mm).
       </div>
-      <AutoPrint count={labels.length} />
+      <PrintOnLoad enabled={labels.length > 0} />
       {labels.length ? null : <p>Không có cái nào để in (dùng ?product=&lt;id&gt; hoặc ?codes=H…,H…).</p>}
       <div className="grid grid-cols-[repeat(auto-fill,50mm)] gap-[1mm]">
         {labels.map(({ u, svg }) => (

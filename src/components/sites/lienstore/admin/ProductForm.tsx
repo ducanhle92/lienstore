@@ -137,7 +137,9 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
   const [primaryJpy, setPrimaryJpy] = useState<number | null>(product?.costJpy ?? null);
   const [primarySource, setPrimarySource] = useState<string>(product?.costSource ?? "");
   const stored = storedPrices(Number.isFinite(digits(priceText)) ? digits(priceText) : 0, Number.isFinite(digits(promoText)) ? digits(promoText) : null);
-  const margin = computeMargin(String(stored.price), costText);
+  // profit per unit against the cost delivered to Kho VN (Japan cost + the 3 import legs, as Kế toán counts it) — the
+  // old hint left shipping out ("+64.000đ (32%)" on an item that loses ~89.000đ once it is shipped)
+  const marginJpOnly = computeMargin(digits(priceText) > 0 ? priceText : String(stored.price), costText);
   const costNum = digits(costText);
   const rate = quote?.jpyRate ?? 0;
   const sourceFees: SourceFees = Object.fromEntries(sources.filter((s) => s.fees.length).map((s) => [s.key, s.fees]));
@@ -165,6 +167,14 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
           pricing,
         )
       : null;
+  const shipPerUnit = suggestion ? suggestion.shipping : null;
+  const margin = marginJpOnly
+    ? (() => {
+        const price = digits(priceText) > 0 ? digits(priceText) : stored.price;
+        const profit = marginJpOnly.profit - (shipPerUnit ?? 0);
+        return { profit, pct: price > 0 ? Math.round((profit / price) * 1000) / 10 : 0, landed: price - profit, withShip: shipPerUnit !== null };
+      })()
+    : null;
   // for the "?" explanations on the expected-price breakdown (how each row was computed)
   const lotWeightG = pricing?.lotWeightG ?? DEFAULT_PRICING.lotWeightG;
   const vnd = (n: number) => `${Math.round(n).toLocaleString("vi-VN")}đ`;
@@ -503,8 +513,15 @@ export function ProductForm({ product, categories, quote, pricing, skuSuggestion
                   </p>
                 ) : null}
                 {margin ? (
-                  <p className={cn("mt-1 text-[12px] leading-4", margin.profit >= 0 ? "text-green-700" : "text-red-600")}>
-                    Lợi nhuận/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
+                  <p className={cn("mt-1 text-[12px] leading-4", margin.profit >= 0 ? "text-green-700" : "font-semibold text-red-600")} data-testid="unit-profit">
+                    {margin.profit < 0 ? "⚠ Bán lỗ" : "Lợi nhuận"}/sp: {margin.profit.toLocaleString("vi-VN")}đ ({margin.pct}%)
+                    {margin.withShip ? (
+                      <span className="block font-normal text-lien-muted">
+                        = giá bán − giá vốn về tới VN {margin.landed.toLocaleString("vi-VN")}đ (vốn Nhật {costNum.toLocaleString("vi-VN")}đ + ship 3 chặng {(shipPerUnit ?? 0).toLocaleString("vi-VN")}đ){margin.profit < 0 && suggestion ? ` — giá kỳ vọng ${suggestion.suggested.toLocaleString("vi-VN")}đ` : ""}
+                      </span>
+                    ) : (
+                      <span className="block font-normal text-lien-muted">chưa trừ phí ship về VN (thiếu biểu phí / cân nặng)</span>
+                    )}
                   </p>
                 ) : null}
               </div>

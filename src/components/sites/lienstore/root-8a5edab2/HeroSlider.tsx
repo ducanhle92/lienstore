@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import type { Slide } from "@/types/lienstore";
 import { cn } from "@/lib/utils";
 

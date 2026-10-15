@@ -1,9 +1,10 @@
-import Image from "next/image";
+import Image from "@/components/sites/lienstore/shared/SmartImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addUnitsAction, removeUnitsAction, saveProductUnitsAction, uploadUnitsBillFilesAction } from "@/app/admin/inventory/lots/actions";
 import { TableSelectAll } from "@/components/sites/lienstore/admin/TableSelectAll";
 import { BulkBar } from "@/components/sites/lienstore/admin/BulkBar";
+import { RemoveTickedButton } from "@/components/sites/lienstore/admin/RemoveTickedButton";
 import { adminInput, adminLabel, btnPrimary, btnSecondary, Card, Flash, PageHeader, tableClass, tdClass, thClass } from "@/components/sites/lienstore/admin/ui";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { listAllocationViews } from "@/lib/allocations-db";
@@ -15,7 +16,7 @@ import { groupUnits } from "@/lib/lots-db";
 import { daysToExpiry, EXPIRY_LABEL, expiryState, todayIso } from "@/lib/lots";
 import { PURCHASE_STAGES, purchaseIndex } from "@/lib/purchase";
 import { purchaseSourceName } from "@/lib/purchase-sources";
-import { parseReceiptFiles } from "@/lib/receipts-db";
+import { nextCode, parseReceiptFiles } from "@/lib/receipts-db";
 import { getDb } from "@/lib/sqlite";
 import { UNIT_ORIGIN_LABEL, UNIT_REMOVED_LABEL, unitInHand } from "@/lib/units";
 import { listUnits } from "@/lib/units-db";
@@ -44,6 +45,8 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
   if (!product) notFound();
   const db = getDb();
   const all = listUnits(db, { productId: pid, withDelivered: true, withRemoved: true });
+  // "Nhập hàng trực tiếp": the bill code an empty Bill field will get (NT = made on this page)
+  const nextNtCode = nextCode(todayIso(), "NT");
   const live = all.filter((u) => !u.removed && purchaseIndex(u.status) <= purchaseIndex("at_shop"));
   const gone = all.filter((u) => !u.removed && purchaseIndex(u.status) > purchaseIndex("at_shop"));
   const removed = all.filter((u) => u.removed);
@@ -97,17 +100,9 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               <input type="hidden" name="productId" value={pid} />
             </form>
             {groups.length ? (
-              <BulkBar scope={removeId}>
-                <select name="reason" form={removeId} defaultValue="lost" className={cn(adminInput, "!mb-0 !w-auto !py-1 !text-[13px] disabled:opacity-50")} aria-label="Lý do">
-                  {Object.entries(UNIT_REMOVED_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" form={removeId} className={cn(btnSecondary, "!py-1 disabled:opacity-50")}>
-                  Loại khỏi tồn kho
-                </button>
+              <BulkBar scope={removeId} compact>
+                {/* same "Xoá" as on Kho Nhật / VN: reason + required note, kept on each unit's history */}
+                <RemoveTickedButton formId={removeId} action={removeUnitsAction} defaultReason="mistake" label="Xoá / loại khỏi tồn kho" />
               </BulkBar>
             ) : null}
             <div className="overflow-x-auto">
@@ -323,6 +318,8 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               {product.sku ? ` · ${product.sku}` : ""} · giá vốn hiện tại {product.costJpy ? `¥${product.costJpy.toLocaleString("ja-JP")}` : "—"}
             </span>
           </div>
+          {/* same fields as "+ Thêm vào đợt" in Quản lý mua hàng; no "Đang ở" (manual entry → Kho Nhật (shop), customer
+              return → Kho VN); the bill is generated (NT-YYMMDD-NN = made here) unless a code is typed */}
           <form action={addUnitsAction} className="grid gap-3" data-testid="add-units">
             <input type="hidden" name="productId" value={pid} />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -330,51 +327,16 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
                 <label className={adminLabel} htmlFor="au-qty">
                   Số lượng
                 </label>
-                <input id="au-qty" name="qty" inputMode="numeric" required className={adminInput} />
+                <input id="au-qty" name="qty" inputMode="numeric" required className={adminInput} data-testid="au-qty" />
               </div>
-              <div>
-                <label className={adminLabel} htmlFor="au-st">
-                  Đang ở
-                </label>
-                <select id="au-st" name="status" defaultValue="at_shop" className={adminInput}>
-                  {PLACES.filter((x) => purchaseIndex(x.key) <= purchaseIndex("at_shop")).map((x) => (
-                    <option key={x.key} value={x.key}>
-                      {x.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={adminLabel} htmlFor="au-src">
-                  Mua ở
-                </label>
-                <select id="au-src" name="sourceKey" defaultValue={product.costSource || "manual"} className={adminInput}>
-                  {sources.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={adminLabel} htmlFor="au-origin">
-                  Loại
-                </label>
-                <select id="au-origin" name="origin" defaultValue="manual" className={adminInput}>
-                  <option value="manual">Nhập tay (mua trực tiếp…)</option>
-                  <option value="return">Khách trả lại</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <label className={adminLabel} htmlFor="au-jpy">
                   ¥/cái
                 </label>
                 <input id="au-jpy" name="unitCostJpy" inputMode="numeric" defaultValue={product.costJpy ?? ""} className={adminInput} />
               </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={adminLabel} htmlFor="au-exp">
                   HSD
@@ -389,10 +351,36 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
               </div>
             </div>
             <div>
-              <label className={adminLabel} htmlFor="au-bill">
-                Mã bill <span className="font-normal text-lien-muted">— tuỳ chọn</span>
+              <label className={adminLabel} htmlFor="au-src">
+                Mua ở / cửa hàng
               </label>
-              <input id="au-bill" name="billCode" list="bill-codes" maxLength={60} placeholder="BILL_260927_1454" className={cn(adminInput, "font-mono")} />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select id="au-src" name="sourceKey" defaultValue={product.costSource || "manual"} className={adminInput}>
+                  {sources.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <input name="store" maxLength={80} placeholder="cửa hàng / chi nhánh…" className={adminInput} aria-label="Cửa hàng / chi nhánh" />
+              </div>
+            </div>
+            <div className="grid gap-3">
+              <div>
+                <label className={adminLabel} htmlFor="au-bill">
+                  Bill <span className="font-normal text-lien-muted">— để trống: tự tạo</span>
+                </label>
+                <input id="au-bill" name="billCode" list="bill-codes" maxLength={60} placeholder={`${nextNtCode} (tự tạo)`} className={cn(adminInput, "font-mono")} data-testid="au-bill" />
+              </div>
+              <div>
+                <label className={adminLabel} htmlFor="au-origin">
+                  Loại
+                </label>
+                <select id="au-origin" name="origin" defaultValue="manual" className={adminInput}>
+                  <option value="manual">Mua trực tiếp — vào Kho Nhật (shop)</option>
+                  <option value="return">Khách trả lại — vào Kho VN</option>
+                </select>
+              </div>
             </div>
             <div>
               <label className={adminLabel} htmlFor="au-note">
@@ -405,7 +393,7 @@ export default async function ProductUnitsPage({ params, searchParams }: Props) 
             </button>
           </form>
           <p className="mt-3 mb-0 text-[12px] leading-5 text-lien-muted">
-            Mỗi cái nhập được một mã riêng (H…). Hàng mua trong một đợt thì thêm ở Quản lý mua hàng › Mua theo đợt. Đơn khách giữ hàng theo thứ tự: gần khách nhất trước, cùng chỗ thì hạn dùng gần nhất, rồi bill mua sớm hơn.
+            Mỗi cái nhập được một mã riêng (H…) và nằm trên một bill: để trống ô Bill thì hệ thống tạo bill mới mã <b className="font-mono">NT-…</b> (NT = nhập trực tiếp ở màn này). Hàng mua trong một đợt thì thêm ở Quản lý mua hàng › Mua theo đợt. Đơn khách giữ hàng theo thứ tự: gần khách nhất trước, cùng chỗ thì hạn dùng gần nhất, rồi bill mua sớm hơn.
             {live.length ? ` · ${purchaseSourceName(live[0].sourceKey, sources)} là nơi mua gần nhất.` : ""}
             {live.length ? ` Lần mua gần nhất ${formatDate(live[live.length - 1].boughtAt ?? live[live.length - 1].createdAt)}.` : ""}
           </p>

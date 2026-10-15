@@ -6,7 +6,7 @@ import { type ApiScope, generateRawToken, hashToken, looksLikeToken, sanitizeSco
 import { getDb, withTransaction } from "@/lib/sqlite";
 
 /**
- * Admin API v1 tokens, audit log and idempotency records (tables from migration 73).
+ * Admin API v1 tokens, audit log and idempotency records (tables from migration 75).
  *
  * A token always acts FOR an admin account (its owner): every request re-checks that the owner is still active, still
  * has admin access and still holds the module behind each scope, so demoting / locking the account switches its tokens

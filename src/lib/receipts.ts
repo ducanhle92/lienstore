@@ -10,10 +10,10 @@ export type ReceiptStatus = "draft" | "bought" | "shipped";
 export const RECEIPT_STATUS_LABEL: Record<ReceiptStatus, string> = { draft: "Nháp (từ bill, chờ xác nhận)", bought: "Đã mua", shipped: "Đã gửi ĐVVC" };
 
 /** "2026-09-17", 3 → "PM-260917-03". */
-export function receiptCode(boughtAt: string, seq: number): string {
+export function receiptCode(boughtAt: string, seq: number, prefix = "PM"): string {
   const d = /^(\d{4})-(\d{2})-(\d{2})/.exec(boughtAt);
   const ymd = d ? `${d[1].slice(2)}${d[2]}${d[3]}` : "000000";
-  return `PM-${ymd}-${String(Math.max(1, seq)).padStart(2, "0")}`;
+  return `${prefix}-${ymd}-${String(Math.max(1, seq)).padStart(2, "0")}`;
 }
 
 export interface BillItem {

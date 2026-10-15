@@ -10,7 +10,7 @@ import { getUnitByCode, listUnits, type UnitView } from "@/lib/units-db";
 import { describeLocation, locationForStatus, WAREHOUSE_LABEL, type Warehouse } from "@/lib/warehouses";
 
 /**
- * Barcodes linked to products (migration 74 `product_barcodes`) and code resolution for the scan screen / API / CLI.
+ * Barcodes linked to products (migration 76 `product_barcodes`) and code resolution for the scan screen / API / CLI.
  * A code resolves through (1) an active barcode link — a deliberate admin decision, it wins — then (2) an exact
  * `products.sku` match. Several products for one code without a link = CONFLICT (never "the first one").
  */

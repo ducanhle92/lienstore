@@ -90,7 +90,7 @@ bộ đọc ZXing WASM, banner mất mạng). **Chưa** kiểm trên máy thật
 ## 6. Trước khi dùng trên production
 
 - Trang phải chạy HTTPS (đã có qua Cloudflare) — camera cần HTTPS.
-- Migration 74 tự chạy khi khởi động: thêm bảng mã vạch + phiếu quét; SKU là GTIN hợp lệ và **không trùng** được tự
+- Migration 76 tự chạy khi khởi động: thêm bảng mã vạch + phiếu quét; SKU là GTIN hợp lệ và **không trùng** được tự
   liên kết. Xem danh sách SKU trùng (sẽ báo "xung đột" khi quét) và liên kết lại cho đúng.
 - Phân quyền nhân viên: Kho VN cần `⑥ Kho VN`, Kho Nhật `③ Kho Nhật`, xuất hàng `⑦ Giao hàng VN`, liên kết mã cần `Sản phẩm`.
 - Cloudflare: không cache `/api/admin/v1/*`; cho phép header `X-Lien-Csrf`, `Idempotency-Key`.
