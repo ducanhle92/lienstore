@@ -1,28 +1,27 @@
 # Tiến độ
 ## Mục tiêu
-API quản trị có version (`/api/admin/v1/`) + CLI `lienstore` để agent trong T3 Code thao tác sản phẩm/ảnh bằng
-Bearer token riêng (không mở web preview), dùng chung nghiệp vụ với Server Actions của admin.
+1. (xong) API quản trị `/api/admin/v1/` + CLI `lienstore` cho agent thao tác sản phẩm/ảnh bằng Bearer token.
+2. (đang làm) Quét mã sản phẩm trên điện thoại (web app admin): tra cứu, nhập hàng, kiểm kho, xuất hàng — dùng chung
+   nghiệp vụ kho hiện có, qua API v1.
 
-## Đã xong
-- [x] Khảo sát: `saveProduct` ghi cả dòng (PATCH phải merge trên bản hiện tại), `withTransaction` chưa lồng được,
-      upload ảnh do trình duyệt resize (API cần resize bằng sharp), SKU không unique, slug unique.
+## Đã xong (Việc 1: Admin API v1 + CLI) — nhánh `feat/admin-api-cli`
+- [x] B1 migration 73 (api_tokens, api_audit_log, api_idempotency); `withTransaction` lồng bằng SAVEPOINT;
+      `saveProduct(Sync)({ expectedVersion })` chống ghi đè (src/lib/product-version.ts).
+- [x] B2 token: src/lib/api-token-format.ts, api-scopes.ts, api-tokens.ts (hash sha256, scope, hạn, thu hồi, owner
+      re-check mỗi request, audit + redaction, idempotency store).
+- [x] B3 nghiệp vụ chung: src/lib/product-rules.ts + product-service.ts; saveProductAction dùng lại.
+- [x] B4 src/lib/media-service.ts dùng chung cho /api/admin/upload và /api/admin/v1/media.
+- [x] B5 src/lib/api-http.ts (Bearer hoặc session+CSRF, envelope, Idempotency-Key, lỗi) + routes src/app/api/admin/v1/**.
+- [x] B6 trang /admin/api-tokens (owner/admin) + `npm run api-token -- create|list|revoke`.
+- [x] B7 CLI scripts/lienstore.mjs (`npm run -s lienstore -- …`), .env.example, .gitignore `.env.lienstore*.local`.
+- [x] B8 test: `npm run test:admin-api` (29 pass), `npm run test:admin-api:e2e` (15 pass, tự bật next dev :3197 trên DB tạm).
+- [x] B9 docs/ADMIN_API.md, AGENTS.md (+ sync-agent-rules), CHANGELOG [Unreleased], ARCHITECTURE.
+- [x] typecheck OK, eslint src+scripts 0 lỗi (lỗi lint còn lại nằm ở file untracked data/scripts, tools/), build OK.
 
 ## Đang làm
-- Nhánh `feat/admin-api-cli`.
+- Việc 2 (quét mã điện thoại): bắt đầu khảo sát.
 
 ## Tiếp theo
-- [ ] B1. Hạ tầng DB: migration 73 (api_tokens, api_audit_log, api_idempotency), withTransaction lồng (SAVEPOINT),
-      `productVersion` + `expectedVersion` trong `saveProduct` (chống ghi đè).
-- [ ] B2. Token: `src/lib/api-tokens.ts` (sinh/hash/verify/thu hồi/hết hạn, scope products:read|products:write|media:write).
-- [ ] B3. Nghiệp vụ dùng chung `src/lib/product-service.ts` (validate giá/slug/danh mục/ảnh, create/update/bulk, dọn ảnh,
-      revalidate) — Server Action gọi lại các helper này.
-- [ ] B4. Media service dùng chung cho `/api/admin/upload` và API v1 (resize + thumb bằng sharp).
-- [ ] B5. Route handlers `/api/admin/v1/*` (envelope JSON, lỗi rõ ràng, idempotency, audit).
-- [ ] B6. Cấp/thu hồi token: trang `/admin/api-tokens` (owner/admin) + script `npm run api-token`.
-- [ ] B7. CLI `scripts/lienstore.mjs` (+ `npm run -s lienstore --`), `.env.example`.
-- [ ] B8. Test (tsx, DB tạm) + e2e CLI → dev server với DB tạm.
-- [ ] B9. Tài liệu `docs/ADMIN_API.md`, AGENTS.md (+ sync), PROGRESS cuối.
-
 ### Việc 2 (user giao 2026-10-15, làm SAU khi xong API+CLI): quét mã trên điện thoại (web app)
 - [ ] Khảo sát mô hình kho thật (units/lots/stocktake/receipts/shipments/orders, mã SKU/JAN) → viết
       `docs/architecture/mobile-scanning.md` (hiện trạng, luồng, data model/migration, API, trạng thái chứng từ,
@@ -34,5 +33,9 @@ Bearer token riêng (không mở web preview), dùng chung nghiệp vụ với S
   cho UI/API/CLI; idempotency bền; version chứng từ; session web có CSRF; không deploy/push main.
 
 ## Ghi chú / quyết định
+- Hàng loạt API là NGUYÊN TỬ (một mục lỗi → không ghi gì). PATCH merge trên bản đang lưu + kiểm version trong transaction.
+- Idempotency: bảng api_idempotency (24 h, theo token; session dùng key `u:<userId>:…`), 5xx nhả key để retry.
+- E2E: Next 16 chỉ cho 1 `next dev` mỗi thư mục → tắt dev server trước khi `npm run test:admin-api:e2e`.
+- `npm run build` mở data/lienstore.db (có sẵn từ trước) → DB local đã lên schema 73.
 - Không deploy/release/push main trong việc này (user yêu cầu rõ).
 - Không đụng các file untracked có sẵn (agent-credentials.txt, scratch*, tools/, data/ocr_test…).
