@@ -217,3 +217,297 @@ describe("self-hosted ZXing WASM", () => {
     assert.ok(url.includes(zxing.ZXING_WASM_VERSION));
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Scan documents: receive / count / pick
+
+type Docs = typeof import("../../src/lib/scan-docs");
+type UnitsDb = typeof import("../../src/lib/units-db");
+let docs: Docs;
+let units: UnitsDb;
+let owner: { actor: string; permissions: string[] };
+before(async () => {
+  docs = await import("../../src/lib/scan-docs");
+  units = await import("../../src/lib/units-db");
+  const { effectivePermissions } = await import("../../src/lib/permissions");
+  owner = { actor: "Tester (owner)", permissions: effectivePermissions("owner", []) };
+});
+
+let opSeq = 0;
+const op = () => `op-test-${Date.now()}-${++opSeq}`;
+const errCode = (code: string) => (e: unknown) => (e as { code?: string }).code === code;
+let eanSeq = 0;
+/** A fresh valid EAN-13 for each call (2 = "in-store" prefix, never a real product). */
+const freshEan = () => {
+  const body = `2${String(Date.now() % 1e7).padStart(7, "0")}${String(++eanSeq).padStart(4, "0")}`;
+  return `${body}${gs1CheckDigit(body)}`;
+};
+
+/** `qty` units of a product at a place, optionally boxed in a shipment. */
+function makeUnits(productId: number, qty: number, status: "at_shop" | "bought" | "shipped_jp_vn" | "at_carrier_vn", extra: { expiry?: string } = {}) {
+  const d = sqlite.getDb();
+  return sqlite.withTransaction(d, () => {
+    const ids = units.createUnitsSync(d, { productId, qty, status, origin: "manual", expiry: extra.expiry ?? null });
+    units.touchSync(d, { unitIds: ids });
+    return ids;
+  });
+}
+const total = (productId: number, status: string) => Number((sqlite.getDb().prepare("SELECT COUNT(*) AS n FROM stock_units WHERE product_id = ? AND removed IS NULL AND status = ?").get(productId, status) as { n: number }).n);
+
+describe("receive — new goods (direct)", () => {
+  it("draft scans change nothing in stock; confirm creates the units once", async () => {
+    const [a, b] = await twoProducts("rcv");
+    bc.linkBarcode({ productId: a.id, code: "4955555555559", packQty: 6, packLabel: "hộp" }, ctx);
+    await db.updateProductSku(b.id, "4966666666669");
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    assert.equal(doc.status, "draft");
+    const s1 = docs.scanIntoDoc("receive", doc.id, { code: "4955555555559", opId: op() }, owner);
+    assert.equal(s1.op.delta, 6, "one box = 6 units");
+    docs.scanIntoDoc("receive", doc.id, { code: "4966666666669", opId: op(), qty: 3 }, owner);
+    assert.equal(total(a.id, "at_shop"), 0, "a draft never touches stock");
+    const lineA = docs.getDoc("receive", doc.id).lines.find((l) => l.product.id === a.id)!;
+    const v1 = docs.updateLine("receive", doc.id, lineA.id, { rev: lineA.rev, expiry: "2027-03", unitCostJpy: 500 }, owner);
+    const r = docs.confirmDoc("receive", doc.id, { version: v1.version }, owner);
+    assert.equal(r.alreadyConfirmed, false);
+    assert.equal(total(a.id, "at_shop"), 6);
+    assert.equal(total(b.id, "at_shop"), 3);
+    const unitA = sqlite.getDb().prepare("SELECT expiry, unit_cost_jpy, origin FROM stock_units WHERE product_id = ? LIMIT 1").get(a.id) as { expiry: string; unit_cost_jpy: number; origin: string };
+    assert.deepEqual({ ...unitA }, { expiry: "2027-03-31", unit_cost_jpy: 500, origin: "manual" });
+    // the same confirm again (lost response, retry) returns the stored result and does not add units
+    const again = docs.confirmDoc("receive", doc.id, { version: v1.version }, owner);
+    assert.equal(again.alreadyConfirmed, true);
+    assert.equal(total(a.id, "at_shop"), 6);
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4955555555559", opId: op() }, owner), errCode("DOC_NOT_DRAFT"));
+    assert.equal((await db.getProductById(a.id))!.stock, 6, "storefront stock follows the units");
+  });
+  it("a retried scan (same opId) is applied once; the same opId with another code is refused", async () => {
+    const [a] = await twoProducts("retry");
+    await db.updateProductSku(a.id, "4977777777779");
+    const doc = docs.createDoc("receive", { warehouse: "jp", mode: "direct" }, owner);
+    const id = op();
+    const r1 = docs.scanIntoDoc("receive", doc.id, { code: "4977777777779", opId: id }, owner);
+    const r2 = docs.scanIntoDoc("receive", doc.id, { code: "4977777777779", opId: id }, owner);
+    assert.equal(r2.op.replayed, true);
+    assert.equal(r2.doc.lines[0].qty, 1);
+    assert.equal(r1.op.lineId, r2.op.lineId);
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4977777777779", opId: id, qty: 2 }, owner), errCode("OP_ID_REUSED"));
+    // deliberate second scan = new opId = +1
+    assert.equal(docs.scanIntoDoc("receive", doc.id, { code: "4977777777779", opId: op() }, owner).doc.lines[0].qty, 2);
+    // undo the last one
+    assert.equal(docs.undoScan("receive", doc.id, {}, owner).doc.lines[0].qty, 1);
+  });
+  it("two phones: absolute edits need the line rev; confirm needs the document version", async () => {
+    const [a] = await twoProducts("phones");
+    await db.updateProductSku(a.id, "4988888888889");
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    const seen = docs.scanIntoDoc("receive", doc.id, { code: "4988888888889", opId: op() }, owner).doc;
+    const line = seen.lines[0];
+    docs.updateLine("receive", doc.id, line.id, { rev: line.rev, qty: 5 }, owner); // phone 1
+    assert.throws(() => docs.updateLine("receive", doc.id, line.id, { rev: line.rev, qty: 7 }, owner), errCode("LINE_CHANGED")); // phone 2, stale
+    docs.scanIntoDoc("receive", doc.id, { code: "4988888888889", opId: op() }, owner); // phone 2 scans (commutative)
+    assert.throws(() => docs.confirmDoc("receive", doc.id, { version: seen.version }, owner), errCode("DOC_CHANGED"));
+    const fresh = docs.getDoc("receive", doc.id);
+    assert.equal(fresh.lines[0].qty, 6);
+    docs.confirmDoc("receive", doc.id, { version: fresh.version }, owner);
+    assert.equal(total(a.id, "at_shop"), 6);
+  });
+  it("refuses unknown / conflicting / unit codes, wrong warehouse rights, bad quantities", async () => {
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4922222222229", opId: op() }, owner), errCode("UNKNOWN_CODE"));
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4961989409138", opId: op() }, owner), errCode("INVALID_CODE"));
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4911111111119", opId: op(), qty: 0 }, owner), errCode("VALIDATION_FAILED"));
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: "4911111111119", opId: "x" }, owner), errCode("VALIDATION_FAILED"));
+    const [a] = await twoProducts("unitrcv");
+    const [uid] = makeUnits(a.id, 1, "at_shop");
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: unitCode(uid), opId: op() }, owner), errCode("UNIT_ALREADY_IN_STOCK"));
+    const vnOnly = { actor: "staff vn", permissions: ["kho_vn", "inventory"] };
+    assert.throws(() => docs.createDoc("receive", { warehouse: "jp", mode: "direct" }, vnOnly), errCode("WAREHOUSE_FORBIDDEN"));
+    assert.throws(() => docs.scanIntoDoc("receive", docs.createDoc("receive", { warehouse: "jp", mode: "direct" }, owner).id, { code: "4911111111119", opId: op() }, vnOnly), errCode("WAREHOUSE_FORBIDDEN"));
+    assert.throws(() => docs.confirmDoc("receive", doc.id, { version: docs.getDoc("receive", doc.id).version }, owner), errCode("NOTHING_TO_CONFIRM"));
+  });
+  it("a failing confirm leaves stock and document untouched (one transaction)", async () => {
+    const [a] = await twoProducts("atomic");
+    await db.updateProductSku(a.id, "4999999999999");
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    docs.scanIntoDoc("receive", doc.id, { code: "4999999999999", opId: op(), qty: 2 }, owner);
+    const v = docs.getDoc("receive", doc.id);
+    docs.updateLine("receive", doc.id, v.lines[0].id, { rev: v.lines[0].rev, billCode: "BILL-TEST-1" }, owner);
+    // make the second step fail: a trigger that aborts unit creation for this product
+    const d = sqlite.getDb();
+    d.exec(`CREATE TEMP TRIGGER boom BEFORE INSERT ON stock_units WHEN NEW.product_id = ${a.id} BEGIN SELECT RAISE(ABORT, 'boom'); END`);
+    try {
+      assert.throws(() => docs.confirmDoc("receive", doc.id, { version: docs.getDoc("receive", doc.id).version }, owner), /boom/);
+    } finally {
+      d.exec("DROP TRIGGER IF EXISTS temp.boom");
+    }
+    assert.equal(docs.getDoc("receive", doc.id).status, "draft");
+    assert.equal(total(a.id, "at_shop"), 0);
+    assert.equal(d.prepare("SELECT COUNT(*) AS n FROM purchase_receipts WHERE code = 'BILL-TEST-1'").get()!.n, 0, "bill created in the failed transaction was rolled back");
+  });
+});
+
+describe("receive — a packing run arriving at Kho VN (shipment)", () => {
+  it("partial receive moves exactly the scanned units; over-receiving and foreign units are refused", async () => {
+    const { createShipment, packUnits, setShipmentStatus } = await import("../../src/lib/shipments-db");
+    const [a, b] = await twoProducts("ship");
+    const shipEan = freshEan();
+    await db.updateProductSku(a.id, shipEan);
+    const aIds = makeUnits(a.id, 3, "bought");
+    const bIds = makeUnits(b.id, 1, "bought");
+    const sh = createShipment({ label: "test", plannedAt: null, note: "" });
+    packUnits(sh.id, [...aIds, ...bIds]);
+    await setShipmentStatus(sh.id, "flying");
+    assert.equal(total(a.id, "shipped_jp_vn"), 3);
+    const doc = docs.createDoc("receive", { mode: "shipment", shipmentId: sh.id }, owner);
+    assert.deepEqual(doc.lines.map((l) => l.expected).sort(), [1, 3]);
+    assert.throws(() => docs.createDoc("receive", { mode: "shipment", shipmentId: sh.id }, owner), errCode("DOC_EXISTS"));
+    docs.scanIntoDoc("receive", doc.id, { code: unitCode(aIds[1]), opId: op() }, owner);
+    assert.equal(docs.scanIntoDoc("receive", doc.id, { code: unitCode(aIds[1]), opId: op() }, owner).op.outcome, "duplicate_unit");
+    docs.scanIntoDoc("receive", doc.id, { code: shipEan, opId: op() }, owner);
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: shipEan, opId: op(), qty: 2 }, owner), errCode("OVER_QUANTITY"));
+    const [other] = makeUnits(b.id, 1, "at_carrier_vn");
+    assert.throws(() => docs.scanIntoDoc("receive", doc.id, { code: unitCode(other), opId: op() }, owner), errCode("UNIT_NOT_IN_SHIPMENT"));
+    const r = docs.confirmDoc("receive", doc.id, { version: docs.getDoc("receive", doc.id).version }, owner);
+    const res = r.result as { units: number; shipmentDone: boolean; received: Array<{ codes: string[] }> };
+    assert.equal(res.units, 2);
+    assert.equal(res.shipmentDone, false);
+    assert.ok(res.received[0].codes.includes(unitCode(aIds[1])), "the scanned unit itself was received");
+    assert.equal(total(a.id, "at_shop"), 2);
+    assert.equal(total(b.id, "shipped_jp_vn"), 1, "not scanned = not received");
+    // the rest arrives on a second receipt; the run is then done
+    const doc2 = docs.createDoc("receive", { mode: "shipment", shipmentId: sh.id }, owner);
+    docs.scanIntoDoc("receive", doc2.id, { code: shipEan, opId: op() }, owner);
+    docs.scanIntoDoc("receive", doc2.id, { code: unitCode(bIds[0]), opId: op() }, owner);
+    const r2 = docs.confirmDoc("receive", doc2.id, { version: docs.getDoc("receive", doc2.id).version }, owner);
+    assert.equal((r2.result as { shipmentDone: boolean }).shipmentDone, true);
+    assert.equal((sqlite.getDb().prepare("SELECT status FROM shipments WHERE id = ?").get(sh.id) as { status: string }).status, "done");
+  });
+});
+
+describe("stock count", () => {
+  it("not counted ≠ counted 0; difference is applied with the existing stocktake rule", async () => {
+    const [a, b] = await twoProducts("count");
+    await db.updateProductSku(a.id, "4933333333339");
+    makeUnits(a.id, 5, "at_shop");
+    makeUnits(b.id, 2, "at_shop");
+    const doc = docs.createDoc("count", { warehouse: "vn" }, owner);
+    docs.scanIntoDoc("count", doc.id, { code: "4933333333339", opId: op(), qty: 3 }, owner);
+    let v = docs.addLine("count", doc.id, { productId: b.id }, owner);
+    const lineB = v.lines.find((l) => l.product.id === b.id)!;
+    assert.equal(lineB.qty, null);
+    assert.equal(lineB.state, "uncounted");
+    v = docs.getDoc("count", doc.id);
+    const lineA = v.lines.find((l) => l.product.id === a.id)!;
+    assert.equal(lineA.expected, 5);
+    assert.equal(lineA.message, "Chênh -2");
+    const r = docs.confirmDoc("count", doc.id, { version: v.version }, owner);
+    const res = r.result as { removed: number; added: number; uncountedIgnored: number };
+    assert.equal(res.removed, 2);
+    assert.equal(res.uncountedIgnored, 1);
+    assert.equal(total(a.id, "at_shop"), 3);
+    assert.equal(total(b.id, "at_shop"), 2, "an uncounted product is NOT treated as 0");
+    // counted 0 really means 0
+    const doc2 = docs.createDoc("count", { warehouse: "vn" }, owner);
+    const v2 = docs.addLine("count", doc2.id, { productId: b.id }, owner);
+    const l2 = v2.lines[0];
+    const v3 = docs.updateLine("count", doc2.id, l2.id, { rev: l2.rev, qty: 0 }, owner);
+    docs.confirmDoc("count", doc2.id, { version: v3.version }, owner);
+    assert.equal(total(b.id, "at_shop"), 0);
+  });
+  it("stock moving during the count blocks closing until recounted or accepted", async () => {
+    const [a] = await twoProducts("drift");
+    await db.updateProductSku(a.id, "4900000000016");
+    makeUnits(a.id, 4, "at_shop");
+    const doc = docs.createDoc("count", { warehouse: "vn" }, owner);
+    docs.scanIntoDoc("count", doc.id, { code: "4900000000016", opId: op(), qty: 4 }, owner);
+    makeUnits(a.id, 2, "at_shop"); // goods received while counting
+    let v = docs.getDoc("count", doc.id);
+    assert.equal(v.lines[0].state, "drift");
+    assert.throws(() => docs.confirmDoc("count", doc.id, { version: v.version }, owner), errCode("COUNT_DRIFT"));
+    assert.equal(total(a.id, "at_shop"), 6, "nothing applied from the old snapshot");
+    // the counter checks again: the 2 new ones were on another shelf, count is 6
+    v = docs.updateLine("count", doc.id, v.lines[0].id, { rev: v.lines[0].rev, acceptDrift: true, qty: 6 }, owner);
+    assert.equal(v.lines[0].state, "match");
+    docs.confirmDoc("count", doc.id, { version: v.version }, owner);
+    assert.equal(total(a.id, "at_shop"), 6);
+  });
+  it("cannot write off units held for orders: closing is blocked for manual handling", async () => {
+    const [a] = await twoProducts("held");
+    const ids = makeUnits(a.id, 2, "at_shop");
+    sqlite.getDb().prepare(`UPDATE stock_units SET shipment_id = -1 WHERE id = ?`).run(ids[0]); // boxed: not adjustable
+    const doc = docs.createDoc("count", { warehouse: "vn" }, owner);
+    const v = docs.addLine("count", doc.id, { productId: a.id }, owner);
+    const v2 = docs.updateLine("count", doc.id, v.lines[0].id, { rev: v.lines[0].rev, qty: 0 }, owner);
+    assert.throws(() => docs.confirmDoc("count", doc.id, { version: v2.version }, owner), errCode("COUNT_SHORT_HELD"));
+    assert.equal(total(a.id, "at_shop"), 2);
+  });
+  it("a unit code is counted once however often it is scanned", async () => {
+    const [a] = await twoProducts("unitcount");
+    const [u] = makeUnits(a.id, 1, "at_shop");
+    const doc = docs.createDoc("count", { warehouse: "vn" }, owner);
+    for (let i = 0; i < 5; i++) docs.scanIntoDoc("count", doc.id, { code: unitCode(u), opId: op() }, owner);
+    assert.equal(docs.getDoc("count", doc.id).lines[0].qty, 1);
+  });
+});
+
+describe("pick — order check before delivery", () => {
+  async function readyOrder(tag: string) {
+    const [a, b] = await twoProducts(tag);
+    const ean = freshEan();
+    await db.updateProductSku(a.id, ean);
+    const d = sqlite.getDb();
+    const id = `test-order-${tag}-${Date.now()}`;
+    const number = 900000 + Math.floor(Math.random() * 99999);
+    const ts = new Date().toISOString();
+    d.prepare("INSERT INTO orders (id, number, status, payment_method, subtotal, total, created_at, updated_at, stock_committed_at, paid_at, ship_stage) VALUES (?, ?, 'processing', 'bacs', 0, 0, ?, ?, ?, ?, 'vn_warehouse')").run(id, number, ts, ts, ts, ts);
+    const ia = Number(d.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, quantity) VALUES (?, ?, ?, ?, 0, 2)").run(id, a.id, a.slug, a.name).lastInsertRowid);
+    const ib = Number(d.prepare("INSERT INTO order_items (order_id, product_id, slug, name, price, quantity) VALUES (?, ?, ?, ?, 0, 1)").run(id, b.id, b.slug, b.name).lastInsertRowid);
+    const aUnits = makeUnits(a.id, 2, "at_shop");
+    const bUnits = makeUnits(b.id, 1, "at_shop");
+    d.prepare(`UPDATE stock_units SET order_item_id = ?, committed_at = ? WHERE id IN (${aUnits.join(",")})`).run(ia, ts);
+    d.prepare("UPDATE stock_units SET order_item_id = ?, committed_at = ? WHERE id = ?").run(ib, ts, bUnits[0]);
+    return { id, number, a, b, aUnits, bUnits, ean };
+  }
+
+  it("wrong product / unit and over-picking are refused; incomplete picks cannot be completed", async () => {
+    const o = await readyOrder("pick1");
+    const doc = docs.createDoc("pick", { orderId: o.id }, owner);
+    assert.deepEqual(doc.lines.map((l) => l.expected), [2, 1]);
+    assert.throws(() => docs.createDoc("pick", { orderId: o.id }, owner), errCode("DOC_EXISTS"));
+    const [stranger] = await twoProducts("stranger");
+    const [su] = makeUnits(stranger.id, 1, "at_shop");
+    assert.throws(() => docs.scanIntoDoc("pick", doc.id, { code: unitCode(su), opId: op() }, owner), errCode("WRONG_PRODUCT"));
+    const [freeA] = makeUnits(o.a.id, 1, "at_shop");
+    assert.throws(() => docs.scanIntoDoc("pick", doc.id, { code: unitCode(freeA), opId: op() }, owner), errCode("WRONG_UNIT"));
+    docs.scanIntoDoc("pick", doc.id, { code: o.ean, opId: op() }, owner);
+    docs.scanIntoDoc("pick", doc.id, { code: unitCode(o.aUnits[1]), opId: op() }, owner);
+    assert.throws(() => docs.scanIntoDoc("pick", doc.id, { code: o.ean, opId: op() }, owner), errCode("OVER_QUANTITY"));
+    const v = docs.getDoc("pick", doc.id);
+    assert.ok(v.blockers.length > 0);
+    assert.throws(() => docs.confirmDoc("pick", doc.id, { version: v.version }, owner), errCode("PICK_INCOMPLETE"));
+    assert.equal(total(o.a.id, "at_shop"), 3, "nothing left the shop");
+  });
+  it("complete = the ⑦ 'bắt đầu giao' step, exactly once", async () => {
+    const o = await readyOrder("pick2");
+    const doc = docs.createDoc("pick", { orderId: o.id }, owner);
+    docs.scanIntoDoc("pick", doc.id, { code: o.ean, opId: op(), qty: 2 }, owner);
+    const v = docs.scanIntoDoc("pick", doc.id, { code: unitCode(o.bUnits[0]), opId: op() }, owner).doc;
+    assert.deepEqual(v.blockers, []);
+    const r = docs.confirmDoc("pick", doc.id, { version: v.version }, owner);
+    assert.equal((r.result as { units: number }).units, 3);
+    assert.equal(total(o.a.id, "shipped_to_customer"), 2);
+    assert.equal(total(o.b.id, "shipped_to_customer"), 1);
+    const order = sqlite.getDb().prepare("SELECT ship_stage FROM orders WHERE id = ?").get(o.id) as { ship_stage: string };
+    assert.equal(order.ship_stage, "delivering");
+    const events = Number((sqlite.getDb().prepare("SELECT COUNT(*) AS n FROM order_leg_events WHERE order_id = ? AND leg = 'vn_domestic' AND status = 'sent'").get(o.id) as { n: number }).n);
+    assert.equal(events, 1);
+    assert.equal(docs.confirmDoc("pick", doc.id, { version: v.version }, owner).alreadyConfirmed, true);
+    assert.equal(Number((sqlite.getDb().prepare("SELECT COUNT(*) AS n FROM order_leg_events WHERE order_id = ? AND leg = 'vn_domestic' AND status = 'sent'").get(o.id) as { n: number }).n), 1, "not shipped twice");
+    // an order already on its way cannot get a new pick
+    assert.throws(() => docs.createDoc("pick", { orderId: o.id }, owner), errCode("ORDER_NOT_READY"));
+  });
+  it("needs the delivery permission", async () => {
+    const o = await readyOrder("pick3");
+    assert.throws(() => docs.createDoc("pick", { orderId: o.id }, { actor: "kho", permissions: ["kho_vn", "inventory"] }), errCode("FORBIDDEN"));
+  });
+});

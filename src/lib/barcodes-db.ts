@@ -61,7 +61,8 @@ export type Resolution =
   | { kind: "unit"; input: string; code: string; symbology: "unit"; product: ProductBrief; unit: UnitBrief; packQty: 1; packLabel: ""; warnings: string[] }
   | { kind: "conflict"; input: string; code: string; symbology: string; candidates: ProductBrief[]; message: string }
   | { kind: "unknown"; input: string; code: string; symbology: string; message: string }
-  | { kind: "invalid" | "unsupported_qr"; input: string; message: string };
+  | { kind: "invalid"; input: string; message: string }
+  | { kind: "unsupported_qr"; input: string; message: string };
 
 interface ProductRowLite {
   id: number;
@@ -137,7 +138,8 @@ function skuMatchesSync(db: DatabaseSync, code: string): ProductRowLite[] {
 
 export function resolveParsedSync(db: DatabaseSync, p: ParsedCode): Resolution {
   const input = p.raw;
-  if (p.kind === "invalid" || p.kind === "unsupported_qr") return { kind: p.kind, input, message: p.reason };
+  if (p.kind === "invalid") return { kind: "invalid", input, message: p.reason };
+  if (p.kind === "unsupported_qr") return { kind: "unsupported_qr", input, message: p.reason };
   if (p.kind === "product_ref") {
     const product = productBriefSync(db, p.productId);
     if (!product) return { kind: "unknown", input, code: `LS1:P:${p.productId}`, symbology: "qr", message: `QR trỏ tới sản phẩm #${p.productId} không còn tồn tại.` };

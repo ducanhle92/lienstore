@@ -1553,7 +1553,11 @@ export async function listOrderLegEvents(orderIds: string[]): Promise<Map<string
  * (never lowered). A leg the admin never assigned a method to gets a row too, so the status can be tracked anyway.
  */
 export async function setOrderLegStatus(orderId: string, leg: ShippingLeg, status: LegStatus, opts: { tracking?: string; note?: string; actor?: string } = {}): Promise<boolean> {
-  const db = getDb();
+  return setOrderLegStatusSync(getDb(), orderId, leg, status, opts);
+}
+
+/** Synchronous `setOrderLegStatus` (one transaction with the caller, e.g. a scan pick document). */
+export function setOrderLegStatusSync(db: DatabaseSync, orderId: string, leg: ShippingLeg, status: LegStatus, opts: { tracking?: string; note?: string; actor?: string } = {}): boolean {
   const now = new Date().toISOString();
   return withTransaction(db, () => {
     const order = db.prepare("SELECT id, ship_stage FROM orders WHERE id = ?").get(orderId) as { id: string; ship_stage: string | null } | undefined;

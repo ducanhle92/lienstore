@@ -201,7 +201,11 @@ function stageUnitStatus(status: ShipmentStatus): PurchaseStatus | null {
 
 /** Status change: from "handed" on the packed units move to the stage's place; orders, lines and batches follow. */
 export async function setShipmentStatus(id: number, status: ShipmentStatus, actor = ""): Promise<{ ok: boolean; lots: number; message?: string }> {
-  const db = getDb();
+  return setShipmentStatusSync(getDb(), id, status, actor);
+}
+
+/** Synchronous `setShipmentStatus` (one transaction with the caller, e.g. a scan receipt document). */
+export function setShipmentStatusSync(db: DatabaseSync, id: number, status: ShipmentStatus, actor = ""): { ok: boolean; lots: number; message?: string } {
   const cur = db.prepare("SELECT * FROM shipments WHERE id = ?").get(id) as Row | undefined;
   if (!cur) return { ok: false, lots: 0, message: "Không tìm thấy chuyến." };
   const unitIds = (db.prepare("SELECT id FROM stock_units WHERE shipment_id = ? AND removed IS NULL").all(id) as Array<{ id: number }>).map((r) => r.id);
