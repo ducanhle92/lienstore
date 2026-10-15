@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Changed
+- **CSV cần mua · 3 cột số lượng rõ nghĩa hơn**: "**Cần mua theo đơn**" (đơn đang mở còn thiếu) · "**Cần mua lưu kho**" (dự định mua để lưu kho) · "**Còn thiếu**" = tổng hai cột trên (số phải mua; "Tổng vốn" = Còn thiếu × giá vốn).
+
+### Fixed
+- CSV cần mua: SKU toàn chữ số (mã vạch, VD 4987050…) không còn bị Excel hiện thành 4.98705E+12 — ghi dạng chữ.
+
 ## [2.34.4] - 2026-10-15
 
 ### Added

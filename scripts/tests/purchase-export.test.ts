@@ -51,3 +51,14 @@ test("empty need list and CSV quoting for Vietnamese/Excel", () => {
   try { assert.deepEqual(getCurrentPurchaseNeeds(db), []); } finally { db.close(); }
   assert.equal(purchaseCsv([["Tên", "SL"], ['Dầu "xả", Nhật', 2]]), '\uFEFF"Tên","SL"\r\n"Dầu ""xả"", Nhật","2"');
 });
+
+test("CSV columns: cần mua theo đơn, cần mua lưu kho, còn thiếu = tổng; barcode SKU stays text in Excel", async () => {
+  const { PURCHASE_CSV_HEADER, purchaseCsvRows } = await import("../../src/lib/purchase-export");
+  assert.deepEqual(PURCHASE_CSV_HEADER.slice(3, 6), ["Cần mua theo đơn", "Cần mua lưu kho", "Còn thiếu"]);
+  const rows = purchaseCsvRows([{ productId: 7, orderQuantity: 3, stockQuantity: 2, quantity: 5, orders: ["#2x3"] }], () => ({ name: "Dầu gội", sku: "4987050000000", costPrice: 10000, supplierUrl: "" }));
+  assert.deepEqual(rows[0].slice(2, 6), ['="4987050000000"', 3, 2, 5]);
+  assert.equal(rows[0][8], 50000);
+  assert.ok(purchaseCsv(rows).includes('"=""4987050000000"""'));
+  const plain = purchaseCsvRows([{ productId: 8, orderQuantity: 1, stockQuantity: 0, quantity: 1, orders: [] }], () => ({ name: "x", sku: "EBISU-ADULT-SOFT", costPrice: null, supplierUrl: "" }));
+  assert.equal(plain[0][2], "EBISU-ADULT-SOFT");
+});

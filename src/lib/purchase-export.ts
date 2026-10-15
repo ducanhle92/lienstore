@@ -49,3 +49,20 @@ export function getCurrentPurchaseNeeds(db: DatabaseSync): PurchaseNeed[] {
 export function purchaseCsv(rows: unknown[][]): string {
   return "\uFEFF" + rows.map((row) => row.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
 }
+
+/** A barcode-like SKU (only digits, 8+ long) as an Excel text formula ="4901…" — otherwise Excel shows 4.98705E+12. */
+export const excelText = (v: string): string => (/^\d{8,}$/.test(v) ? `="${v}"` : v);
+
+export const PURCHASE_CSV_HEADER = ["ID", "Tên sản phẩm", "SKU", "Cần mua theo đơn", "Cần mua lưu kho", "Còn thiếu", "Đơn hàng", "Giá vốn (VNĐ)", "Tổng vốn (VNĐ)", "Link mua"];
+
+/**
+ * Rows of "Xuất CSV cần mua": per product what open orders still lack, what is planned for stock, and "Còn thiếu" =
+ * the sum of both (what has to be bought); then the orders, cost price, total cost (Còn thiếu × giá vốn) and the link.
+ */
+export function purchaseCsvRows(needs: PurchaseNeed[], product: (id: number) => { name: string; sku: string; costPrice: number | null; supplierUrl: string } | undefined): unknown[][] {
+  return needs.map((n) => {
+    const p = product(n.productId);
+    return [n.productId, p?.name ?? `Sản phẩm #${n.productId}`, excelText(p?.sku ?? ""), n.orderQuantity, n.stockQuantity, n.quantity, n.orders.join(" "), p?.costPrice ?? "", p?.costPrice == null ? "" : n.quantity * p.costPrice, p?.supplierUrl ?? ""];
+  });
+}
+
