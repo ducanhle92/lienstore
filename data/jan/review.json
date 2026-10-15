@@ -1345,6 +1345,306 @@
   "reason": "no code found"
  },
  {
+  "productId": 2723,
+  "code": null,
+  "source": "web:p01.json",
+  "confidence": "none",
+  "evidence": "https://www.meiji.co.jp/products/chocolate/4902777256498.html",
+  "note": "nameJa is Vietnamese only; could not find a 37g Super Cup vanilla pocket pack of たけのこの里 - only the 92g 8-bag きのこの山とたけのこの里 Super Cup bag (4902777256498), different size",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2703,
+  "code": null,
+  "source": "web:p01.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "No Japanese listing found for Doritos taco 305g Ultra Size (likely imported); nameJa is Vietnamese only",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2701,
+  "code": null,
+  "source": "web:p01.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "Don Quijote 情熱価格 Korean seaweed - size/pack count unknown and no JAN page found",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2519,
+  "code": "4987035513711",
+  "source": "web:p02.json",
+  "confidence": "low",
+  "evidence": "https://netshop.create-sd.co.jp/shop/g/g4987035513711/ https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4987035513711",
+  "note": "Plain ネイチャーメイド マルチビタミン in Japan is sold only as 50粒/100粒 (100粒 = 4987035265313); the only 120粒 multivitamin is スーパーマルチビタミン&ミネラル. Variant uncertain - verify against package",
+  "matchedTitle": "ネイチャーメイド スーパーマルチビタミン&ミネラル 120粒",
+  "reason": "confidence low"
+ },
+ {
+  "productId": 2729,
+  "code": "4987035541219",
+  "source": "web:p02.json",
+  "confidence": "low",
+  "evidence": "https://netshop.create-sd.co.jp/shop/g/g4987035541219/",
+  "note": "nameJa is generic; brand taken from Vietnamese name (THE WISE MAN'S DINING = 大塚製薬 賢者の食卓 ダブルサポート). Pack size not given (30包 vs 9包 exist); code is for 30包",
+  "matchedTitle": "賢者の食卓 ダブルサポート 6g×30包",
+  "reason": "confidence low"
+ },
+ {
+  "productId": 2760,
+  "code": null,
+  "source": "web:p02.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "Too vague: Ebisu has many adult toothbrush lines (プレミアムケア 6列/7列, リグハブラシ, メディフィット...) each with own JAN; line not specified",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2761,
+  "code": null,
+  "source": "web:p02.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "Too vague: Ebisu adult toothbrush line not specified (many lines with different JANs)",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2704,
+  "code": null,
+  "source": "web:p02.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "No maker/brand in name and no listing found for おからりんとう からし明太子",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2758,
+  "code": null,
+  "source": "web:p02.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "Shoe JAN differs per shoe size; size not specified and no JAN found for 1183A592.200",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2741,
+  "code": null,
+  "source": "web:p03.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "cosparade botanical CICA hydrogel eye mask 60枚 exists (Donki), but no page with its JAN found.",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2720,
+  "code": null,
+  "source": "web:p03.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "No page found for cosparade hydrogel eye mask niacinamide & NMN 60枚 with a JAN; did not reuse the Gold mask code.",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2453,
+  "code": null,
+  "source": "web:p04.json",
+  "confidence": "none",
+  "evidence": "https://www.cosme.net/variations/1195147/",
+  "note": "Exact shade page found (3.8g) but no JAN shown; no other page with the code.",
+  "matchedTitle": "fwee(フィー) / フィー ピンクオブセッションステイフィットティント (マット/グロウ) M10 ハートピンク",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2477,
+  "code": null,
+  "source": "web:p04.json",
+  "confidence": "none",
+  "evidence": "https://www.cosme.net/variations/1181723/",
+  "note": "Exact item page (5.4g) found but no JAN shown anywhere searched.",
+  "matchedTitle": "twinkle pop / グリッターレイヤリングアイパレット 04 APRICOT LAYER",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2462,
+  "code": "4582356613951",
+  "source": "web:p05.json",
+  "confidence": "low",
+  "evidence": "https://store.shopping.yahoo.co.jp/zozo/83076497.html https://www.make-up-solution.com/ec/pro/disp/1/4582356613937",
+  "note": "ZOZO listing gives ブランド品番 4582356613937/4582356613951/4582356613968 for カラー 01 スターブケ, 02 ピンクスパークル, 03 アイシーブルー; 01=…937 confirmed by make-up-solution title, so 02=…951 inferred by list order only. Verify against package.",
+  "matchedTitle": "Glint（グリント） 口紅 リップ リップセリン : ZOZOTOWN Yahoo!店",
+  "reason": "confidence low"
+ },
+ {
+  "productId": 2463,
+  "code": "4582356613968",
+  "source": "web:p05.json",
+  "confidence": "low",
+  "evidence": "https://store.shopping.yahoo.co.jp/zozo/83076497.html",
+  "note": "Same ZOZO listing: 03 アイシーブルー is third color, third code 4582356613968 (also the listing's JAN field). Color mapping inferred by list order only; 15ml. Verify against package.",
+  "matchedTitle": "Glint（グリント） 口紅 リップ リップセリン : ZOZOTOWN Yahoo!店",
+  "reason": "confidence low"
+ },
+ {
+  "productId": 2687,
+  "code": null,
+  "source": "web:p06.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "nameJa is only a Vietnamese generic description (4-layer foaming net), no brand; too vague.",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2422,
+  "code": null,
+  "source": "web:p06.json",
+  "confidence": "none",
+  "evidence": "https://www.cosme.net/variations/1144716/ https://lipscosme.com/products/552770",
+  "note": "Product exists (limited, released 2023-04-25, sold out) but no page showing its JAN could be found/read.",
+  "matchedTitle": "クラブ すっぴんパウダー アクネケア ピュアグレープフルーツの香り 26g",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2754,
+  "code": null,
+  "source": "web:p07.json",
+  "confidence": "none",
+  "evidence": "https://anamall.ana.co.jp/shop/g/g0086-R1-1/",
+  "note": "Seedcoms 冬虫夏草 30粒 found (ANA Mall, Qoo10) but no page shows a JAN; mail-order supplement, JAN not published",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2724,
+  "code": null,
+  "source": "web:p07.json",
+  "confidence": "none",
+  "evidence": "https://www.qoo10.jp/item/4%e6%97%a5%e3%81%8b%e3%82%89-%e5%86%ac%e8%99%ab%e5%a4%8f%e8%8d%89-%e7%b4%84%ef%bc%93%e3%83%b6%e6%9c%88%e5%88%86/443838096",
+  "note": "Seedcoms 冬虫夏草 約3ヶ月分 listed on Qoo10/ANA Mall without JAN; nothing reliable",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2688,
+  "code": null,
+  "source": "web:p07.json",
+  "confidence": "none",
+  "evidence": "https://www.cosme.net/products/10074471/",
+  "note": "シートクレンジング 60枚 (2014 version, discontinued/renewed per @cosme); no page with a JAN found",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2739,
+  "code": null,
+  "source": "web:p07.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "身伸革命 300粒: no Japanese retailer/maker page found; likely export-only product",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2614,
+  "code": null,
+  "source": "web:p07.json",
+  "confidence": "none",
+  "evidence": "https://trungtamthuoc.com/growth-height-ex-plus",
+  "note": "Growth Height Ex Plus 300 tablets only on Vietnamese sites (maker 'Japan Algae'); no JAN found",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2511,
+  "code": null,
+  "source": "web:p08.json",
+  "confidence": "none",
+  "evidence": "https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4571157256290",
+  "note": "Regular 徳用 900粒 is 4571157256290, but the 950粒 (900+50 limited bonus) pack's JAN was not found on any page; may or may not share the 900粒 code",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2552,
+  "code": null,
+  "source": "web:p10.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "No Moving Rubber variant named 'カジュアルマット' found (line has Extreme Mat, Grunge Mat, Wild Shake, Spiky Edge, Multi Form, Air Rise, Loose Shuffle, Playful Move, Cool Wet). Name may be wrong; check package.",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2593,
+  "code": null,
+  "source": "web:p11.json",
+  "confidence": "none",
+  "evidence": "https://www.cosme.net/variations/1178570",
+  "note": "@cosme page has no JAN; 0742832359252 only appears in flea-market listings (fril) and may be the pre-Advance version — not verified on a reliable page",
+  "matchedTitle": "soaddicted / ラッシュアディクト アイラッシュ コンディショニング セラム アドバンス 5ml",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2585,
+  "code": null,
+  "source": "web:p11.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "only the ニキビケア variant found (4901417629524, different item); 肌・毛穴ケア 110g JAN not seen on any page",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2586,
+  "code": null,
+  "source": "web:p11.json",
+  "confidence": "none",
+  "evidence": "",
+  "note": "no listing found for HITO-KAN プレミアム オールインワンゲル 270g (only older HITOKAN 245g references)",
+  "matchedTitle": "",
+  "reason": "no code found"
+ },
+ {
+  "productId": 2418,
+  "code": "4961989409016",
+  "source": "web:p01.json",
+  "confidence": "high",
+  "evidence": "https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4961989409016 https://www.cosme.net/variations/1108560/",
+  "note": "Plain 酒粕パック 170g (released 2022-01-11); not the 酒粕パック グロー variant (4961989409764)",
+  "matchedTitle": "pdc ワフードメイド 酒粕パック 170g",
+  "reason": "other code proposed; kept 4515061042150 (sku)"
+ },
+ {
+  "productId": 2419,
+  "code": "4987306045132",
+  "source": "web:p09.json",
+  "confidence": "medium",
+  "evidence": "https://www.e-fujiyakuhin.jp/smp/item/4987306045132.html https://honichi.com/goods/items/e5f71cd8-f29a-4deb-96f0-1415520a19a6/",
+  "note": "210錠 size matches; retailer page keyed by JAN plus aggregator listing",
+  "matchedTitle": "パブロンゴールドA〈錠〉 210錠 (指定第2類医薬品, 大正製薬)",
+  "reason": "other code proposed; kept 4515061044734 (sku)"
+ },
+ {
+  "productId": 2420,
+  "code": "4901416177651",
+  "source": "web:p06.json",
+  "confidence": "high",
+  "evidence": "https://www.askul.co.jp/p/U878678/ https://store.shopping.yahoo.co.jp/piony/4901416177651-1.html https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4901416177651 https://www.cosme.net/variations/1054195",
+  "note": "Askul, Yahoo shops and Matsukiyo list the Innocent Floral 26g powder A under this JAN; @cosme 26g variation agrees.",
+  "matchedTitle": "クラブ すっぴんホワイトニングパウダーA イノセントフローラルの香り 26g",
+  "reason": "other code proposed; kept 4515061013884 (sku)"
+ },
+ {
   "productId": 2680,
   "code": "4515061013884",
   "note": "sku shop-data SKU 4515061013884",
@@ -1577,5 +1877,14 @@
   "kind": "main",
   "name": "Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract",
   "reason": "duplicate of product 2284 (that one got the code)"
+ },
+ {
+  "productId": 2721,
+  "code": "4987188155059",
+  "note": "web:p03.json high https://shop.tsuruha.co.jp/10048090.html https://www.e-fujiyakuhin.jp/smp/item/4987188155059.html",
+  "confidence": "high",
+  "kind": "main",
+  "name": "Dung dịch lăn xoa bóp giảm đau vai gáy mỏi cơ Hisamitsu Salonpas Lotion 85ml",
+  "reason": "duplicate of product 2616 (that one got the code)"
  }
 ]

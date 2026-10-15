@@ -1,0 +1,141 @@
+[
+ {
+  "productId": 2594,
+  "code": "4901417622440",
+  "confidence": "high",
+  "matchedTitle": "肌美精　薬用美白美容液　３０ｍｌ",
+  "evidence": [
+   "https://netshop.create-sd.co.jp/shop/g/g4901417622440/",
+   "https://www.cosme.net/products/10268848/"
+  ],
+  "note": "Create SD title exact (30ml) + @cosme JANコード 4901417622440 (2025 release, 医薬部外品)",
+  "altCodes": []
+ },
+ {
+  "productId": 2593,
+  "code": null,
+  "confidence": "none",
+  "matchedTitle": "soaddicted / ラッシュアディクト アイラッシュ コンディショニング セラム アドバンス 5ml",
+  "evidence": [
+   "https://www.cosme.net/variations/1178570"
+  ],
+  "note": "@cosme page has no JAN; 0742832359252 only appears in flea-market listings (fril) and may be the pre-Advance version — not verified on a reliable page",
+  "altCodes": []
+ },
+ {
+  "productId": 2592,
+  "code": "8809153102201",
+  "confidence": "medium",
+  "matchedTitle": "SKINFOOD(スキンフード) / キャロットカロテン カーミングウォーターパッド 60枚",
+  "evidence": [
+   "https://www.cosme.net/variations/1073648/"
+  ],
+  "note": "@cosme 60枚 variation JANコード; only one source found",
+  "altCodes": []
+ },
+ {
+  "productId": 2591,
+  "code": "8803463011437",
+  "confidence": "high",
+  "matchedTitle": "ＶＴ　リードルＳ　ＰＤＲＮ＋マスク　１枚",
+  "evidence": [
+   "https://netshop.create-sd.co.jp/shop/g/g8803463011437/",
+   "https://www.cosme.net/variations/1202762/",
+   "https://www.matsukiyococokara-online.com/store/catalog/product/view/id/8803463011437"
+  ],
+  "note": "single sheet (1枚) — Create SD + @cosme + Matsukiyo agree",
+  "altCodes": []
+ },
+ {
+  "productId": 2589,
+  "code": "4580517683324",
+  "confidence": "high",
+  "matchedTitle": "フルーシー 美容液 28mL",
+  "evidence": [
+   "https://www.e-fujiyakuhin.jp/smp/item/4580517683324.html",
+   "https://www.cosme.net/variations/1084749/",
+   "https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4580517683324"
+  ],
+  "note": "fru:C オールインワン(ビタミンC)美容液 28ml; drugstore + @cosme",
+  "altCodes": [
+   {
+    "code": "4580517683263",
+    "note": "also listed as JANコード on the same @cosme 28ml variation (likely older package)"
+   }
+  ]
+ },
+ {
+  "productId": 2588,
+  "code": "4560401461474",
+  "confidence": "high",
+  "matchedTitle": "クオリティファースト　ダーマレーザー　スーパーＶＣ１００ローション　しっとり　２４０ｍｌ",
+  "evidence": [
+   "https://netshop.create-sd.co.jp/shop/g/g4560401461474/",
+   "https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4560401461474"
+  ],
+  "note": "しっとり 240ml (not the White/Black variants); Create SD title exact, Matsukiyo listing same code",
+  "altCodes": []
+ },
+ {
+  "productId": 2587,
+  "code": "4580461891158",
+  "confidence": "medium",
+  "matchedTitle": "Bioderma Sensibio H2O D 500ml",
+  "evidence": [
+   "https://sundrug-online.com/en/products/4580461891158"
+  ],
+  "note": "Japanese domestic (NAOS Japan, 'H2O D') 500ml on Sundrug; imported French bottles carry a different EAN (3401345935571 seen only in flea-market listings, unverified) — check which version the shop stocks",
+  "altCodes": []
+ },
+ {
+  "productId": 2585,
+  "code": null,
+  "confidence": "none",
+  "matchedTitle": "",
+  "evidence": [],
+  "note": "only the ニキビケア variant found (4901417629524, different item); 肌・毛穴ケア 110g JAN not seen on any page",
+  "altCodes": []
+ },
+ {
+  "productId": 2586,
+  "code": null,
+  "confidence": "none",
+  "matchedTitle": "",
+  "evidence": [],
+  "note": "no listing found for HITO-KAN プレミアム オールインワンゲル 270g (only older HITOKAN 245g references)",
+  "altCodes": []
+ },
+ {
+  "productId": 2583,
+  "code": "8803463006648",
+  "confidence": "medium",
+  "matchedTitle": "ＶＴ　リードルＳ　ＥＦＩーＧＦ　ＥＸマスク　２５枚",
+  "evidence": [
+   "https://netshop.create-sd.co.jp/shop/g/g8803463006648/"
+  ],
+  "note": "Create SD title exact (25枚); honichi listing reportedly same code but not seen directly",
+  "altCodes": []
+ },
+ {
+  "productId": 2584,
+  "code": "8809695676352",
+  "confidence": "medium",
+  "matchedTitle": "VT(ブイティー) / シカバイタル マスク 30枚入り",
+  "evidence": [
+   "https://www.cosme.net/variations/1127456/"
+  ],
+  "note": "@cosme 30枚 JANコード; Matsukiyo has a VT 30-sheet item 8803463011147 that may be a renewal but its title could not be verified; 8809559627490 is シカデイリースージングマスク (different item)",
+  "altCodes": []
+ },
+ {
+  "productId": 2582,
+  "code": "8803463008062",
+  "confidence": "medium",
+  "matchedTitle": "VT（ヴイティ） リードルS ビタライトデイリーマスク 30枚入",
+  "evidence": [
+   "https://sundrug-online.com/en/products/8803463008062"
+  ],
+  "note": "Sundrug 30枚入 exact; single source",
+  "altCodes": []
+ }
+]
