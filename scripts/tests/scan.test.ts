@@ -169,6 +169,23 @@ describe("barcode links and resolution (DB)", () => {
     assert.equal((r as { product: { id: number }; via: string }).product.id, a.id);
     assert.equal((r as { via: string }).via, "sku");
   });
+  it("a JAN inside a prefixed SKU (AHA-4515061013884) resolves to that product", async () => {
+    // real shop data has SKUs like this one
+    const real = sqlite.getDb().prepare("SELECT id FROM products WHERE TRIM(sku) LIKE '%-4515061013884'").all() as Array<{ id: number }>;
+    if (real.length === 1) assert.equal((bc.resolveCode("4515061013884") as { product?: { id: number } }).product?.id, real[0].id);
+    const [a, b] = await twoProducts("prefixed");
+    const jan = freshEan();
+    await db.updateProductSku(a.id, `AHA-${jan}`);
+    const r = bc.resolveCode(jan);
+    assert.equal(r.kind, "product");
+    assert.equal((r as { product: { id: number } }).product.id, a.id);
+    // the same JAN behind two prefixes is a conflict, not "the first one"
+    await db.updateProductSku(b.id, `XYZ-${jan}`);
+    assert.equal(bc.resolveCode(jan).kind, "conflict");
+    // a SKU merely starting with the digits does not match
+    await db.updateProductSku(b.id, `${jan}-OLD`);
+    assert.equal(bc.resolveCode(jan).kind, "product");
+  });
   it("duplicate SKUs are a conflict, never 'the first product'; an explicit link settles it", async () => {
     const [a, b] = await twoProducts("dup");
     const code = "4911111111119";

@@ -131,9 +131,17 @@ function skuForms(code: string): string[] {
   return [...out];
 }
 
+/**
+ * Products whose SKU is this code — exactly, or (GTINs only) as the part after the last "-" of a prefixed SKU such as
+ * "AHA-4515061013884" (brand prefix + JAN, a real pattern in the shop's data).
+ */
 function skuMatchesSync(db: DatabaseSync, code: string): ProductRowLite[] {
   const forms = skuForms(code);
-  return db.prepare(`${PRODUCT_LITE} WHERE TRIM(sku) COLLATE NOCASE IN (${forms.map(() => "?").join(",")}) ORDER BY id`).all(...forms) as unknown as ProductRowLite[];
+  const exact = db.prepare(`${PRODUCT_LITE} WHERE TRIM(sku) COLLATE NOCASE IN (${forms.map(() => "?").join(",")}) ORDER BY id`).all(...forms) as unknown as ProductRowLite[];
+  if (!/^\d{8,14}$/.test(code)) return exact;
+  const suffixed = db.prepare(`${PRODUCT_LITE} WHERE ${forms.map(() => "TRIM(sku) LIKE ?").join(" OR ")} ORDER BY id`).all(...forms.map((f) => `%-${f}`)) as unknown as ProductRowLite[];
+  const seen = new Set(exact.map((r) => r.id));
+  return [...exact, ...suffixed.filter((r) => !seen.has(r.id))];
 }
 
 export function resolveParsedSync(db: DatabaseSync, p: ParsedCode): Resolution {
