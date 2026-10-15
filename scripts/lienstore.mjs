@@ -44,6 +44,8 @@ const HELP = `lienstore — Admin API v1 CLI (JSON out). Docs: docs/ADMIN_API.md
   barcodes list <productId> [--all]
   barcodes add <productId> <code> [--pack-qty 12] [--pack-label thùng] [--force]
   barcodes remove <barcodeId>
+  barcodes import --file links.json [--dry-run] [--force]   many links: [{ "productId", "code", "packQty"? }] —
+                                             per-item report (not atomic); dry-run only resolves, writes nothing
   receipts|counts|picks list [--status draft|confirmed|cancelled|all] [--warehouse vn|jp]
   receipts create --warehouse vn|jp [--mode direct|shipment --shipment <id>]   (receipts shipments = runs to receive)
   counts create --warehouse vn|jp            picks create --order <orderId> | --order-number <n>   (picks orders)
@@ -409,6 +411,41 @@ async function run() {
       guardWrite(cfg, opts);
       const body = { code: String(code), packQty: opts["pack-qty"] ? Number(opts["pack-qty"]) : 1, packLabel: opts["pack-label"] ?? "", force: !!opts.force };
       return finish(cfg, await call(cfg, "POST", `products/${pid}/barcodes`, { json: body, idempotencyKey: `barcode-${stableHash(JSON.stringify([pid, body]))}` }));
+    }
+    case "barcodes import": {
+      const raw = readJsonFile(opts.file);
+      const list = Array.isArray(raw) ? raw : raw?.items;
+      if (!Array.isArray(list) || !list.length) usage('barcodes import --file: mảng [{ "productId", "code" }] hoặc { "items": [...] }');
+      if (list.length > 5000) usage("tối đa 5000 mục mỗi lần");
+      const items = list.map((it, i) => {
+        const productId = Number(it?.productId);
+        const code = typeof it?.code === "string" ? it.code.trim() : "";
+        if (!Number.isInteger(productId) || productId <= 0 || !code) usage(`mục ${i}: cần productId (số) và code (chuỗi)`);
+        return { productId, code, packQty: it.packQty === undefined ? 1 : Number(it.packQty), packLabel: typeof it.packLabel === "string" ? it.packLabel : "", note: typeof it.note === "string" ? it.note.slice(0, 200) : "" };
+      });
+      if (!opts["dry-run"]) guardWrite(cfg, opts);
+      const results = [];
+      const count = {};
+      for (const it of items) {
+        let r;
+        if (opts["dry-run"]) {
+          // what the code is today: already ours / someone else's / free
+          const res = await call(cfg, "GET", "codes/resolve", { query: { code: it.code } });
+          const d = res.body?.data;
+          const outcome = !res.body?.ok ? "error" : d.kind === "invalid" || d.kind === "unsupported_qr" ? "invalid" : d.kind === "unknown" ? "would_link" : d.kind === "product" && d.product.id === it.productId ? (d.via === "barcode" ? "already_linked" : "would_link") : d.kind === "product" ? (d.via === "barcode" ? "linked_elsewhere" : "sku_of_other") : d.kind === "conflict" ? (d.candidates.some((c) => c.id === it.productId) ? "would_link" : "sku_of_other") : "error";
+          r = { ...it, outcome, ...(d?.product && d.product.id !== it.productId ? { otherProduct: { id: d.product.id, name: d.product.name } } : {}), ...(!res.body?.ok || outcome === "invalid" ? { message: res.body?.error?.message ?? d?.message } : {}) };
+        } else {
+          const body = { code: it.code, packQty: it.packQty, packLabel: it.packLabel, note: it.note, force: !!opts.force };
+          const res = await call(cfg, "POST", `products/${it.productId}/barcodes`, { json: body, idempotencyKey: `barcode-${stableHash(JSON.stringify([it.productId, body]))}` });
+          // a replayed Idempotency-Key = this exact link was written by an earlier run
+          r = res.body?.ok ? { ...it, outcome: res.body.meta?.idempotentReplay ? "unchanged" : res.body.data.status } : { ...it, outcome: (res.body?.error?.code ?? "ERROR").toLowerCase(), message: res.body?.error?.message };
+        }
+        count[r.outcome] = (count[r.outcome] ?? 0) + 1;
+        results.push(r);
+      }
+      process.stderr.write(`[lienstore] ${opts["dry-run"] ? "dry-run" : "đã ghi"}: ${JSON.stringify(count)}\n`);
+      const failed = results.filter((r) => !["created", "updated", "unchanged", "already_linked", "would_link"].includes(r.outcome));
+      return finish(cfg, { status: failed.length ? 207 : 200, body: { ok: !failed.length || !!opts["dry-run"], data: { dryRun: !!opts["dry-run"], summary: count, results }, ...(failed.length && !opts["dry-run"] ? { error: { code: "PARTIAL", message: `${failed.length}/${results.length} mục không liên kết được — xem results` } } : {}) } });
     }
     case "barcodes remove": {
       if (!/^\d+$/.test(String(rest[0] ?? ""))) usage("barcodes remove <barcodeId>");
