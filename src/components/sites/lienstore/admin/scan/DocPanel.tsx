@@ -50,7 +50,8 @@ export interface DocView {
   confirmedBy: string;
   confirmedAt: string | null;
 }
-type ScanHandler = (r: { kind: string; product?: { id: number } }, raw: string) => Promise<{ ok: boolean; message: string; stage?: "saved" | "error" | "unknown" }>;
+/** One scan into the open document; `errorCode` lets the screen open the link panel for unknown / conflicting codes. */
+export type ScanHandler = (raw: string) => Promise<{ ok: boolean; message: string; stage?: "saved" | "error" | "unknown"; errorCode?: string }>;
 
 const WH: Record<string, string> = { vn: "Kho Việt Nam", jp: "Kho Nhật" };
 const STATE_CLS: Record<string, string> = { ok: "bg-green-100 text-green-900", match: "bg-green-100 text-green-900", diff: "bg-amber-100 text-amber-900", short: "bg-amber-100 text-amber-900", over: "bg-red-100 text-red-800", drift: "bg-red-100 text-red-800", uncounted: "bg-gray-100 text-gray-700", empty: "bg-gray-100 text-gray-700" };
@@ -224,13 +225,13 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
         return { ok: false, message: "Không chắc đã lưu (mất kết nối). Bấm “Gửi lại” — không bị cộng trùng.", stage: "error" as const };
       }
       if (r.error.code === "DOC_NOT_DRAFT") void load();
-      return { ok: false, message: r.error.message, stage: r.error.code === "UNKNOWN_CODE" ? ("unknown" as const) : ("error" as const) };
+      return { ok: false, message: r.error.message, stage: r.error.code === "UNKNOWN_CODE" || r.error.code === "CODE_CONFLICT" ? ("unknown" as const) : ("error" as const), errorCode: r.error.code };
     },
     [base, load],
   );
 
   useEffect(() => {
-    registerScanHandler((_res, raw) => sendScan(raw, newOpId(), multRef.current));
+    registerScanHandler((raw) => sendScan(raw, newOpId(), multRef.current));
     return () => registerScanHandler(null);
   }, [registerScanHandler, sendScan]);
 

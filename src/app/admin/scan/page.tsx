@@ -6,7 +6,8 @@ import { allowedWarehouses } from "@/lib/scan-access";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Quét mã" };
+// own manifest: "Add to home screen" from here opens the scanner, not the shop
+export const metadata: Metadata = { title: "Quét mã", manifest: "/api/scan-manifest/", appleWebApp: { capable: true, title: "Quét mã", statusBarStyle: "default" } };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 /** Admin › Vận hành › Quét mã — phone screen for lookup, receiving, stock counts and picking (docs/SCANNING.md). */

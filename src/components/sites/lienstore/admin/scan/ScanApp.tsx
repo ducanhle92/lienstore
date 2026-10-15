@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { parseScannedCode } from "@/lib/barcodes";
 import { isTypingTarget, WedgeBuffer } from "@/lib/scan-input";
 import { CameraView } from "./CameraView";
-import { DocPanel, type DocKind, DOC_LABEL, DraftList } from "./DocPanel";
+import { DocPanel, type DocKind, DOC_LABEL, DraftList, type ScanHandler } from "./DocPanel";
 import { signal, unlockAudio } from "./feedback";
 import { LinkCodePanel } from "./LinkCodePanel";
 import { ProductHeader, ProductStockCard, type ProductBriefView, type StockView, UnitInfo, type UnitBriefView } from "./ProductStockCard";
@@ -76,7 +76,7 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
   const [online, setOnline] = useState(true);
   const [sound, setSound] = useState(true);
   const queue = useRef<Promise<void>>(Promise.resolve());
-  const docHandler = useRef<((r: Resolution, raw: string) => Promise<{ ok: boolean; message: string; stage?: Stage }>) | null>(null);
+  const docHandler = useRef<ScanHandler | null>(null);
   const trackingSetter = useRef<((code: string) => void) | null>(null);
   const modeRef = useRef<Mode>(mode);
   useEffect(() => {
@@ -129,6 +129,17 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
         signal("error", sound);
         return;
       }
+      // a document is open: one round trip — the server resolves and records the scan; only an unknown / conflicting
+      // code is looked up again to open the link panel
+      if (m !== "lookup" && docHandler.current) {
+        setLast({ raw, stage: "saving", message: "", at: now });
+        const out = await docHandler.current(raw);
+        if (out.ok || (out.errorCode !== "UNKNOWN_CODE" && out.errorCode !== "CODE_CONFLICT")) {
+          setLast({ raw, stage: out.stage ?? (out.ok ? "saved" : "error"), message: out.message, at: now });
+          signal(out.ok ? "ok" : "error", sound);
+          return;
+        }
+      }
       setLast({ raw, stage: "resolving", message: "", at: now });
       const r = await api<Resolution>("GET", "codes/resolve", { query: { code: raw } });
       if (!r.ok) {
@@ -158,8 +169,9 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
         return;
       }
       if (docHandler.current) {
+        // known now (e.g. linked from another phone meanwhile): record it
         setLast({ raw, stage: "saving", message: "", at: now, resolution: res });
-        const out = await docHandler.current(res, raw);
+        const out = await docHandler.current(raw);
         setLast({ raw, stage: out.stage ?? (out.ok ? "saved" : "error"), message: out.message, at: now, resolution: res });
         signal(out.ok ? "ok" : "error", sound);
         return;
