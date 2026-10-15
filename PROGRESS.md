@@ -17,6 +17,7 @@
 - [x] Trang sản phẩm: ô "Mã SKU & trạng thái" hiện/thêm/gỡ JAN (app/admin/products/barcode-actions.ts, ProductForm);
       quyết định GIỮ SKU làm mã nội bộ (485/819 SKU theo quy ước, dùng khắp CSV/đợt mua/từng cái), JAN là mã bao bì
       (172 SP không có, nhiều SP có 2) → không thay SKU bằng JAN.
+- Đã merge feat/jan-codes vào main, release v2.34.6 (2026-10-16); đang chờ TrueNAS kéo bản mới.
 - Token prod đã được dán vào chat → nên thu hồi và cấp lại sau khi xong việc này.
 
 ## Mục tiêu
