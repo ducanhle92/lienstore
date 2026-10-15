@@ -84,6 +84,8 @@ export interface LineView {
   expected: number | null;
   /** count: system total at the warehouse NOW (drift when ≠ expected). */
   current?: number;
+  /** count: what the book total is made of — count ALL of them on the shelf, including held / boxed ones. */
+  book?: { free: number; held: number; boxed: number };
   unitCodes: string[];
   expiry: string | null;
   unitCostJpy: number | null;
@@ -155,6 +157,11 @@ function freeAdjustable(db: DatabaseSync, productId: number, w: ShopWarehouse): 
   return Number((db.prepare("SELECT COUNT(*) AS n FROM stock_units WHERE product_id = ? AND removed IS NULL AND order_item_id IS NULL AND shipment_id IS NULL AND status = ?").get(productId, statusAt[w]) as { n: number }).n);
 }
 
+function bookBreakdown(db: DatabaseSync, productId: number, w: ShopWarehouse): { free: number; held: number; boxed: number } {
+  const r = db.prepare("SELECT SUM(order_item_id IS NULL AND shipment_id IS NULL) AS free, SUM(order_item_id IS NOT NULL) AS held, SUM(order_item_id IS NULL AND shipment_id IS NOT NULL) AS boxed FROM stock_units WHERE product_id = ? AND removed IS NULL AND status = ?").get(productId, statusAt[w]) as { free: number | null; held: number | null; boxed: number | null };
+  return { free: Number(r.free ?? 0), held: Number(r.held ?? 0), boxed: Number(r.boxed ?? 0) };
+}
+
 /** Units of the run not received yet (still before the shop), per product. */
 function shipmentPending(db: DatabaseSync, shipmentId: number): Array<{ id: number; code: string; product_id: number; status: string; expiry: string | null; bought_at: string | null }> {
   return db.prepare("SELECT id, code, product_id, status, expiry, bought_at FROM stock_units WHERE shipment_id = ? AND removed IS NULL AND status IN ('bought','to_carrier_jp','shipped_jp_vn','at_carrier_vn','to_shop')").all(shipmentId) as unknown as Array<{ id: number; code: string; product_id: number; status: string; expiry: string | null; bought_at: string | null }>;
@@ -176,11 +183,13 @@ function viewOf(db: DatabaseSync, d: DocRow): DocView {
     const product = productBriefSync(db, r.product_id) ?? { id: r.product_id, name: `#${r.product_id} (đã xoá)`, sku: null, thumb: "", status: "draft" as const, saleStatus: "instock" as const, adminUrl: "", stockUrl: "" };
     const base = { id: r.id, rev: r.rev, product, qty: r.qty, expected: r.expected, unitCodes: parseCodes(r.unit_codes), expiry: r.expiry, unitCostJpy: r.unit_cost_jpy, billCode: r.bill_code };
     if (d.kind === "count") {
-      if (r.qty === null) return { ...base, state: "uncounted" as const, message: "Chưa đếm" };
+      const book = d.status === "draft" ? bookBreakdown(db, r.product_id, w) : undefined;
+      const hint = book && (book.held || book.boxed) ? ` · sổ gồm ${book.free} rảnh${book.held ? ` + ${book.held} giữ cho đơn` : ""}${book.boxed ? ` + ${book.boxed} đã đóng thùng` : ""} — đếm cả` : "";
+      if (r.qty === null) return { ...base, book, state: "uncounted" as const, message: `Chưa đếm${hint}` };
       const current = d.status === "draft" ? systemTotal(db, r.product_id, w) : (r.expected ?? 0);
-      if (d.status === "draft" && r.expected !== null && current !== r.expected) return { ...base, current, state: "drift" as const, message: `Tồn hệ thống đã đổi ${r.expected} → ${current} trong lúc đếm — đếm lại hoặc xác nhận số đếm.` };
+      if (d.status === "draft" && r.expected !== null && current !== r.expected) return { ...base, current, book, state: "drift" as const, message: `Tồn hệ thống đã đổi ${r.expected} → ${current} trong lúc đếm — đếm lại hoặc xác nhận số đếm.` };
       const diff = r.qty - (r.expected ?? 0);
-      return { ...base, current, state: diff === 0 ? ("match" as const) : ("diff" as const), message: diff === 0 ? "Khớp" : `Chênh ${diff > 0 ? "+" : ""}${diff}` };
+      return { ...base, current, book, state: diff === 0 ? ("match" as const) : ("diff" as const), message: `${diff === 0 ? "Khớp" : `Chênh ${diff > 0 ? "+" : ""}${diff}`}${hint}` };
     }
     if (d.kind === "pick" || d.mode === "shipment") {
       const q = r.qty ?? 0;

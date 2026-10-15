@@ -479,6 +479,8 @@ describe("stock count", () => {
     const doc = docs.createDoc("count", { warehouse: "vn" }, owner);
     const v = docs.addLine("count", doc.id, { productId: a.id }, owner);
     const v2 = docs.updateLine("count", doc.id, v.lines[0].id, { rev: v.lines[0].rev, qty: 0 }, owner);
+    assert.deepEqual(v2.lines[0].book, { free: 1, held: 0, boxed: 1 });
+    assert.match(v2.lines[0].message, /1 đã đóng thùng — đếm cả/);
     assert.throws(() => docs.confirmDoc("count", doc.id, { version: v2.version }, owner), errCode("COUNT_SHORT_HELD"));
     assert.equal(total(a.id, "at_shop"), 2);
   });
