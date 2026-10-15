@@ -39,6 +39,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/inventory/shipments/?stage=transit", label: "⑤ Vận chuyển JP-VN", icon: "truck", module: "transit", match: (p, q) => p.startsWith("/admin/inventory/shipments") && q.get("stage") === "transit" },
       { href: "/admin/inventory/?side=vn", label: "⑥ Kho VN", icon: "building", module: "kho_vn", match: (p, q) => isInventoryHome(p) && q.get("side") !== "jp" },
       { href: "/admin/inventory/delivery/", label: "⑦ Giao hàng VN", icon: "map-marker", module: "delivery", match: (p) => p.startsWith("/admin/inventory/delivery") },
+      { href: "/admin/scan/", label: "Quét mã (điện thoại)", icon: "search", module: "inventory", match: (p) => p.startsWith("/admin/scan") },
       {
         href: "/admin/categories/",
         label: "Khác",
