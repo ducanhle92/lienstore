@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { findCustomerByLogin, getCustomerById, hasOwnerAccount } from "@/lib/db";
 import { effectivePermissions, isAdminRole } from "@/lib/permissions";
-import { type ApiScope, generateRawToken, hashToken, looksLikeToken, SCOPE_MODULE, sanitizeScopes, tokenPrefix } from "@/lib/api-token-format";
+import { type ApiScope, generateRawToken, hashToken, looksLikeToken, sanitizeScopes, scopeAllowed, tokenPrefix } from "@/lib/api-token-format";
 import { getDb, withTransaction } from "@/lib/sqlite";
 
 /**
@@ -101,7 +101,7 @@ export async function createApiToken(input: { name: string; scopes: ApiScope[]; 
   if (input.expiresAt && Date.parse(input.expiresAt) <= Date.now()) throw new Error("Ngày hết hạn phải ở tương lai.");
   const owner = await resolveOwner(input.ownerId);
   if (!owner) throw new Error("Tài khoản chủ token không còn quyền quản trị.");
-  const missing = scopes.filter((s) => !owner.permissions.includes(SCOPE_MODULE[s]));
+  const missing = scopes.filter((s) => !scopeAllowed(s, owner.permissions));
   if (missing.length) throw new Error(`Tài khoản ${owner.label} không có quyền cho: ${missing.join(", ")}.`);
   const token = generateRawToken();
   const now = new Date().toISOString();
@@ -173,7 +173,7 @@ export async function authenticateApiToken(raw: string | null, ip = ""): Promise
       tokenId: r.id,
       tokenName: r.name,
       prefix: r.prefix,
-      scopes: info.scopes.filter((s) => owner.permissions.includes(SCOPE_MODULE[s])),
+      scopes: info.scopes.filter((s) => scopeAllowed(s, owner.permissions)),
       ownerId: owner.id,
       ownerLabel: owner.label,
       permissions: owner.permissions,

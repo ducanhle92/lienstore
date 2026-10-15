@@ -6,7 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
  * Raw token: `lsk_` + 43 chars base64url (32 random bytes). Only `sha256(raw)` is stored; the first 12 characters
  * (`lsk_xxxxxxxx`) are kept as a non-secret prefix so a token can be recognised in lists and audit rows.
  */
-export { API_SCOPES, API_SCOPE_LABELS, isApiScope, sanitizeScopes, SCOPE_MODULE, type ApiScope } from "@/lib/api-scopes";
+export { API_SCOPES, API_SCOPE_LABELS, isApiScope, sanitizeScopes, SCOPE_MODULE, scopeAllowed, type ApiScope } from "@/lib/api-scopes";
 
 const TOKEN_RE = /^lsk_[A-Za-z0-9_-]{43}$/;
 export const TOKEN_PREFIX_LEN = 12;

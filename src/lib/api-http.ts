@@ -2,10 +2,11 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSession } from "@/lib/auth";
-import { API_SCOPES, type ApiScope, bearerFrom, SCOPE_MODULE } from "@/lib/api-token-format";
+import { API_SCOPES, type ApiScope, bearerFrom, scopeAllowed } from "@/lib/api-token-format";
 import { authenticateApiToken, beginIdempotent, finishIdempotent, IDEMPOTENCY_KEY_RE, requestHash } from "@/lib/api-tokens";
 import { MediaError } from "@/lib/media-service";
 import { ProductServiceError } from "@/lib/product-service";
+import { DomainError } from "@/lib/service-error";
 
 /**
  * HTTP plumbing for the Admin API v1 (`/api/admin/v1/**`).
@@ -99,7 +100,7 @@ async function resolvePrincipal(req: NextRequest, ip: string, write: boolean): P
   const s = await getAdminSession();
   if (!s) throw new ApiError(401, "UNAUTHORIZED", "Thiếu header Authorization: Bearer <token> (hoặc phiên đăng nhập quản trị).");
   if (write && !csrfOk(req)) throw new ApiError(403, "CSRF_FAILED", "Yêu cầu ghi bằng phiên đăng nhập phải gửi từ chính trang quản trị (thiếu X-Lien-Csrf / sai Origin).");
-  return { kind: "session", actor: s.label, tokenId: null, userId: s.id, userLabel: s.label, permissions: s.permissions, scopes: API_SCOPES.filter((sc) => s.permissions.includes(SCOPE_MODULE[sc])) };
+  return { kind: "session", actor: s.label, tokenId: null, userId: s.id, userLabel: s.label, permissions: s.permissions, scopes: API_SCOPES.filter((sc) => scopeAllowed(sc, s.permissions)) };
 }
 
 export function requireScope(p: Principal, scope: ApiScope): void {
@@ -134,6 +135,7 @@ export function queryFlag(req: NextRequest, name: string): boolean {
 function toErrorResponse(e: unknown, requestId: string): { status: number; body: string } {
   if (e instanceof ApiError) return { status: e.status, body: errorBody(e.status, e.code, e.message, requestId, e.details) };
   if (e instanceof ProductServiceError) return { status: e.status, body: errorBody(e.status, e.code, e.message, requestId, e.details) };
+  if (e instanceof DomainError) return { status: e.status, body: errorBody(e.status, e.code, e.message, requestId, e.details) };
   if (e instanceof MediaError) return { status: e.status, body: errorBody(e.status, e.code, e.message, requestId) };
   console.error(`[api v1] ${requestId} internal error:`, e instanceof Error ? e.stack ?? e.message : e);
   return { status: 500, body: errorBody(500, "INTERNAL", "Lỗi máy chủ — xem log với requestId này.", requestId) };

@@ -5,6 +5,7 @@ import { POLICY_PAGES } from "./policy-pages";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { backfillGroupCodes, convertLegacyStock } from "./units-migrate";
+import { canonicalGtin } from "./barcodes";
 import { backfillCustomersSync, relinkOrdersByNameSync } from "./customers-db";
 
 /**
@@ -1600,6 +1601,98 @@ export const MIGRATIONS: Migration[] = [
         PRIMARY KEY (token_id, key)
       )`,
     ],
+  },
+  {
+    // Quét mã (docs/architecture/mobile-scanning.md): barcodes linked to products (several per product, an optional pack
+    // size), and the scan documents of the phone screen — receipts (nhập), stock counts (kiểm kê), picks (soạn/xuất) —
+    // with their lines and the journal of scan operations (op_id = idempotency key of one deliberate scan).
+    version: 74,
+    name: "scan-codes-and-documents",
+    up: [
+      `CREATE TABLE IF NOT EXISTS product_barcodes (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        code       TEXT NOT NULL,
+        symbology  TEXT NOT NULL DEFAULT 'text',
+        product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        pack_qty   INTEGER NOT NULL DEFAULT 1 CHECK (pack_qty >= 1),
+        pack_label TEXT NOT NULL DEFAULT '',
+        active     INTEGER NOT NULL DEFAULT 1,
+        source     TEXT NOT NULL DEFAULT 'manual',
+        note       TEXT NOT NULL DEFAULT '',
+        created_by TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_product_barcodes_active ON product_barcodes(code COLLATE NOCASE) WHERE active = 1`,
+      `CREATE INDEX IF NOT EXISTS idx_product_barcodes_product ON product_barcodes(product_id)`,
+      `CREATE TABLE IF NOT EXISTS scan_docs (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        code         TEXT NOT NULL UNIQUE,
+        kind         TEXT NOT NULL CHECK (kind IN ('receive','count','pick')),
+        mode         TEXT NOT NULL DEFAULT '',
+        status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','confirmed','cancelled')),
+        warehouse    TEXT NOT NULL DEFAULT 'vn',
+        shipment_id  INTEGER,
+        order_id     TEXT,
+        note         TEXT NOT NULL DEFAULT '',
+        version      INTEGER NOT NULL DEFAULT 1,
+        result       TEXT,
+        created_by   TEXT NOT NULL DEFAULT '',
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL,
+        confirmed_by TEXT NOT NULL DEFAULT '',
+        confirmed_at TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_scan_docs_status ON scan_docs(kind, status)`,
+      `CREATE TABLE IF NOT EXISTS scan_lines (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id        INTEGER NOT NULL REFERENCES scan_docs(id) ON DELETE CASCADE,
+        product_id    INTEGER NOT NULL,
+        qty           INTEGER,
+        expected      INTEGER,
+        expected_at   TEXT,
+        unit_codes    TEXT NOT NULL DEFAULT '[]',
+        expiry        TEXT,
+        unit_cost_jpy INTEGER,
+        bill_code     TEXT NOT NULL DEFAULT '',
+        note          TEXT NOT NULL DEFAULT '',
+        rev           INTEGER NOT NULL DEFAULT 1,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_scan_lines_doc ON scan_lines(doc_id)`,
+      `CREATE TABLE IF NOT EXISTS scan_ops (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_id     INTEGER NOT NULL REFERENCES scan_docs(id) ON DELETE CASCADE,
+        op_id      TEXT NOT NULL,
+        line_id    INTEGER,
+        kind       TEXT NOT NULL,
+        code_raw   TEXT NOT NULL DEFAULT '',
+        code       TEXT NOT NULL DEFAULT '',
+        delta      INTEGER NOT NULL DEFAULT 0,
+        unit_code  TEXT,
+        request    TEXT NOT NULL DEFAULT '',
+        response   TEXT,
+        actor      TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        undone_at  TEXT,
+        UNIQUE (doc_id, op_id)
+      )`,
+    ],
+    run: (db) => {
+      // products.sku that is a valid GTIN and unique among products becomes a barcode link (duplicates stay out and
+      // show up as conflicts when scanned)
+      const rows = db.prepare("SELECT id, sku FROM products WHERE sku IS NOT NULL AND TRIM(sku) <> ''").all() as Array<{ id: number; sku: string }>;
+      const byCode = new Map<string, number[]>();
+      for (const r of rows) {
+        const g = canonicalGtin(r.sku.trim().replace(/[\s-]/g, ""));
+        if (!g) continue;
+        byCode.set(g.code, [...(byCode.get(g.code) ?? []), r.id]);
+      }
+      const ts = new Date().toISOString();
+      const ins = db.prepare("INSERT INTO product_barcodes (code, symbology, product_id, pack_qty, pack_label, active, source, note, created_by, created_at, updated_at) VALUES (?, ?, ?, 1, '', 1, 'sku', 'Từ SKU', 'migration', ?, ?)");
+      for (const [code, ids] of byCode) if (ids.length === 1) ins.run(code, code.length === 8 ? "ean8" : code.length === 14 ? "itf14" : "ean13", ids[0], ts, ts);
+    },
   },
 ];
 
