@@ -25,10 +25,18 @@ const prod = prodFile && prodFile !== "-" ? (() => {
   return new Map((Array.isArray(raw) ? raw : raw.data).map((p) => [p.id, p]));
 })() : null;
 
+// optional: status of products when no prod list is given (local snapshot)
+let localStatus = null;
+if (!prod && process.env.LOCAL_STATUS) localStatus = new Map(JSON.parse(fs.readFileSync(process.env.LOCAL_STATUS, "utf8")).map((p) => [p.id, p.status]));
 const proposals = []; // { productId, code, source, confidence, evidence, note }
 for (const f of inputs) {
   const j = JSON.parse(fs.readFileSync(f, "utf8"));
-  if (Array.isArray(j)) for (const r of j) proposals.push({ productId: r.productId, code: r.code, source: `web:${f.split("/").pop()}`, confidence: r.confidence, evidence: (r.evidence ?? []).join(" "), note: r.note ?? "", matchedTitle: r.matchedTitle ?? "" });
+  if (Array.isArray(j))
+    for (const r of j) {
+      proposals.push({ productId: r.productId, code: r.code, source: `web:${f.split("/").pop()}`, confidence: r.confidence, evidence: (r.evidence ?? []).join(" "), note: r.note ?? "", matchedTitle: r.matchedTitle ?? "" });
+      // older / newer packaging of the same item: an extra code on the same product (old stock still carries it)
+      for (const a of r.altCodes ?? []) if (a?.code) proposals.push({ productId: r.productId, code: a.code, source: `web:${f.split("/").pop()}:alt`, confidence: r.confidence, evidence: (r.evidence ?? []).join(" "), note: a.note ?? "", alt: true });
+    }
   else for (const r of j.found ?? []) proposals.push({ productId: r.productId, code: r.code, source: r.source, confidence: "shop-data", evidence: r.evidence, note: "" });
 }
 
@@ -57,20 +65,42 @@ for (const p of proposals) {
 }
 const items = [];
 const byCode = new Map();
+const add = (productId, x, kind) => {
+  items.push({ productId, code: x.code, note: `${x.source} ${x.confidence}${kind === "alt" ? " (bao bì khác)" : ""}${x.evidence ? ` ${x.evidence}` : ""}`.slice(0, 200), confidence: x.confidence, kind, name: prod?.get(productId)?.name ?? "" });
+  byCode.set(x.code, [...(byCode.get(x.code) ?? []), productId]);
+};
 for (const [productId, list] of byProduct) {
   // the shop's own data wins over a web lookup when they disagree, but the disagreement goes to review
-  const shop = list.find((x) => x.confidence === "shop-data");
-  const pick = shop ?? list.find((x) => x.confidence === "high") ?? list[0];
-  for (const x of list) if (x !== pick) review.push({ ...x, reason: `other code proposed; kept ${pick.code} (${pick.source})` });
-  items.push({ productId, code: pick.code, note: `${pick.source} ${pick.confidence}${pick.evidence ? ` ${pick.evidence}` : ""}`.slice(0, 200), confidence: pick.confidence, name: prod?.get(productId)?.name ?? "" });
-  byCode.set(pick.code, [...(byCode.get(pick.code) ?? []), productId]);
+  const mains = list.filter((x) => !x.alt);
+  const shop = mains.find((x) => x.confidence === "shop-data");
+  const pick = shop ?? mains.find((x) => x.confidence === "high") ?? mains[0];
+  if (!pick) {
+    for (const x of list) review.push({ ...x, reason: "alt code without a main code" });
+    continue;
+  }
+  add(productId, pick, "main");
+  for (const x of mains) if (x !== pick) review.push({ ...x, reason: `other code proposed; kept ${pick.code} (${pick.source})` });
+  for (const x of list.filter((x) => x.alt && x.code !== pick.code)) add(productId, x, "alt");
 }
-const shared = new Set([...byCode].filter(([, ids]) => ids.length > 1).map(([c]) => c));
-const final = items.filter((i) => !shared.has(i.code));
-for (const i of items.filter((i) => shared.has(i.code))) review.push({ ...i, reason: `same code proposed for products ${byCode.get(i.code).join(", ")}` });
+// one code proposed for several products (mostly the same item listed twice, a live copy + a draft): keep ONE —
+// the shop's own text beats a web lookup, then a published product beats a draft; otherwise nobody gets it (review)
+const statusOf = (id) => prod?.get(id)?.status ?? localStatus?.get(id) ?? "";
+const shared = new Set();
+const winners = new Map();
+for (const [code, ids] of byCode) {
+  if (ids.length < 2) continue;
+  const cands = items.filter((i) => i.code === code);
+  const rank = (i) => (i.confidence === "shop-data" ? 4 : 0) + (statusOf(i.productId) === "publish" ? 2 : 0) + (i.kind === "main" ? 1 : 0);
+  const best = [...cands].sort((a, b) => rank(b) - rank(a));
+  if (rank(best[0]) > rank(best[1])) winners.set(code, best[0].productId);
+  else shared.add(code);
+}
+const final = items.filter((i) => !shared.has(i.code) && (!winners.has(i.code) || winners.get(i.code) === i.productId));
+for (const i of items.filter((i) => shared.has(i.code))) review.push({ ...i, reason: `same code proposed for products ${byCode.get(i.code).join(", ")} — catalogue duplicate? decide which product keeps it` });
+for (const i of items.filter((i) => winners.has(i.code) && winners.get(i.code) !== i.productId)) review.push({ ...i, reason: `duplicate of product ${winners.get(i.code)} (that one got the code)` });
 fs.mkdirSync("data/jan", { recursive: true });
 fs.writeFileSync("data/jan/import.json", `${JSON.stringify(final, null, 1)}\n`);
 fs.writeFileSync("data/jan/review.json", `${JSON.stringify(review, null, 1)}\n`);
 const conf = {};
 for (const i of final) conf[i.confidence] = (conf[i.confidence] ?? 0) + 1;
-console.log(JSON.stringify({ proposals: proposals.length, import: final.length, byConfidence: conf, review: review.length, sharedCodes: shared.size, prodProducts: prod?.size ?? null }));
+console.log(JSON.stringify({ proposals: proposals.length, import: final.length, byConfidence: conf, review: review.length, sharedUnresolved: shared.size, duplicatesResolved: winners.size, prodProducts: prod?.size ?? null }));

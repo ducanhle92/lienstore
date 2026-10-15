@@ -10,5 +10,6 @@ How to work:
 - At most ~6 searches/fetches per product. If the shop's Amazon link clearly points to a different product, say so in the note ("wrong link: …").
 
 Output: WRITE a JSON array to OUTPUT_FILE (use the Write tool), one object per input product in the same order:
-{"productId": number, "code": "4901234567894" | null, "confidence": "high"|"medium"|"low"|"none", "matchedTitle": "title on the evidence page", "evidence": ["url1","url2"], "note": "short reason, esp. size/variant check"}
+{"productId": number, "code": "4901234567894" | null, "confidence": "high"|"medium"|"low"|"none", "matchedTitle": "title on the evidence page", "evidence": ["url1","url2"], "note": "short reason, esp. size/variant check", "altCodes": [{"code": "…", "note": "older package / renewal of the SAME item and size, seen on a page"}]}
+altCodes: only other codes of the very same item and size (old or new packaging) that you actually saw; [] if none. Not other sizes, not sets.
 Then reply with one line: "done N products, K codes".
