@@ -11,6 +11,9 @@
  * (LIENSTORE_API_TOKEN=…, mode 600) and NOT printed, so it never lands in a terminal log or chat transcript.
  */
 import fs from "node:fs";
+// stdout carries only the JSON result: database start-up notes ("[db] applied migration …") go to stderr
+console.info = (...args: unknown[]) => console.error(...args);
+console.log = ((log) => (...args: unknown[]) => (typeof args[0] === "string" && args[0].startsWith("[db]") ? console.error(...args) : log(...args)))(console.log.bind(console));
 import path from "node:path";
 import { expiryFromDays, sanitizeScopes } from "../src/lib/api-token-format";
 import { createApiToken, findTokenOwner, listApiTokens, revokeApiToken } from "../src/lib/api-tokens";

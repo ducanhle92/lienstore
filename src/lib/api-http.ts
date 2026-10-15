@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { API_SCOPES, type ApiScope, bearerFrom, SCOPE_MODULE } from "@/lib/api-token-format";
@@ -139,6 +139,23 @@ function toErrorResponse(e: unknown, requestId: string): { status: number; body:
   return { status: 500, body: errorBody(500, "INTERNAL", "Lỗi máy chủ — xem log với requestId này.", requestId) };
 }
 
+/** Request body as compared for idempotency: raw text, or for multipart the fields + file hashes (boundaries vary). */
+async function bodyFingerprint(req: NextRequest): Promise<string> {
+  if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("multipart/form-data")) return req.clone().text();
+  let form: FormData;
+  try {
+    form = await req.clone().formData();
+  } catch {
+    return req.clone().text();
+  }
+  const parts: string[] = [];
+  for (const [k, v] of form.entries()) {
+    if (typeof v === "string") parts.push(`${k}=${v}`);
+    else parts.push(`${k}=file:${v.name}:${v.type}:${createHash("sha256").update(Buffer.from(await v.arrayBuffer())).digest("hex")}`);
+  }
+  return parts.sort().join("\n");
+}
+
 type Handler = (ctx: ApiContext) => Promise<{ status?: number; data: unknown; meta?: Record<string, unknown> }>;
 
 /**
@@ -158,8 +175,8 @@ export function apiRoute(opts: { scope: ApiScope | null; write?: boolean; idempo
         const key = req.headers.get("idempotency-key");
         if (key) {
           if (!IDEMPOTENCY_KEY_RE.test(key)) throw new ApiError(400, "BAD_IDEMPOTENCY_KEY", "Idempotency-Key: 8–200 ký tự [A-Za-z0-9._:-].");
-          // the body is part of the fingerprint; read it once here and hand the same text to the handler
-          const text = await req.clone().text();
+          // the body is part of the fingerprint (read from a clone; the handler reads the original)
+          const text = await bodyFingerprint(req);
           const scopedKey = principal.tokenId === null ? `u:${principal.userId}:${key}` : key;
           const tokenId = principal.tokenId ?? 0;
           const start = beginIdempotent(tokenId, scopedKey, requestHash(req.method, req.nextUrl.pathname + req.nextUrl.search, text));

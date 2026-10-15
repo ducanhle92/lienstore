@@ -331,7 +331,7 @@ async function run() {
           fs.writeFileSync(path.resolve(opts.out), `${JSON.stringify(r.body.data.apply, null, 2)}\n`);
           extra.planWritten = path.resolve(opts.out);
           process.stderr.write(`[lienstore] đã ghi kế hoạch (khoá version) vào ${opts.out} — áp dụng: lienstore products bulk-update --file ${opts.out}\n`);
-        } else process.stderr.write("[lienstore] dry-run có mục lỗi — không ghi kế hoạch\n");
+        } else process.stderr.write(`[lienstore] ${r.body.data?.summary?.failed ? "dry-run có mục lỗi" : "không có gì thay đổi"} — không ghi kế hoạch\n`);
       }
       return finish(cfg, r, extra);
     }

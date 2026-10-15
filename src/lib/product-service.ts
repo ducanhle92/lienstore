@@ -602,7 +602,8 @@ export async function bulkUpdateProducts(items: BulkItem[], opts: { dryRun?: boo
     const failing = plans.filter((p) => p.status === "invalid" || p.status === "not_found" || p.status === "conflict");
     if (opts.dryRun) {
       const apply = { items: plans.filter((p) => p.status === "ok").map((p) => ({ id: p.id, version: p.version, set: items.find((it) => it.id === p.id)!.set })) };
-      return { dryRun: true, atomic: true, applied: false, summary, results, ...(failing.length ? {} : { apply }) };
+      // no `apply` when something fails or nothing would change
+      return { dryRun: true, atomic: true, applied: false, summary, results, ...(failing.length || !apply.items.length ? {} : { apply }) };
     }
     if (failing.length) {
       const status = failing.some((p) => p.status === "invalid") ? 422 : failing.some((p) => p.status === "conflict") ? 409 : 404;
