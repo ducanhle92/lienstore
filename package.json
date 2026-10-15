@@ -38,6 +38,8 @@
     "docker:build": "docker build -t lienstore:local .",
     "docker:run": "docker run --rm -p 3000:3000 -v lienstore-data:/app/data --env-file .env.local lienstore:local",
     "db:export": "node scripts/db-export.mjs",
+    "api-token": "npx -y tsx --conditions=react-server scripts/api-token.ts",
+    "lienstore": "node scripts/lienstore.mjs",
     "test:ghn": "npx -y tsx --conditions=react-server --test scripts/tests/ghn.test.ts",
     "test:search": "npx -y tsx --conditions=react-server --test scripts/tests/search-suggest.test.ts",
     "test:vouchers": "npx -y tsx --conditions=react-server --test scripts/tests/voucher-programs.test.ts",
