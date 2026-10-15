@@ -1,46 +1,55 @@
 # Tiến độ
 ## Mục tiêu
 1. (xong) API quản trị `/api/admin/v1/` + CLI `lienstore` cho agent thao tác sản phẩm/ảnh bằng Bearer token.
-2. (đang làm) Quét mã sản phẩm trên điện thoại (web app admin): tra cứu, nhập hàng, kiểm kho, xuất hàng — dùng chung
-   nghiệp vụ kho hiện có, qua API v1.
+2. (xong, chờ thử trên điện thoại thật) Quét mã trên điện thoại (`/admin/scan/`): tra cứu, nhập hàng, kiểm kho, xuất
+   hàng — dùng chung nghiệp vụ kho từng cái (`stock_units`) qua API v1.
 
-## Đã xong (Việc 1: Admin API v1 + CLI) — nhánh `feat/admin-api-cli`
-- [x] B1 migration 73 (api_tokens, api_audit_log, api_idempotency); `withTransaction` lồng bằng SAVEPOINT;
-      `saveProduct(Sync)({ expectedVersion })` chống ghi đè (src/lib/product-version.ts).
-- [x] B2 token: src/lib/api-token-format.ts, api-scopes.ts, api-tokens.ts (hash sha256, scope, hạn, thu hồi, owner
-      re-check mỗi request, audit + redaction, idempotency store).
-- [x] B3 nghiệp vụ chung: src/lib/product-rules.ts + product-service.ts; saveProductAction dùng lại.
-- [x] B4 src/lib/media-service.ts dùng chung cho /api/admin/upload và /api/admin/v1/media.
-- [x] B5 src/lib/api-http.ts (Bearer hoặc session+CSRF, envelope, Idempotency-Key, lỗi) + routes src/app/api/admin/v1/**.
-- [x] B6 trang /admin/api-tokens (owner/admin) + `npm run api-token -- create|list|revoke`.
-- [x] B7 CLI scripts/lienstore.mjs (`npm run -s lienstore -- …`), .env.example, .gitignore `.env.lienstore*.local`.
-- [x] B8 test: `npm run test:admin-api` (29 pass), `npm run test:admin-api:e2e` (15 pass, tự bật next dev :3197 trên DB tạm).
-- [x] B9 docs/ADMIN_API.md, AGENTS.md (+ sync-agent-rules), CHANGELOG [Unreleased], ARCHITECTURE.
-- [x] typecheck OK, eslint src+scripts 0 lỗi (lỗi lint còn lại nằm ở file untracked data/scripts, tools/), build OK.
+Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yêu cầu).
+
+## Đã xong
+### Việc 1 — Admin API v1 + CLI (docs/ADMIN_API.md)
+- [x] Migration 73 (api_tokens hash-only, api_audit_log, api_idempotency); `withTransaction` lồng (SAVEPOINT);
+      `saveProduct(Sync)({ expectedVersion })` chống ghi đè (lib/product-version.ts).
+- [x] Token/scope/hạn/thu hồi/audit/idempotency: lib/api-token-format.ts, api-scopes.ts, api-tokens.ts.
+- [x] Nghiệp vụ chung: lib/product-rules.ts, product-service.ts (PATCH merge, bulk NGUYÊN TỬ + dry-run khoá version,
+      chống tạo trùng slug/SKU + Idempotency-Key), media-service.ts; Server Action sản phẩm dùng lại.
+- [x] lib/api-http.ts (Bearer hoặc session + CSRF `X-Lien-Csrf` + Origin; envelope; idempotency; lỗi) + routes.
+- [x] /admin/api-tokens (owner/admin) + `npm run api-token -- create|list|revoke [--write-env file]`.
+- [x] CLI scripts/lienstore.mjs (`npm run -s lienstore -- …`), cấu hình `.env.lienstore[.<profile>].local`.
+### Việc 2 — Quét mã (docs/architecture/mobile-scanning.md, docs/SCANNING.md)
+- [x] GĐ1: lib/barcodes.ts (GTIN/UPC→EAN-13/ITF-14/H/QR `LS1:`), migration 74 (product_barcodes, scan_docs,
+      scan_lines, scan_ops; backfill SKU GTIN không trùng), lib/barcodes-db.ts (resolve: link thắng, SKU trùng = xung
+      đột; link/unlink; tồn tra cứu), scope inventory:read|write, lib/scan-access.ts (quyền kho).
+- [x] GĐ2–4: lib/scan-docs.ts (phiếu nhập direct/shipment, kiểm kê có snapshot + chặn biến động, soạn hàng →
+      setOrderLegStatusSync(vn_domestic, sent)); lib/scan-doc-routes.ts + routes /stock-receipts, /stock-counts, /picks.
+- [x] UI: src/components/sites/lienstore/admin/scan/* (ScanApp, CameraView, DocPanel, LinkCodePanel, ProductStockCard,
+      detector [BarcodeDetector → ZXing WASM tự host public/sites/lienstore/scan/zxing_reader-3.1.3.wasm],
+      scan-client, feedback), lib/scan-input.ts (PresenceGate, WedgeBuffer); trang /admin/scan, menu Vận hành.
+- [x] GĐ5: nhãn QR mã H `/print/units/?product=<id>`; CLI codes/stock/barcodes/receipts/counts/picks; tài liệu.
+### Kiểm chứng (2026-10-15)
+- [x] Mọi file scripts/tests/*.test.ts pass (admin-api 29, scan 27, các test cũ không đổi).
+- [x] `npm run test:admin-api:e2e` 20 pass (CLI→HTTP→DB tạm; đồng thời cùng opId/Idempotency-Key, CSRF, scope…).
+- [x] Giao diện điện thoại kiểm bằng Chromium headless khung iPhone 12 Pro trên bản sao DB (tra cứu, mã lạ → liên kết
+      → áp dụng lại, máy quét kiểu bàn phím, nhập → chốt, kiểm kê → chốt, banner mất mạng, camera giả lập + ZXing WASM).
+- [x] eslint src+scripts 0 lỗi; typecheck OK; build OK.
 
 ## Đang làm
-- Việc 2 (quét mã điện thoại). Thiết kế: docs/architecture/mobile-scanning.md.
-  - [x] GĐ1: lib/barcodes.ts (chuẩn hoá mã), migration 74 (product_barcodes, scan_docs/lines/ops), lib/barcodes-db.ts
-        (resolve, link/unlink, tồn tra cứu), API /codes/resolve, /products/{id}/stock, /products/{id}/barcodes,
-        /barcodes/{id}; scope inventory:read|write; màn /admin/scan (CameraView, ScanApp, LinkCodePanel,
-        ProductStockCard, scan-client, feedback, detector WASM tự host public/sites/lienstore/scan/); test:scan 14 pass.
-  - [ ] GĐ2 nhập hàng: lib/scan-docs.ts (service chung) + routes /stock-receipts/** + DocPanel thật (thay stub).
+- (không)
 
 ## Tiếp theo
-### Việc 2 (user giao 2026-10-15, làm SAU khi xong API+CLI): quét mã trên điện thoại (web app)
-- [ ] Khảo sát mô hình kho thật (units/lots/stocktake/receipts/shipments/orders, mã SKU/JAN) → viết
-      `docs/architecture/mobile-scanning.md` (hiện trạng, luồng, data model/migration, API, trạng thái chứng từ,
-      đồng thời/retry/mất mạng/quét lặp, kế hoạch + nghiệm thu).
-- [ ] GĐ1 mã sản phẩm + resolve API + màn hình quét (camera/nhập tay/BT keyboard) + tra cứu + mã lạ.
-- [ ] GĐ2 nhập hàng (phiếu nháp, xác nhận idempotent). GĐ3 kiểm kho (snapshot + đối soát). GĐ4 xuất hàng/đối chiếu đơn.
-- [ ] GĐ5 hoàn thiện mobile/PWA, tài liệu + checklist thử trên điện thoại thật.
-- Ràng buộc chính: không đổi tồn chỉ vì quét; mọi thay đổi tồn qua nghiệp vụ/chứng từ hiện có; dùng chung service
-  cho UI/API/CLI; idempotency bền; version chứng từ; session web có CSRF; không deploy/push main.
+- [ ] Người dùng thử trên điện thoại thật theo checklist docs/SCANNING.md §5 (camera iOS/Android, BT scanner, mất mạng).
+- [ ] Khi user yêu cầu: merge + deploy theo quy trình CLAUDE.md (migration 73, 74 tự chạy).
+- [ ] Gợi ý sau: in nhãn hàng loạt theo phiếu nhập; tạo sản phẩm tối thiểu ngay từ mã lạ (hiện mở form admin tab mới).
 
 ## Ghi chú / quyết định
-- Hàng loạt API là NGUYÊN TỬ (một mục lỗi → không ghi gì). PATCH merge trên bản đang lưu + kiểm version trong transaction.
-- Idempotency: bảng api_idempotency (24 h, theo token; session dùng key `u:<userId>:…`), 5xx nhả key để retry.
-- E2E: Next 16 chỉ cho 1 `next dev` mỗi thư mục → tắt dev server trước khi `npm run test:admin-api:e2e`.
-- `npm run build` mở data/lienstore.db (có sẵn từ trước) → DB local đã lên schema 73.
-- Không deploy/release/push main trong việc này (user yêu cầu rõ).
-- Không đụng các file untracked có sẵn (agent-credentials.txt, scratch*, tools/, data/ocr_test…).
+- Hàng loạt API là NGUYÊN TỬ. PATCH merge trên bản đang lưu + kiểm version trong transaction.
+- Phiếu quét: nháp không đổi tồn; chốt = 1 transaction (phiếu + kho + kết quả), gọi lại trả kết quả cũ; scan idempotent
+  theo `opId` (scan_ops UNIQUE); sửa số tuyệt đối cần `rev` dòng; chốt cần `version` phiếu.
+- Kiểm kê: tổng sổ tại kho = mọi cái status tại kho (rảnh + giữ đơn + đóng thùng); áp dụng qua adjustUnitsToTotalSync
+  (chỉ đụng cái rảnh); thiếu cả hàng giữ đơn → chặn (COUNT_SHORT_HELD). Mã H quét được ở kho khác sổ → chuyển về kho này.
+- Mỗi món quét MỘT lần (mã H hoặc JAN, không cả hai). Xuất một phần không hỗ trợ (hệ thống chưa có giao một phần).
+- Idempotency HTTP 24 h trong api_idempotency (session dùng key `u:<userId>:…`).
+- E2E: Next 16 chỉ cho 1 `next dev` mỗi thư mục → tắt dev server trước `npm run test:admin-api:e2e`.
+- `npm run build`/`dev` mở data/lienstore.db → DB local đã lên schema 74 (chỉ thêm bảng).
+- Trình duyệt preview T3 không truy cập được server local trong phiên này → dùng Chromium headless (tools/node_modules/puppeteer).
+- Không đụng file untracked có sẵn (agent-credentials.txt, scratch*, tools/, data/ocr_test, data/scripts…).
