@@ -1404,6 +1404,75 @@ export interface OrderItemsEdit {
   add: Array<{ productId: number; quantity: number; price: number | null }>;
 }
 
+/** Chargeable weight of an order (Σ billable product weight × qty) — the sync twin of getOrderChargeableWeightG. */
+function orderChargeableWeightSync(db: DatabaseSync, orderId: string): number {
+  const rows = db
+    .prepare("SELECT oi.quantity, p.weight_g, p.dims_cm, p.dims_confidence FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?")
+    .all(orderId) as unknown as Array<{ quantity: number; weight_g: number | null; dims_cm: string | null; dims_confidence: string | null }>;
+  return rows.reduce((s, r) => s + billableProductWeightG(r.weight_g ?? null, r.dims_cm ?? null, isDimsConfidence(r.dims_confidence) ? r.dims_confidence : null) * r.quantity, 0);
+}
+
+const DEFAULT_LEG_NOTE = "Mặc định theo luồng nhập hàng";
+
+/** The default import legs (lot tariff shared per gram, as the price formula does) for a chargeable weight. */
+function defaultImportQuotesSync(db: DatabaseSync, weightG: number) {
+  const rateRaw = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
+  const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
+  const cfg = buildQuoteConfig(loadShippingMethods(db, true), "included", jpyRate, loadQuoteDefaults(db));
+  const lotWeightG = parsePricing(getSetting(db, "pricing_config")).lotWeightG;
+  return { lotWeightG, quotes: quoteImportLegsProRata(cfg, weightG || 1000, lotWeightG) };
+}
+
+/**
+ * Re-price an order's default import legs (①②③ still "Mặc định theo luồng nhập hàng…" — the cost recorded for
+ * Kế toán, not what the customer paid) for the order's current weight. Legs the admin chose or typed are left alone.
+ * Called when the order's products change: a quantity typed as 444 then corrected to 4 used to keep the legs of 444.
+ */
+export function repriceDefaultImportLegsSync(db: DatabaseSync, orderId: string): number {
+  const legs = (db.prepare(`SELECT leg FROM order_legs WHERE order_id = ? AND note LIKE '${DEFAULT_LEG_NOTE}%' AND leg IN ('jp_domestic','jp_vn','vn_transfer')`).all(orderId) as Array<{ leg: string }>).map((r) => r.leg);
+  if (!legs.length) return 0;
+  const { lotWeightG, quotes } = defaultImportQuotesSync(db, Math.max(1, orderChargeableWeightSync(db, orderId)));
+  const upd = db.prepare("UPDATE order_legs SET fee = ?, note = ?, updated_at = ? WHERE order_id = ? AND leg = ?");
+  const now = new Date().toISOString();
+  let n = 0;
+  for (const leg of legs) {
+    const q = quotes.find((x) => x.leg === leg);
+    if (!q) continue;
+    upd.run(q.fee, `${DEFAULT_LEG_NOTE} (đã gồm trong giá bán; chia theo lô ${lotWeightG / 1000} kg): ${q.feeRaw.toLocaleString("vi-VN")}${q.currency}`, now, orderId, leg);
+    n++;
+  }
+  return n;
+}
+
+/**
+ * One-time repair (setting legs_stale_fix_rev): orders whose default import legs no longer match their products —
+ * Σ of those legs more than twice (or under half) what the current weight gives — get them re-priced. Returns the
+ * order numbers changed.
+ */
+export function fixStaleImportLegsOnce(): number[] | null {
+  const db = getDb();
+  if (getSetting(db, "legs_stale_fix_rev") === "1") return null;
+  const rows = db
+    .prepare(`SELECT l.order_id, o.number, SUM(l.fee) AS fee FROM order_legs l JOIN orders o ON o.id = l.order_id WHERE l.note LIKE '${DEFAULT_LEG_NOTE}%' AND l.leg IN ('jp_domestic','jp_vn','vn_transfer') GROUP BY l.order_id`)
+    .all() as Array<{ order_id: string; number: number; fee: number }>;
+  const fixed: number[] = [];
+  withTransaction(db, () => {
+    for (const r of rows) {
+      const legs = (db.prepare(`SELECT leg FROM order_legs WHERE order_id = ? AND note LIKE '${DEFAULT_LEG_NOTE}%' AND leg IN ('jp_domestic','jp_vn','vn_transfer')`).all(r.order_id) as Array<{ leg: string }>).map((x) => x.leg);
+      const { quotes } = defaultImportQuotesSync(db, Math.max(1, orderChargeableWeightSync(db, r.order_id)));
+      const expected = quotes.filter((q) => legs.includes(q.leg)).reduce((s, q) => s + q.fee, 0);
+      if (expected <= 0) continue;
+      const ratio = Number(r.fee) / expected;
+      if (ratio > 2 || ratio < 0.5) {
+        repriceDefaultImportLegsSync(db, r.order_id);
+        fixed.push(r.number);
+      }
+    }
+    setSetting(db, "legs_stale_fix_rev", "1");
+  });
+  return fixed;
+}
+
 /**
  * Admin "Sửa" of the product table of an order: quantity / unit price per line, remove lines, add products.
  * Subtotal and total follow (the discount is capped to the new subtotal; shipping already in the total stays);
@@ -1458,6 +1527,8 @@ export async function updateOrderItems(orderId: string, edit: OrderItemsEdit, ac
     const other = o.total - Math.max(0, o.subtotal - (o.discount ?? 0));
     const total = Math.max(0, subtotal - discount + other);
     db.prepare("UPDATE orders SET subtotal = ?, discount = ?, total = ?, updated_at = ? WHERE id = ?").run(subtotal, discount, total, new Date().toISOString(), orderId);
+    // the default import-leg costs follow the new weight (the ones the admin set by hand stay)
+    repriceDefaultImportLegsSync(db, orderId);
     touchSync(db, { orderIds: [orderId], productIds: [...touched] });
     return { ok: true, message: `Đã sửa sản phẩm của đơn — tạm tính ${subtotal.toLocaleString("vi-VN")}đ, tổng ${total.toLocaleString("vi-VN")}đ.` };
   });

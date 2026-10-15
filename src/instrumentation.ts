@@ -115,6 +115,16 @@ export async function register() {
       console.warn(`[flow] default flow job failed: ${e instanceof Error ? e.message : e}`);
     }
   }, 18_000);
+  // one-time: default import legs left stale by a later change of the order's products get re-priced (lib/db.ts)
+  setTimeout(async () => {
+    try {
+      const { fixStaleImportLegsOnce } = await import("./lib/db");
+      const r = fixStaleImportLegsOnce();
+      if (r) console.info(`[legs] re-priced stale default import legs on ${r.length} order(s)${r.length ? `: #${r.join(", #")}` : ""}`);
+    } catch (e) {
+      console.warn(`[legs] stale leg fix failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }, 22_000);
   // every start-up: API keys still stored as plain text get sealed (see lib/secret-store.ts)
   setTimeout(async () => {
     try {
