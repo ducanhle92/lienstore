@@ -1,5 +1,50 @@
 [
  {
+  "productId": 2295,
+  "code": "4571157251707",
+  "source": "description",
+  "confidence": "shop-data",
+  "evidence": "n・60 ngày Mã vạch (JAN): 4571157251707 Công",
+  "note": "",
+  "reason": "product not on prod"
+ },
+ {
+  "productId": 2329,
+  "code": "4901616965423",
+  "source": "description",
+  "confidence": "shop-data",
+  "evidence": "ích: 110g Mã vạch (JAN): 4901616965423 Công",
+  "note": "",
+  "reason": "product not on prod"
+ },
+ {
+  "productId": 2352,
+  "code": "4571157256290",
+  "source": "description",
+  "confidence": "shop-data",
+  "evidence": "g 50 viên Mã vạch (JAN): 4571157256290 Công",
+  "note": "",
+  "reason": "product not on prod"
+ },
+ {
+  "productId": 2387,
+  "code": "4901525010474",
+  "source": "description",
+  "confidence": "shop-data",
+  "evidence": "ch: 340ml Mã vạch (JAN): 4901525010474 Công",
+  "note": "",
+  "reason": "product not on prod"
+ },
+ {
+  "productId": 2413,
+  "code": "4901417701701",
+  "source": "description",
+  "confidence": "shop-data",
+  "evidence": "ch: 400ml Mã vạch (JAN): 4901417701701 Công",
+  "note": "",
+  "reason": "product not on prod"
+ },
+ {
   "productId": 1582,
   "code": null,
   "source": "web:pilot-result.json",
@@ -228,6 +273,16 @@
   "note": "nameJa has no count: 12包 = 4987306047488, 24包 = 4987306047495 (both from Seims). Check the pack before using. wrong link: B010D3AYVS is パブロンゴールドA 210錠",
   "matchedTitle": "パブロンSゴールドW微粒 12包",
   "reason": "confidence low"
+ },
+ {
+  "productId": 1436,
+  "code": "4513574027077",
+  "source": "web:b05.json",
+  "confidence": "high",
+  "evidence": "https://www.cosme.net/variations/994196/ https://www.e-fujiyakuhin.jp/smp/item/4513574027077.html",
+  "note": "@cosme and Drug Seims agree; pump bottle 800mL (refill 1L is a different code)",
+  "matchedTitle": "熊野油脂 麗白 ハトムギ ボディソープ 本体 (800mL)",
+  "reason": "product not on prod"
  },
  {
   "productId": 1438,
@@ -557,7 +612,7 @@
   "evidence": "https://netshop.create-sd.co.jp/shop/g/g4987241199556/ https://www.seims.co.jp/shop/g/g4987241199556/ https://www.cosme.net/variations/1110060/",
   "note": "nameJa is a bundle (本体160mL + つめかえ140mL); no bundle JAN found. Code is the current 160mL pump bottle (refill 140mL is 4987241199525). Older 160mL bottle code 4987241145614 is marked discontinued on Create SD.",
   "matchedTitle": "肌ラボ 極潤ヒアルロン泡洗顔 160ml",
-  "reason": "confidence low"
+  "reason": "product not on prod"
  },
  {
   "productId": 2078,
@@ -567,7 +622,17 @@
   "evidence": "https://netshop.create-sd.co.jp/shop/g/g4987241199556/ https://www.seims.co.jp/shop/g/g4987241199556/ https://www.cosme.net/variations/1110060/",
   "note": "older 160mL bottle (2022 version, 販売終了 on Create SD; cosme.net)",
   "alt": true,
-  "reason": "confidence low"
+  "reason": "product not on prod"
+ },
+ {
+  "productId": 2083,
+  "code": "4513574027077",
+  "source": "web:b15.json",
+  "confidence": "high",
+  "evidence": "https://www.cosme.net/variations/994196/ https://sundrug-online.com/products/4513574027077",
+  "note": "800mL pump bottle (not 1000mL refill / 2000mL).",
+  "matchedTitle": "麗白 ハトムギボディソープ 本体 800ml",
+  "reason": "product not on prod"
  },
  {
   "productId": 2087,
@@ -628,6 +693,16 @@
   "note": "No page showing a JAN for ビタホワイトプラス「クニヒロ」 240錠 (older Kokando product, Amazon B005MHDBHU). Similar but different products: ネオビタホワイトCプラス「クニヒロ」240錠 4987343087041, ハピコム ネオビタホワイトプラス「クニヒロ」240錠 4987343914078 - not used. Wrong link: B0F1XQGHZZ is マイシー ホワイトプラス リポソーム ビタミンC 30包.",
   "matchedTitle": "",
   "reason": "no code found"
+ },
+ {
+  "productId": 2136,
+  "code": "4511413404133",
+  "source": "web:b19.json",
+  "confidence": "high",
+  "evidence": "https://netshop.create-sd.co.jp/shop/g/g4511413404133/ https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4511413404133 https://shopping.yahoo.co.jp/products/b242aac51e",
+  "note": "Single 60日分 120粒 item (not the 90日分 or 持続型); create-sd and Matsukiyo product URLs both use this JAN",
+  "matchedTitle": "DHC ビタミンC 60日分 (ハードカプセル 120粒)",
+  "reason": "product not on prod"
  },
  {
   "productId": 2137,
@@ -698,6 +773,16 @@
   "note": "Yahoo product page lists JAN as '−'; no code found elsewhere",
   "matchedTitle": "レバンテ NMN プレミアムサプリ 22050 30日分 90粒",
   "reason": "no code found"
+ },
+ {
+  "productId": 2156,
+  "code": "4987103049340",
+  "source": "web:b20.json",
+  "confidence": "high",
+  "evidence": "https://www.qlife.jp/meds/otc4987103049340.html https://item.rakuten.co.jp/ads01/4987103049340/ https://www.sankodo.jp/products/4987103049340",
+  "note": "270錠 single item; several retailer pages agree",
+  "matchedTitle": "コンドロイチンZS錠 270錠【第3類医薬品】",
+  "reason": "product not on prod"
  },
  {
   "productId": 2160,
@@ -777,7 +862,7 @@
   "evidence": "",
   "note": "nameJa is generic with no brand. The Amazon link points to cuspy こどもプロテイン (MAXA), which does not match the name, so it was not used.",
   "matchedTitle": "",
-  "reason": "no code found"
+  "reason": "product not on prod"
  },
  {
   "productId": 2179,
@@ -1177,7 +1262,7 @@
   "evidence": "",
   "note": "Vietnamese bird's nest drink, flavor not specified (several flavors); no JAN listing found.",
   "matchedTitle": "",
-  "reason": "no code found"
+  "reason": "product not on prod"
  },
  {
   "productId": 2274,
@@ -1187,7 +1272,7 @@
   "evidence": "",
   "note": "Tet gift basket (retailer bundle); no single barcode applies.",
   "matchedTitle": "",
-  "reason": "no code found"
+  "reason": "product not on prod"
  },
  {
   "productId": 2275,
@@ -1197,7 +1282,7 @@
   "evidence": "",
   "note": "Fresh prepared food (whole salted chicken), no brand/package; no retail JAN applicable. Amazon link not checked as nameJa has no brand.",
   "matchedTitle": "",
-  "reason": "no code found"
+  "reason": "product not on prod"
  },
  {
   "productId": 2276,
@@ -1217,7 +1302,7 @@
   "evidence": "",
   "note": "Fresh produce sold by weight, no brand; no JAN applicable.",
   "matchedTitle": "",
-  "reason": "no code found"
+  "reason": "product not on prod"
  },
  {
   "productId": 2321,
@@ -1260,12 +1345,75 @@
   "reason": "no code found"
  },
  {
+  "productId": 2680,
+  "code": "4515061013884",
+  "note": "sku shop-data SKU 4515061013884",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Sữa rửa mặt ngừa mụn BCL AHA Cleansing Research Medicated Wash Cleansing AC 120g (Xanh dương)",
+  "reason": "same code proposed for products 2680, 2420 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 2679,
+  "code": "4515061044734",
+  "note": "sku shop-data SKU 4515061044734",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing b 120g (Hồng - Nhạy cảm)",
+  "reason": "same code proposed for products 2679, 2419 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 2618,
+  "code": "4515061042150",
+  "note": "sku shop-data SKU 4515061042150",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Sữa rửa mặt BCL AHA Cleansing Research Wash Cleansing N 120g (tuýp xanh)",
+  "reason": "same code proposed for products 2618, 2418 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 2418,
+  "code": "4515061042150",
+  "note": "sku shop-data SKU AHA-4515061042150",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Mặt nạ bã rượu sake PDC Wafood Made 170g",
+  "reason": "same code proposed for products 2618, 2418 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 2419,
+  "code": "4515061044734",
+  "note": "sku shop-data SKU AHA-4515061044734",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Thuốc cảm cúm của Nhật Taisho Pabron Gold A 210 viên",
+  "reason": "same code proposed for products 2679, 2419 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 2420,
+  "code": "4515061013884",
+  "note": "sku shop-data SKU AHA-4515061013884",
+  "confidence": "shop-data",
+  "kind": "main",
+  "name": "Phấn phủ dưỡng sáng Club Suppin Whitening Powder A hương Innocent Floral 26g",
+  "reason": "same code proposed for products 2680, 2420 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 280,
+  "code": "4987241157754",
+  "note": "web:b02.json high https://netshop.create-sd.co.jp/shop/g/g4987241157754/ https://www.cosme.net/variations/975382/",
+  "confidence": "high",
+  "kind": "main",
+  "name": "Skin Aqua Tone Up Kem Chống Nắng 80g",
+  "reason": "same code proposed for products 280, 1717 — catalogue duplicate? decide which product keeps it"
+ },
+ {
   "productId": 730,
   "code": "4902468236143",
   "note": "web:b02.json high https://netshop.create-sd.co.jp/shop/g/g4902468236143/ https://sundrug-online.com/products/4902468236143",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Kem Dưỡng -Trị Thâm Mắt Meishoku 30g",
   "reason": "same code proposed for products 730, 2053 — catalogue duplicate? decide which product keeps it"
  },
  {
@@ -1274,17 +1422,8 @@
   "note": "web:b03.json high https://item.rakuten.co.jp/mujirushi-ryohin/4550002867485/",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "[TRÙNG Mild — giữ nháp] Tẩy Trang Muji Oil Cleansing 200ml",
   "reason": "same code proposed for products 1249, 2015 — catalogue duplicate? decide which product keeps it"
- },
- {
-  "productId": 1436,
-  "code": "4513574027077",
-  "note": "web:b05.json high https://www.cosme.net/variations/994196/ https://www.e-fujiyakuhin.jp/smp/item/4513574027077.html",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 1436, 2083 — catalogue duplicate? decide which product keeps it"
  },
  {
   "productId": 1536,
@@ -1292,17 +1431,8 @@
   "note": "web:b06.json high https://www.meiji.co.jp/products/milkpowder/4902705005600.html https://netshop.create-sd.co.jp/shop/g/g4902705005600/",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Sữa Meiji Cho Bé Từ 1-3 Tuổi Dạng Lon 800g",
   "reason": "same code proposed for products 1536, 2073 — catalogue duplicate? decide which product keeps it"
- },
- {
-  "productId": 1578,
-  "code": "4987241145676",
-  "note": "web:b06.json high https://shop.tsuruha.co.jp/10101114.html https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4987241145676",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 1578, 2039 — catalogue duplicate? decide which product keeps it"
  },
  {
   "productId": 1638,
@@ -1310,8 +1440,26 @@
   "note": "web:b08.json high https://sundrug-online.com/en/products/4902468113420 https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4902468113420",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Nước Hoa Hồng Trị Mụn Meishoku Bigansui Medicated Skin Lotion 90ml",
   "reason": "same code proposed for products 1638, 2057 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 1652,
+  "code": "4524326200563",
+  "note": "web:b08.json high https://www.e-zagzag.com/view/item/000000002216 https://www.amazon.co.jp/-/en/Yuuki-Pharmaceutical-Chlorella-Tablets-4524326200563/dp/B00OL9SDHS",
+  "confidence": "high",
+  "kind": "main",
+  "name": "TẢO LỤC HOÀNG GIA",
+  "reason": "same code proposed for products 1652, 2294 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 1717,
+  "code": "4987241157754",
+  "note": "web:b08.json high https://netshop.create-sd.co.jp/shop/g/g4987241157754/ https://dokodemo.world/ja/item/255822/",
+  "confidence": "high",
+  "kind": "main",
+  "name": "Skin Aqua Tone Up Kem Chống Nắng 80g (Dành cho da nhạy cảm)",
+  "reason": "same code proposed for products 280, 1717 — catalogue duplicate? decide which product keeps it"
  },
  {
   "productId": 2004,
@@ -1319,7 +1467,7 @@
   "note": "web:b10.json high https://sundrug-online.com/en/products/4976652007536 https://www.biccamera.com/bc/item/10029211/",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Bột canxi cá tuyết Nhật Bản",
   "reason": "same code proposed for products 2004, 2139 — catalogue duplicate? decide which product keeps it"
  },
  {
@@ -1328,17 +1476,8 @@
   "note": "web:b11.json high https://item.rakuten.co.jp/mujirushi-ryohin/4550002867485/",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "[TRÙNG Mild — giữ nháp] Dầu tẩy trang Muji Cleansing Oil",
   "reason": "same code proposed for products 1249, 2015 — catalogue duplicate? decide which product keeps it"
- },
- {
-  "productId": 2039,
-  "code": "4987241145676",
-  "note": "web:b12.json high https://shop.tsuruha.co.jp/10101114.html https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4987241145676 https://netshop.create-sd.co.jp/shop/g/g4987241145676/",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 1578, 2039 — catalogue duplicate? decide which product keeps it"
  },
  {
   "productId": 2053,
@@ -1346,7 +1485,7 @@
   "note": "web:b13.json high https://www.e-fujiyakuhin.jp/smp/item/4902468236143.html https://netshop.create-sd.co.jp/shop/g/g4902468236143/ https://www.matsukiyococokara-online.com/store/catalog/product/view/id",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Kem dưỡng mắt Meishoku Placenta Whitening Eye Cream 30g",
   "reason": "same code proposed for products 730, 2053 — catalogue duplicate? decide which product keeps it"
  },
  {
@@ -1355,7 +1494,7 @@
   "note": "web:b14.json high https://sundrug-online.com/en/products/4902468113420 https://www.e-fujiyakuhin.jp/smp/item/4902468113420.html https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Lotion trị mụn Meishoku Bigansui",
   "reason": "same code proposed for products 1638, 2057 — catalogue duplicate? decide which product keeps it"
  },
  {
@@ -1364,26 +1503,8 @@
   "note": "web:b15.json high https://www.meiji.co.jp/products/milkpowder/4902705005600.html https://netshop.create-sd.co.jp/shop/g/g4902705005600/ https://www.amazon.co.jp/dp/B0761QFQ45",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Sữa Meiji số 9 800g",
   "reason": "same code proposed for products 1536, 2073 — catalogue duplicate? decide which product keeps it"
- },
- {
-  "productId": 2083,
-  "code": "4513574027077",
-  "note": "web:b15.json high https://www.cosme.net/variations/994196/ https://sundrug-online.com/products/4513574027077",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 1436, 2083 — catalogue duplicate? decide which product keeps it"
- },
- {
-  "productId": 2111,
-  "code": "4987103049340",
-  "note": "web:b17.json high https://www.qlife.jp/meds/otc4987103049340.html https://www.sankodo.jp/products/4987103049340 https://store.shopping.yahoo.co.jp/jetdrug/4987103049340-02.html",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 2111, 2156 — catalogue duplicate? decide which product keeps it"
  },
  {
   "productId": 2139,
@@ -1391,17 +1512,26 @@
   "note": "web:b19.json high https://www.atpress.ne.jp/news/2096333 https://pr.mono.ipros.com/kenko064/product/detail/2001596644/",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Bột canxi Fine Bone Kids vị chocolate 140g",
   "reason": "same code proposed for products 2004, 2139 — catalogue duplicate? decide which product keeps it"
  },
  {
-  "productId": 2156,
-  "code": "4987103049340",
-  "note": "web:b20.json high https://www.qlife.jp/meds/otc4987103049340.html https://item.rakuten.co.jp/ads01/4987103049340/ https://www.sankodo.jp/products/4987103049340",
+  "productId": 2294,
+  "code": "4524326200563",
+  "note": "web:b30.json high https://item.rakuten.co.jp/zagzag/g4524326200563/ https://paypaymall.yahoo.co.jp/store/zagzag/item/4524326200563/ https://www.amazon.co.jp/-/en/Yuuki-Pharmaceutical-Chlorella-Tablets",
   "confidence": "high",
   "kind": "main",
-  "name": "",
-  "reason": "same code proposed for products 2111, 2156 — catalogue duplicate? decide which product keeps it"
+  "name": "Viên uống tảo lục Yuuki Pharmaceutical Chlorella Royal DX 1550 viên",
+  "reason": "same code proposed for products 1652, 2294 — catalogue duplicate? decide which product keeps it"
+ },
+ {
+  "productId": 258,
+  "code": "4992440034713",
+  "note": "web:b01.json high https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4992440034713 https://netshop.create-sd.co.jp/shop/g/g4992440034713/ https://www.cosme.net/variations/969204/",
+  "confidence": "high",
+  "kind": "main",
+  "name": "Mask Keana Rice Mặt Nạ Gạo 10 Miếng",
+  "reason": "duplicate of product 2674 (that one got the code)"
  },
  {
   "productId": 659,
@@ -1409,35 +1539,17 @@
   "note": "web:b02.json high https://netshop.create-sd.co.jp/shop/g/g4937224925658/ https://sundrug-online.com/products/4937224925658",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Spirulina Tảo Xoắn Chai 2200 Viên",
   "reason": "duplicate of product 2293 (that one got the code)"
  },
  {
-  "productId": 1283,
-  "code": "4571157256290",
-  "note": "web:b03.json high https://sundrug-online.com/en/products/4571157256290 https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4571157256290 https://joshinweb.jp/cg/30001716/45711572562",
+  "productId": 1578,
+  "code": "4987241145676",
+  "note": "web:b06.json high https://shop.tsuruha.co.jp/10101114.html https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4987241145676",
   "confidence": "high",
   "kind": "main",
-  "name": "",
-  "reason": "duplicate of product 2352 (that one got the code)"
- },
- {
-  "productId": 1652,
-  "code": "4524326200563",
-  "note": "web:b08.json high https://www.e-zagzag.com/view/item/000000002216 https://www.amazon.co.jp/-/en/Yuuki-Pharmaceutical-Chlorella-Tablets-4524326200563/dp/B00OL9SDHS",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "duplicate of product 2294 (that one got the code)"
- },
- {
-  "productId": 1717,
-  "code": "4987241157754",
-  "note": "web:b08.json high https://netshop.create-sd.co.jp/shop/g/g4987241157754/ https://dokodemo.world/ja/item/255822/",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "duplicate of product 280 (that one got the code)"
+  "name": "[TRÙNG UV White Gel — ẩn] Kem Dưỡng Ngày Hadalabo Xanh 7in1",
+  "reason": "duplicate of product 2039 (that one got the code)"
  },
  {
   "productId": 1753,
@@ -1445,7 +1557,7 @@
   "note": "web:b09.json high https://netshop.create-sd.co.jp/shop/g/g4987316018775/ https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4987316018775",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "THUỐC XỊT XOANG NAZAL NHẬT BẢN 30ml",
   "reason": "duplicate of product 2323 (that one got the code)"
  },
  {
@@ -1454,26 +1566,8 @@
   "note": "web:b16.json high https://www.minami-hf.co.jp/healthfood/support/4945904016138/ https://store.shopping.yahoo.co.jp/soukai/4945904016138.html",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Viên uống hỗ trợ điều trị gout",
   "reason": "duplicate of product 2349 (that one got the code)"
- },
- {
-  "productId": 2128,
-  "code": "4571157251707",
-  "note": "web:b18.json high https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4571157251707 https://dokodemo.world/zh-Hans/item/20496/",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "duplicate of product 2295 (that one got the code)"
- },
- {
-  "productId": 2136,
-  "code": "4511413404133",
-  "note": "web:b19.json high https://netshop.create-sd.co.jp/shop/g/g4511413404133/ https://www.matsukiyococokara-online.com/store/catalog/product/view/id/4511413404133 https://shopping.yahoo.co.jp/products/b242",
-  "confidence": "high",
-  "kind": "main",
-  "name": "",
-  "reason": "duplicate of product 1274 (that one got the code)"
  },
  {
   "productId": 2147,
@@ -1481,7 +1575,7 @@
   "note": "web:b19.json high https://sundrug-online.com/en/products/4946842820160 https://store.shopping.yahoo.co.jp/soukai/4946842820160.html",
   "confidence": "high",
   "kind": "main",
-  "name": "",
+  "name": "Viên Uống Bổ Não Asahi Schwabe Ginkgo Leaf Extract",
   "reason": "duplicate of product 2284 (that one got the code)"
  }
 ]
