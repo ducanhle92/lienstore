@@ -19,7 +19,12 @@
 - [x] typecheck OK, eslint src+scripts 0 lỗi (lỗi lint còn lại nằm ở file untracked data/scripts, tools/), build OK.
 
 ## Đang làm
-- Việc 2 (quét mã điện thoại): bắt đầu khảo sát.
+- Việc 2 (quét mã điện thoại). Thiết kế: docs/architecture/mobile-scanning.md.
+  - [x] GĐ1: lib/barcodes.ts (chuẩn hoá mã), migration 74 (product_barcodes, scan_docs/lines/ops), lib/barcodes-db.ts
+        (resolve, link/unlink, tồn tra cứu), API /codes/resolve, /products/{id}/stock, /products/{id}/barcodes,
+        /barcodes/{id}; scope inventory:read|write; màn /admin/scan (CameraView, ScanApp, LinkCodePanel,
+        ProductStockCard, scan-client, feedback, detector WASM tự host public/sites/lienstore/scan/); test:scan 14 pass.
+  - [ ] GĐ2 nhập hàng: lib/scan-docs.ts (service chung) + routes /stock-receipts/** + DocPanel thật (thay stub).
 
 ## Tiếp theo
 ### Việc 2 (user giao 2026-10-15, làm SAU khi xong API+CLI): quét mã trên điện thoại (web app)
