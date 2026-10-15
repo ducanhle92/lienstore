@@ -99,6 +99,17 @@ describe("scan input pipeline (pure)", () => {
     assert.equal(w.feed("Enter", (t += 5)), null, "too short");
     assert.equal(w.feed("Shift", (t += 5)), null);
   });
+  it("Bluetooth HID timing (~90 ms per key, iOS) is still a scan; inside a field only long codes count", () => {
+    const w = new WedgeBuffer();
+    let t = 0;
+    for (const ch of "4961989409139") w.feed(ch, (t += 90));
+    assert.equal(w.feed("Enter", (t += 90)), "4961989409139");
+    for (const ch of "1200") w.feed(ch, (t += 40));
+    assert.equal(w.feed("Enter", (t += 40), 8), null, "a quantity typed quickly in a field is not a scan");
+    for (const ch of "H0001235") w.feed(ch, (t += 20));
+    assert.equal(w.feed("Enter", (t += 20), 8), "H0001235");
+    assert.equal(w.empty, true);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

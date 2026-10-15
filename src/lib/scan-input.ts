@@ -35,18 +35,27 @@ export class PresenceGate {
 export class WedgeBuffer {
   private chars: string[] = [];
   private times: number[] = [];
+  /**
+   * Bluetooth HID scanners send a key every ~5–100 ms (iOS often 30–100), a person rarely below ~120 ms for long.
+   * Inside an input field `minLength` is raised by the caller (barcodes are ≥ 8 chars, quantities are not).
+   */
   constructor(
-    private readonly maxGapMs = 60,
+    private readonly maxGapMs = 150,
     private readonly minLength = 4,
   ) {}
 
+  /** True when the buffer is empty — the next key starts a possible scan. */
+  get empty(): boolean {
+    return this.chars.length === 0;
+  }
+
   /** Feed one key (KeyboardEvent.key) at time `now`; returns the scanned code when Enter ends a fast burst. */
-  feed(key: string, now: number): string | null {
+  feed(key: string, now: number, minLength = this.minLength): string | null {
     if (key === "Enter" || key === "Tab") {
       const code = this.chars.join("");
       const fast = this.times.every((t, i) => i === 0 || t - this.times[i - 1] <= this.maxGapMs);
       this.reset();
-      return code.length >= this.minLength && fast ? code : null;
+      return code.length >= minLength && fast ? code : null;
     }
     if (key.length !== 1) return null;
     if (this.times.length && now - this.times[this.times.length - 1] > this.maxGapMs * 4) this.reset();

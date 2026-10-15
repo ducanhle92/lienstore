@@ -176,19 +176,35 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
     [process],
   );
 
-  // Bluetooth / USB scanners type the code + Enter: listen when no field is being typed in
+  // Bluetooth / USB scanners type the code + Enter. Listened to in the capture phase everywhere: with no field focused
+  // any fast burst of ≥ 4 chars is a scan; inside another field (a quantity box) only a fast burst of ≥ 8 chars is, and
+  // that field gets its previous value back. The "Nhập / quét mã" box handles its own Enter.
   useEffect(() => {
     const buf = new WedgeBuffer();
+    let snap: { el: HTMLInputElement | HTMLTextAreaElement; value: string } | null = null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(document.activeElement)) return;
-      const code = buf.feed(e.key, performance.now());
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = document.activeElement;
+      if (el instanceof HTMLElement && el.dataset.scanInput === "1") return;
+      const typing = isTypingTarget(el);
+      if (buf.empty && typing && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) snap = { el, value: el.value };
+      if (buf.empty && !typing) snap = null;
+      const code = buf.feed(e.key, performance.now(), typing ? 8 : 4);
       if (code) {
         e.preventDefault();
+        e.stopPropagation();
+        if (typing && snap && snap.el === el) {
+          // React-controlled fields: set through the native setter + an input event so their state follows
+          const proto = snap.el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          Object.getOwnPropertyDescriptor(proto, "value")?.set?.call(snap.el, snap.value);
+          snap.el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        snap = null;
         handleCode(code);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [handleCode]);
 
   const enterMode = (m: Mode) => {
@@ -278,7 +294,7 @@ export function ScanApp({ warehouses, canPick, canLink, userLabel }: ScanAppProp
                 setManual("");
               }}
             >
-              <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Nhập / quét mã" className="min-h-12 min-w-0 flex-1 rounded-lg border border-[#d1d5db] px-3 font-mono text-[16px]" autoCapitalize="characters" autoComplete="off" enterKeyHint="go" data-testid="manual-code" />
+              <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Nhập / quét mã" className="min-h-12 min-w-0 flex-1 rounded-lg border border-[#d1d5db] px-3 font-mono text-[16px]" autoCapitalize="characters" autoComplete="off" enterKeyHint="go" data-testid="manual-code" data-scan-input="1" />
               <button type="submit" className="min-h-12 rounded-lg bg-lien-heading px-4 font-semibold text-white" data-testid="manual-submit">
                 OK
               </button>
