@@ -23,6 +23,16 @@ Bearer token riêng (không mở web preview), dùng chung nghiệp vụ với S
 - [ ] B8. Test (tsx, DB tạm) + e2e CLI → dev server với DB tạm.
 - [ ] B9. Tài liệu `docs/ADMIN_API.md`, AGENTS.md (+ sync), PROGRESS cuối.
 
+### Việc 2 (user giao 2026-10-15, làm SAU khi xong API+CLI): quét mã trên điện thoại (web app)
+- [ ] Khảo sát mô hình kho thật (units/lots/stocktake/receipts/shipments/orders, mã SKU/JAN) → viết
+      `docs/architecture/mobile-scanning.md` (hiện trạng, luồng, data model/migration, API, trạng thái chứng từ,
+      đồng thời/retry/mất mạng/quét lặp, kế hoạch + nghiệm thu).
+- [ ] GĐ1 mã sản phẩm + resolve API + màn hình quét (camera/nhập tay/BT keyboard) + tra cứu + mã lạ.
+- [ ] GĐ2 nhập hàng (phiếu nháp, xác nhận idempotent). GĐ3 kiểm kho (snapshot + đối soát). GĐ4 xuất hàng/đối chiếu đơn.
+- [ ] GĐ5 hoàn thiện mobile/PWA, tài liệu + checklist thử trên điện thoại thật.
+- Ràng buộc chính: không đổi tồn chỉ vì quét; mọi thay đổi tồn qua nghiệp vụ/chứng từ hiện có; dùng chung service
+  cho UI/API/CLI; idempotency bền; version chứng từ; session web có CSRF; không deploy/push main.
+
 ## Ghi chú / quyết định
 - Không deploy/release/push main trong việc này (user yêu cầu rõ).
 - Không đụng các file untracked có sẵn (agent-credentials.txt, scratch*, tools/, data/ocr_test…).

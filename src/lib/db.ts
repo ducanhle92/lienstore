@@ -587,7 +587,11 @@ export function listProductChanges(productId: number, limit = 60): ProductChange
 }
 
 export async function saveProduct(input: ProductInput): Promise<CatalogProduct> {
-  const db = getDb();
+  return saveProductSync(getDb(), input);
+}
+
+/** Synchronous `saveProduct` for callers that group several saves in one transaction (Admin API bulk update). */
+export function saveProductSync(db: DatabaseSync, input: ProductInput): CatalogProduct {
   return withTransaction(db, () => {
     const now = new Date().toISOString();
     let id = input.id;
