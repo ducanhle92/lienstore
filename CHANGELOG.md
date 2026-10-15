@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.34.1] - 2026-10-15
+
 ### Fixed
 - **Chi phí vận chuyển (shop chịu) sai hàng chục triệu khi sửa số lượng sau khi tạo đơn** (VD #1085: tạo với SL 444, một phút sau sửa còn 4 → 3 chặng nhập vẫn tính cho 319,68 kg = 67,8 triệu). Phí chặng ①②③ "mặc định theo luồng nhập hàng" được ghi lúc tạo đơn và trước đây không tính lại khi "Sửa" sản phẩm. Giờ mỗi lần sửa sản phẩm / số lượng của đơn, các chặng mặc định tự tính lại theo khối lượng mới (chặng admin đã chọn / gõ tay giữ nguyên). Lần khởi động đầu tiên sửa một lần các đơn đang lệch (tổng phí 3 chặng gấp hơn 2 lần hoặc dưới một nửa so với khối lượng hiện tại).
 
