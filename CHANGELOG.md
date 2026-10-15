@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.34.3] - 2026-10-15
+
 ### Fixed
 - **Sửa sản phẩm · "Lợi nhuận/sp" tính cả phí ship về VN**: trước đây ô này chỉ lấy giá bán − giá vốn ở Nhật (VD #2757 Arau baby refill: bán 200.000đ, vốn ¥800 = 136.000đ → báo "+64.000đ (32%)"), trong khi Kế toán còn trừ phí 3 chặng nhập (~151.000đ cho 720 g) → thực tế lỗ ~89.000đ/sp, đơn #1086 lỗ −177.424đ. Giờ ô này tính theo **giá vốn về tới VN** (vốn Nhật + ship 3 chặng), cập nhật ngay khi gõ giá, ghi rõ cách tính; bán dưới giá vốn về VN thì hiện "⚠ Bán lỗ/sp" màu đỏ kèm giá kỳ vọng theo công thức.
 
