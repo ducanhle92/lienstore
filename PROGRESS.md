@@ -10,7 +10,7 @@
 2. (xong, chờ thử trên điện thoại thật) Quét mã trên điện thoại (`/admin/scan/`): tra cứu, nhập hàng, kiểm kho, xuất
    hàng — dùng chung nghiệp vụ kho từng cái (`stock_units`) qua API v1.
 
-Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yêu cầu).
+Nhánh: `feat/admin-api-cli` — đã merge vào main và phát hành v2.34.4.
 
 ## Đã xong
 ### Việc 1 — Admin API v1 + CLI (docs/ADMIN_API.md)
@@ -46,7 +46,10 @@ Nhánh: `feat/admin-api-cli` (chưa merge, chưa push, chưa deploy — theo yê
   của nhánh đổi thành 75 (admin-api-tokens) & 76 (scan-codes-and-documents); `migrate()` khớp cả tên để DB dev đã chạy
   số cũ vẫn nhận 73/74 của main (đã thử 2 kịch bản). Giữ quy tắc "không xoá ảnh đơn hàng còn dùng" của main trong
   product-service.cleanupRemovedUploads; trang nhãn dùng PrintOnLoad (AutoPrint của main giờ là thanh in hoá đơn).
-- User đã duyệt deploy (2026-10-15): merge main, push, chờ CI, release patch, smoke chỉ-đọc prod.
+- ĐÃ LÊN PROD v2.34.4 (2026-10-15): CI xanh, Release xanh, health = 2.34.4, schemaVersion 76 (migration 75, 76 đã chạy).
+  Smoke không cần token: /api/admin/v1/ 200, API không token → 401, /admin/scan → login, /api/scan-manifest 200,
+  WASM 200 application/wasm. Smoke CÓ token (whoami, codes resolve, stock, receipts shipments, picks orders) CHƯA chạy:
+  máy này chưa có token prod — user cấp ở /admin/api-tokens rồi lưu .env.lienstore.prod.local.
 
 ## Đề xuất sau rà soát (Fable 5.1, 2026-10-15) — USER ĐÃ DUYỆT "làm đủ R1–R10 rồi mới deploy" → Opus làm tiếp từ R1
 Kiến trúc lõi ổn (dùng lại stock_units, idempotency theo opId, version/rev, chốt 1 transaction; test 76 pass).
