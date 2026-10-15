@@ -28,6 +28,7 @@ interface LineView {
   billCode: string;
   state: string;
   message: string;
+  scanTarget?: boolean;
 }
 export interface DocView {
   id: number;
@@ -345,6 +346,7 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
                 </div>
                 <span className={`mt-0.5 inline-block rounded px-1.5 text-[12px] font-semibold ${STATE_CLS[l.state] ?? ""}`}>{l.message || " "}</span>
                 {l.unitCodes.length ? <div className="break-all font-mono text-[11px] text-lien-muted">{l.unitCodes.join(" ")}</div> : null}
+                {l.scanTarget && draft ? <div className="text-[12px] font-semibold text-sky-800" data-testid="scan-target">● Lần quét tiếp theo của sản phẩm này cộng vào dòng này</div> : null}
               </div>
               <div className="text-right">
                 <div className="text-[22px] font-bold leading-6" data-testid="line-qty">

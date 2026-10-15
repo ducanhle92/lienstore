@@ -353,6 +353,23 @@ describe("receive — new goods (direct)", () => {
     assert.throws(() => docs.scanIntoDoc("receive", docs.createDoc("receive", { warehouse: "jp", mode: "direct" }, owner).id, { code: "4911111111119", opId: op() }, vnOnly), errCode("WAREHOUSE_FORBIDDEN"));
     assert.throws(() => docs.confirmDoc("receive", doc.id, { version: docs.getDoc("receive", doc.id).version }, owner), errCode("NOTHING_TO_CONFIRM"));
   });
+  it("with two lines of one product (other expiry), scans go to the newest line, which is marked", async () => {
+    const [a] = await twoProducts("twolines");
+    const ean = freshEan();
+    await db.updateProductSku(a.id, ean);
+    const doc = docs.createDoc("receive", { warehouse: "vn", mode: "direct" }, owner);
+    const v1 = docs.scanIntoDoc("receive", doc.id, { code: ean, opId: op(), qty: 2 }, owner).doc;
+    docs.updateLine("receive", doc.id, v1.lines[0].id, { rev: v1.lines[0].rev, expiry: "2027-01" }, owner);
+    const v2 = docs.addLine("receive", doc.id, { productId: a.id }, owner);
+    const second = v2.lines[1];
+    assert.equal(second.scanTarget, true);
+    assert.ok(!v2.lines[0].scanTarget);
+    const v3 = docs.updateLine("receive", doc.id, second.id, { rev: second.rev, expiry: "2028-01" }, owner);
+    // editing the first line again must not steal the scans
+    docs.updateLine("receive", doc.id, v3.lines[0].id, { rev: v3.lines[0].rev, qty: 3 }, owner);
+    const v4 = docs.scanIntoDoc("receive", doc.id, { code: ean, opId: op() }, owner).doc;
+    assert.deepEqual(v4.lines.map((l) => [l.expiry, l.qty]), [["2027-01-31", 3], ["2028-01-31", 1]]);
+  });
   it("the ¥ cost is hidden from and refused to accounts without “Xem giá vốn”", async () => {
     const [a] = await twoProducts("cost");
     const ean = freshEan();

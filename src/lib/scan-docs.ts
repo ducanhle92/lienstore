@@ -92,6 +92,8 @@ export interface LineView {
   billCode: string;
   state: "ok" | "short" | "over" | "uncounted" | "drift" | "empty" | "match" | "diff";
   message: string;
+  /** Several lines of this product: the next scan of it is added to this one. */
+  scanTarget?: boolean;
 }
 
 export interface DocView {
@@ -198,6 +200,13 @@ function viewOf(db: DatabaseSync, d: DocRow): DocView {
     }
     return { ...base, state: (r.qty ?? 0) > 0 ? ("ok" as const) : ("empty" as const), message: (r.qty ?? 0) > 0 ? "" : "Số lượng 0 — không nhập" };
   });
+  const newest = new Map<number, number>();
+  const perProduct = new Map<number, number>();
+  for (const r of rows) {
+    newest.set(r.product_id, Math.max(newest.get(r.product_id) ?? 0, r.id));
+    perProduct.set(r.product_id, (perProduct.get(r.product_id) ?? 0) + 1);
+  }
+  for (const l of lines) if ((perProduct.get(l.product.id) ?? 0) > 1 && newest.get(l.product.id) === l.id) l.scanTarget = true;
   let shipment: DocView["shipment"] = null;
   let order: DocView["order"] = null;
   if (d.shipment_id) {
@@ -401,7 +410,8 @@ export function scanIntoDoc(kind: DocKind, docId: number, input: ScanInput, ctx:
     const delta = unitCode ? 1 : n * res.packQty;
     const w = d.warehouse as ShopWarehouse;
     const rows = lineRows(db, docId);
-    let line = rows.filter((r) => r.product_id === productId).sort((a, b) => b.updated_at.localeCompare(a.updated_at) || b.id - a.id)[0];
+    // several lines of one product (new goods with another expiry / price): scans go to the NEWEST line (shown on screen)
+    let line = rows.filter((r) => r.product_id === productId).sort((a, b) => b.id - a.id)[0];
     const name = res.product.name;
     // a unit found here while the book has it elsewhere still counts here (the count corrects the book) — say so
     const elsewhere = kind === "count" && res.kind === "unit" && res.unit.warehouse !== w ? ` · sổ ghi cái này ở "${res.unit.place}"` : "";
