@@ -6,31 +6,10 @@ import { createHash, randomBytes } from "node:crypto";
  * Raw token: `lsk_` + 43 chars base64url (32 random bytes). Only `sha256(raw)` is stored; the first 12 characters
  * (`lsk_xxxxxxxx`) are kept as a non-secret prefix so a token can be recognised in lists and audit rows.
  */
-export const API_SCOPES = ["products:read", "products:write", "media:write"] as const;
-export type ApiScope = (typeof API_SCOPES)[number];
-
-export const API_SCOPE_LABELS: Record<ApiScope, string> = {
-  "products:read": "Đọc sản phẩm, danh mục",
-  "products:write": "Tạo / sửa sản phẩm (kể cả cập nhật hàng loạt)",
-  "media:write": "Upload ảnh sản phẩm",
-};
-
-/** Admin module the token's owner must still hold for each scope (checked on every request). */
-export const SCOPE_MODULE: Record<ApiScope, string> = {
-  "products:read": "products",
-  "products:write": "products",
-  "media:write": "products",
-};
+export { API_SCOPES, API_SCOPE_LABELS, isApiScope, sanitizeScopes, SCOPE_MODULE, type ApiScope } from "@/lib/api-scopes";
 
 const TOKEN_RE = /^lsk_[A-Za-z0-9_-]{43}$/;
 export const TOKEN_PREFIX_LEN = 12;
-
-export const isApiScope = (v: unknown): v is ApiScope => typeof v === "string" && (API_SCOPES as readonly string[]).includes(v);
-
-export function sanitizeScopes(values: unknown): ApiScope[] {
-  if (!Array.isArray(values)) return [];
-  return API_SCOPES.filter((s) => values.includes(s));
-}
 
 export function generateRawToken(): string {
   return `lsk_${randomBytes(32).toString("base64url")}`;

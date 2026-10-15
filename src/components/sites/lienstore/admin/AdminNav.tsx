@@ -64,6 +64,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/posts/", label: "Góc chia sẻ", icon: "newspaper-o", module: "posts" },
       { href: "/admin/fanpage/", label: "Đăng bài fanpage", icon: "facebook", module: "fanpage" },
       { href: "/admin/users/", label: "Người dùng", icon: "user-circle", module: "users" },
+      { href: "/admin/api-tokens/", label: "API tokens (CLI)", icon: "lock", module: "users" },
     ],
   },
   {
