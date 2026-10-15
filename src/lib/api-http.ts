@@ -66,7 +66,8 @@ export function okBody(data: unknown, requestId: string, meta: Record<string, un
 }
 
 export function errorBody(status: number, code: string, message: string, requestId: string, details: Record<string, unknown> = {}): string {
-  return JSON.stringify({ ok: false, error: { code, message, status, ...details }, meta: { requestId } });
+  // details never override the error's own code / message / status
+  return JSON.stringify({ ok: false, error: { ...details, code, message, status }, meta: { requestId } });
 }
 
 export function clientIp(req: NextRequest): string {

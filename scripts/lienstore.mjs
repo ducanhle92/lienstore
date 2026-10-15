@@ -39,6 +39,22 @@ const HELP = `lienstore — Admin API v1 CLI (JSON out). Docs: docs/ADMIN_API.md
   categories list
   audit [--product <id>] [--limit N]
 
+  codes resolve <code>                       what a scanned / typed code is (product, unit H…, unknown, conflict)
+  stock <productId>                          stock by warehouse / expiry, held for orders, incoming
+  barcodes list <productId> [--all]
+  barcodes add <productId> <code> [--pack-qty 12] [--pack-label thùng] [--force]
+  barcodes remove <barcodeId>
+  receipts|counts|picks list [--status draft|confirmed|cancelled|all] [--warehouse vn|jp]
+  receipts create --warehouse vn|jp [--mode direct|shipment --shipment <id>]   (receipts shipments = runs to receive)
+  counts create --warehouse vn|jp            picks create --order <orderId> | --order-number <n>   (picks orders)
+  receipts|counts|picks get <docId>
+  receipts|counts|picks scan <docId> <code> [--qty N] [--op-id X]
+  receipts|counts|picks add-line <docId> <productId>
+  receipts|counts|picks set-line <docId> <lineId> --rev R [--qty N|null] [--expiry 2027-03] [--cost-jpy N] [--bill X] [--recount] [--accept-drift]
+  receipts|counts|picks undo <docId> [--op-id X]
+  receipts|counts|picks confirm <docId> --version V      (counts: close, picks: complete — same command)
+  receipts|counts|picks cancel <docId>
+
 Global: --profile <name>  --yes (required for writes when the target is production)  --timeout <ms>
 --file - reads JSON from stdin. --set key=value parses value as JSON when possible (numbers, null, ["a","b"]).`;
 
@@ -48,7 +64,7 @@ function parseArgs(argv) {
   const pos = [];
   const opts = {};
   const multi = new Set(["set"]);
-  const flags = new Set(["dry-run", "yes", "all-pages", "allow-duplicate-sku", "help", "h"]);
+  const flags = new Set(["dry-run", "yes", "all-pages", "allow-duplicate-sku", "help", "h", "force", "all", "recount", "accept-drift"]);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--") {
@@ -255,6 +271,11 @@ async function run() {
   process.stderr.write(`[lienstore] → ${cfg.url}  [${cfg.env.toUpperCase()}] profile=${cfg.profile} token=${tokenHint}\n`);
 
   const key = `${group} ${action ?? ""}`.trim();
+  if (group === "stock") {
+    const id = action === "get" ? rest[0] : action;
+    if (!/^\d+$/.test(String(id ?? ""))) usage("stock <productId>");
+    return finish(cfg, await call(cfg, "GET", `products/${id}/stock`));
+  }
   switch (key) {
     case "whoami":
       return finish(cfg, await call(cfg, "GET", "me"));
@@ -372,8 +393,105 @@ async function run() {
       return finish(cfg, { status: 201, body: { ok: true, data: results.length === 1 ? results[0] : results } });
     }
 
-    default:
+    case "codes resolve": {
+      const code = rest[0] ?? opts.code;
+      if (!code) usage("codes resolve <mã>");
+      return finish(cfg, await call(cfg, "GET", "codes/resolve", { query: { code } }));
+    }
+    case "barcodes list": {
+      if (!/^\d+$/.test(String(rest[0] ?? ""))) usage("barcodes list <productId>");
+      return finish(cfg, await call(cfg, "GET", `products/${rest[0]}/barcodes`, { query: { all: opts.all ? 1 : undefined } }));
+    }
+    case "barcodes add": {
+      const [pid, code] = rest;
+      if (!/^\d+$/.test(String(pid ?? "")) || !code) usage("barcodes add <productId> <mã> [--pack-qty N]");
+      guardWrite(cfg, opts);
+      const body = { code: String(code), packQty: opts["pack-qty"] ? Number(opts["pack-qty"]) : 1, packLabel: opts["pack-label"] ?? "", force: !!opts.force };
+      return finish(cfg, await call(cfg, "POST", `products/${pid}/barcodes`, { json: body, idempotencyKey: `barcode-${stableHash(JSON.stringify([pid, body]))}` }));
+    }
+    case "barcodes remove": {
+      if (!/^\d+$/.test(String(rest[0] ?? ""))) usage("barcodes remove <barcodeId>");
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "DELETE", `barcodes/${rest[0]}`));
+    }
+
+    default: {
+      const DOCS = { receipts: ["stock-receipts", "confirm"], counts: ["stock-counts", "close"], picks: ["picks", "complete"] };
+      if (DOCS[group]) return docCommand(cfg, opts, DOCS[group][0], DOCS[group][1], action, rest);
       usage(`lệnh không rõ: ${key}`);
+    }
+  }
+}
+
+/** receipts / counts / picks — scan documents (docs/SCANNING.md). */
+async function docCommand(cfg, opts, fam, confirmPath, action, rest) {
+  const id = rest[0];
+  const needId = () => {
+    if (!/^\d+$/.test(String(id ?? ""))) usage(`${action} <docId>`);
+  };
+  const int = (v, name) => {
+    if (v === undefined) return undefined;
+    if (v === "null") return null;
+    if (!/^\d+$/.test(String(v))) usage(`--${name} phải là số`);
+    return Number(v);
+  };
+  switch (action) {
+    case "list":
+      return finish(cfg, await call(cfg, "GET", fam, { query: { status: opts.status, warehouse: opts.warehouse } }));
+    case "shipments":
+      return finish(cfg, await call(cfg, "GET", "stock-receipts/shipments"));
+    case "orders":
+      return finish(cfg, await call(cfg, "GET", "picks/orders"));
+    case "get":
+      needId();
+      return finish(cfg, await call(cfg, "GET", `${fam}/${id}`));
+    case "create": {
+      guardWrite(cfg, opts);
+      const body = { warehouse: opts.warehouse, mode: opts.mode ?? (opts.shipment ? "shipment" : undefined), shipmentId: int(opts.shipment, "shipment"), orderId: opts.order, orderNumber: int(opts["order-number"], "order-number"), note: opts.note };
+      return finish(cfg, await call(cfg, "POST", fam, { json: body, idempotencyKey: opts["idempotency-key"] ?? `create-${randomUUID()}` }));
+    }
+    case "scan": {
+      needId();
+      const code = rest[1];
+      if (!code) usage("scan <docId> <mã> [--qty N]");
+      guardWrite(cfg, opts);
+      // one CLI call = one deliberate scan; network retries inside reuse the same opId (never counted twice)
+      const opId = opts["op-id"] ?? `cli-${randomUUID()}`;
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/scans`, { json: { code: String(code), opId, qty: int(opts.qty, "qty") }, idempotencyKey: `scan-${opId}` }));
+    }
+    case "add-line": {
+      needId();
+      if (!/^\d+$/.test(String(rest[1] ?? ""))) usage("add-line <docId> <productId>");
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/lines`, { json: { productId: Number(rest[1]) }, idempotencyKey: `line-${randomUUID()}` }));
+    }
+    case "set-line": {
+      needId();
+      if (!/^\d+$/.test(String(rest[1] ?? ""))) usage("set-line <docId> <lineId> --rev R …");
+      if (opts.rev === undefined) usage("--rev (lấy từ get) là bắt buộc — tránh ghi đè sửa của máy khác");
+      guardWrite(cfg, opts);
+      const body = { rev: int(opts.rev, "rev"), qty: int(opts.qty, "qty"), expiry: opts.expiry === "null" ? null : opts.expiry, unitCostJpy: int(opts["cost-jpy"], "cost-jpy"), billCode: opts.bill, recount: opts.recount ? true : undefined, acceptDrift: opts["accept-drift"] ? true : undefined };
+      return finish(cfg, await call(cfg, "PATCH", `${fam}/${id}/lines/${rest[1]}`, { json: body }));
+    }
+    case "undo":
+      needId();
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/undo`, { json: opts["op-id"] ? { opId: opts["op-id"] } : {} }));
+    case "confirm":
+    case "close":
+    case "complete": {
+      needId();
+      if (opts.version === undefined) usage("--version (lấy từ get, sau khi đã xem lại phiếu) là bắt buộc");
+      guardWrite(cfg, opts);
+      const version = int(opts.version, "version");
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/${confirmPath}`, { json: { version }, idempotencyKey: `confirm-${fam}-${id}-${version}` }));
+    }
+    case "cancel":
+      needId();
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "POST", `${fam}/${id}/cancel`, { json: {}, idempotencyKey: `cancel-${fam}-${id}` }));
+    default:
+      usage(`lệnh không rõ: ${fam} ${action ?? ""}`);
   }
 }
 

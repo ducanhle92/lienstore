@@ -383,8 +383,8 @@ export function scanIntoDoc(kind: DocKind, docId: number, input: ScanInput, ctx:
     requireDraft(d);
     const res = resolveParsedSync(db, parseScannedCode(raw));
     if (res.kind === "invalid" || res.kind === "unsupported_qr") throw new DomainError(422, "INVALID_CODE", res.message);
-    if (res.kind === "unknown") throw new DomainError(404, "UNKNOWN_CODE", `${res.code}: ${res.message}`, { code: res.code });
-    if (res.kind === "conflict") throw new DomainError(409, "CODE_CONFLICT", res.message, { code: res.code, candidates: res.candidates.map((c) => c.id) });
+    if (res.kind === "unknown") throw new DomainError(404, "UNKNOWN_CODE", `${res.code}: ${res.message}`, { scannedCode: res.code });
+    if (res.kind === "conflict") throw new DomainError(409, "CODE_CONFLICT", res.message, { scannedCode: res.code, candidates: res.candidates.map((c) => c.id) });
     const productId = res.product.id;
     const unitCode = res.kind === "unit" ? res.code : null;
     const delta = unitCode ? 1 : n * res.packQty;

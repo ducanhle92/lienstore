@@ -44,4 +44,4 @@ for _ in $(seq 1 90); do
 done
 curl -fs "http://localhost:$PORT/api/admin/v1/" >/dev/null || { echo "[e2e] server not ready"; tail -40 "$TMP/server.log"; exit 1; }
 
-E2E_URL="http://localhost:$PORT" E2E_DB="$TMP/lienstore.db" E2E_SECRET="$SECRET" node --test scripts/tests/admin-api.e2e.mjs
+E2E_URL="http://localhost:$PORT" E2E_DB="$TMP/lienstore.db" E2E_SECRET="$SECRET" node --test scripts/tests/admin-api.e2e.mjs scripts/tests/scan.e2e.mjs
