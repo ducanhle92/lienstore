@@ -13,6 +13,7 @@ import { adminInput, btnPrimary, btnSecondary, Card, Flash, PageHeader, ProductS
 import { FlowSteps } from "@/components/sites/lienstore/admin/FlowSteps";
 import { flowCounts } from "@/lib/flow-db";
 import { getDb } from "@/lib/sqlite";
+import { productIdsWithBarcodeSync } from "@/lib/barcodes-db";
 import { Fa } from "@/components/sites/lienstore/shared/icons";
 import { cn } from "@/lib/utils";
 import { ConfidenceBadge } from "@/components/sites/lienstore/admin/ConfidenceBadge";
@@ -53,14 +54,16 @@ export default async function AdminProducts({ searchParams }: Props) {
   const legFee = (bd: ReturnType<typeof suggestPrice>, leg: "jp_domestic" | "jp_vn" | "vn_transfer") => (bd ? (bd.legs.find((l) => l.leg === leg)?.fee ?? 0) : null);
   const money = (v: number | null | undefined) => (v === null || v === undefined ? <span className="text-lien-muted">—</span> : formatPrice(v));
   const catName = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
-  const items = filterProducts(all, sp);
+  const janIds = productIdsWithBarcodeSync(getDb());
+  const jan = first(sp.jan) === "yes" || first(sp.jan) === "no" ? first(sp.jan) : "";
+  const items = filterProducts(all, sp, janIds);
   // the list is paged (10 rows by default): the filters / search above still run over every product, only the rows
   // shown change — 600+ rows with the price formula each was what made the page slow
   const pg = pageOf(sp, items.length);
   const pageItems = items.slice(pg.from - 1, pg.to);
   const pagerParams = Object.fromEntries(Object.entries(sp).filter(([k]) => !["saved", "deleted", "error"].includes(k)));
   const fulfillment = first(sp.fulfillment);
-  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket }).filter(([, v]) => v)).toString();
+  const csvQs = new URLSearchParams(Object.entries({ q: first(sp.q), status, category, stock, fulfillment, source, price: priceBucket, jan }).filter(([, v]) => v)).toString();
   const withCost = items.filter((p) => p.costPrice !== null);
   const missingPrice = items.filter((p) => p.price <= 0).length;
   const published = all.filter((p) => p.status === "publish").length;
@@ -153,6 +156,11 @@ export default async function AdminProducts({ searchParams }: Props) {
                 {b.label}
               </option>
             ))}
+          </select>
+          <select name="jan" defaultValue={jan} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px] max-w-[120px]`} aria-label="Mã JAN" title="Lọc theo mã JAN / mã vạch đã gắn (trang sản phẩm › Mã vạch, hoặc Quét mã)" data-testid="jan-filter">
+            <option value="">Mọi JAN</option>
+            <option value="yes">Có mã JAN</option>
+            <option value="no">Chưa có JAN</option>
           </select>
           <select name="per" defaultValue={String(pg.per)} className={`${adminInput} !w-auto min-w-0 !py-1.5 !text-[13px]`} aria-label="Số dòng mỗi trang" title="Số sản phẩm hiện mỗi trang" data-testid="products-per">
             {[10, 20, 50, 100].map((n) => (

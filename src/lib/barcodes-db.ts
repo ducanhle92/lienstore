@@ -180,6 +180,11 @@ export function resolveCode(raw: string): Resolution {
   return resolveParsedSync(getDb(), parseScannedCode(raw));
 }
 
+/** Products that have at least one active barcode (JAN / EAN…) — the "Có mã JAN" filter of Sản phẩm. */
+export function productIdsWithBarcodeSync(db: DatabaseSync): Set<number> {
+  return new Set((db.prepare("SELECT DISTINCT product_id FROM product_barcodes WHERE active = 1").all() as Array<{ product_id: number }>).map((r) => r.product_id));
+}
+
 export function listBarcodes(productId: number, includeInactive = false): BarcodeLink[] {
   return (getDb().prepare(`SELECT * FROM product_barcodes WHERE product_id = ?${includeInactive ? "" : " AND active = 1"} ORDER BY active DESC, id`).all(productId) as unknown as BarcodeRow[]).map(linkOf);
 }

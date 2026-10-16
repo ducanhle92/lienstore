@@ -29,7 +29,8 @@ export function inPriceBucket(price: number, bucket: string): boolean {
   }
 }
 
-export function filterProducts(all: CatalogProduct[], sp: Record<string, string | string[] | undefined>): CatalogProduct[] {
+/** `janIds` = products with an active barcode (product_barcodes); `jan=yes|no` filters on it when given. */
+export function filterProducts(all: CatalogProduct[], sp: Record<string, string | string[] | undefined>, janIds?: Set<number>): CatalogProduct[] {
   const first = (k: string) => {
     const v = sp[k];
     return ((Array.isArray(v) ? v[0] : v) ?? "").trim();
@@ -43,6 +44,7 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
   const fulfillment = first("fulfillment");
   const source = first("source");
   const price = first("price");
+  const jan = first("jan");
   const sort = first("sort") || "updated";
   const dir = first("dir") === "asc" ? 1 : -1;
   const items = all
@@ -52,7 +54,8 @@ export function filterProducts(all: CatalogProduct[], sp: Record<string, string 
     .filter((p) => !stock || (stock === "out" ? p.stockStatus === "discontinued" : p.stockStatus === "instock"))
     .filter((p) => !fulfillment || p.fulfillment === fulfillment)
     .filter((p) => !source || (source === "none" ? !p.costSource : p.costSource === source))
-    .filter((p) => !price || inPriceBucket(p.price, price));
+    .filter((p) => !price || inPriceBucket(p.price, price))
+    .filter((p) => !janIds || (jan !== "yes" && jan !== "no") || (jan === "yes") === janIds.has(p.id));
   const cmp = (a: CatalogProduct, b: CatalogProduct): number => {
     switch (sort) {
       case "id":
