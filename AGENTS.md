@@ -81,7 +81,11 @@ scripts/            # Asset download scripts
 - **Một hãng = một nhóm biến thể.** Không tách nhiều nhóm con theo từng dòng (Shoyo / Attonon / Netsusama…).
   Phân loại bằng cấp thuộc tính trong cùng một nhóm, mẫu: DHC, BCL AHA.
 - Cấp điển hình: **Dòng** → **Loại** → **Quy cách** (size / số viên). Chi tiết: `docs/VARIANT_GROUPS.md`.
-- Khi được yêu cầu “gom / sửa nhóm biến thể”: gộp hết SP cùng hãng vào một nhóm, điền đủ cấp, xoá nhóm trống thừa.
+- **Cấp 1 = loại sản phẩm khách hiểu ngay** (Bột collagen, Kẹo cao su, Chocolate, Sữa bột…), **không** để mã dòng
+  (Uru Up, Xylitol, Hohoemi…) đứng một mình ở cấp 1. Sai ví dụ đã gặp: nhóm Lotte hiện Uru Up / Xylitol / Premium Ghana
+  khiến KH không biết đang chọn gì. Đúng: Bột collagen → Uru Up → 185g.
+- Khi được yêu cầu “gom / sửa nhóm biến thể”: gộp hết SP cùng hãng vào một nhóm, điền đủ cấp theo quy tắc trên,
+  xoá nhóm trống thừa.
 
 ## MOST IMPORTANT NOTES
 - When launching Claude Code agent teams, ALWAYS have each teammate work in their own worktree branch and merge everyone's work at the end, resolving any merge conflicts smartly since you are basically serving the orchestrator role and have full context to our goals, work given, work achieved, and desired outcomes.
