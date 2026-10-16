@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.34.8] - 2026-10-16
+
 ### Added
 - **Trang chủ · kệ Đồ chơi & sưu tập**: ghim ngay dưới Thực phẩm & đồ uống (Mỹ phẩm → Sức khỏe → Mẹ và bé → Thực phẩm → Đồ chơi), dù danh mục nhỏ không vào top-4 theo số SP.
 
