@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.35.1] - 2026-10-16
+
 ### Added
 - **Admin API / CLI · danh mục**: `POST/PATCH /api/admin/v1/categories/` và `lienstore categories create|update` (đổi tên, tạo danh mục con, gắn ảnh).
 
