@@ -51,6 +51,7 @@ export function PackDraftList({ onOpen }: { onOpen: (id: number) => void }) {
     else setMsg(r.error.message);
   }, []);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount
     void load();
   }, [load]);
 
@@ -115,9 +116,10 @@ export function PackPanel({ shipmentId, onClose, registerScanHandler, online }: 
     return r;
   }, [shipmentId]);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
     void load();
     const onVis = () => {
-      if (!document.hidden) void load();
+      if (!document.hidden) void load(); // another phone may have scanned meanwhile
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
