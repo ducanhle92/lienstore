@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.34.7] - 2026-10-16
+
 ### Added
 - **Sản phẩm · lọc "Mã JAN"**: thêm ô "Mọi JAN / Có mã JAN / Chưa có JAN" vào hàng lọc (vẫn một hàng, không xuống dòng). "Có mã JAN" = sản phẩm có ít nhất một mã vạch đang dùng (gắn ở trang sản phẩm hoặc Quét mã). Xuất CSV cũng theo bộ lọc này.
 
