@@ -17,6 +17,7 @@ import { getLang } from "@/lib/lang-server";
 import { localizeProducts } from "@/lib/localize";
 import { getBanners, getFlashSaleItems, getHomeVouchers, getVoucherPrograms, queryProducts } from "@/lib/db";
 import { groupVouchersByProgram } from "@/lib/voucher-programs";
+import type { CatalogProduct } from "@/types/shop";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,19 @@ export const dynamic = "force-dynamic";
 const CATEGORY_ROWS = 4;
 /** Products per category row — the home page carries ~100 cards already; more only bloats the first load. */
 const ROW_ITEMS = 8;
+/**
+ * Featured shelves that must appear even when the category is small
+ * (size-ranked top-4 alone would hide them). Inserted after `afterSlug`.
+ */
+const FEATURED_CATEGORY_ROWS: Array<{
+  slug: string;
+  afterSlug: string;
+  orderby?: "date" | "popularity";
+  icon?: "star" | "fire" | "bolt";
+}> = [
+  // Toys & collectibles (Pokémon / TCG…) — pin under Food & Drink
+  { slug: "do-choi-suu-tap", afterSlug: "thuc-pham-do-uong-food-drink", orderby: "popularity", icon: "star" },
+];
 
 export default async function Home() {
   const lang = await getLang();
@@ -52,13 +66,40 @@ export default async function Home() {
   const otherSale = localizeProducts(sale.items.filter((p) => !flashIds.has(p.id)), lang).map((p) => ({ product: p, flashEndsAt: undefined as string | undefined }));
   const salesSection = [...flash, ...otherSale].slice(0, 12);
   const showSales = salesSection.length > 0;
-  const topCategories = buildCategoryTree(categories)
+  const categoryTree = buildCategoryTree(categories);
+  const treeBySlug = new Map(categoryTree.map((n) => [n.category.slug, n]));
+  const topCategories = categoryTree
     .filter((n) => n.total > 0)
     .slice(0, CATEGORY_ROWS)
     .map((n) => ({ ...n.category, count: n.total }));
-  const rows = await Promise.all(
-    topCategories.map(async (c) => ({ cat: c, products: localizeProducts((await queryProducts({ category: c.slug, orderby: "date", perPage: ROW_ITEMS })).items, lang) })),
+  type HomeCatRow = {
+    cat: (typeof topCategories)[number];
+    products: CatalogProduct[];
+    icon?: "star" | "fire" | "bolt";
+  };
+  const rows: HomeCatRow[] = await Promise.all(
+    topCategories.map(async (c) => ({
+      cat: c,
+      products: localizeProducts((await queryProducts({ category: c.slug, orderby: "date", perPage: ROW_ITEMS })).items, lang),
+    })),
   );
+  // Pin featured shelves after a named row — size ranking alone skips smaller categories (e.g. toys)
+  for (const feat of FEATURED_CATEGORY_ROWS) {
+    if (rows.some((r) => r.cat.slug === feat.slug)) continue;
+    const node = treeBySlug.get(feat.slug);
+    const cat = node?.category ?? categories.find((c) => c.slug === feat.slug);
+    const total = node?.total ?? cat?.count ?? 0;
+    if (!cat || total <= 0) continue;
+    const products = localizeProducts(
+      (await queryProducts({ category: feat.slug, orderby: feat.orderby ?? "popularity", perPage: ROW_ITEMS })).items,
+      lang,
+    );
+    if (!products.length) continue;
+    const row: HomeCatRow = { cat: { ...cat, count: total }, products, icon: feat.icon };
+    const idx = rows.findIndex((r) => r.cat.slug === feat.afterSlug);
+    if (idx >= 0) rows.splice(idx + 1, 0, row);
+    else rows.push(row);
+  }
 
   return (
     <SiteChrome>
@@ -123,15 +164,15 @@ export default async function Home() {
           </a>
         </div>
 
-        {rows.map(({ cat, products }) =>
+        {rows.map(({ cat, products, icon }) =>
           products.length ? (
             <section key={cat.slug} className="mt-10" aria-label={cat.name}>
-              <SectionHeader2 title={shortName(cat.name)} href={`/product-category/${cat.slug}/`} />
-              <ProductCarousel ariaLabel="Danh mục">
-              {products.map((p) => (
-                <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} />
-              ))}
-            </ProductCarousel>
+              <SectionHeader2 title={shortName(cat.name)} href={`/product-category/${cat.slug}/`} icon={icon} />
+              <ProductCarousel ariaLabel={shortName(cat.name)}>
+                {products.map((p) => (
+                  <ShopProductCard key={p.id} product={p} className={CAROUSEL_ITEM} hot={p.hot} />
+                ))}
+              </ProductCarousel>
               <p className="mt-3 text-center">
                 <Link href={`/product-category/${cat.slug}/`} className="inline-flex items-center gap-1 rounded-full border border-lien-blue px-5 py-2 text-[13px] font-semibold text-lien-blue no-underline hover:bg-lien-blue hover:text-white">
                   {t(lang, "seeMore")} <Fa name="angle-right" />
