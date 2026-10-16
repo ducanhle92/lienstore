@@ -5,6 +5,8 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+## [2.35.2] - 2026-10-16
+
 ## [2.35.1] - 2026-10-16
 
 ### Added
