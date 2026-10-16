@@ -212,6 +212,10 @@ chính các endpoint này bằng phiên đăng nhập (+ `X-Lien-Csrf: 1`); agen
 | POST | `/stock-receipts/{id}/confirm/` · `/stock-counts/{id}/close/` · `/picks/{id}/complete/` | inventory:write | `{ version }` — một transaction, gọi lại trả kết quả cũ. Picks thêm `method` (id ĐVVC hoặc `"pickup"`, bắt buộc nếu đơn chưa có ĐVVC) và `tracking` (mã vận đơn), ghi như ⑦ Giao hàng VN |
 | GET | `/picks/carriers/` | inventory:read | ĐVVC chặng nội địa VN (`value`, `label`) |
 | POST | `/{family}/{id}/cancel/` | inventory:write | huỷ nháp |
+| GET / POST | `/shipments/?editable=1` · `POST /shipments/` | inventory:read / write | chuyến đóng hàng đang mở / tạo chuyến (cần quyền `packing`) |
+| GET | `/shipments/{id}/` | inventory:read | tóm tắt + dòng theo SP |
+| POST | `/shipments/{id}/pack/` | inventory:write | `{ code?, productId?, qty? }` — đóng FEFO; JAN = qty cái (mặc định 1) |
+| POST | `/shipments/{id}/unpack/` | inventory:write | `{ productId, qty? }` hoặc `{ unitIds }` |
 
 CLI:
 ```bash
@@ -225,6 +229,9 @@ lienstore receipts confirm <docId> --version <v>
 lienstore counts create --warehouse vn · counts scan … · counts set-line <docId> <lineId> --rev R --qty 0 · counts confirm …
 lienstore picks orders · picks carriers · picks create --order-number 1234 · picks scan …
 lienstore picks confirm <docId> --version <v> --method <id|pickup> [--tracking GHN123]
+lienstore shipments list · shipments create [--label …] · shipments get <id>
+lienstore shipments pack <id> 4961989409139 [--qty 1]   # hoặc --product <id>
+lienstore shipments unpack <id> --product <id> [--qty 1]
 ```
 Mã lỗi thêm: `INVALID_CODE`, `UNKNOWN_CODE`, `CODE_CONFLICT`, `CODE_LINKED_ELSEWHERE`, `CODE_IS_SKU_OF_OTHER`,
 `WAREHOUSE_FORBIDDEN`, `DOC_EXISTS`, `DOC_NOT_DRAFT`, `DOC_CHANGED`, `LINE_CHANGED`, `OP_ID_REUSED`, `OVER_QUANTITY`,

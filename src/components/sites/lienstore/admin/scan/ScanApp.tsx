@@ -4,18 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { parseScannedCode } from "@/lib/barcodes";
 import { isTypingTarget, WedgeBuffer } from "@/lib/scan-input";
 import { CameraView } from "./CameraView";
-import { DocPanel, type DocKind, DOC_LABEL, DraftList, type ScanHandler } from "./DocPanel";
+import { DocPanel, type DocKind, DraftList, type ScanHandler } from "./DocPanel";
 import { signal, unlockAudio } from "./feedback";
 import { LinkCodePanel } from "./LinkCodePanel";
+import { PackDraftList, PackPanel } from "./PackPanel";
 import { ProductHeader, ProductStockCard, type ProductBriefView, type StockView, UnitInfo, type UnitBriefView } from "./ProductStockCard";
 import { api } from "./scan-client";
 
 /**
  * Phone scan screen (Admin › Vận hành › Quét mã). Camera, typed codes and keyboard-wedge scanners all go through
- * `handleCode`: validate on the device → resolve on the server → hand to the current mode (lookup or a document).
+ * `handleCode`: validate on the device → resolve on the server → hand to the current mode (lookup / document / pack).
  * The status line separates: đã đọc mã → đã nhận diện → đã lưu nháp (server confirmed) → đã chốt.
+ *
+ * Home modes: Tra cứu · Nhập hàng JP · Đóng hàng JP · Kiểm kho JP · Xuất hàng VN.
+ * Tra cứu: giá bán nếu see_prices; bảng giá vốn chỉ nếu see_cost (admin kho VN thường không có).
  */
-export type Mode = "home" | "lookup" | DocKind;
+export type Mode = "home" | "lookup" | "pack" | DocKind;
 
 export type Resolution =
   | { kind: "product"; input: string; code: string; symbology: string; note?: string; via: string; product: ProductBriefView; packQty: number; packLabel: string; warnings: string[] }
@@ -38,8 +42,8 @@ const STAGE_LABEL: Record<Stage, string> = {
   read: "Đã đọc mã",
   resolving: "Đang tra mã…",
   identified: "Đã nhận diện",
-  saving: "Đang lưu vào phiếu…",
-  saved: "Đã lưu nháp",
+  saving: "Đang lưu…",
+  saved: "Đã lưu",
   unknown: "Chưa liên kết",
   error: "Lỗi",
 };
@@ -53,20 +57,31 @@ const STAGE_CLS: Record<Stage, string> = {
   error: "bg-red-600 text-white",
 };
 
+const MODE_TITLE: Record<Exclude<Mode, "home">, string> = {
+  lookup: "Tra cứu",
+  receive: "Nhập hàng JP",
+  pack: "Đóng hàng JP",
+  count: "Kiểm kho JP",
+  pick: "Xuất hàng VN",
+};
+
 const STATE_KEY = "lienstore:scan:state";
 
 export interface ScanAppProps {
   warehouses: Array<"vn" | "jp">;
   canPick: boolean;
+  /** ④ Đóng hàng JP */
+  canPack: boolean;
   canLink: boolean;
-  /** "Xem giá vốn": the ¥ cost of new goods can be seen / typed. */
+  /** "Xem giá vốn": bảng so giá nguồn trên Tra cứu; giá ¥ trên phiếu nhập. */
   seeCost?: boolean;
   userLabel: string;
 }
 
-export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLabel }: ScanAppProps) {
+export function ScanApp({ warehouses, canPick, canPack, canLink, seeCost = false, userLabel }: ScanAppProps) {
   const [mode, setMode] = useState<Mode>("home");
-  const [warehouse, setWarehouse] = useState<"vn" | "jp" | "">(warehouses.length === 1 ? warehouses[0] : "");
+  // JP modes lock warehouse to jp; pick needs none; legacy restore may still set it
+  const [warehouse, setWarehouse] = useState<"vn" | "jp" | "">(warehouses.includes("jp") ? "jp" : warehouses[0] ?? "");
   const [docId, setDocId] = useState<number | null>(null);
   const [camera, setCamera] = useState(false);
   const [manual, setManual] = useState("");
@@ -89,15 +104,19 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
       const s = JSON.parse(localStorage.getItem(STATE_KEY) ?? "null") as { mode?: Mode; docId?: number | null; warehouse?: "vn" | "jp" } | null;
       if (!s) return;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage after mount
-      if (s.warehouse && warehouses.includes(s.warehouse)) setWarehouse(s.warehouse);
+      if (s.mode === "receive" || s.mode === "count") setWarehouse("jp");
+      else if (s.warehouse && warehouses.includes(s.warehouse)) setWarehouse(s.warehouse);
       if (s.mode && s.mode !== "home") {
+        if (s.mode === "pack" && !canPack) return;
+        if (s.mode === "pick" && !canPick) return;
+        if ((s.mode === "receive" || s.mode === "count") && !warehouses.includes("jp")) return;
         setMode(s.mode);
         setDocId(s.docId ?? null);
       }
     } catch {
       /* ignore */
     }
-  }, [warehouses]);
+  }, [warehouses, canPack, canPick]);
   useEffect(() => {
     localStorage.setItem(STATE_KEY, JSON.stringify({ mode, docId, warehouse }));
   }, [mode, docId, warehouse]);
@@ -129,8 +148,7 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
         signal("error", sound);
         return;
       }
-      // a document is open: one round trip — the server resolves and records the scan; only an unknown / conflicting
-      // code is looked up again to open the link panel
+      // a document / pack run is open: one round trip — the server resolves and records; unknown / conflict opens link panel
       if (m !== "lookup" && docHandler.current) {
         setLast({ raw, stage: "saving", message: "", at: now });
         const out = await docHandler.current(raw);
@@ -169,14 +187,13 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
         return;
       }
       if (docHandler.current) {
-        // known now (e.g. linked from another phone meanwhile): record it
         setLast({ raw, stage: "saving", message: "", at: now, resolution: res });
         const out = await docHandler.current(raw);
         setLast({ raw, stage: out.stage ?? (out.ok ? "saved" : "error"), message: out.message, at: now, resolution: res });
         signal(out.ok ? "ok" : "error", sound);
         return;
       }
-      setLast({ raw, stage: "error", message: "Chưa mở phiếu — chọn hoặc tạo phiếu trước khi quét.", at: now, resolution: res });
+      setLast({ raw, stage: "error", message: m === "pack" ? "Chưa mở chuyến — chọn hoặc tạo chuyến trước khi quét." : "Chưa mở phiếu — chọn hoặc tạo phiếu trước khi quét.", at: now, resolution: res });
       signal("error", sound);
     },
     [sound],
@@ -191,9 +208,7 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
     [process],
   );
 
-  // Bluetooth / USB scanners type the code + Enter. Listened to in the capture phase everywhere: with no field focused
-  // any fast burst of ≥ 4 chars is a scan; inside another field (a quantity box) only a fast burst of ≥ 8 chars is, and
-  // that field gets its previous value back. The "Nhập / quét mã" box handles its own Enter.
+  // Bluetooth / USB scanners type the code + Enter. Capture phase: ≥ 4 chars when idle, ≥ 8 inside another field.
   useEffect(() => {
     const buf = new WedgeBuffer();
     let snap: { el: HTMLInputElement | HTMLTextAreaElement; value: string } | null = null;
@@ -209,7 +224,6 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
         e.preventDefault();
         e.stopPropagation();
         if (typing && snap && snap.el === el) {
-          // React-controlled fields: set through the native setter + an input event so their state follows
           const proto = snap.el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
           Object.getOwnPropertyDescriptor(proto, "value")?.set?.call(snap.el, snap.value);
           snap.el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -229,14 +243,16 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
     setLast(null);
     setStock(null);
     setLinking(null);
+    if (m === "receive" || m === "count" || m === "pack") setWarehouse("jp");
   };
 
-  const needsWarehouse = (k: DocKind) => k !== "pick";
+  const canReceiveJp = warehouses.includes("jp");
   const modes: Array<{ key: Mode; label: string; hint: string; show: boolean }> = [
-    { key: "lookup", label: "Tra cứu", hint: "Xem sản phẩm, tồn, hạn dùng — không ghi gì", show: true },
-    { key: "receive", label: "Nhập hàng", hint: "Phiếu nhập: hàng mới hoặc nhận chuyến về kho", show: warehouses.length > 0 },
-    { key: "count", label: "Kiểm kho", hint: "Phiên kiểm kê: đếm, xem chênh lệch, chốt", show: warehouses.length > 0 },
-    { key: "pick", label: "Xuất hàng", hint: "Soạn đơn: đối chiếu, hoàn tất bắt đầu giao", show: canPick },
+    { key: "lookup", label: "Tra cứu", hint: "Tồn 2 kho, hạn dùng; giá bán / giá vốn theo quyền — không ghi gì", show: true },
+    { key: "receive", label: "Nhập hàng JP", hint: "Phiếu nhập Kho Nhật: hàng mới (tạo mã từng cái khi xác nhận)", show: canReceiveJp },
+    { key: "pack", label: "Đóng hàng JP", hint: "Quét JAN vào chuyến đang đóng — mỗi lần quét +1 cái", show: canPack },
+    { key: "count", label: "Kiểm kho JP", hint: "Phiên kiểm kê Kho Nhật: đếm, xem chênh lệch, chốt", show: canReceiveJp },
+    { key: "pick", label: "Xuất hàng VN", hint: "Soạn đơn Kho VN: đối chiếu, hoàn tất bắt đầu giao", show: canPick },
   ];
 
   return (
@@ -253,7 +269,7 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
             ← Chế độ
           </button>
         ) : null}
-        <h1 className="font-oswald text-[22px] text-lien-heading">{mode === "home" ? "Quét mã" : mode === "lookup" ? "Tra cứu" : DOC_LABEL[mode]}</h1>
+        <h1 className="font-oswald text-[22px] text-lien-heading">{mode === "home" ? "Quét mã" : MODE_TITLE[mode]}</h1>
         <label className="ml-auto flex items-center gap-1 text-[12px] text-lien-muted">
           <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} /> Âm/rung
         </label>
@@ -261,32 +277,11 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
 
       {mode === "home" ? (
         <div className="space-y-3">
-          {warehouses.length > 1 ? (
-            <div className="rounded-md border border-[#e5e7eb] bg-white p-3 text-[14px]">
-              <div className="mb-1 font-semibold">Kho thao tác (bắt buộc khi nhập / kiểm kho)</div>
-              <div className="flex gap-2">
-                {warehouses.map((w) => (
-                  <button key={w} type="button" className={`min-h-12 flex-1 rounded-lg border-2 font-semibold ${warehouse === w ? "border-lien-blue bg-sky-50" : "border-[#d1d5db] bg-white"}`} onClick={() => setWarehouse(w)} data-testid={`wh-${w}`}>
-                    {w === "vn" ? "Kho Việt Nam" : "Kho Nhật"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : warehouses.length === 1 ? (
-            <p className="text-[13px] text-lien-muted">Kho: {warehouses[0] === "vn" ? "Kho Việt Nam" : "Kho Nhật"} (tài khoản chỉ có một kho)</p>
-          ) : null}
           <div className="grid grid-cols-2 gap-3">
             {modes
               .filter((m) => m.show)
               .map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  className="min-h-24 rounded-xl border-2 border-[#d1d5db] bg-white p-3 text-left active:bg-sky-50 disabled:opacity-40"
-                  disabled={m.key !== "lookup" && m.key !== "pick" && needsWarehouse(m.key as DocKind) && !warehouse}
-                  onClick={() => enterMode(m.key)}
-                  data-testid={`mode-${m.key}`}
-                >
+                <button key={m.key} type="button" className="min-h-24 rounded-xl border-2 border-[#d1d5db] bg-white p-3 text-left active:bg-sky-50" onClick={() => enterMode(m.key)} data-testid={`mode-${m.key}`}>
                   <div className="text-[18px] font-bold text-lien-heading">{m.label}</div>
                   <div className="text-[12px] leading-4 text-lien-muted">{m.hint}</div>
                 </button>
@@ -362,7 +357,7 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
               onLinked={() => {
                 const raw = linking.raw;
                 setLinking(null);
-                handleCode(raw); // apply the same scan again, in the same mode / document
+                handleCode(raw);
               }}
             />
           ) : null}
@@ -373,11 +368,19 @@ export function ScanApp({ warehouses, canPick, canLink, seeCost = false, userLab
             </div>
           ) : null}
 
-          {mode !== "lookup" ? (
+          {mode === "pack" ? (
+            docId ? (
+              <PackPanel shipmentId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} online={online} />
+            ) : (
+              <PackDraftList onOpen={(id) => setDocId(id)} />
+            )
+          ) : null}
+
+          {mode === "receive" || mode === "count" || mode === "pick" ? (
             docId ? (
               <DocPanel kind={mode} docId={docId} onClose={() => setDocId(null)} registerScanHandler={(h) => (docHandler.current = h)} registerTrackingSetter={(f) => (trackingSetter.current = f)} seeCost={seeCost} online={online} />
             ) : (
-              <DraftList kind={mode} warehouse={warehouse || null} onOpen={(id) => setDocId(id)} />
+              <DraftList kind={mode} warehouse={mode === "pick" ? null : "jp"} onOpen={(id) => setDocId(id)} />
             )
           ) : null}
         </>

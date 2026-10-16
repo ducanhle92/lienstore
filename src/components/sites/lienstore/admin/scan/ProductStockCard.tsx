@@ -25,6 +25,19 @@ export interface StockView {
   transit: Array<{ status: string; label: string; qty: number }>;
   barcodes: Array<{ id: number; code: string; packQty: number; packLabel: string }>;
   price?: { price: number; regularPrice: number | null };
+  /** Only when the account has "Xem giá vốn" (see_cost). Sorted thấp → cao. */
+  costSources?: Array<{
+    source: string;
+    label: string;
+    priceJpy: number;
+    feeJpy: number;
+    landedJpy: number;
+    priceVnd: number;
+    url: string;
+    checkedAt: string | null;
+    cheapest: boolean;
+  }>;
+  jpyRate?: number;
 }
 export interface UnitBriefView {
   code: string;
@@ -40,6 +53,7 @@ export interface UnitBriefView {
 }
 
 const vnd = (n: number) => `${n.toLocaleString("vi-VN")}đ`;
+const jpy = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
 
 export function ProductHeader({ product, code, packQty, packLabel }: { product: ProductBriefView; code?: string; packQty?: number; packLabel?: string }) {
   return (
@@ -131,6 +145,49 @@ export function ProductStockCard({ stock }: { stock: StockView }) {
         <div className="text-[13px]">
           Giá bán: <strong>{stock.price.price ? vnd(stock.price.price) : "Liên hệ"}</strong>
           {stock.price.regularPrice ? <span className="text-lien-muted"> (thường {vnd(stock.price.regularPrice)})</span> : null}
+        </div>
+      ) : null}
+      {stock.costSources ? (
+        <div className="rounded-md border border-[#e5e7eb] p-2" data-testid="cost-sources">
+          <div className="mb-1 font-semibold text-[13px]">Giá các nguồn (thấp → cao)</div>
+          {stock.costSources.length === 0 ? (
+            <p className="text-[12px] text-lien-muted">Chưa có báo giá nguồn nào trên sản phẩm.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[12px]">
+                  <thead>
+                    <tr className="border-b border-[#e5e7eb] text-lien-muted">
+                      <th className="py-1 pr-2 font-medium">Nguồn</th>
+                      <th className="py-1 pr-2 font-medium text-right">¥ báo giá</th>
+                      <th className="py-1 pr-2 font-medium text-right">Phụ phí</th>
+                      <th className="py-1 font-medium text-right">Vốn ≈</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stock.costSources.map((c) => (
+                      <tr key={`${c.source}-${c.priceJpy}-${c.url}`} className={c.cheapest ? "bg-green-50 font-semibold text-green-900" : ""}>
+                        <td className="py-1.5 pr-2 align-top">
+                          {c.url ? (
+                            <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-lien-blue underline">
+                              {c.label}
+                            </a>
+                          ) : (
+                            c.label
+                          )}
+                          {c.cheapest ? <span className="ml-1 text-[10px] font-bold text-green-700">rẻ nhất</span> : null}
+                        </td>
+                        <td className="py-1.5 pr-2 text-right font-mono align-top">{jpy(c.priceJpy)}</td>
+                        <td className="py-1.5 pr-2 text-right font-mono align-top text-lien-muted">{c.feeJpy ? `+${jpy(c.feeJpy)}` : "—"}</td>
+                        <td className="py-1.5 text-right font-mono align-top">{vnd(c.priceVnd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {stock.jpyRate ? <p className="mt-1 text-[11px] text-lien-muted">Vốn ≈ (¥ + phụ phí nguồn) × tỉ giá {stock.jpyRate.toLocaleString("vi-VN")} — quyền “Xem giá vốn”.</p> : null}
+            </>
+          )}
         </div>
       ) : null}
       {stock.barcodes.length ? <div className="text-[12px] text-lien-muted">Mã đã liên kết: {stock.barcodes.map((b) => `${b.code}${b.packQty > 1 ? ` (${b.packLabel || "gói"} ${b.packQty})` : ""}`).join(", ")}</div> : null}

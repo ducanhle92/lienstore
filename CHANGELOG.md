@@ -5,6 +5,13 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Quét mã · Đóng hàng JP** trên điện thoại: chọn/tạo chuyến → quét JAN kiểu siêu thị (+1 cái mỗi lần, ô N, tìm tên + số lượng) → đóng FEFO vào chuyến. API `/api/admin/v1/shipments/` + CLI `lienstore shipments …`.
+- **Tra cứu · bảng so giá nguồn** (¥ + phụ phí → vốn VNĐ, thấp → cao) khi có quyền "Xem giá vốn"; admin kho VN chỉ thấy giá bán.
+
+### Changed
+- **Quét mã · menu**: Tra cứu · Nhập hàng JP · Đóng hàng JP · Kiểm kho JP · Xuất hàng VN (bỏ chọn kho tay). Preset Admin kho VN thêm "Xem giá bán".
+
 ## [2.34.8] - 2026-10-16
 
 ### Added

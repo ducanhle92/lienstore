@@ -10,7 +10,7 @@ import type { ProductBriefView } from "./ProductStockCard";
  * the server confirmed it, and a lost answer is re-sent with the SAME opId / Idempotency-Key (never counted twice).
  */
 export type DocKind = "receive" | "count" | "pick";
-export const DOC_LABEL: Record<DocKind, string> = { receive: "Nhập hàng", count: "Kiểm kho", pick: "Xuất hàng" };
+export const DOC_LABEL: Record<DocKind, string> = { receive: "Nhập hàng JP", count: "Kiểm kho JP", pick: "Xuất hàng VN" };
 const FAMILY: Record<DocKind, string> = { receive: "stock-receipts", count: "stock-counts", pick: "picks" };
 const CONFIRM_PATH: Record<DocKind, string> = { receive: "confirm", count: "close", pick: "complete" };
 const CONFIRM_LABEL: Record<DocKind, string> = { receive: "Xác nhận nhập kho", count: "Chốt kiểm kê", pick: "Hoàn tất & bắt đầu giao" };
@@ -311,7 +311,7 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
           <div className="mt-2 flex items-center gap-2 text-[13px]">
             <label htmlFor="mult">Mỗi lần quét =</label>
             <input id="mult" type="number" min={1} max={9999} value={mult} onChange={(e) => setMult(Math.max(1, Math.min(9999, Number.parseInt(e.target.value, 10) || 1)))} className="min-h-11 w-20 rounded-md border border-[#d1d5db] px-2" inputMode="numeric" data-testid="scan-mult" />
-            <span>× quy cách (mã H luôn = 1 cái)</span>
+            <span>× quy cách · mặc định 1 (siêu thị; mã H luôn = 1 cái)</span>
           </div>
         ) : null}
       </div>
@@ -428,8 +428,8 @@ export function DocPanel({ kind, docId, onClose, registerScanHandler, registerTr
       </ul>
 
       {draft && (kind === "count" || isDirect) ? (
-        <details className="rounded-lg border border-[#e5e7eb] bg-white p-3 text-[14px]">
-          <summary className="font-semibold">Thêm sản phẩm không quét được mã</summary>
+        <details className="rounded-lg border border-[#e5e7eb] bg-white p-3 text-[14px]" open>
+          <summary className="font-semibold">Thêm theo tên / không quét được mã</summary>
           <form
             className="mt-2 flex gap-2"
             onSubmit={(e) => {

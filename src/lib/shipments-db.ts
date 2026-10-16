@@ -274,6 +274,74 @@ export function unpackUnits(unitIds: number[], actor = ""): { ok: boolean; messa
   return { ok: true, message: `Đã rút ${ok.length} cái khỏi chuyến — về lại kệ Kho Nhật (shop).` };
 }
 
+/** Unpack `qty` units of a product from an open run (most recently packed first). */
+export function unpackProduct(shipmentId: number, productId: number, qty: number, actor = ""): { ok: boolean; message: string; units: number } {
+  if (!Number.isInteger(qty) || qty <= 0) return { ok: false, message: "Số lượng phải lớn hơn 0.", units: 0 };
+  const db = getDb();
+  const e = assertEditable(db, shipmentId);
+  if (!e.ok) return { ok: false, message: e.message, units: 0 };
+  const boxed = listUnits(db, { productId, shipmentIds: [shipmentId] });
+  if (!boxed.length) return { ok: false, message: `Chuyến ${e.code} không có sản phẩm #${productId}.`, units: 0 };
+  const take = boxed.slice(-Math.min(qty, boxed.length)).map((u) => u.id);
+  const r = unpackUnits(take, actor);
+  return { ok: r.ok, message: r.message, units: take.length };
+}
+
+export interface PackLineView {
+  productId: number;
+  name: string;
+  sku: string | null;
+  thumb: string;
+  qty: number;
+  /** Still on the shop shelf (not boxed), same product — for the “còn trên kệ” hint. */
+  shelfQty: number;
+}
+
+/** Phone / API view of one packing run: run header + lines by product. */
+export function getShipmentPackView(id: number): {
+  id: number;
+  code: string;
+  label: string;
+  status: ShipmentStatus;
+  editable: boolean;
+  units: number;
+  lines: PackLineView[];
+  updatedAt: string;
+} | null {
+  const sh = getShipment(id);
+  if (!sh) return null;
+  const db = getDb();
+  const byProduct = new Map<number, PackLineView>();
+  for (const g of sh.groups) {
+    const cur = byProduct.get(g.productId);
+    if (cur) cur.qty += g.qty;
+    else {
+      const p = db.prepare("SELECT name, sku, thumb FROM products WHERE id = ?").get(g.productId) as { name: string; sku: string | null; thumb: string } | undefined;
+      byProduct.set(g.productId, {
+        productId: g.productId,
+        name: p?.name ?? `#${g.productId}`,
+        sku: p?.sku ?? null,
+        thumb: p?.thumb ?? "",
+        qty: g.qty,
+        shelfQty: 0,
+      });
+    }
+  }
+  for (const line of byProduct.values()) {
+    line.shelfQty = listUnits(db, { productId: line.productId, statuses: ["bought"] }).filter((u) => !u.shipmentId).length;
+  }
+  return {
+    id: sh.id,
+    code: sh.code,
+    label: sh.label,
+    status: sh.status,
+    editable: shipmentEditable(sh.status) && shipmentOpen(sh.status),
+    units: sh.units,
+    lines: [...byProduct.values()].sort((a, b) => a.name.localeCompare(b.name, "vi")),
+    updatedAt: sh.updatedAt,
+  };
+}
+
 /** Delete a run that never left the shop: its units go back to the shelf. */
 export function deleteShipment(id: number): { ok: boolean; message: string } {
   const db = getDb();

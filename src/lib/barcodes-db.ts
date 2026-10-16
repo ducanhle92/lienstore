@@ -2,8 +2,11 @@ import "server-only";
 import type { DatabaseSync } from "node:sqlite";
 import { linkableCode, parseScannedCode, type ParsedCode } from "@/lib/barcodes";
 import { recordAudit } from "@/lib/api-tokens";
+import { costPriceFromJpy, costSourceLabel, landedFeeJpy, parseSourceFees, type SourceFees } from "@/lib/cost-sources";
 import { DomainError } from "@/lib/service-error";
-import { getDb, withTransaction } from "@/lib/sqlite";
+import { DEFAULT_PRICING, parsePricing } from "@/lib/pricing";
+import { billableProductWeightG, isDimsConfidence } from "@/lib/shipping";
+import { getDb, getSetting, withTransaction } from "@/lib/sqlite";
 import { purchaseIndex, PURCHASE_LABEL, type PurchaseStatus } from "@/lib/purchase";
 import { expiryEnd, unitInHand } from "@/lib/units";
 import { getUnitByCode, listUnits, type UnitView } from "@/lib/units-db";
@@ -258,6 +261,19 @@ export interface StockPlace {
   byExpiry: Array<{ expiry: string | null; qty: number; expired: boolean }>;
 }
 
+/** One purchase-source quote for Tra cứu (only when the viewer has "see_cost"). Sorted cheapest → dearest by landed VND. */
+export interface StockCostSource {
+  source: string;
+  label: string;
+  priceJpy: number;
+  feeJpy: number;
+  landedJpy: number;
+  priceVnd: number;
+  url: string;
+  checkedAt: string | null;
+  cheapest: boolean;
+}
+
 export interface ProductStock {
   product: ProductBrief;
   /** Storefront numbers (lib/units-db.syncProductStockSync): free units in hand / free at Kho VN; null = "hàng order". */
@@ -272,9 +288,47 @@ export interface ProductStock {
   transit: Array<{ status: PurchaseStatus; label: string; qty: number }>;
   barcodes: BarcodeLink[];
   price?: { price: number; regularPrice: number | null };
+  /** Quotes from product_cost_sources — only when opts.seeCost. Already sorted thấp → cao by landed VND. */
+  costSources?: StockCostSource[];
+  /** ¥→VND rate used for costSources[].priceVnd (same as Công thức giá). */
+  jpyRate?: number;
 }
 
-export function getProductStock(productId: number, opts: { seePrices?: boolean } = {}): ProductStock {
+function stockCostSources(db: DatabaseSync, productId: number): { costSources: StockCostSource[]; jpyRate: number } {
+  const rateRaw = Number.parseFloat(getSetting(db, "jpy_vnd_rate") ?? "175");
+  const jpyRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 175;
+  const lotWeightG = parsePricing(getSetting(db, "pricing_config") ?? "").lotWeightG || DEFAULT_PRICING.lotWeightG;
+  const row = db.prepare("SELECT weight_g, dims_cm, dims_confidence FROM products WHERE id = ?").get(productId) as { weight_g: number | null; dims_cm: string | null; dims_confidence: string | null } | undefined;
+  const billableG = row ? billableProductWeightG(row.weight_g, row.dims_cm, isDimsConfidence(row.dims_confidence) ? row.dims_confidence : null) : 0;
+  const fees: SourceFees = {};
+  for (const r of db.prepare("SELECT key, fees FROM purchase_sources WHERE fees <> '[]'").all() as unknown as Array<{ key: string; fees: string }>) {
+    const list = parseSourceFees(r.fees);
+    if (list.length) fees[r.key] = list;
+  }
+  const nameByKey = new Map((db.prepare("SELECT key, name FROM purchase_sources").all() as unknown as Array<{ key: string; name: string }>).map((r) => [r.key, r.name]));
+  const quotes = db.prepare("SELECT source, price_jpy, url, checked_at FROM product_cost_sources WHERE product_id = ?").all(productId) as unknown as Array<{ source: string; price_jpy: number; url: string; checked_at: string | null }>;
+  const costSources = quotes
+    .map((q) => {
+      const feeJpy = landedFeeJpy(q.source, fees, billableG, lotWeightG);
+      const landedJpy = q.price_jpy + feeJpy;
+      return {
+        source: q.source,
+        label: nameByKey.get(q.source) || costSourceLabel(q.source),
+        priceJpy: q.price_jpy,
+        feeJpy,
+        landedJpy,
+        priceVnd: costPriceFromJpy(q.price_jpy, q.source, jpyRate, fees, billableG, lotWeightG),
+        url: q.url ?? "",
+        checkedAt: q.checked_at,
+        cheapest: false,
+      };
+    })
+    .sort((a, b) => a.priceVnd - b.priceVnd || a.landedJpy - b.landedJpy || a.label.localeCompare(b.label, "vi"));
+  if (costSources[0]) costSources[0].cheapest = true;
+  return { costSources, jpyRate };
+}
+
+export function getProductStock(productId: number, opts: { seePrices?: boolean; seeCost?: boolean } = {}): ProductStock {
   const db = getDb();
   const product = productBriefSync(db, productId);
   if (!product) throw new DomainError(404, "NOT_FOUND", `Không có sản phẩm #${productId}.`);
@@ -296,6 +350,7 @@ export function getProductStock(productId: number, opts: { seePrices?: boolean }
     };
   });
   const transitStatuses: PurchaseStatus[] = ["to_carrier_jp", "shipped_jp_vn", "at_carrier_vn", "to_shop"];
+  const cost = opts.seeCost ? stockCostSources(db, productId) : null;
   return {
     product,
     stock: p.stock,
@@ -309,5 +364,6 @@ export function getProductStock(productId: number, opts: { seePrices?: boolean }
     transit: transitStatuses.map((s) => ({ status: s, label: PURCHASE_LABEL[s], qty: units.filter((u) => u.status === s).length })).filter((t) => t.qty > 0),
     barcodes: listBarcodes(productId),
     ...(opts.seePrices ? { price: { price: p.price, regularPrice: p.regular_price } } : {}),
+    ...(cost ? { costSources: cost.costSources, jpyRate: cost.jpyRate } : {}),
   };
 }

@@ -226,11 +226,34 @@ describe("barcode links and resolution (DB)", () => {
     const st = bc.getProductStock(a.id, { seePrices: false });
     assert.equal(st.places.find((p) => p.warehouse === "vn")!.total, 1);
     assert.equal(st.price, undefined, "no prices without see_prices");
+    assert.equal(st.costSources, undefined, "no cost sources without see_cost");
+    const withCost = bc.getProductStock(a.id, { seeCost: true });
+    assert.ok(Array.isArray(withCost.costSources), "see_cost returns costSources array");
+    assert.ok(typeof withCost.jpyRate === "number" && withCost.jpyRate > 0);
   });
   it("pack size must be a sane integer", async () => {
     const [a] = await twoProducts("pack");
     assert.throws(() => bc.linkBarcode({ productId: a.id, code: "4933333333339", packQty: 0 }, ctx));
     assert.throws(() => bc.linkBarcode({ productId: a.id, code: "4933333333339", packQty: 1.5 }, ctx));
+  });
+  it("Tra cứu costSources: see_cost only, sorted thấp → cao, marks cheapest", async () => {
+    const [a] = await twoProducts("costsrc");
+    const d = sqlite.getDb();
+    d.prepare("DELETE FROM product_cost_sources WHERE product_id = ?").run(a.id);
+    const now = new Date().toISOString();
+    d.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, '', ?, ?)").run(a.id, "rakuten", 1200, "", now, now);
+    d.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, '', ?, ?)").run(a.id, "amazon", 900, "https://amazon.co.jp/x", now, now);
+    d.prepare("INSERT INTO product_cost_sources (product_id, source, price_jpy, url, note, checked_at, created_at) VALUES (?, ?, ?, ?, '', ?, ?)").run(a.id, "yahoo", 1000, "", now, now);
+    assert.equal(bc.getProductStock(a.id, { seeCost: false }).costSources, undefined);
+    const st = bc.getProductStock(a.id, { seeCost: true });
+    assert.equal(st.costSources!.length, 3);
+    assert.deepEqual(
+      st.costSources!.map((c) => c.priceJpy),
+      [900, 1000, 1200],
+    );
+    assert.equal(st.costSources![0].cheapest, true);
+    assert.equal(st.costSources![0].source, "amazon");
+    assert.ok(st.costSources!.slice(1).every((c) => !c.cheapest));
   });
 });
 
@@ -574,5 +597,36 @@ describe("pick — order check before delivery", () => {
   it("needs the delivery permission", async () => {
     const o = await readyOrder("pick3");
     assert.throws(() => docs.createDoc("pick", { orderId: o.id }, { actor: "kho", permissions: ["kho_vn", "inventory"] }), errCode("FORBIDDEN"));
+  });
+});
+
+describe("Đóng hàng JP — supermarket pack (packProduct / unpackProduct)", () => {
+  it("each pack of a JAN adds qty pieces; unpack reduces; needs packing permission", async () => {
+    const pack = await import("../../src/lib/scan-pack");
+    const [a] = await twoProducts("packjp");
+    const ean = freshEan();
+    await db.updateProductSku(a.id, ean);
+    makeUnits(a.id, 5, "bought");
+    const jp = { actor: "kho jp", permissions: ["packing", "kho_jp", "inventory"] };
+    const vn = { actor: "kho vn", permissions: ["kho_vn", "inventory"] };
+    assert.throws(() => pack.createPackShipment({ label: "x" }, vn.permissions, vn.actor), errCode("FORBIDDEN"));
+    const sh = pack.createPackShipment({ label: "test pack" }, jp.permissions, jp.actor);
+    assert.ok(sh.code.startsWith("CH-"));
+    // supermarket: scan twice at qty 1 → 2 pieces in the run
+    const r1 = pack.packIntoShipment(sh.id, { code: ean, qty: 1 }, jp.permissions, jp.actor);
+    assert.equal(r1.units, 1);
+    assert.equal(r1.shipment.units, 1);
+    const r2 = pack.packIntoShipment(sh.id, { code: ean, qty: 1 }, jp.permissions, jp.actor);
+    assert.equal(r2.units, 1);
+    assert.equal(r2.shipment.units, 2);
+    const line = r2.shipment.lines.find((l) => l.productId === a.id)!;
+    assert.equal(line.qty, 2);
+    assert.equal(line.shelfQty, 3);
+    // pack 2 more by productId
+    const r3 = pack.packIntoShipment(sh.id, { productId: a.id, qty: 2 }, jp.permissions, jp.actor);
+    assert.equal(r3.shipment.units, 4);
+    const u = pack.unpackFromShipment(sh.id, { productId: a.id, qty: 1 }, jp.permissions, jp.actor);
+    assert.equal(u.shipment.units, 3);
+    assert.equal(u.shipment.lines.find((l) => l.productId === a.id)!.shelfQty, 2);
   });
 });

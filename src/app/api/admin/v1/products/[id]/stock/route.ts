@@ -5,5 +5,8 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/admin/v1/products/{id}/stock/ — stock by warehouse / expiry, held for orders, incoming (read-only). */
 export const GET = apiRouteWithParams<{ id: string }>({ scope: "inventory:read" }, async ({ principal }, { id }) => ({
-  data: getProductStock(parseId(id), { seePrices: principal.permissions.includes("see_prices") }),
+  data: getProductStock(parseId(id), {
+    seePrices: principal.permissions.includes("see_prices"),
+    seeCost: principal.permissions.includes("see_cost"),
+  }),
 }));

@@ -13,12 +13,17 @@ Thiết kế: `docs/architecture/mobile-scanning.md`. API/CLI: `docs/ADMIN_API.m
 
 ## 2. Chế độ
 
+Menu home (không còn chọn kho tay — mỗi chế độ đã khoá kho):
+
 | Chế độ | Ai dùng được | Ghi gì |
 | --- | --- | --- |
-| Tra cứu | mọi tài khoản có Kho / Sản phẩm / Đơn / Giao hàng | Không ghi. Tồn khả dụng (rảnh) · giữ cho đơn · thực tế trong tay, theo kho + hạn dùng, đang về; giá nếu có quyền "Xem giá bán". Nút *In nhãn mã H* |
-| Nhập hàng | quyền ③ Kho Nhật (Kho Nhật) / ⑥ Kho VN (Kho VN) | *Hàng mới*: tạo mã từng cái khi **Xác nhận nhập kho**. *Nhận chuyến hàng về* (Kho VN): chuyển đúng các cái đã quét của chuyến `CH-…` vào Kho VN, nhận một phần được |
-| Kiểm kho | như trên | Chỉ khi **Chốt kiểm kê**: thừa → thêm cái (bill `KK-yymmdd`), thiếu → loại cái rảnh gần hết hạn nhất ("thất lạc") |
-| Xuất hàng | quyền ⑦ Giao hàng VN | Đối chiếu đơn đã sẵn sàng; chọn **ĐVVC** (hoặc khách tự lấy) + **mã vận đơn** (gõ, hoặc quét nhãn vận đơn → *Dùng mã này làm mã vận đơn*); **Hoàn tất & bắt đầu giao** = bước "đã gửi" của chặng giao nội địa như ⑦ (hàng rời kho, đơn → Đang giao) |
+| Tra cứu | mọi tài khoản có Kho / Sản phẩm / Đơn / Giao hàng / Đóng hàng | Không ghi. Tồn khả dụng (rảnh) · giữ cho đơn · thực tế trong tay, theo **cả Kho VN và Kho Nhật** + hạn dùng, đang về; **giá bán** nếu có "Xem giá bán" (preset Admin kho VN có); **bảng so giá các nguồn mua** (thấp → cao, ¥ + phụ phí → vốn VNĐ) **chỉ** khi có "Xem giá vốn" (admin kho VN / admin2 thường **không** có — chỉ thấy giá bán). Nút *In nhãn mã H* |
+| Nhập hàng JP | quyền ③ Kho Nhật | *Hàng mới* vào Kho Nhật: tạo mã từng cái khi **Xác nhận nhập kho** |
+| Đóng hàng JP | quyền ④ Đóng hàng JP | Chọn/tạo chuyến đang mở → quét JAN (mỗi lần **+1 cái**, kiểu siêu thị; ô *Mỗi lần quét = N*) hoặc tìm tên + nhập số lượng → đóng FEFO vào chuyến. Ghi **ngay** (không phiếu nháp). Khoá / giao ĐVVC vẫn trên máy tính |
+| Kiểm kho JP | quyền ③ Kho Nhật | Chỉ khi **Chốt kiểm kê**: thừa → thêm cái (bill `KK-yymmdd`), thiếu → loại cái rảnh gần hết hạn nhất ("thất lạc") |
+| Xuất hàng VN | quyền ⑦ Giao hàng VN | Đối chiếu đơn đã sẵn sàng; chọn **ĐVVC** (hoặc khách tự lấy) + **mã vận đơn**; **Hoàn tất & bắt đầu giao** = bước "đã gửi" của chặng giao nội địa như ⑦ |
+
+*(Nhận chuyến hàng về Kho VN vẫn có qua API/CLI `receipts create --mode shipment` hoặc desktop — không nằm trên menu phone JP.)*
 
 Trạng thái dòng trên cùng: **Đã đọc mã → Đã nhận diện → Đã lưu nháp** (máy chủ đã nhận) **→ Đã chốt**. Chỉ "Đã lưu
 nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
@@ -29,8 +34,10 @@ nháp" mới là đã lưu; phiếu nháp không bao giờ đổi tồn kho.
 - **Máy quét Bluetooth/USB** (kiểu bàn phím, kết thúc Enter): chỉ cần quét, không cần bấm vào ô nào. Kể cả khi một ô
   khác đang được chọn (ô số lượng…), mã ≥ 8 ký tự gõ nhanh + Enter vẫn được nhận là lần quét và ô đó giữ nguyên giá trị.
 - **Nhập tay**: gõ mã → OK.
-- *Mỗi lần quét =* N: một lần quét mã sản phẩm cộng N × quy cách (ví dụ thùng 12). Mã từng cái `H…` luôn là 1 cái và
-  chỉ tính một lần trong một phiếu. **Mỗi món chỉ quét một lần** — bằng mã H *hoặc* mã JAN, không cả hai.
+- *Mỗi lần quét =* N (mặc định 1, kiểu siêu thị): phiếu nhập/kiểm/xuất — một lần quét mã sản phẩm cộng N × quy cách
+  (ví dụ thùng 12). **Đóng hàng JP** — mỗi lần quét JAN cộng đúng N cái (không × quy cách). Mã từng cái `H…` luôn là 1
+  cái và chỉ tính một lần trong một phiếu. **Mỗi món chỉ quét một lần** — bằng mã H *hoặc* mã JAN, không cả hai (trừ
+  Đóng hàng: mỗi lần quét JAN cộng thêm).
 - *Hoàn tác lần quét*: bỏ lần quét gần nhất. Sửa số lượng bằng − / ô số / +.
 - **Xem / sửa mã JAN của một sản phẩm**: trang sản phẩm (Admin › Sản phẩm › mở sản phẩm) › ô **Mã SKU & trạng thái** —
   danh sách mã đã liên kết, ô *Nhập / quét mã JAN* (+ quy cách hộp/thùng), nút *Gỡ*. Lưu ngay, không cần bấm Lưu sản

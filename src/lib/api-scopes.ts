@@ -18,8 +18,8 @@ export const SCOPE_MODULE: Record<ApiScope, string[]> = {
   "products:read": ["products"],
   "products:write": ["products"],
   "media:write": ["products"],
-  "inventory:read": ["inventory", "products", "orders", "delivery", "kho_jp", "kho_vn"],
-  "inventory:write": ["inventory", "kho_jp", "kho_vn", "delivery"],
+  "inventory:read": ["inventory", "products", "orders", "delivery", "kho_jp", "kho_vn", "packing"],
+  "inventory:write": ["inventory", "kho_jp", "kho_vn", "delivery", "packing"],
 };
 
 export function scopeAllowed(scope: ApiScope, permissions: string[]): boolean {

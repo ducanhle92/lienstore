@@ -57,6 +57,11 @@ const HELP = `lienstore — Admin API v1 CLI (JSON out). Docs: docs/ADMIN_API.md
   receipts|counts|picks confirm <docId> --version V      (counts: close, picks: complete — same command)
   picks carriers                             carriers for the VN leg; picks confirm … --method <id|pickup> [--tracking <mã vận đơn>]
   receipts|counts|picks cancel <docId>
+  shipments list                             open packing runs (Đóng hàng JP)
+  shipments create [--label …] [--note …]
+  shipments get <id>
+  shipments pack <id> <code|--product <id>> [--qty N]
+  shipments unpack <id> --product <id> [--qty N]
 
 Global: --profile <name>  --yes (required for writes when the target is production)  --timeout <ms>
 --file - reads JSON from stdin. --set key=value parses value as JSON when possible (numbers, null, ["a","b"]).`;
@@ -400,6 +405,34 @@ async function run() {
       const code = rest[0] ?? opts.code;
       if (!code) usage("codes resolve <mã>");
       return finish(cfg, await call(cfg, "GET", "codes/resolve", { query: { code } }));
+    }
+
+    case "shipments":
+    case "shipments list":
+      return finish(cfg, await call(cfg, "GET", "shipments", { query: { editable: "1" } }));
+    case "shipments create": {
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "POST", "shipments", { json: { label: opts.label ?? "", note: opts.note ?? "" }, idempotencyKey: opts["idempotency-key"] ?? `ship-create-${randomUUID()}` }));
+    }
+    case "shipments get": {
+      if (!/^\d+$/.test(String(rest[0] ?? ""))) usage("shipments get <id>");
+      return finish(cfg, await call(cfg, "GET", `shipments/${rest[0]}`));
+    }
+    case "shipments pack": {
+      const id = rest[0];
+      if (!/^\d+$/.test(String(id ?? ""))) usage("shipments pack <id> <code|--product <id>> [--qty N]");
+      guardWrite(cfg, opts);
+      const code = rest[1];
+      const productId = opts.product ? Number(opts.product) : undefined;
+      if (!code && !productId) usage("shipments pack <id> <code> hoặc --product <id>");
+      const qty = opts.qty !== undefined ? Number(opts.qty) : 1;
+      return finish(cfg, await call(cfg, "POST", `shipments/${id}/pack`, { json: { code, productId, qty }, idempotencyKey: opts["idempotency-key"] ?? `pack-${randomUUID()}` }));
+    }
+    case "shipments unpack": {
+      const id = rest[0];
+      if (!/^\d+$/.test(String(id ?? "")) || !opts.product) usage("shipments unpack <id> --product <id> [--qty N]");
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "POST", `shipments/${id}/unpack`, { json: { productId: Number(opts.product), qty: opts.qty !== undefined ? Number(opts.qty) : 1 }, idempotencyKey: opts["idempotency-key"] ?? `unpack-${randomUUID()}` }));
     }
     case "barcodes list": {
       if (!/^\d+$/.test(String(rest[0] ?? ""))) usage("barcodes list <productId>");

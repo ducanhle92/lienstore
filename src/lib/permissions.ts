@@ -35,7 +35,7 @@ export const ADMIN_MODULES: AdminModule[] = [
   { key: "kho_vn", label: "⑥ Kho VN", href: "/admin/inventory/?side=vn", description: "Nhận hàng vào kho VN, kiểm kho, đơn chờ giao" },
   { key: "delivery", label: "⑦ Giao hàng VN", href: "/admin/inventory/delivery/", description: "Chọn ĐVVC, mã vận đơn, bắt đầu giao / đã giao, đã thu tiền" },
   { key: "see_prices", label: "Xem giá bán & doanh thu", href: "/admin/orders/", description: "Đơn giá, tạm tính, tổng tiền, doanh thu. Không tick: đơn hàng chỉ hiện số tiền cần thu" },
-  { key: "see_cost", label: "Xem giá vốn & lãi / lỗ", href: "/admin/orders/", description: "Giá vốn ¥ / VNĐ, vốn tồn kho, lãi / lỗ từng đơn" },
+  { key: "see_cost", label: "Xem giá vốn & lãi / lỗ", href: "/admin/orders/", description: "Giá vốn ¥ / VNĐ, vốn tồn kho, lãi / lỗ từng đơn; trên Quét mã › Tra cứu hiện bảng so giá các nguồn mua (thấp → cao). Admin kho VN thường không tick" },
   { key: "accounting", label: "Kế toán", href: "/admin/accounting/", description: "Doanh thu, giá vốn, phí vận chuyển, lãi/lỗ theo đơn và theo tháng; vốn tồn kho" },
   { key: "shipping", label: "Vận chuyển", href: "/admin/shipping/", description: "Bảng phí vận chuyển" },
   { key: "users", label: "Người dùng", href: "/admin/users/", description: "Tài khoản, vai trò, quyền (chỉ admin)" },
@@ -63,7 +63,7 @@ export const PERMISSION_TABS: Array<{ label: string; keys: string[] }> = [
 
 /** Quick presets for the staff form (a starting point; boxes stay editable). */
 export const PERMISSION_PRESETS: Array<{ key: string; label: string; hint: string; keys: string[] }> = [
-  { key: "kho_vn", label: "Admin kho VN", hint: "Đơn hàng (chỉ thấy tiền cần thu), lên đơn, nhận hàng vào kho, kiểm kho, giao hàng", keys: ["orders", "kho_vn", "delivery"] },
+  { key: "kho_vn", label: "Admin kho VN", hint: "Đơn hàng (chỉ thấy tiền cần thu), lên đơn, nhận hàng vào kho, kiểm kho, giao hàng — thấy giá bán, không thấy giá vốn", keys: ["orders", "kho_vn", "delivery", "see_prices"] },
   { key: "kho_jp", label: "Admin kho Nhật", hint: "Mua hàng, kho Nhật, đóng hàng, vận chuyển JP-VN — thấy giá vốn ¥", keys: ["purchases", "kho_jp", "packing", "transit", "see_cost"] },
   { key: "sales", label: "Bán hàng", hint: "Sản phẩm, đơn hàng, khách hàng, khuyến mãi — thấy giá bán", keys: ["products", "orders", "customers", "promotions", "reviews", "see_prices"] },
 ];

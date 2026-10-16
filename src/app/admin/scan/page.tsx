@@ -16,5 +16,14 @@ export default async function ScanPage() {
   if (!s) redirect("/admin/login/");
   const canLookup = ["inventory", "products", "orders", "delivery", "kho_jp", "kho_vn"].some((m) => s.permissions.includes(m));
   if (!canLookup) redirect("/admin/?denied=inventory");
-  return <ScanApp warehouses={allowedWarehouses(s.permissions)} canPick={s.permissions.includes("delivery")} canLink={s.permissions.includes("products")} seeCost={s.permissions.includes("see_cost")} userLabel={s.label} />;
+  return (
+    <ScanApp
+      warehouses={allowedWarehouses(s.permissions)}
+      canPick={s.permissions.includes("delivery")}
+      canPack={s.permissions.includes("packing")}
+      canLink={s.permissions.includes("products")}
+      seeCost={s.permissions.includes("see_cost")}
+      userLabel={s.label}
+    />
+  );
 }
