@@ -48,7 +48,7 @@ Mỗi lệnh in dòng đích ra stderr: `[lienstore] → https://… [PRODUCTION
 | Tạo sản phẩm | `lienstore products create --file product.json` (`--dry-run`, `--allow-duplicate-sku`) |
 | Sửa hàng loạt | `lienstore products bulk-update --file changes.json --dry-run --out plan.json` rồi `lienstore products bulk-update --file plan.json` |
 | Upload ảnh | `lienstore media upload ./anh1.jpg ./anh2.png` (`--folder products\|categories\|posts`) |
-| Danh mục | `lienstore categories list` |
+| Danh mục | `lienstore categories list` · `categories create --name "Pokémon" [--parent do-choi-suu-tap]` · `categories update <slug> --set name=Pokémon` |
 | Ai đã sửa | `lienstore audit --product 2710` |
 
 `--set key=value`: value được đọc như JSON nếu được (`price=185000`, `promoPrice=null`, `categories='["my-pham"]'`,

@@ -5,6 +5,12 @@ Tất cả thay đổi đáng chú ý của LienStore được ghi tại đây.
 
 ## [Unreleased]
 
+### Added
+- **Admin API / CLI · danh mục**: `POST/PATCH /api/admin/v1/categories/` và `lienstore categories create|update` (đổi tên, tạo danh mục con, gắn ảnh).
+
+### Changed
+- Danh mục thẻ bài under **Đồ chơi & sưu tập**: đổi tên **Pokémon**; thêm **One Piece** và **Dragon Ball**.
+
 ## [2.35.0] - 2026-10-16
 
 ### Added

@@ -37,6 +37,9 @@ const HELP = `lienstore — Admin API v1 CLI (JSON out). Docs: docs/ADMIN_API.md
   products bulk-update --file changes.json [--dry-run [--out plan.json]]
   media upload <image> [<image> …] [--folder products|categories|posts] [--name label]
   categories list
+  categories create --name "Pokémon" [--slug the-bai-pokemon] [--parent do-choi-suu-tap]
+                [--name-ja …] [--description …] [--image /api/files/…]
+  categories update <slug> (--file patch.json | --set name=Pokémon [--set parent=do-choi-suu-tap …])
   audit [--product <id>] [--limit N]
 
   codes resolve <code>                       what a scanned / typed code is (product, unit H…, unknown, conflict)
@@ -291,6 +294,32 @@ async function run() {
     case "categories list":
     case "categories":
       return finish(cfg, await call(cfg, "GET", "categories"));
+
+    case "categories create": {
+      const name = opts.name;
+      if (!name) usage('categories create --name "Pokémon" [--slug …] [--parent …] [--name-ja …] [--image …]');
+      guardWrite(cfg, opts);
+      const json = {
+        name,
+        slug: opts.slug,
+        parent: opts.parent,
+        nameJa: opts["name-ja"] ?? opts.nameJa,
+        description: opts.description,
+        image: opts.image,
+      };
+      const idem = opts["idempotency-key"] ?? `cat-create-${stableHash(json)}`;
+      return finish(cfg, await call(cfg, "POST", "categories", { json, idempotencyKey: idem }));
+    }
+
+    case "categories update": {
+      const slug = rest[0] ?? opts.slug;
+      if (!slug) usage("categories update <slug> (--file patch.json | --set name=Pokémon …)");
+      const json = opts.file ? readJsonFile(opts.file) : {};
+      Object.assign(json, parseSets(opts.set));
+      if (!Object.keys(json).length) usage("không có gì để cập nhật (--file hoặc --set)");
+      guardWrite(cfg, opts);
+      return finish(cfg, await call(cfg, "PATCH", `categories/${encodeURIComponent(slug)}`, { json, idempotencyKey: opts["idempotency-key"] ?? `cat-update-${randomUUID()}` }));
+    }
 
     case "audit":
     case "audit list":

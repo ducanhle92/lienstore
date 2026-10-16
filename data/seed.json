@@ -270,11 +270,27 @@
   },
   {
    "slug": "the-bai-pokemon",
-   "name": "Thẻ bài Pokémon",
+   "name": "Pokémon",
    "description": "Booster box, pack, thẻ lẻ Pokémon TCG bản Nhật — hàng order theo yêu cầu",
    "image": "/sites/lienstore/shared/categories/icons/3d/the-bai-pokemon.png",
    "parent": "do-choi-suu-tap",
-   "nameJa": "ポケモンカード"
+   "nameJa": "ポケモン"
+  },
+  {
+   "slug": "the-bai-one-piece",
+   "name": "One Piece",
+   "description": "Booster box, pack ONE PIECE Card Game bản Nhật — hàng order theo yêu cầu",
+   "image": "/sites/lienstore/shared/categories/icons/3d/do-choi-suu-tap.png",
+   "parent": "do-choi-suu-tap",
+   "nameJa": "ワンピース"
+  },
+  {
+   "slug": "the-bai-dragon-ball",
+   "name": "Dragon Ball",
+   "description": "Booster box, pack Dragon Ball Super Fusion World bản Nhật — hàng order theo yêu cầu",
+   "image": "/sites/lienstore/shared/categories/icons/3d/do-choi-suu-tap.png",
+   "parent": "do-choi-suu-tap",
+   "nameJa": "ドラゴンボール"
   }
  ],
  "products": [

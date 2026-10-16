@@ -4,7 +4,7 @@ export type ApiScope = (typeof API_SCOPES)[number];
 
 export const API_SCOPE_LABELS: Record<ApiScope, string> = {
   "products:read": "Đọc sản phẩm, danh mục",
-  "products:write": "Tạo / sửa sản phẩm (kể cả cập nhật hàng loạt), liên kết mã vạch",
+  "products:write": "Tạo / sửa sản phẩm & danh mục (kể cả cập nhật hàng loạt), liên kết mã vạch",
   "media:write": "Upload ảnh sản phẩm",
   "inventory:read": "Tra mã, xem tồn kho và phiếu quét",
   "inventory:write": "Phiếu nhập hàng, kiểm kho, soạn/xuất hàng (theo quyền kho của tài khoản)",
